@@ -11,12 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('jalur_pendaftarans', function (Blueprint $table) {
+        Schema::create('menu_permission', function (Blueprint $table) {
             $table->id();
-            $table->string('nama_jalur');
-            $table->text('deskripsi')->nullable();
-            $table->boolean('aktif')->default(true);
+            $table->foreignId('menu_id')->constrained('menus')->onDelete('cascade');
+            $table->foreignId('permission_id')->constrained('permissions')->onDelete('cascade');
             $table->timestamps();
+
+            $table->unique(['menu_id', 'permission_id']);
         });
     }
 
@@ -25,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('jalur_pendaftarans');
+        Schema::dropIfExists('menu_permission');
     }
 };

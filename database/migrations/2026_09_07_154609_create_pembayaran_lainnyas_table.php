@@ -11,11 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('pembayarans', function (Blueprint $table) {
+        Schema::create('pembayaran_lainnyas', function (Blueprint $table) {
             $table->id();
             $table->foreignId('calon_siswa_id')->constrained('calon_siswas')->onDelete('cascade');
-            $table->foreignId('biaya_pendaftaran_id')->nullable()->constrained('biaya_pendaftarans')->onDelete('set null');
             $table->string('kode_pembayaran')->unique();
+            $table->string('nama_biaya'); // nama biaya bebas di luar biaya_pendaftarans
             $table->decimal('jumlah', 10, 2);
             $table->string('metode_pembayaran'); // transfer, tunai
             $table->string('bukti_pembayaran_path')->nullable();
@@ -31,6 +31,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('pembayarans');
+        Schema::dropIfExists('pembayaran_lainnyas');
     }
 };

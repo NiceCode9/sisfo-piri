@@ -12,6 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('rencana_angsurans', function (Blueprint $table) {
+            $table->id();
             $table->foreignId('calon_siswa_id')->constrained('calon_siswas')->onDelete('cascade');
             $table->foreignId('biaya_pendaftaran_id')->constrained('biaya_pendaftarans')->onDelete('cascade');
             $table->string('kode_angsuran')->unique(); // Format: ANG-YYYY-XXXX
@@ -22,7 +23,7 @@ return new class extends Migration
             $table->decimal('nominal_per_cicilan', 10, 2);
             $table->date('tanggal_mulai');
             $table->date('tanggal_selesai');
-            $table->string('status')->default('aktif'); // aktif, lunas, terlambat, batal
+            $table->enum('status', ['aktif', 'lunas', 'terlambat', 'batal'])->default('aktif');
             $table->text('catatan')->nullable();
             $table->timestamps();
 

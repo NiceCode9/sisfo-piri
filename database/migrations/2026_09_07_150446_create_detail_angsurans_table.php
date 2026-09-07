@@ -12,6 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('detail_angsurans', function (Blueprint $table) {
+            $table->id();
             $table->foreignId('rencana_angsuran_id')->constrained('rencana_angsurans')->onDelete('cascade');
             $table->integer('cicilan_ke'); // cicilan ke-1, ke-2, dst
             $table->decimal('nominal_cicilan', 10, 2);
@@ -19,7 +20,7 @@ return new class extends Migration
             $table->decimal('denda', 10, 2)->default(0); // jika ada denda keterlambatan
             $table->decimal('total_bayar', 10, 2)->nullable(); // nominal + denda yang dibayar
             $table->date('tanggal_bayar')->nullable();
-            $table->string('status')->default('belum_bayar'); // belum_bayar, dibayar, terlambat
+            $table->enum('status', ['belum_bayar', 'dibayar', 'terlambat'])->default('belum_bayar');
             $table->text('catatan')->nullable();
             $table->timestamps();
 

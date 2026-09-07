@@ -12,6 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('jadwal_ppdbs', function (Blueprint $table) {
+            $table->id();
             $table->foreignId('tahun_ajaran_id')->constrained('tahun_ajarans')->onDelete('cascade');
             $table->string('nama_jadwal'); // Contoh: Pendaftaran, Pengumuman, Daftar Ulang
             $table->date('tanggal_mulai');

@@ -8,6 +8,7 @@ class CalonSiswa extends Model
 {
     protected $fillable = [
         'jalur_pendaftaran_id',
+        'user_id',
         'no_pendaftaran',
         'nik',
         'nisn',
@@ -26,7 +27,7 @@ class CalonSiswa extends Model
         'pekerjaan_ibu',
         'no_hp_orang_tua',
         'tahun_ajaran_id',
-        'status_pendaftaran'
+        'status_pendaftaran',
     ];
 
     public function tahunAjaran()

@@ -2,14 +2,12 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Schema\Builder;
-use Spatie\Permission\Traits\HasRoles;
+use Spatie\Permission\Models\Permission;
 
 class Menu extends Model
 {
-     use HasRoles;
-
     protected $fillable = [
         'name',
         'icon',
@@ -67,21 +65,31 @@ class Menu extends Model
     }
 
     /**
-     * Scope untuk menu yang user memiliki permissionnya
+     * Relasi ke permissions (Spatie) via pivot menu_permission.
      */
-    public function scopeUserCanAccess(Builder $query)
+    public function permissions()
     {
-        return $query->where(function ($q) {
-            $q->whereNull('permission')
-                ->orWhere(function ($q) {
-                    $q->whereNotNull('permission')
-                        ->where(function ($q) {
-                            $user = auth()->user();
-                            if ($user) {
-                                $q->whereIn('permission', $user->getAllPermissions()->pluck('name'));
-                            }
-                        });
+        return $this->belongsToMany(Permission::class, 'menu_permission');
+    }
+
+    /**
+     * Scope untuk menu yang user memiliki permissionnya.
+     * Menu tanpa permission apa pun dianggap publik.
+     */
+    public function scopeUserCanAccess(Builder $query, ?User $user = null)
+    {
+        $user ??= auth()->user();
+
+        return $query->where(function ($q) use ($user) {
+            $q->whereDoesntHave('permissions')->whereNull('permission');
+
+            if ($user) {
+                $names = $user->getAllPermissions()->pluck('name');
+                $q->orWhere(function ($q) use ($names) {
+                    $q->whereHas('permissions', fn ($q) => $q->whereIn('name', $names))
+                        ->orWhereIn('permission', $names);
                 });
+            }
         });
     }
 
@@ -114,7 +122,7 @@ class Menu extends Model
      */
     public function isActive()
     {
-        if ($this->route && request()->routeIs($this->route . '*')) {
+        if ($this->route && request()->routeIs($this->route.'*')) {
             return true;
         }
 
@@ -135,13 +143,13 @@ class Menu extends Model
     public function getIconHtmlAttribute()
     {
         if (strpos($this->icon, 'fa-') !== false) {
-            return '<i class="' . $this->icon . '"></i>';
+            return '<i class="'.$this->icon.'"></i>';
         }
 
         if (strpos($this->icon, 'bi-') !== false) {
-            return '<i class="bi ' . $this->icon . '"></i>';
+            return '<i class="bi '.$this->icon.'"></i>';
         }
 
-        return '<i class="fas ' . $this->icon . '"></i>';
+        return '<i class="fas '.$this->icon.'"></i>';
     }
 }

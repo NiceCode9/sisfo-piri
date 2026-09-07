@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('nik')->unique();
             $table->string('nisn')->nullable()->unique();
             $table->string('nama_lengkap');
-            $table->string('jenis_kelamin'); // L/P
+            $table->enum('jenis_kelamin', ['L', 'P']);
             $table->string('tempat_lahir');
             $table->date('tanggal_lahir');
             $table->string('agama');
@@ -33,7 +33,7 @@ return new class extends Migration
             $table->string('pekerjaan_ibu')->nullable();
             $table->string('no_hp_orang_tua')->nullable();
             $table->foreignId('tahun_ajaran_id')->constrained('tahun_ajarans')->onDelete('cascade');
-            $table->string('status_pendaftaran')->default('menunggu'); // menunggu, diterima, ditolak, daftar_ulang
+            $table->enum('status_pendaftaran', ['menunggu', 'diterima', 'ditolak', 'daftar_ulang'])->default('menunggu');
             $table->timestamps();
         });
     }
