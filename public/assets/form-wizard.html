@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="id" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Nexus Admin — Form Wizard" />
+    <title>Nexus Admin — Form Wizard</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="layout-wrapper">
+
+      <!-- SIDEBAR -->
+      <aside id="sidebar" class="sidebar" aria-label="Main Navigation">
+        <a href="index.html" class="sidebar-brand text-decoration-none">
+          <div class="brand-logo"><i class="fa-solid fa-hexagon"></i></div>
+          <div class="brand-text"><span class="brand-name">Nexus</span><span class="brand-tagline">Admin Dashboard</span></div>
+        </a>
+        <ul class="sidebar-nav mt-2">
+          <li><div class="sidebar-label">Main</div></li>
+          <li class="nav-item"><a href="index.html" class="nav-link"><i class="fa-solid fa-th-large nav-icon"></i><span class="nav-label">Dashboard</span></a></li>
+          <li class="nav-item"><a href="analytics.html" class="nav-link"><i class="fa-solid fa-chart-bar nav-icon"></i><span class="nav-label">Analytics</span></a></li>
+
+          <li><div class="sidebar-label">Management</div></li>
+          <li class="nav-item"><a href="users.html" class="nav-link"><i class="fa-solid fa-users nav-icon"></i><span class="nav-label">Users</span></a></li>
+          <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-box nav-icon"></i><span class="nav-label">Products</span></a></li>
+          <li class="nav-item"><a href="orders.html" class="nav-link"><i class="fa-solid fa-cart-shopping nav-icon"></i><span class="nav-label">Orders</span><span class="badge bg-danger ms-auto" style="font-size: 10px">12</span></a></li>
+          <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-dollar-sign nav-icon"></i><span class="nav-label">Finance</span></a></li>
+
+          <li><div class="sidebar-label">Components</div></li>
+          <li class="nav-item"><a href="tables.html" class="nav-link"><i class="fa-solid fa-table nav-icon"></i><span class="nav-label">Data Tables</span></a></li>
+          <li class="nav-item"><a href="form-wizard.html" class="nav-link active" aria-current="page"><i class="fa-solid fa-wand-magic-sparkles nav-icon"></i><span class="nav-label">Form Wizard</span></a></li>
+
+          <li><div class="sidebar-label">System</div></li>
+          <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-file-chart-column nav-icon"></i><span class="nav-label">Reports</span></a></li>
+          <li class="nav-item"><a href="settings.html" class="nav-link"><i class="fa-solid fa-gear nav-icon"></i><span class="nav-label">Settings</span></a></li>
+          <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-shield-halved nav-icon"></i><span class="nav-label">Security</span></a></li>
+          <li class="nav-item"><a href="#" class="nav-link"><i class="fa-solid fa-circle-question nav-icon"></i><span class="nav-label">Help &amp; Support</span></a></li>
+        </ul>
+        <div class="sidebar-footer">
+          <div class="dropdown">
+            <a href="#" class="sidebar-user dropdown-toggle" id="sidebarUserMenu" data-bs-toggle="dropdown" aria-expanded="false">
+              <div class="avatar-wrapper"><div class="avatar">A</div><span class="avatar-status status-online"></span></div>
+              <div class="user-info"><div class="user-name">Alex Carter</div><div class="user-role">Super Admin</div></div>
+              <i class="fa-solid fa-ellipsis-vertical ms-auto text-muted" style="font-size: 13px"></i>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="sidebarUserMenu">
+              <li class="dropdown-header">My Account</li>
+              <li><a class="dropdown-item" href="#"><i class="fa-solid fa-user"></i> Profile</a></li>
+              <li><a class="dropdown-item" href="#"><i class="fa-solid fa-gear"></i> Preferences</a></li>
+              <li><hr class="dropdown-divider" /></li>
+              <li><a class="dropdown-item text-danger" href="#"><i class="fa-solid fa-right-from-bracket"></i> Sign Out</a></li>
+            </ul>
+          </div>
+        </div>
+      </aside>
+
+      <!-- MOBILE SIDEBAR -->
+      <div class="offcanvas offcanvas-start" tabindex="-1" id="mobileSidebar" aria-labelledby="mobileSidebarLabel">
+        <div class="offcanvas-header border-bottom" style="border-color: rgba(255,255,255,0.05) !important; padding: 18px 20px;">
+          <div class="d-flex align-items-center gap-2"><div class="brand-logo"><i class="fa-solid fa-hexagon"></i></div><span class="brand-name text-white fw-bold">Nexus Admin</span></div>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body p-0">
+          <ul class="sidebar-nav">
+            <li><div class="sidebar-label">Main</div></li>
+            <li><a href="index.html" class="nav-link"><i class="fa-solid fa-th-large nav-icon"></i><span class="nav-label">Dashboard</span></a></li>
+            <li><a href="analytics.html" class="nav-link"><i class="fa-solid fa-chart-bar nav-icon"></i><span class="nav-label">Analytics</span></a></li>
+            <li><div class="sidebar-label">Management</div></li>
+            <li><a href="users.html" class="nav-link"><i class="fa-solid fa-users nav-icon"></i><span class="nav-label">Users</span></a></li>
+            <li><a href="#" class="nav-link"><i class="fa-solid fa-box nav-icon"></i><span class="nav-label">Products</span></a></li>
+            <li><a href="orders.html" class="nav-link"><i class="fa-solid fa-cart-shopping nav-icon"></i><span class="nav-label">Orders</span></a></li>
+            <li><div class="sidebar-label">Components</div></li>
+            <li><a href="tables.html" class="nav-link"><i class="fa-solid fa-table nav-icon"></i><span class="nav-label">Data Tables</span></a></li>
+            <li><a href="form-wizard.html" class="nav-link active"><i class="fa-solid fa-wand-magic-sparkles nav-icon"></i><span class="nav-label">Form Wizard</span></a></li>
+            <li><div class="sidebar-label">System</div></li>
+            <li><a href="settings.html" class="nav-link"><i class="fa-solid fa-gear nav-icon"></i><span class="nav-label">Settings</span></a></li>
+            <li><a href="#" class="nav-link text-danger"><i class="fa-solid fa-right-from-bracket nav-icon"></i><span class="nav-label">Sign Out</span></a></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- MAIN CONTENT -->
+      <div id="mainContent" class="main-content">
+
+        <nav class="top-navbar" aria-label="Top Navigation">
+          <button class="sidebar-toggle-btn d-none d-lg-flex" id="sidebarToggleBtn" aria-label="Toggle Sidebar"><i class="fa-solid fa-outdent"></i></button>
+          <button class="sidebar-toggle-btn d-flex d-lg-none" id="mobileSidebarToggle" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar" aria-label="Open Sidebar"><i class="fa-solid fa-bars"></i></button>
+
+          <nav aria-label="breadcrumb" class="d-none d-md-flex">
+            <ol class="breadcrumb mb-0" style="font-size: 12.5px">
+              <li class="breadcrumb-item"><a href="#" class="text-decoration-none" style="color: var(--text-muted)">Components</a></li>
+              <li class="breadcrumb-item active" style="color: var(--text-secondary)">Form Wizard</li>
+            </ol>
+          </nav>
+
+          <div class="navbar-search d-none d-lg-block">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input type="text" id="globalSearch" class="form-control" placeholder="Search anything..." aria-label="Global Search" />
+            <span class="kbd-hint">⌘K</span>
+          </div>
+
+          <div class="navbar-actions">
+            <div class="dark-toggle" data-theme-toggle role="button" aria-label="Toggle dark mode" tabindex="0">
+              <div class="toggle-icon toggle-light active"><i class="fa-solid fa-sun"></i></div>
+              <div class="toggle-icon toggle-dark"><i class="fa-solid fa-moon"></i></div>
+            </div>
+            <div class="dropdown">
+              <button class="nav-action-btn" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notifications"><i class="fa-solid fa-bell"></i><span class="badge-dot"></span></button>
+              <div class="dropdown-menu dropdown-menu-end notif-dropdown p-0">
+                <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom" style="border-color:var(--border-color)!important"><span class="fw-bold" style="font-size:14px;color:var(--text-primary)">Notifications</span><span class="badge-nexus badge-purple">4 New</span></div>
+                <div class="notif-item unread">
+                  <div class="notif-icon-wrap" style="background:rgba(79,70,229,0.12);color:#4f46e5"><i class="fa-solid fa-user-plus"></i></div>
+                  <div class="notif-content flex-1"><div class="notif-title">New User Registered</div><div class="notif-text">Sarah Johnson joined your platform</div><div class="notif-time">2 minutes ago</div></div>
+                  <span class="unread-dot"></span>
+                </div>
+                <div class="p-2 border-top" style="border-color:var(--border-color)!important"><a href="#" class="btn w-100" style="font-size:12.5px;color:var(--accent-primary);font-weight:600;">View all notifications</a></div>
+              </div>
+            </div>
+            <button class="nav-action-btn d-none d-sm-flex" aria-label="Messages"><i class="fa-solid fa-comment-dots"></i></button>
+            <div class="dropdown">
+              <div class="navbar-user" data-bs-toggle="dropdown" aria-expanded="false" role="button" aria-label="User menu">
+                <div class="user-meta d-none d-lg-block"><div class="u-name">Alex Carter</div><div class="u-role">Super Admin</div></div>
+                <div class="avatar-wrapper"><div class="avatar">A</div><span class="avatar-status status-online"></span></div>
+              </div>
+              <ul class="dropdown-menu dropdown-menu-end mt-2">
+                <li><div class="px-3 py-2"><div class="fw-bold" style="font-size:14px;color:var(--text-primary)">Alex Carter</div><div style="font-size:12px;color:var(--text-muted)">alex@nexusapp.io</div></div></li>
+                <li><hr class="dropdown-divider" /></li>
+                <li><a class="dropdown-item" href="#"><i class="fa-solid fa-circle-user"></i> My Profile</a></li>
+                <li><a class="dropdown-item" href="#"><i class="fa-solid fa-sliders"></i> Account Settings</a></li>
+                <li><hr class="dropdown-divider" /></li>
+                <li><a class="dropdown-item text-danger" href="#"><i class="fa-solid fa-right-from-bracket"></i> Sign Out</a></li>
+              </ul>
+            </div>
+          </div>
+        </nav>
+
+        <!-- PAGE CONTENT -->
+        <main class="page-content">
+          <div class="page-header d-flex flex-wrap align-items-start justify-content-between gap-3">
+            <div>
+              <h1 class="page-title">Form Wizard</h1>
+              <p class="page-subtitle mb-0"><i class="fa-solid fa-wand-magic-sparkles"></i>&nbsp;&nbsp; Multi-step form with validation &amp; progress tracking</p>
+            </div>
+          </div>
+
+          <div class="card-nexus p-4 p-sm-5">
+            <div class="wizard" id="formWizard">
+
+              <!-- STEP INDICATOR -->
+              <div class="wizard-steps" id="stepIndicator">
+                <div class="step active" data-step="1">
+                  <div class="step-circle">1</div>
+                  <div class="step-label">Account</div>
+                </div>
+                <div class="step-connector" data-connector="1"></div>
+                <div class="step" data-step="2">
+                  <div class="step-circle">2</div>
+                  <div class="step-label">Profile</div>
+                </div>
+                <div class="step-connector" data-connector="2"></div>
+                <div class="step" data-step="3">
+                  <div class="step-circle">3</div>
+                  <div class="step-label">Company</div>
+                </div>
+                <div class="step-connector" data-connector="3"></div>
+                <div class="step" data-step="4">
+                  <div class="step-circle">4</div>
+                  <div class="step-label">Confirm</div>
+                </div>
+              </div>
+
+              <!-- STEP 1: ACCOUNT -->
+              <div class="wizard-panel active" data-panel="1">
+                <div class="panel-title">Create Account</div>
+                <div class="panel-subtitle">Set up your login credentials</div>
+
+                <div class="wizard-card">
+                  <div class="wizard-card-title">Login Information</div>
+                  <div class="row g-3">
+                    <div class="col-12">
+                      <label class="form-label">Email Address</label>
+                      <input type="email" class="form-control" id="wizEmail" placeholder="you@example.com" required />
+                    </div>
+                    <div class="col-12 col-sm-6">
+                      <label class="form-label">Password</label>
+                      <input type="password" class="form-control" id="wizPass" placeholder="Create a password" required minlength="8" />
+                      <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Min. 8 characters</div>
+                    </div>
+                    <div class="col-12 col-sm-6">
+                      <label class="form-label">Confirm Password</label>
+                      <input type="password" class="form-control" id="wizPassConfirm" placeholder="Confirm password" required />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- STEP 2: PROFILE -->
+              <div class="wizard-panel" data-panel="2">
+                <div class="panel-title">Personal Profile</div>
+                <div class="panel-subtitle">Tell us about yourself</div>
+
+                <div class="wizard-card">
+                  <div class="wizard-card-title">Basic Information</div>
+                  <div class="row g-3">
+                    <div class="col-12 col-sm-6">
+                      <label class="form-label">First Name</label>
+                      <input type="text" class="form-control" id="wizFirst" placeholder="John" required />
+                    </div>
+                    <div class="col-12 col-sm-6">
+                      <label class="form-label">Last Name</label>
+                      <input type="text" class="form-control" id="wizLast" placeholder="Doe" required />
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label">Phone Number</label>
+                      <input type="tel" class="form-control" id="wizPhone" placeholder="+1 (555) 000-0000" />
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label">Bio</label>
+                      <textarea class="form-control" id="wizBio" rows="3" placeholder="A short bio about yourself..."></textarea>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="wizard-card">
+                  <div class="wizard-card-title">Preferences</div>
+                  <div class="d-flex flex-column gap-2">
+                    <div class="form-check">
+                      <input type="checkbox" class="form-check-input" id="wizNewsletter" checked />
+                      <label class="form-check-label" for="wizNewsletter" style="font-size: 13px; color: var(--text-secondary);">Send me product updates and newsletters</label>
+                    </div>
+                    <div class="form-check">
+                      <input type="checkbox" class="form-check-input" id="wizTerms" required />
+                      <label class="form-check-label" for="wizTerms" style="font-size: 13px; color: var(--text-secondary);">I agree to the <a href="#" style="color: var(--accent-primary);">Terms of Service</a></label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- STEP 3: COMPANY -->
+              <div class="wizard-panel" data-panel="3">
+                <div class="panel-title">Company Details</div>
+                <div class="panel-subtitle">Optional — tell us about your organization</div>
+
+                <div class="wizard-card">
+                  <div class="wizard-card-title">Organization</div>
+                  <div class="row g-3">
+                    <div class="col-12 col-sm-8">
+                      <label class="form-label">Company Name</label>
+                      <input type="text" class="form-control" id="wizCompany" placeholder="Acme Inc." />
+                    </div>
+                    <div class="col-12 col-sm-4">
+                      <label class="form-label">Size</label>
+                      <select class="form-select" id="wizSize">
+                        <option value="">Select...</option>
+                        <option>1-10</option>
+                        <option>11-50</option>
+                        <option>51-200</option>
+                        <option>200+</option>
+                      </select>
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label">Website</label>
+                      <input type="url" class="form-control" id="wizWebsite" placeholder="https://example.com" />
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label">Address</label>
+                      <textarea class="form-control" id="wizAddress" rows="2" placeholder="Street, city, postal code..."></textarea>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- STEP 4: CONFIRM -->
+              <div class="wizard-panel" data-panel="4">
+                <div class="panel-title">Review &amp; Confirm</div>
+                <div class="panel-subtitle">Please review your information before submitting</div>
+
+                <div class="wizard-card">
+                  <div class="wizard-card-title">Account Details</div>
+                  <div class="wizard-preview-item"><span class="preview-label">Email</span><span class="preview-value" id="previewEmail">—</span></div>
+                  <div class="wizard-preview-item"><span class="preview-label">Name</span><span class="preview-value" id="previewName">—</span></div>
+                  <div class="wizard-preview-item"><span class="preview-label">Phone</span><span class="preview-value" id="previewPhone">—</span></div>
+                  <div class="wizard-preview-item"><span class="preview-label">Company</span><span class="preview-value" id="previewCompany">—</span></div>
+                  <div class="wizard-preview-item"><span class="preview-label">Size</span><span class="preview-value" id="previewSize">—</span></div>
+                  <div class="wizard-preview-item"><span class="preview-label">Website</span><span class="preview-value" id="previewWebsite">—</span></div>
+                </div>
+              </div>
+
+              <!-- SUCCESS STATE -->
+              <div class="wizard-panel" data-panel="success">
+                <div class="wizard-success">
+                  <div class="success-icon"><i class="fa-solid fa-check"></i></div>
+                  <h4>Registration Complete!</h4>
+                  <p>Your account has been created successfully. We've sent a confirmation email to <strong id="successEmail">your email</strong>.</p>
+                  <a href="index.html" class="btn btn-primary"><i class="fa-solid fa-house"></i> Go to Dashboard</a>
+                  <button class="btn btn-nexus-outline ms-2" onclick="resetWizard()"><i class="fa-solid fa-rotate"></i> Start Over</button>
+                </div>
+              </div>
+
+              <!-- FOOTER -->
+              <div class="wizard-footer" id="wizardFooter">
+                <button class="btn btn-nexus-outline" id="wizPrevBtn" onclick="prevStep()" style="visibility: hidden;">
+                  <i class="fa-solid fa-arrow-left"></i> Previous
+                </button>
+                <div></div>
+                <button class="btn btn-primary" id="wizNextBtn" onclick="nextStep()">
+                  Next <i class="fa-solid fa-arrow-right"></i>
+                </button>
+              </div>
+
+            </div>
+          </div>
+        </main>
+
+        <footer class="px-4 py-3 border-top d-flex align-items-center justify-content-between flex-wrap gap-2" style="border-color:var(--border-color)!important;background:var(--bg-surface);">
+          <span style="font-size:12.5px;color:var(--text-muted);">&copy; 2026 Nexus Admin. Crafted with Bootstrap 5.</span>
+          <div class="d-flex gap-3">
+            <a href="#" style="font-size:12.5px;color:var(--text-muted);text-decoration:none;">Docs</a>
+            <a href="#" style="font-size:12.5px;color:var(--text-muted);text-decoration:none;">Support</a>
+            <a href="#" style="font-size:12.5px;color:var(--text-muted);text-decoration:none;">Privacy</a>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="script.js"></script>
+
+    <script>
+      let currentStep = 1;
+      const totalSteps = 4;
+
+      function showStep(step) {
+        const panels = document.querySelectorAll('.wizard-panel');
+        panels.forEach(p => p.classList.remove('active'));
+
+        const targetPanel = document.querySelector(`.wizard-panel[data-panel="${step}"]`);
+        if (targetPanel) targetPanel.classList.add('active');
+
+        const steps = document.querySelectorAll('.wizard-steps .step');
+        steps.forEach((s, i) => {
+          s.classList.remove('active', 'completed');
+          if (i + 1 === step) s.classList.add('active');
+          else if (i + 1 < step) s.classList.add('completed');
+        });
+
+        const connectors = document.querySelectorAll('.wizard-steps .step-connector');
+        connectors.forEach((c, i) => {
+          c.classList.remove('filled', 'completed');
+          if (i + 1 < step) c.classList.add('completed');
+          else if (i + 1 === step) c.classList.add('filled');
+        });
+
+        const prevBtn = document.getElementById('wizPrevBtn');
+        const nextBtn = document.getElementById('wizNextBtn');
+        const footer = document.getElementById('wizardFooter');
+
+        if (step === 1) {
+          prevBtn.style.visibility = 'hidden';
+        } else {
+          prevBtn.style.visibility = 'visible';
+        }
+
+        if (step === totalSteps) {
+          nextBtn.innerHTML = 'Submit <i class="fa-solid fa-check"></i>';
+        } else {
+          nextBtn.innerHTML = 'Next <i class="fa-solid fa-arrow-right"></i>';
+        }
+
+        if (step === 'success') {
+          footer.style.display = 'none';
+        } else {
+          footer.style.display = 'flex';
+        }
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      function nextStep() {
+        if (currentStep === 'success') return;
+
+        if (!validateStep(currentStep)) return;
+
+        if (currentStep === totalSteps) {
+          submitWizard();
+          return;
+        }
+
+        if (currentStep === totalSteps - 1) {
+          updatePreview();
+        }
+
+        currentStep++;
+        showStep(currentStep);
+      }
+
+      function prevStep() {
+        if (currentStep === 1 || currentStep === 'success') return;
+        currentStep--;
+        showStep(currentStep);
+      }
+
+      function validateStep(step) {
+        let valid = true;
+        const card = document.querySelector(`.wizard-panel[data-panel="${step}"]`);
+        const inputs = card.querySelectorAll('input[required], textarea[required], select[required]');
+
+        inputs.forEach(inp => {
+          inp.classList.remove('is-invalid');
+          if (!inp.value.trim()) {
+            inp.classList.add('is-invalid');
+            valid = false;
+          }
+        });
+
+        // Step 1: password match
+        if (step === 1) {
+          const pass = document.getElementById('wizPass');
+          const confirm = document.getElementById('wizPassConfirm');
+          confirm.classList.remove('is-invalid');
+          if (pass.value !== confirm.value) {
+            confirm.classList.add('is-invalid');
+            valid = false;
+          }
+        }
+
+        if (!valid) {
+          const firstInvalid = card.querySelector('.is-invalid');
+          if (firstInvalid) firstInvalid.focus();
+        }
+
+        return valid;
+      }
+
+      function updatePreview() {
+        document.getElementById('previewEmail').textContent = document.getElementById('wizEmail').value || '—';
+        const first = document.getElementById('wizFirst').value || '—';
+        const last = document.getElementById('wizLast').value || '—';
+        document.getElementById('previewName').textContent = first + ' ' + last;
+        document.getElementById('previewPhone').textContent = document.getElementById('wizPhone').value || '—';
+        document.getElementById('previewCompany').textContent = document.getElementById('wizCompany').value || '—';
+        document.getElementById('previewSize').textContent = document.getElementById('wizSize').value || '—';
+        document.getElementById('previewWebsite').textContent = document.getElementById('wizWebsite').value || '—';
+      }
+
+      function submitWizard() {
+        const email = document.getElementById('wizEmail').value;
+        document.getElementById('successEmail').textContent = email;
+        currentStep = 'success';
+        showStep('success');
+      }
+
+      function resetWizard() {
+        currentStep = 1;
+        document.querySelectorAll('.wizard-panel').forEach(p => p.classList.remove('active'));
+        document.querySelector(`.wizard-panel[data-panel="1"]`).classList.add('active');
+        document.getElementById('wizardFooter').style.display = 'flex';
+        showStep(1);
+      }
+
+      // Real-time password match indicator
+      document.getElementById('wizPassConfirm')?.addEventListener('input', function() {
+        const pass = document.getElementById('wizPass').value;
+        if (this.value.length > 0) {
+          if (this.value !== pass) {
+            this.classList.add('is-invalid');
+          } else {
+            this.classList.remove('is-invalid');
+          }
+        }
+      });
+
+      // Enter key to go next
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.target.closest('textarea')) {
+          e.preventDefault();
+          if (currentStep !== 'success') {
+            nextStep();
+          }
+        }
+      });
+    </script>
+  </body>
+</html>

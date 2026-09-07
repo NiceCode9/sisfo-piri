@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\Menu;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +21,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        View::composer('layouts.partials.sidebar', function ($view) {
+            $user = auth()->user();
+
+            $menus = Menu::parents()
+                ->userCanAccess($user)
+                ->with(['children' => fn ($query) => $query->userCanAccess($user), 'permissions'])
+                ->get();
+
+            $view->with('adminMenus', $menus);
+        });
     }
 }
