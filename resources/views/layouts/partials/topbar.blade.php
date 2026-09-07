@@ -105,7 +105,7 @@
                 <li><a class="dropdown-item" href="#"><i class="fa-solid fa-credit-card"></i> Billing &amp; Plans</a></li>
                 <li><hr class="dropdown-divider" /></li>
                 <li><a class="dropdown-item" href="#"><i class="fa-solid fa-life-ring"></i> Help Center</a></li>
-                <li><a class="dropdown-item text-danger" href="#"><i class="fa-solid fa-right-from-bracket"></i> Sign Out</a></li>
+                <li><a class="dropdown-item text-danger" href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();"><i class="fa-solid fa-right-from-bracket"></i> Sign Out</a></li>
             </ul>
         </div>
     </div>

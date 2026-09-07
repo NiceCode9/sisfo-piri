@@ -24,7 +24,7 @@ class MenuSeeder extends Seeder
 
             ['name' => 'Sistem', 'is_header' => true, 'order' => 20],
             ['name' => 'Menu', 'icon' => 'fa-solid fa-bars', 'order' => 21],
-            ['name' => 'Pengguna & Role', 'icon' => 'fa-solid fa-users-gear', 'order' => 22],
+            ['name' => 'Pengguna & Role', 'icon' => 'fa-solid fa-users-gear', 'route' => 'admin.users.index', 'permission' => 'users.view', 'order' => 22],
         ];
 
         foreach ($menus as $menu) {
