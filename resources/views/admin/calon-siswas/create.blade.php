@@ -24,7 +24,7 @@
         </div>
     </div>
     <div class="card-body-nexus">
-        <form method="POST" action="{{ route('admin.calon-siswas.store') }}">
+        <form method="POST" action="{{ route('admin.calon-siswas.store') }}" enctype="multipart/form-data">
             @csrf
             @include('admin.calon-siswas._form', ['calon' => null, 'jalurs' => $jalurs, 'tahunAjarans' => $tahunAjarans, 'tahunAktif' => $tahunAktif, 'isEdit' => false])
             <div class="d-flex gap-2 justify-content-end mt-2">

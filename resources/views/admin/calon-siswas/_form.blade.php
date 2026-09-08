@@ -1,4 +1,12 @@
 {{-- $calon (nullable), $jalurs, $tahunAjarans, $tahunAktif, $isEdit --}}
+{{-- Section A: Jalur & Tahun --}}
+<div class="d-flex align-items-center gap-2 mb-3 mt-1">
+    <div class="d-flex align-items-center justify-content-center rounded-3" style="width:36px;height:36px;background:var(--accent-primary);color:#fff;"><i class="fa-solid fa-route"></i></div>
+    <div>
+        <div style="font-weight:700;font-size:14px;color:var(--text-primary);">Jalur & Tahun Ajaran</div>
+        <div style="font-size:12px;color:var(--text-muted);">Pilih jalur pendaftaran dan tahun ajaran (kosongkan = otomatis aktif)</div>
+    </div>
+</div>
 <div class="row g-3 mb-3">
     <div class="col-12 col-sm-6">
         <label class="form-label" for="jalur_pendaftaran_id">Jalur Pendaftaran <span class="text-danger">*</span></label>
@@ -22,16 +30,27 @@
     </div>
 </div>
 
+<hr class="my-4" style="border-color: var(--border-color);" />
+
+{{-- Section B: Data Pribadi --}}
+<div class="d-flex align-items-center gap-2 mb-3">
+    <div class="d-flex align-items-center justify-content-center rounded-3" style="width:36px;height:36px;background:#4f46e5;color:#fff;"><i class="fa-solid fa-user"></i></div>
+    <div>
+        <div style="font-weight:700;font-size:14px;color:var(--text-primary);">Data Pribadi Siswa</div>
+        <div style="font-size:12px;color:var(--text-muted);">Identitas calon siswa sesuai dokumen resmi</div>
+    </div>
+</div>
+
 <div class="row g-3 mb-3">
     <div class="col-12 col-sm-6">
         <div class="form-floating">
             <input type="text" name="nama_lengkap" value="{{ old('nama_lengkap', $calon->nama_lengkap ?? '') }}" class="form-control @error('nama_lengkap') is-invalid @enderror" id="nama_lengkap" placeholder="Nama Lengkap" required />
-            <label for="nama_lengkap">Nama Lengkap</label>
+            <label for="nama_lengkap">Nama Lengkap <span class="text-danger">*</span></label>
             @error('nama_lengkap')<div class="invalid-feedback">{{ $message }}</div>@enderror
         </div>
     </div>
     <div class="col-12 col-sm-3">
-        <label class="form-label" for="jenis_kelamin">Jenis Kelamin</label>
+        <label class="form-label" for="jenis_kelamin">Jenis Kelamin <span class="text-danger">*</span></label>
         <select name="jenis_kelamin" id="jenis_kelamin" class="form-select @error('jenis_kelamin') is-invalid @enderror" required>
             <option value="">— Pilih —</option>
             <option value="L" @selected(old('jenis_kelamin', $calon->jenis_kelamin ?? '') === 'L')>Laki-laki</option>
@@ -42,7 +61,7 @@
     <div class="col-12 col-sm-3">
         <div class="form-floating">
             <input type="text" name="nik" value="{{ old('nik', $calon->nik ?? '') }}" maxlength="16" class="form-control @error('nik') is-invalid @enderror" id="nik" placeholder="NIK" required />
-            <label for="nik">NIK (16 digit)</label>
+            <label for="nik">NIK (16 digit) <span class="text-danger">*</span></label>
             @error('nik')<div class="invalid-feedback">{{ $message }}</div>@enderror
         </div>
     </div>
@@ -59,14 +78,14 @@
     <div class="col-12 col-sm-4">
         <div class="form-floating">
             <input type="text" name="tempat_lahir" value="{{ old('tempat_lahir', $calon->tempat_lahir ?? '') }}" class="form-control @error('tempat_lahir') is-invalid @enderror" id="tempat_lahir" placeholder="Tempat Lahir" required />
-            <label for="tempat_lahir">Tempat Lahir</label>
+            <label for="tempat_lahir">Tempat Lahir <span class="text-danger">*</span></label>
             @error('tempat_lahir')<div class="invalid-feedback">{{ $message }}</div>@enderror
         </div>
     </div>
     <div class="col-12 col-sm-4">
         <div class="form-floating">
             <input type="date" name="tanggal_lahir" value="{{ old('tanggal_lahir', isset($calon->tanggal_lahir) ? \Illuminate\Support\Carbon::parse($calon->tanggal_lahir)->format('Y-m-d') : '') }}" class="form-control @error('tanggal_lahir') is-invalid @enderror" id="tanggal_lahir" required />
-            <label for="tanggal_lahir">Tanggal Lahir</label>
+            <label for="tanggal_lahir">Tanggal Lahir <span class="text-danger">*</span></label>
             @error('tanggal_lahir')<div class="invalid-feedback">{{ $message }}</div>@enderror
         </div>
     </div>
@@ -74,11 +93,14 @@
 
 <div class="row g-3 mb-3">
     <div class="col-12 col-sm-4">
-        <div class="form-floating">
-            <input type="text" name="agama" value="{{ old('agama', $calon->agama ?? '') }}" class="form-control @error('agama') is-invalid @enderror" id="agama" placeholder="Agama" required />
-            <label for="agama">Agama</label>
-            @error('agama')<div class="invalid-feedback">{{ $message }}</div>@enderror
-        </div>
+        <label class="form-label" for="agama">Agama <span class="text-danger">*</span></label>
+        <select name="agama" id="agama" class="form-select @error('agama') is-invalid @enderror" required>
+            <option value="">— Pilih Agama —</option>
+            @foreach (['Islam','Kristen','Katolik','Hindu','Buddha','Khonghucu'] as $ag)
+                <option value="{{ $ag }}" @selected(old('agama', $calon->agama ?? '') === $ag)>{{ $ag }}</option>
+            @endforeach
+        </select>
+        @error('agama')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
     </div>
     <div class="col-12 col-sm-4">
         <div class="form-floating">
@@ -89,10 +111,21 @@
     </div>
     <div class="col-12 col-sm-4">
         <div class="form-floating">
-            <input type="text" name="no_hp" value="{{ old('no_hp', $calon->no_hp ?? '') }}" class="form-control @error('no_hp') is-invalid @enderror" id="no_hp" placeholder="No HP" />
+            <input type="tel" name="no_hp" value="{{ old('no_hp', $calon->no_hp ?? '') }}" class="form-control @error('no_hp') is-invalid @enderror" id="no_hp" placeholder="No HP" />
             <label for="no_hp">No. HP Siswa</label>
             @error('no_hp')<div class="invalid-feedback">{{ $message }}</div>@enderror
         </div>
+    </div>
+</div>
+
+<hr class="my-4" style="border-color: var(--border-color);" />
+
+{{-- Section C: Kontak & Alamat --}}
+<div class="d-flex align-items-center gap-2 mb-3">
+    <div class="d-flex align-items-center justify-content-center rounded-3" style="width:36px;height:36px;background:#06b6d4;color:#fff;"><i class="fa-solid fa-envelope"></i></div>
+    <div>
+        <div style="font-weight:700;font-size:14px;color:var(--text-primary);">Kontak & Alamat</div>
+        <div style="font-size:12px;color:var(--text-muted);">Alamat domisili dan kontak yang dapat dihubungi</div>
     </div>
 </div>
 
@@ -106,10 +139,21 @@
     </div>
     <div class="col-12 col-sm-6">
         <div class="form-floating">
-            <textarea name="alamat" id="alamat" rows="2" class="form-control @error('alamat') is-invalid @enderror" placeholder="Alamat" style="height: 58px" required>{{ old('alamat', $calon->alamat ?? '') }}</textarea>
-            <label for="alamat">Alamat</label>
+            <textarea name="alamat" id="alamat" rows="3" class="form-control @error('alamat') is-invalid @enderror" placeholder="Alamat" style="height: 80px; min-height:80px;" required>{{ old('alamat', $calon->alamat ?? '') }}</textarea>
+            <label for="alamat">Alamat Lengkap <span class="text-danger">*</span></label>
             @error('alamat')<div class="invalid-feedback">{{ $message }}</div>@enderror
         </div>
+    </div>
+</div>
+
+<hr class="my-4" style="border-color: var(--border-color);" />
+
+{{-- Section D: Orang Tua --}}
+<div class="d-flex align-items-center gap-2 mb-3">
+    <div class="d-flex align-items-center justify-content-center rounded-3" style="width:36px;height:36px;background:#f59e0b;color:#fff;"><i class="fa-solid fa-users"></i></div>
+    <div>
+        <div style="font-weight:700;font-size:14px;color:var(--text-primary);">Data Orang Tua</div>
+        <div style="font-size:12px;color:var(--text-muted);">Informasi wali yang dapat dihubungi</div>
     </div>
 </div>
 
@@ -147,9 +191,70 @@
     </div>
     <div class="col-12 col-sm-3">
         <div class="form-floating">
-            <input type="text" name="no_hp_orang_tua" value="{{ old('no_hp_orang_tua', $calon->no_hp_orang_tua ?? '') }}" class="form-control @error('no_hp_orang_tua') is-invalid @enderror" id="no_hp_orang_tua" placeholder="No HP Orang Tua" />
+            <input type="tel" name="no_hp_orang_tua" value="{{ old('no_hp_orang_tua', $calon->no_hp_orang_tua ?? '') }}" class="form-control @error('no_hp_orang_tua') is-invalid @enderror" id="no_hp_orang_tua" placeholder="No HP Orang Tua" />
             <label for="no_hp_orang_tua">No HP Orang Tua</label>
             @error('no_hp_orang_tua')<div class="invalid-feedback">{{ $message }}</div>@enderror
         </div>
     </div>
 </div>
+
+<hr class="my-4" style="border-color: var(--border-color);" />
+
+{{-- Section E: Berkas --}}
+<div class="d-flex align-items-center gap-2 mb-3">
+    <div class="d-flex align-items-center justify-content-center rounded-3" style="width:36px;height:36px;background:#10b981;color:#fff;"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+    <div>
+        <div style="font-weight:700;font-size:14px;color:var(--text-primary);">Berkas Persyaratan</div>
+        <div style="font-size:12px;color:var(--text-muted);">Upload berkas (admin nullable, kosongkan bila tidak diubah). PDF 5MB, Foto JPG/PNG 2MB.</div>
+    </div>
+</div>
+
+@php
+    $berkas = $calon->berkasCalonSiswa ?? null;
+    $berkasFields = [
+        'ijazah_path' => ['label' => 'Ijazah (PDF)', 'accept' => '.pdf', 'icon' => 'fa-file-pdf', 'hint' => 'PDF maksimal 5MB'],
+        'kk_path' => ['label' => 'Kartu Keluarga (PDF)', 'accept' => '.pdf', 'icon' => 'fa-file-pdf', 'hint' => 'PDF maksimal 5MB'],
+        'akta_path' => ['label' => 'Akta Kelahiran (PDF)', 'accept' => '.pdf', 'icon' => 'fa-file-pdf', 'hint' => 'PDF maksimal 5MB'],
+        'foto_path' => ['label' => 'Pas Foto (JPG/PNG)', 'accept' => 'image/*', 'icon' => 'fa-image', 'hint' => 'JPG/PNG maksimal 2MB'],
+        'skl_path' => ['label' => 'SKL (PDF)', 'accept' => '.pdf', 'icon' => 'fa-file-pdf', 'hint' => 'PDF maksimal 5MB'],
+    ];
+@endphp
+
+<div class="row g-3">
+    @foreach ($berkasFields as $field => $meta)
+        <div class="col-12 col-md-6">
+            <label class="form-label" for="{{ $field }}">{{ $meta['label'] }}</label>
+            @if ($berkas && $berkas->$field)
+                <div class="mb-1" style="font-size: 12px;">
+                    Saat ini: <a href="{{ Storage::disk('public')->url($berkas->$field) }}" target="_blank" class="text-primary"><i class="fa-solid fa-eye"></i> Lihat file</a>
+                    <span style="color: var(--text-muted);">— ganti file di bawah bila perlu</span>
+                </div>
+            @endif
+            <div class="position-relative border border-2 border-dashed rounded-3 p-4 text-center bg-white @error($field) border-danger @enderror" style="border-color: var(--border-color) !important;">
+                <div class="mb-2"><i class="fa-solid {{ $meta['icon'] }} fa-2x" style="color: var(--text-muted);"></i></div>
+                <div style="font-size: 13px; color: var(--text-secondary);"><strong>Klik untuk upload</strong> atau drag & drop</div>
+                <div style="font-size: 11px; color: var(--text-muted);">{{ $meta['hint'] }}</div>
+                <input type="file" name="{{ $field }}" id="{{ $field }}" accept="{{ $meta['accept'] }}" class="position-absolute top-0 start-0 w-100 h-100 opacity-0 @error($field) is-invalid @enderror" style="cursor: pointer;" />
+            </div>
+            @error($field)<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+            <div class="form-text file-name" data-for="{{ $field }}" style="font-size: 12px; color: var(--accent-primary); display:none;"></div>
+        </div>
+    @endforeach
+</div>
+
+@push('scripts')
+<script>
+document.querySelectorAll('input[type="file"][name$="_path"]').forEach(input => {
+    input.addEventListener('change', function() {
+        const nameEl = document.querySelector('.file-name[data-for="'+this.name+'"]');
+        if (this.files && this.files[0]) {
+            nameEl.textContent = 'File terpilih: ' + this.files[0].name;
+            nameEl.style.display = 'block';
+            this.closest('.border-dashed').style.borderColor = 'var(--accent-primary)';
+        } else {
+            nameEl.style.display = 'none';
+        }
+    });
+});
+</script>
+@endpush

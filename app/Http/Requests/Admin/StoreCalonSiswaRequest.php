@@ -26,7 +26,7 @@ class StoreCalonSiswaRequest extends FormRequest
             'jenis_kelamin' => ['required', 'in:L,P'],
             'tempat_lahir' => ['required', 'string', 'max:100'],
             'tanggal_lahir' => ['required', 'date', 'before:today'],
-            'agama' => ['required', 'string', 'max:20'],
+            'agama' => ['required', 'string', 'in:Islam,Kristen,Katolik,Hindu,Buddha,Khonghucu'],
             'alamat' => ['required', 'string', 'max:1000'],
             'no_hp' => ['nullable', 'string', 'max:20'],
             'email' => ['nullable', 'email', 'max:255', 'unique:calon_siswas,email'],
@@ -37,6 +37,11 @@ class StoreCalonSiswaRequest extends FormRequest
             'pekerjaan_ibu' => ['nullable', 'string', 'max:50'],
             'no_hp_orang_tua' => ['nullable', 'string', 'max:20'],
             'status_pendaftaran' => ['nullable', 'in:menunggu,diterima,ditolak,daftar_ulang'],
+            'ijazah_path' => ['nullable', 'file', 'mimes:pdf', 'max:5120'],
+            'kk_path' => ['nullable', 'file', 'mimes:pdf', 'max:5120'],
+            'akta_path' => ['nullable', 'file', 'mimes:pdf', 'max:5120'],
+            'foto_path' => ['nullable', 'file', 'mimes:jpg,jpeg,png', 'max:2048'],
+            'skl_path' => ['nullable', 'file', 'mimes:pdf', 'max:5120'],
         ];
     }
 }

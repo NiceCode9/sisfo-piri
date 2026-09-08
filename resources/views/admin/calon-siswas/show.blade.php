@@ -78,7 +78,7 @@
 
                 @can('berkas-calon-siswas.edit')
                 <hr class="my-3" />
-                <form method="POST" action="{{ route('admin.calon-siswas.berkas', $calon) }}" class="d-flex flex-column gap-2">
+                <form method="POST" action="{{ route('admin.calon-siswas.berkas', $calon) }}" class="d-flex flex-column gap-2" enctype="multipart/form-data">
                     @csrf @method('PATCH')
                     <div class="d-flex gap-3 flex-wrap">
                         <div class="form-check">
@@ -87,6 +87,23 @@
                             <label class="form-check-label" for="status_verifikasi">Terverifikasi</label>
                         </div>
                     </div>
+
+                    <div style="font-weight:600;font-size:13px;margin-top:4px;">Ganti Berkas (kosongkan bila tidak diubah)</div>
+                    <div style="font-size:11px;color:var(--text-muted);">PDF 5MB (ijazah/kk/akta/skl), Foto JPG/PNG 2MB. Akan hapus file lama bila diganti.</div>
+                    @php $berkas2 = $calon->berkasCalonSiswa; @endphp
+                    <div class="row g-2">
+                        @foreach (['ijazah_path'=>['label'=>'Ijazah','accept'=>'.pdf'], 'kk_path'=>['label'=>'KK','accept'=>'.pdf'], 'akta_path'=>['label'=>'Akta','accept'=>'.pdf'], 'foto_path'=>['label'=>'Foto','accept'=>'image/*'], 'skl_path'=>['label'=>'SKL','accept'=>'.pdf']] as $fld=>$meta)
+                            <div class="col-12 col-sm-6">
+                                <label class="form-label" style="font-size:12px;" for="berkas-{{ $fld }}">{{ $meta['label'] }}</label>
+                                @if ($berkas2 && $berkas2->$fld)
+                                    <div style="font-size:11px;">Saat ini: <a href="{{ Storage::disk('public')->url($berkas2->$fld) }}" target="_blank" class="text-primary">Lihat</a></div>
+                                @endif
+                                <input type="file" name="{{ $fld }}" id="berkas-{{ $fld }}" accept="{{ $meta['accept'] }}" class="form-control form-control-sm @error($fld) is-invalid @enderror" />
+                                @error($fld)<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                            </div>
+                        @endforeach
+                    </div>
+
                     <label class="form-label" style="font-size: 12px;">Berkas perlu perbaikan</label>
                     <div class="d-flex flex-wrap gap-2">
                         @foreach (['ijazah_path','kk_path','akta_path','foto_path','skl_path'] as $f)

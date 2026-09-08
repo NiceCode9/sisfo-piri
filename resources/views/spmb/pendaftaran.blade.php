@@ -3,811 +3,658 @@
 @section('title', 'Pendaftaran Siswa Baru')
 
 @php
-    $icons = [
-        'Pendaftaran' => 'fa-calendar-check',
-        'Tes Masuk' => 'fa-tasks',
-        'Verifikasi Berkas' => 'fa-file-alt',
-        'Pengumuman' => 'fa-bell',
-        'Daftar Ulang' => 'fa-user-check',
-    ];
-// TODO: Data dummy sementara — ganti dengan data asli dari controller
-    // (mis. JadwalPpdb::orderBy('tanggal_mulai')->get()) bila sudah siap.
-    $jadwalPpdb = $jadwalPpdb ?? collect([
-        (object) [
-            'nama_jadwal' => 'Pendaftaran',
-            'tanggal_mulai' => '01 Januari 2026',
-            'tanggal_selesai' => '28 Februari 2026',
-            'keterangan' => 'Pendaftaran dibuka melalui website resmi sekolah',
-        ],
-        (object) [
-            'nama_jadwal' => 'Tes Masuk',
-            'tanggal_mulai' => '05 Maret 2026',
-            'tanggal_selesai' => '10 Maret 2026',
-            'keterangan' => 'Tes tertulis dan wawancara di lokasi sekolah',
-        ],
-        (object) [
-            'nama_jadwal' => 'Verifikasi Berkas',
-            'tanggal_mulai' => '12 Maret 2026',
-            'tanggal_selesai' => '15 Maret 2026',
-            'keterangan' => 'Pastikan seluruh dokumen persyaratan sudah lengkap',
-        ],
-        (object) [
-            'nama_jadwal' => 'Pengumuman',
-            'tanggal_mulai' => '20 Maret 2026',
-            'tanggal_selesai' => '20 Maret 2026',
-            'keterangan' => 'Hasil seleksi dapat dilihat melalui website ini',
-        ],
-        (object) [
-            'nama_jadwal' => 'Daftar Ulang',
-            'tanggal_mulai' => '22 Maret 2026',
-            'tanggal_selesai' => '31 Maret 2026',
-            'keterangan' => 'Bagi siswa yang dinyatakan lolos seleksi',
-        ],
+    // ============================================================
+    // TODO: Semua variabel di bawah ini SEMENTARA/DUMMY untuk keperluan
+    // desain frontend. Ganti dengan data asli dari controller nanti:
+    //   - $jalurPendaftarans, $tahunAjaranAktif -> dari JalurPendaftaranController
+    //   - $jadwalPpdb -> dari JadwalPpdbController
+    //   - $profileSekolah -> dari ProfileSekolahController
+    // ============================================================
+    $jalurPendaftarans = $jalurPendaftarans ?? collect([
+        (object) ['id' => 1, 'nama_jalur' => 'Reguler', 'aktif' => true],
+        (object) ['id' => 2, 'nama_jalur' => 'Prestasi / Beasiswa', 'aktif' => true],
     ]);
+
+    $jadwalPpdb = $jadwalPpdb ?? collect([
+        (object) ['nama_jadwal' => 'Pendaftaran', 'tanggal_mulai' => '1 Nov 2026', 'tanggal_selesai' => '30 Nov 2026', 'keterangan' => null],
+        (object) ['nama_jadwal' => 'Tes Masuk', 'tanggal_mulai' => '5 Des 2026', 'tanggal_selesai' => '10 Des 2026', 'keterangan' => null],
+        (object) ['nama_jadwal' => 'Verifikasi Berkas', 'tanggal_mulai' => '12 Des 2026', 'tanggal_selesai' => '15 Des 2026', 'keterangan' => null],
+        (object) ['nama_jadwal' => 'Pengumuman', 'tanggal_mulai' => '20 Des 2026', 'tanggal_selesai' => '20 Des 2026', 'keterangan' => null],
+        (object) ['nama_jadwal' => 'Daftar Ulang', 'tanggal_mulai' => '21 Des 2026', 'tanggal_selesai' => '31 Des 2026', 'keterangan' => null],
+    ]);
+
+    $profileSekolah = $profileSekolah ?? (object) [
+        'telp' => '(022) 1234-5678',
+        'email' => 'spmb@smpharapanbangsa.sch.id',
+    ];
+
+    // Ikon inline (pengganti Font Awesome, konsisten dengan section lain di site ini).
+    $icons = [
+        'calendar' => ['M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'],
+        'clipboard' => ['M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4'],
+        'document' => ['M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
+        'bell' => ['M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9'],
+        'check-circle' => ['M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'],
+        'graduation-cap' => ['M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222'],
+        'bolt' => ['M13 10V3L4 14h7v7l9-11h-7z'],
+        'info-circle' => ['M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
+        'exclamation-triangle' => ['M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'],
+        'globe' => ['M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
+        'book-open' => ['M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253'],
+        'phone' => ['M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z'],
+        'route' => ['M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7'],
+        'user' => ['M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'],
+        'users' => ['M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zM7 7a3 3 0 11-6 0 3 3 0 016 0z'],
+        'id-card' => ['M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'],
+        'location' => ['M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z'],
+        'home' => ['M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6'],
+        'mobile' => ['M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z'],
+        'envelope' => ['M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'],
+        'briefcase' => ['M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'],
+        'upload' => ['M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3-3m3 3v12'],
+        'image' => ['M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M14 8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'],
+        'paper-plane' => ['M12 19l9 2-9-18-9 18 9-2zm0 0v-8'],
+        'arrow-left' => ['M10 19l-7-7m0 0l7-7m-7 7h18'],
+        'arrow-right' => ['M14 5l7 7m0 0l-7 7m7-7H3'],
+        'sparkles' => ['M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-6.714 2.143L12 21l-2.286-6.857L3 12l6.714-2.143L12 3z'],
+        'shield-check' => ['M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z'],
+    ];
+
+    $timelineIcons = [
+        'Pendaftaran' => 'calendar', 'Tes Masuk' => 'clipboard', 'Verifikasi Berkas' => 'document',
+        'Pengumuman' => 'bell', 'Daftar Ulang' => 'check-circle',
+    ];
+
+    $persyaratanList = [
+        'Fotokopi akte kelahiran dan kartu keluarga',
+        'Fotokopi rapor SD kelas 4-6',
+        'Pas foto 3x4 (3 lembar)',
+        'Surat Keterangan Lulus (SKL) asli',
+    ];
+
+    $infoPentingList = [
+        ['icon' => 'globe', 'text' => 'Pendaftaran dilakukan secara online melalui website ini'],
+        ['icon' => 'book-open', 'text' => 'Tes masuk meliputi: Matematika, IPA, dan Bahasa Indonesia'],
+        ['icon' => 'bell', 'text' => 'Pengumuman hasil seleksi dapat dilihat di website ini'],
+        ['icon' => 'phone', 'text' => "Informasi lebih lanjut hubungi: {$profileSekolah->telp}"],
+    ];
+
+    $trustStrip = [
+        ['icon' => 'globe', 'title' => '100% Online', 'desc' => 'Daftar dari mana saja'],
+        ['icon' => 'bolt', 'title' => 'Proses 3 Hari', 'desc' => 'Verifikasi berkas cepat'],
+        ['icon' => 'shield-check', 'title' => 'Data Aman', 'desc' => 'Privasi terjaga'],
+    ];
+
+    $dataPribadiFields = [
+        ['id' => 'nama_lengkap', 'label' => 'Nama Lengkap', 'icon' => 'user', 'type' => 'text', 'placeholder' => 'Masukkan nama lengkap'],
+        ['id' => 'jenis_kelamin', 'label' => 'Jenis Kelamin', 'icon' => 'users', 'type' => 'select', 'options' => ['L' => '👨 Laki-laki', 'P' => '👩 Perempuan'], 'placeholder' => 'Pilih Jenis Kelamin'],
+        ['id' => 'nik', 'label' => 'NIK', 'icon' => 'id-card', 'type' => 'text', 'placeholder' => '16 digit NIK', 'maxlength' => 16],
+        ['id' => 'nisn', 'label' => 'NISN', 'icon' => 'graduation-cap', 'type' => 'text', 'placeholder' => '10 digit NISN', 'maxlength' => 10],
+        ['id' => 'tempat_lahir', 'label' => 'Tempat Lahir', 'icon' => 'location', 'type' => 'text', 'placeholder' => 'Kota tempat lahir'],
+        ['id' => 'tanggal_lahir', 'label' => 'Tanggal Lahir', 'icon' => 'calendar', 'type' => 'date'],
+        ['id' => 'agama', 'label' => 'Agama', 'icon' => 'book-open', 'type' => 'text', 'placeholder' => 'Agama yang dianut'],
+        ['id' => 'asal_sekolah', 'label' => 'Asal Sekolah', 'icon' => 'graduation-cap', 'type' => 'text', 'placeholder' => 'Nama sekolah asal'],
+        ['id' => 'alamat', 'label' => 'Alamat', 'icon' => 'home', 'type' => 'textarea', 'placeholder' => 'Alamat lengkap tempat tinggal', 'span' => 'md:col-span-2'],
+        ['id' => 'no_hp', 'label' => 'No. HP Siswa', 'icon' => 'mobile', 'type' => 'tel', 'placeholder' => '08xxxxxxxxxx'],
+        ['id' => 'email', 'label' => 'Email', 'icon' => 'envelope', 'type' => 'email', 'placeholder' => 'email@contoh.com'],
+    ];
+
+    $dataOrangTuaFields = [
+        ['id' => 'nama_ayah', 'label' => 'Nama Ayah', 'icon' => 'user', 'type' => 'text', 'placeholder' => 'Nama lengkap ayah'],
+        ['id' => 'pekerjaan_ayah', 'label' => 'Pekerjaan Ayah', 'icon' => 'briefcase', 'type' => 'text', 'placeholder' => 'Pekerjaan ayah'],
+        ['id' => 'nama_ibu', 'label' => 'Nama Ibu', 'icon' => 'user', 'type' => 'text', 'placeholder' => 'Nama lengkap ibu'],
+        ['id' => 'pekerjaan_ibu', 'label' => 'Pekerjaan Ibu', 'icon' => 'briefcase', 'type' => 'text', 'placeholder' => 'Pekerjaan ibu'],
+        ['id' => 'no_hp_orang_tua', 'label' => 'No. HP Orang Tua', 'icon' => 'phone', 'type' => 'tel', 'placeholder' => '08xxxxxxxxxx', 'span' => 'md:col-span-2'],
+    ];
+
+    $uploadFields = [
+        ['id' => 'ijazah_path', 'label' => 'Ijazah', 'icon' => 'document', 'accept' => '.pdf', 'hint' => 'PDF, maks 5MB'],
+        ['id' => 'kk_path', 'label' => 'Kartu Keluarga', 'icon' => 'document', 'accept' => '.pdf', 'hint' => 'PDF, maks 5MB'],
+        ['id' => 'akta_path', 'label' => 'Akta Kelahiran', 'icon' => 'document', 'accept' => '.pdf', 'hint' => 'PDF, maks 5MB'],
+        ['id' => 'foto_path', 'label' => 'Pas Foto', 'icon' => 'image', 'accept' => 'image/*', 'hint' => 'JPG/PNG, maks 2MB'],
+        ['id' => 'skl_path', 'label' => 'Surat Keterangan Lulus', 'icon' => 'document', 'accept' => '.pdf', 'hint' => 'PDF, maks 5MB'],
+    ];
+
+    $stepLabels = [1 => 'Jalur', 2 => 'Data Pribadi', 3 => 'Data Ortu', 4 => 'Upload Berkas'];
+
+    $renderIcon = fn ($key) => $icons[$key] ?? $icons['check-circle'];
 @endphp
 
 @section('content')
-    <!-- Hero Section -->
-    <section class="relative bg-gradient-to-br from-primary-900 via-primary-800 to-primary-950 py-20 overflow-hidden">
-        <div class="absolute inset-0 bg-black opacity-20"></div>
-        <div class="absolute inset-0">
-            <div class="absolute top-10 left-10 w-32 h-32 bg-primary-400 rounded-full opacity-10 animate-pulse"></div>
-            <div class="absolute bottom-20 right-20 w-48 h-48 bg-secondary-400 rounded-full opacity-10 animate-bounce"></div>
-            <div class="absolute top-1/2 left-1/3 w-24 h-24 bg-accent-400 rounded-full opacity-10 animate-ping"></div>
-        </div>
 
-        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <div
-                class="inline-flex items-center px-4 py-2 bg-white bg-opacity-10 backdrop-blur-sm rounded-full text-white text-sm mb-6">
-                <i class="fas fa-graduation-cap mr-2"></i>
-                Tahun Ajaran {{ $tahunAjaranAktif->nama_tahun_ajaran ?? \Carbon\Carbon::now()->format('Y').'/'.\Carbon\Carbon::now()->addYear()->format('Y') }}
+    @include('spmb.partials.navbar')
+
+    {{-- ============ HERO ============ --}}
+    <section class="relative bg-gradient-primary py-24 overflow-hidden">
+        <div class="absolute top-16 right-10 w-64 h-64 bg-secondary-400/20 blob-shape animate-float"></div>
+        <div class="absolute bottom-10 left-10 w-72 h-72 bg-accent-400/20 blob-shape animate-float" style="animation-delay: 1s;"></div>
+
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid lg:grid-cols-2 gap-12 items-center">
+
+                <div class="text-white space-y-6 animate-fade-in-up">
+                    <div class="inline-flex items-center px-4 py-2 bg-secondary-500 rounded-full text-sm font-semibold shadow-lg">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            @foreach ($renderIcon('sparkles') as $d)
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                            @endforeach
+                        </svg>
+                        Tahun Ajaran {{ date('Y') }}/{{ date('Y') + 1 }}
+                    </div>
+
+                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight">
+                        Satu Langkah Menuju<br/>
+                        <span class="text-secondary-300">Masa Depan Gemilang</span>
+                    </h1>
+
+                    <p class="text-lg md:text-xl text-white/90 leading-relaxed max-w-xl">
+                        Isi formulir pendaftaran online — hanya butuh beberapa menit untuk memulai perjalanan baru bersama kami.
+                    </p>
+
+                    <div class="flex flex-col sm:flex-row gap-4 pt-2">
+                        <a href="#form-pendaftaran"
+                           class="inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-primary-700 bg-white rounded-2xl hover:bg-gray-50 transition shadow-xl hover:shadow-2xl hover:scale-105 transform">
+                            <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                @foreach ($renderIcon('bolt') as $d)
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                                @endforeach
+                            </svg>
+                            Mulai Pendaftaran
+                        </a>
+                        <a href="#info-ppdb"
+                           class="inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white border-2 border-white/60 rounded-2xl hover:bg-white hover:text-primary-700 transition">
+                            Lihat Jadwal SPMB
+                        </a>
+                    </div>
+                </div>
+
+                {{-- Illustration + floating cards --}}
+                <div class="relative hidden lg:block animate-fade-in-up" style="animation-delay: 0.3s;">
+                    <div class="relative z-10 bg-white/10 backdrop-blur-sm rounded-3xl p-3 border border-white/20">
+                        <img src="https://via.placeholder.com/560x480?text=Siswa+Mengisi+Formulir"
+                             alt="Ilustrasi pendaftaran siswa baru"
+                             class="rounded-2xl shadow-2xl w-full h-auto object-cover">
+                    </div>
+
+                    <div class="absolute -top-6 -left-6 z-20 bg-white rounded-2xl p-4 shadow-xl animate-float">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-11 h-11 bg-accent-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    @foreach ($renderIcon('check-circle') as $d)
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                                    @endforeach
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="text-sm font-bold text-gray-800">4 Langkah Mudah</div>
+                                <div class="text-xs text-gray-500">Selesai dalam 10 menit</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="absolute -bottom-6 -right-6 z-20 bg-white rounded-2xl p-4 shadow-xl animate-float" style="animation-delay: 1.5s;">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-11 h-11 bg-secondary-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    @foreach ($renderIcon('shield-check') as $d)
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                                    @endforeach
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="text-sm font-bold text-gray-800">Data Terlindungi</div>
+                                <div class="text-xs text-gray-500">Aman & rahasia</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <h1 class="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
-                Pendaftaran
-                <span class="bg-gradient-to-r from-secondary-300 to-secondary-500 bg-clip-text text-transparent">
-                    Siswa Baru
-                </span>
-            </h1>
-
-            <p class="text-xl text-gray-200 max-w-3xl mx-auto mb-8 leading-relaxed">
-                Bergabunglah dengan keluarga besar sekolah kami dan raih masa depan yang gemilang bersama pendidikan
-                berkualitas tinggi
-            </p>
-
-            <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="#form-pendaftaran"
-                    class="inline-flex items-center px-8 py-4 bg-gradient-to-r from-secondary-500 to-secondary-700 text-white rounded-full font-semibold hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
-                    <i class="fas fa-rocket mr-2"></i>
-                    Daftar Sekarang
-                </a>
-                <a href="#info-ppdb"
-                    class="inline-flex items-center px-8 py-4 bg-white bg-opacity-10 backdrop-blur-sm text-white rounded-full font-semibold hover:bg-opacity-20 transition-all duration-300 border border-white border-opacity-20">
-                    <i class="fas fa-info-circle mr-2"></i>
-                    Informasi PPDB
-                </a>
+            {{-- Trust strip --}}
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-16">
+                @foreach ($trustStrip as $item)
+                    <div class="flex items-center gap-4 bg-white/10 backdrop-blur-sm border border-white/10 rounded-2xl p-5">
+                        <div class="w-12 h-12 bg-white/15 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <svg class="w-6 h-6 text-secondary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                @foreach ($renderIcon($item['icon']) as $d)
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                                @endforeach
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="text-white font-bold">{{ $item['title'] }}</div>
+                            <div class="text-white/70 text-sm">{{ $item['desc'] }}</div>
+                        </div>
+                    </div>
+                @endforeach
             </div>
         </div>
     </section>
 
     @if ($errors->any())
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 relative z-10">
-            <div class="bg-red-50 border-l-4 border-red-500 p-6 rounded-lg shadow-lg backdrop-blur-sm">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <i class="fas fa-exclamation-triangle text-red-400 text-xl"></i>
-                    </div>
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-10">
+            <div class="bg-red-50 border-l-4 border-red-500 p-6 rounded-2xl shadow-lg">
+                <div class="flex items-start">
+                    <svg class="w-6 h-6 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        @foreach ($renderIcon('exclamation-triangle') as $d)
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                        @endforeach
+                    </svg>
                     <div class="ml-3">
                         <h3 class="text-sm font-medium text-red-800">Ada kesalahan dalam pengisian form:</h3>
-                        <div class="mt-2 text-sm text-red-700">
-                            <ul class="list-disc pl-5 space-y-1">
-                                @foreach ($errors->all() as $error)
-                                    <li>{{ $error }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
+                        <ul class="mt-2 text-sm text-red-700 list-disc pl-5 space-y-1">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
                     </div>
                 </div>
             </div>
         </div>
     @endif
 
-    <section id="info-ppdb" class="py-20 bg-gray-50">
+    {{-- ============ INFO PPDB ============ --}}
+    <section id="info-ppdb" class="py-20 bg-slate-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <!-- Jadwal PPDB Timeline -->
+
             <div class="mb-16">
                 <div class="text-center mb-12">
-                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Timeline PPDB</h2>
+                    <span class="inline-block px-4 py-1.5 bg-primary-100 text-primary-700 rounded-full text-sm font-semibold mb-4">Jadwal</span>
+                    <h2 class="text-3xl md:text-4xl font-extrabold text-gray-800 mb-4">Timeline SPMB</h2>
                     <p class="text-lg text-gray-600 max-w-2xl mx-auto">Ikuti setiap tahapan pendaftaran dengan cermat</p>
                 </div>
 
                 <div class="relative">
-                    <div
-                        class="absolute left-1/2 transform -translate-x-1/2 h-full w-1 bg-gradient-to-b from-primary-500 to-primary-700 rounded-full">
-                    </div>
+                    <div class="absolute left-1/2 -translate-x-1/2 h-full w-1 bg-gradient-to-b from-primary-500 to-accent-500 rounded-full"></div>
 
                     @foreach ($jadwalPpdb as $index => $jadwal)
-                        <div
-                            class="relative flex items-center mb-8 {{ $index % 2 == 0 ? 'flex-row' : 'flex-row-reverse' }}">
+                        @php $iconKey = $timelineIcons[$jadwal->nama_jadwal] ?? 'calendar'; @endphp
+                        <div class="relative flex items-center mb-8 {{ $index % 2 == 0 ? 'flex-row' : 'flex-row-reverse' }}">
                             <div class="w-5/12 {{ $index % 2 == 0 ? 'text-right pr-8' : 'text-left pl-8' }}">
-                                <div
-                                    class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 border border-gray-100">
-                                    <div
-                                        class="flex items-center {{ $index % 2 == 0 ? 'justify-end' : 'justify-start' }} mb-3">
-                                        <div
-                                            class="w-12 h-12 bg-gradient-to-r from-primary-500 to-primary-700 rounded-full flex items-center justify-center text-white">
-                                            <i class="far {{ $icons[$jadwal->nama_jadwal] ?? 'fa-calendar-alt' }}"></i>
+                                <div class="bg-white rounded-2xl shadow-lg p-6 hover:shadow-2xl transition-all duration-300 border border-gray-100 card-hover">
+                                    <div class="flex items-center {{ $index % 2 == 0 ? 'justify-end' : 'justify-start' }} mb-3">
+                                        <div class="w-12 h-12 bg-gradient-primary rounded-full flex items-center justify-center text-white shadow-md">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                @foreach ($renderIcon($iconKey) as $d)
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                                                @endforeach
+                                            </svg>
                                         </div>
                                     </div>
                                     <h3 class="text-lg font-bold text-gray-800 mb-2">{{ $jadwal->nama_jadwal }}</h3>
-                                    <p class="text-sm text-gray-600 mb-2">{{ \Carbon\Carbon::parse($jadwal->tanggal_mulai)->format('d M Y') }} -
-                                        {{ \Carbon\Carbon::parse($jadwal->tanggal_selesai)->format('d M Y') }}</p>
+                                    <p class="text-sm text-gray-600 mb-2">{{ $jadwal->tanggal_mulai }} - {{ $jadwal->tanggal_selesai }}</p>
                                     @if ($jadwal->keterangan)
                                         <p class="text-sm text-gray-500">{{ $jadwal->keterangan }}</p>
                                     @endif
                                 </div>
                             </div>
-
-                            <div
-                                class="absolute left-1/2 transform -translate-x-1/2 w-6 h-6 bg-white border-4 border-primary-500 rounded-full shadow-lg">
-                            </div>
-
+                            <div class="absolute left-1/2 -translate-x-1/2 w-6 h-6 bg-white border-4 border-primary-500 rounded-full shadow-lg z-10"></div>
                             <div class="w-5/12"></div>
                         </div>
                     @endforeach
                 </div>
             </div>
 
-            <!-- Persyaratan & Info Cards -->
-            <div class="grid md:grid-cols-2 gap-8 mb-16">
-                <!-- Persyaratan Card -->
-                <div
-                    class="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition-all duration-300 border border-gray-100">
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="bg-white rounded-3xl shadow-xl p-8 hover:shadow-2xl transition-all duration-300 border border-gray-100 card-hover">
                     <div class="flex items-center mb-6">
-                        <div
-                            class="w-16 h-16 bg-gradient-to-r from-accent-500 to-accent-700 rounded-full flex items-center justify-center text-white mr-4">
-                            <i class="fas fa-clipboard-list text-2xl"></i>
+                        <div class="w-16 h-16 bg-gradient-to-r from-accent-500 to-accent-600 rounded-2xl flex items-center justify-center text-white mr-4 flex-shrink-0 shadow-md">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                @foreach ($renderIcon('clipboard') as $d)
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                                @endforeach
+                            </svg>
                         </div>
                         <h3 class="text-2xl font-bold text-gray-800">Persyaratan Pendaftaran</h3>
                     </div>
-
                     <div class="space-y-4">
-                        <div
-                            class="flex items-start p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200">
-                            <div
-                                class="w-8 h-8 bg-accent-500 rounded-full flex items-center justify-center text-white mr-4 mt-1 flex-shrink-0">
-                                <i class="fas fa-check text-sm"></i>
+                        @foreach ($persyaratanList as $item)
+                            <div class="flex items-start p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors duration-200">
+                                <div class="w-8 h-8 bg-accent-500 rounded-full flex items-center justify-center text-white mr-4 mt-1 flex-shrink-0">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                </div>
+                                <span class="text-gray-700">{{ $item }}</span>
                             </div>
-                            <span class="text-gray-700">Fotokopi akte kelahiran dan kartu keluarga</span>
-                        </div>
-
-                        <div
-                            class="flex items-start p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200">
-                            <div
-                                class="w-8 h-8 bg-accent-500 rounded-full flex items-center justify-center text-white mr-4 mt-1 flex-shrink-0">
-                                <i class="fas fa-check text-sm"></i>
-                            </div>
-                            <span class="text-gray-700">Fotokopi rapor SD kelas 4-6</span>
-                        </div>
-
-                        <div
-                            class="flex items-start p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200">
-                            <div
-                                class="w-8 h-8 bg-accent-500 rounded-full flex items-center justify-center text-white mr-4 mt-1 flex-shrink-0">
-                                <i class="fas fa-check text-sm"></i>
-                            </div>
-                            <span class="text-gray-700">Pas foto 3x4 (3 lembar)</span>
-                        </div>
-
-                        <div
-                            class="flex items-start p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200">
-                            <div
-                                class="w-8 h-8 bg-accent-500 rounded-full flex items-center justify-center text-white mr-4 mt-1 flex-shrink-0">
-                                <i class="fas fa-check text-sm"></i>
-                            </div>
-                            <span class="text-gray-700">Surat Keterangan Lulus (SKL) asli</span>
-                        </div>
+                        @endforeach
                     </div>
                 </div>
 
-                <!-- Informasi Penting Card -->
-                <div class="bg-gradient-to-br from-primary-600 to-primary-800 rounded-2xl shadow-xl p-8 text-white">
+                <div class="bg-gradient-primary rounded-3xl shadow-xl p-8 text-white">
                     <div class="flex items-center mb-6">
-                        <div
-                            class="w-16 h-16 bg-white bg-opacity-20 backdrop-blur-sm rounded-full flex items-center justify-center mr-4">
-                            <i class="fas fa-info-circle text-2xl"></i>
+                        <div class="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mr-4 flex-shrink-0">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                @foreach ($renderIcon('info-circle') as $d)
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                                @endforeach
+                            </svg>
                         </div>
                         <h3 class="text-2xl font-bold">Informasi Penting</h3>
                     </div>
-
                     <div class="space-y-4">
-                        <div class="flex items-start p-4 bg-white bg-opacity-10 backdrop-blur-sm rounded-lg">
-                            <i class="fas fa-globe mt-1 mr-4 text-secondary-300"></i>
-                            <span>Pendaftaran dilakukan secara online melalui website ini</span>
-                        </div>
-
-                        <div class="flex items-start p-4 bg-white bg-opacity-10 backdrop-blur-sm rounded-lg">
-                            <i class="fas fa-book-open mt-1 mr-4 text-secondary-300"></i>
-                            <span>Tes masuk meliputi: Matematika, IPA, dan Bahasa Indonesia</span>
-                        </div>
-
-                        <div class="flex items-start p-4 bg-white bg-opacity-10 backdrop-blur-sm rounded-lg">
-                            <i class="fas fa-bell mt-1 mr-4 text-secondary-300"></i>
-                            <span>Pengumuman hasil seleksi dapat dilihat di website ini</span>
-                        </div>
-
-                        <div class="flex items-start p-4 bg-white bg-opacity-10 backdrop-blur-sm rounded-lg">
-                            <i class="fas fa-phone mt-1 mr-4 text-secondary-300"></i>
-                            <span>Informasi lebih lanjut hubungi: (021) 1234567</span>
-                        </div>
+                        @foreach ($infoPentingList as $info)
+                            <div class="flex items-start p-4 bg-white/10 backdrop-blur-sm rounded-xl">
+                                <svg class="w-5 h-5 mt-1 mr-4 text-secondary-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    @foreach ($renderIcon($info['icon']) as $d)
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                                    @endforeach
+                                </svg>
+                                <span>{{ $info['text'] }}</span>
+                            </div>
+                        @endforeach
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Form Pendaftaran Section -->
-    <section id="form-pendaftaran" class="py-20 bg-white">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    {{-- ============ FORM WIZARD ============ --}}
+    <section id="form-pendaftaran" class="py-20 bg-white relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-96 h-96 bg-primary-50 rounded-full blur-3xl -z-0"></div>
+        <div class="absolute bottom-0 left-0 w-96 h-96 bg-accent-50 rounded-full blur-3xl -z-0"></div>
+
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <div class="text-center mb-12">
-                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Formulir Pendaftaran Online</h2>
-                <p class="text-lg text-gray-600 max-w-2xl mx-auto">Lengkapi semua data dengan benar dan pastikan dokumen
-                    yang diupload sesuai persyaratan</p>
+                <span class="inline-block px-4 py-1.5 bg-accent-100 text-accent-700 rounded-full text-sm font-semibold mb-4">Formulir</span>
+                <h2 class="text-3xl md:text-4xl font-extrabold text-gray-800 mb-4">Yuk, Daftar Sekarang!</h2>
+                <p class="text-lg text-gray-600 max-w-2xl mx-auto">Isi bertahap, tinggal ikuti 4 langkah mudah di bawah ini</p>
             </div>
 
             @if (session('success'))
-                <div class="bg-accent-50 border-l-4 border-accent-500 p-6 rounded-lg shadow-lg mb-8">
+                <div class="bg-green-50 border-l-4 border-green-500 p-6 rounded-2xl shadow-lg mb-8">
                     <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <i class="fas fa-check-circle text-accent-400 text-xl"></i>
-                        </div>
-                        <div class="ml-3">
-                            <p class="text-sm text-accent-700 font-medium">{{ session('success') }}</p>
-                        </div>
+                        <svg class="w-6 h-6 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            @foreach ($renderIcon('check-circle') as $d)
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                            @endforeach
+                        </svg>
+                        <p class="ml-3 text-sm text-green-700 font-medium">{{ session('success') }}</p>
                     </div>
                 </div>
             @endif
 
-            <div class="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
-                <form method="POST" action="{{ route('spmb.store') }}" enctype="multipart/form-data"
-                    class="p-8">
+            <div class="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
+                <form method="POST" action="" enctype="multipart/form-data" id="form-wizard" class="p-6 md:p-10">
                     @csrf
 
-                    <!-- Progress Steps -->
-                    <div class="mb-12">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="flex items-center text-primary-600">
-                                <div
-                                    class="w-10 h-10 bg-primary-600 rounded-full flex items-center justify-center text-white font-semibold mr-4">
-                                    1</div>
-                                <span class="font-medium hidden sm:block">Jalur Pendaftaran</span>
-                            </div>
-                            <div class="flex-1 h-2 bg-gray-200 rounded-full mx-4">
-                                <div class="h-2 bg-primary-600 rounded-full" style="width: 20%"></div>
-                            </div>
-                            <div class="flex items-center text-gray-400">
-                                <div
-                                    class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center font-semibold mr-4">
-                                    2</div>
-                                <span class="font-medium hidden sm:block">Data Pribadi</span>
-                            </div>
-                            <div class="flex-1 h-2 bg-gray-200 rounded-full mx-4"></div>
-                            <div class="flex items-center text-gray-400">
-                                <div
-                                    class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center font-semibold mr-4">
-                                    3</div>
-                                <span class="font-medium hidden sm:block">Data Orang Tua</span>
-                            </div>
-                            <div class="flex-1 h-2 bg-gray-200 rounded-full mx-4"></div>
-                            <div class="flex items-center text-gray-400">
-                                <div
-                                    class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center font-semibold">
-                                    4</div>
-                                <span class="font-medium hidden sm:block ml-4">Upload Berkas</span>
+                    {{-- Progress Steps --}}
+                    <div class="mb-12 sticky top-2 z-20">
+                        <div class="bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-sm">
+                            <div class="flex items-center justify-between">
+                                @foreach ($stepLabels as $num => $label)
+                                    <div class="flex items-center flex-1 {{ $num == count($stepLabels) ? 'flex-none' : '' }}" data-step-indicator="{{ $num }}">
+                                        <div class="flex flex-col items-center flex-shrink-0">
+                                            <div class="step-circle w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all duration-300 {{ $num == 1 ? 'bg-primary-600 text-white ring-4 ring-primary-200' : 'bg-gray-200 text-gray-500' }}">
+                                                {{ $num }}
+                                            </div>
+                                            <span class="text-xs font-medium mt-1 hidden sm:block {{ $num == 1 ? 'text-primary-600' : 'text-gray-400' }}">{{ $label }}</span>
+                                        </div>
+                                        @if ($num < count($stepLabels))
+                                            <div class="flex-1 h-1 bg-gray-200 rounded-full mx-2 sm:mx-4"></div>
+                                        @endif
+                                    </div>
+                                @endforeach
                             </div>
                         </div>
                     </div>
 
-                    <!-- Step 1: Jalur Pendaftaran -->
-                    <div class="bg-gradient-to-r from-primary-50 to-primary-100 rounded-xl p-8 mb-8 border border-primary-200">
-                        <div class="flex items-center mb-6">
-                            <div
-                                class="w-12 h-12 bg-primary-600 rounded-full flex items-center justify-center text-white mr-4">
-                                <i class="fas fa-route"></i>
+                    {{-- Step 1: Jalur Pendaftaran --}}
+                    <div data-step="1" class="animate-fade-in-up">
+                        <div class="bg-primary-50 rounded-2xl p-6 md:p-8 mb-8 border border-primary-100">
+                            <div class="flex items-center mb-6">
+                                <div class="w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center text-white mr-4 flex-shrink-0 shadow-md">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        @foreach ($renderIcon('route') as $d)
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                                        @endforeach
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-bold text-gray-800">Pilih Jalur Pendaftaran</h3>
+                                    <p class="text-sm text-gray-500">Langkah 1 dari 4</p>
+                                </div>
                             </div>
-                            <h3 class="text-xl font-bold text-gray-800">Pilih Jalur Pendaftaran</h3>
-                        </div>
 
-                        <div class="space-y-4">
                             <label for="jalur_pendaftaran_id" class="block text-sm font-semibold text-gray-700 mb-2">
                                 Jalur Pendaftaran <span class="text-red-500">*</span>
                             </label>
                             <select id="jalur_pendaftaran_id" name="jalur_pendaftaran_id" required
-                                class="w-full px-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white shadow-sm transition-all duration-200 @error('jalur_pendaftaran_id') border-red-500 ring-2 ring-red-200 @enderror">
+                                    class="w-full px-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white shadow-sm transition-all duration-200 @error('jalur_pendaftaran_id') border-red-500 ring-2 ring-red-200 @enderror">
                                 <option value="">🎯 Pilih Jalur Pendaftaran</option>
-
                                 @foreach ($jalurPendaftarans as $jalur)
                                     @if ($jalur->aktif)
-                                        @php $kuota = ($kuotaMap[$jalur->id] ?? null); @endphp
-                                        <option value="{{ $jalur->id }}"
-                                            {{ old('jalur_pendaftaran_id') == $jalur->id ? 'selected' : '' }}>
-                                            {{ $jalur->nama_jalur }}
-                                            @if ($kuota)
-                                                (Sisa Kuota: {{ $kuota->kuota - $kuota->terisi }})
-                                            @endif
-                                        </option>
+                                        <option value="{{ $jalur->id }}" {{ old('jalur_pendaftaran_id') == $jalur->id ? 'selected' : '' }}>{{ $jalur->nama_jalur }}</option>
                                     @endif
                                 @endforeach
                             </select>
                             @error('jalur_pendaftaran_id')
-                                <p class="mt-2 text-sm text-red-600 flex items-center">
-                                    <i class="fas fa-exclamation-circle mr-2"></i>{{ $message }}
-                                </p>
+                                <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
-                    </div>
 
-                    <!-- Step 2: Data Pribadi -->
-                    <div class="bg-gradient-to-r from-accent-50 to-accent-100 rounded-xl p-8 mb-8 border border-accent-200">
-                        <div class="flex items-center mb-6">
-                            <div
-                                class="w-12 h-12 bg-accent-600 rounded-full flex items-center justify-center text-white mr-4">
-                                <i class="fas fa-user"></i>
-                            </div>
-                            <h3 class="text-xl font-bold text-gray-800">Data Pribadi Siswa</h3>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <!-- Nama Lengkap -->
-                            <div class="space-y-2">
-                                <label for="nama_lengkap" class="block text-sm font-semibold text-gray-700">
-                                    Nama Lengkap <span class="text-red-500">*</span>
-                                </label>
-                                <div class="relative">
-                                    <i class="fas fa-user absolute left-4 top-4 text-gray-400"></i>
-                                    <input type="text" id="nama_lengkap" name="nama_lengkap" required
-                                        class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-accent-500 focus:border-accent-500 bg-white shadow-sm transition-all duration-200 @error('nama_lengkap') border-red-500 ring-2 ring-red-200 @enderror"
-                                        value="{{ old('nama_lengkap') }}" placeholder="Masukkan nama lengkap">
-                                </div>
-                                @error('nama_lengkap')
-                                    <p class="text-sm text-red-600 flex items-center">
-                                        <i class="fas fa-exclamation-circle mr-2"></i>{{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
-
-                            <!-- Jenis Kelamin -->
-                            <div class="space-y-2">
-                                <label for="jenis_kelamin" class="block text-sm font-semibold text-gray-700">
-                                    Jenis Kelamin <span class="text-red-500">*</span>
-                                </label>
-                                <div class="relative">
-                                    <i class="fas fa-venus-mars absolute left-4 top-4 text-gray-400"></i>
-                                    <select id="jenis_kelamin" name="jenis_kelamin" required
-                                        class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-accent-500 focus:border-accent-500 bg-white shadow-sm transition-all duration-200 @error('jenis_kelamin') border-red-500 ring-2 ring-red-200 @enderror">
-                                        <option value="">Pilih Jenis Kelamin</option>
-                                        <option value="L" {{ old('jenis_kelamin') == 'L' ? 'selected' : '' }}>👨
-                                            Laki-laki</option>
-                                        <option value="P" {{ old('jenis_kelamin') == 'P' ? 'selected' : '' }}>👩
-                                            Perempuan</option>
-                                    </select>
-                                </div>
-                                @error('jenis_kelamin')
-                                    <p class="text-sm text-red-600 flex items-center">
-                                        <i class="fas fa-exclamation-circle mr-2"></i>{{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
-
-                            <!-- NIK -->
-                            <div class="space-y-2">
-                                <label for="nik" class="block text-sm font-semibold text-gray-700">
-                                    NIK <span class="text-red-500">*</span>
-                                </label>
-                                <div class="relative">
-                                    <i class="fas fa-id-card absolute left-4 top-4 text-gray-400"></i>
-                                    <input type="text" id="nik" name="nik" required maxlength="16"
-                                        class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-accent-500 focus:border-accent-500 bg-white shadow-sm transition-all duration-200 @error('nik') border-red-500 ring-2 ring-red-200 @enderror"
-                                        value="{{ old('nik') }}" placeholder="16 digit NIK">
-                                </div>
-                                @error('nik')
-                                    <p class="text-sm text-red-600 flex items-center">
-                                        <i class="fas fa-exclamation-circle mr-2"></i>{{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
-
-                            <!-- NISN -->
-                            <div class="space-y-2">
-                                <label for="nisn" class="block text-sm font-semibold text-gray-700">
-                                    NISN <span class="text-red-500">*</span>
-                                </label>
-                                <div class="relative">
-                                    <i class="fas fa-graduation-cap absolute left-4 top-4 text-gray-400"></i>
-                                    <input type="text" id="nisn" name="nisn" required maxlength="10"
-                                        class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-accent-500 focus:border-accent-500 bg-white shadow-sm transition-all duration-200 @error('nisn') border-red-500 ring-2 ring-red-200 @enderror"
-                                        value="{{ old('nisn') }}" placeholder="10 digit NISN">
-                                </div>
-                                @error('nisn')
-                                    <p class="text-sm text-red-600 flex items-center">
-                                        <i class="fas fa-exclamation-circle mr-2"></i>{{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
-
-                            <!-- Tempat Lahir -->
-                            <div class="space-y-2">
-                                <label for="tempat_lahir" class="block text-sm font-semibold text-gray-700">
-                                    Tempat Lahir <span class="text-red-500">*</span>
-                                </label>
-                                <div class="relative">
-                                    <i class="fas fa-map-marker-alt absolute left-4 top-4 text-gray-400"></i>
-                                    <input type="text" id="tempat_lahir" name="tempat_lahir" required
-                                        class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-accent-500 focus:border-accent-500 bg-white shadow-sm transition-all duration-200 @error('tempat_lahir') border-red-500 ring-2 ring-red-200 @enderror"
-                                        value="{{ old('tempat_lahir') }}" placeholder="Kota tempat lahir">
-                                </div>
-                                @error('tempat_lahir')
-                                    <p class="text-sm text-red-600 flex items-center">
-                                        <i class="fas fa-exclamation-circle mr-2"></i>{{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
-
-                            <!-- Tanggal Lahir -->
-                            <div class="space-y-2">
-                                <label for="tanggal_lahir" class="block text-sm font-semibold text-gray-700">
-                                    Tanggal Lahir <span class="text-red-500">*</span>
-                                </label>
-                                <div class="relative">
-                                    <i class="fas fa-calendar-alt absolute left-4 top-4 text-gray-400"></i>
-                                    <input type="date" id="tanggal_lahir" name="tanggal_lahir" required
-                                        class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-accent-500 focus:border-accent-500 bg-white shadow-sm transition-all duration-200 @error('tanggal_lahir') border-red-500 ring-2 ring-red-200 @enderror"
-                                        value="{{ old('tanggal_lahir') }}">
-                                </div>
-                                @error('tanggal_lahir')
-                                    <p class="text-sm text-red-600 flex items-center">
-                                        <i class="fas fa-exclamation-circle mr-2"></i>{{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
-
-                            <!-- Agama -->
-                            <div class="space-y-2">
-                                <label for="agama" class="block text-sm font-semibold text-gray-700">
-                                    Agama <span class="text-red-500">*</span>
-                                </label>
-                                <div class="relative">
-                                    <i class="fas fa-praying-hands absolute left-4 top-4 text-gray-400"></i>
-                                    <input type="text" id="agama" name="agama" required
-                                        class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-accent-500 focus:border-accent-500 bg-white shadow-sm transition-all duration-200 @error('agama') border-red-500 ring-2 ring-red-200 @enderror"
-                                        value="{{ old('agama') }}" placeholder="Agama yang dianut">
-                                </div>
-                                @error('agama')
-                                    <p class="text-sm text-red-600 flex items-center">
-                                        <i class="fas fa-exclamation-circle mr-2"></i>{{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
-
-                            <!-- Asal Sekolah -->
-                            <div class="space-y-2">
-                                <label for="asal_sekolah" class="block text-sm font-semibold text-gray-700">
-                                    Asal Sekolah <span class="text-red-500">*</span>
-                                </label>
-                                <div class="relative">
-                                    <i class="fas fa-school absolute left-4 top-4 text-gray-400"></i>
-                                    <input type="text" id="asal_sekolah" name="asal_sekolah" required
-                                        class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-accent-500 focus:border-accent-500 bg-white shadow-sm transition-all duration-200 @error('asal_sekolah') border-red-500 ring-2 ring-red-200 @enderror"
-                                        value="{{ old('asal_sekolah') }}" placeholder="Nama sekolah asal">
-                                </div>
-                                @error('asal_sekolah')
-                                    <p class="text-sm text-red-600 flex items-center">
-                                        <i class="fas fa-exclamation-circle mr-2"></i>{{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
-
-                            <!-- Alamat -->
-                            <div class="space-y-2 md:col-span-2">
-                                <label for="alamat" class="block text-sm font-semibold text-gray-700">
-                                    Alamat <span class="text-red-500">*</span>
-                                </label>
-                                <div class="relative">
-                                    <i class="fas fa-home absolute left-4 top-4 text-gray-400"></i>
-                                    <textarea id="alamat" name="alamat" required rows="3"
-                                        class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-accent-500 focus:border-accent-500 bg-white shadow-sm transition-all duration-200 @error('alamat') border-red-500 ring-2 ring-red-200 @enderror"
-                                        placeholder="Alamat lengkap tempat tinggal">{{ old('alamat') }}</textarea>
-                                </div>
-                                @error('alamat')
-                                    <p class="text-sm text-red-600 flex items-center">
-                                        <i class="fas fa-exclamation-circle mr-2"></i>{{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
-
-                            <!-- No HP Siswa -->
-                            <div class="space-y-2">
-                                <label for="no_hp" class="block text-sm font-semibold text-gray-700">
-                                    No. HP Siswa <span class="text-red-500">*</span>
-                                </label>
-                                <div class="relative">
-                                    <i class="fas fa-mobile-alt absolute left-4 top-4 text-gray-400"></i>
-                                    <input type="tel" id="no_hp" name="no_hp" required
-                                        class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-accent-500 focus:border-accent-500 bg-white shadow-sm transition-all duration-200 @error('no_hp') border-red-500 ring-2 ring-red-200 @enderror"
-                                        value="{{ old('no_hp') }}" placeholder="08xxxxxxxxxx">
-                                </div>
-                                @error('no_hp')
-                                    <p class="text-sm text-red-600 flex items-center">
-                                        <i class="fas fa-exclamation-circle mr-2"></i>{{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
-
-                            <!-- Email -->
-                            <div class="space-y-2">
-                                <label for="email" class="block text-sm font-semibold text-gray-700">
-                                    Email <span class="text-red-500">*</span>
-                                </label>
-                                <div class="relative">
-                                    <i class="fas fa-envelope absolute left-4 top-4 text-gray-400"></i>
-                                    <input type="email" id="email" name="email" required
-                                        class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-accent-500 focus:border-accent-500 bg-white shadow-sm transition-all duration-200 @error('email') border-red-500 ring-2 ring-red-200 @enderror"
-                                        value="{{ old('email') }}" placeholder="email@contoh.com">
-                                </div>
-                                @error('email')
-                                    <p class="text-sm text-red-600 flex items-center">
-                                        <i class="fas fa-exclamation-circle mr-2"></i>{{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
+                        <div class="flex justify-end">
+                            <button type="button" data-next="2"
+                                    class="inline-flex items-center px-6 py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition shadow-md hover:shadow-lg">
+                                Lanjut
+                                <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    @foreach ($renderIcon('arrow-right') as $d)
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                                    @endforeach
+                                </svg>
+                            </button>
                         </div>
                     </div>
 
-                    <!-- Step 3: Data Orang Tua -->
-                    <div class="bg-gradient-to-r from-secondary-50 to-secondary-100 rounded-xl p-8 mb-8 border border-secondary-200">
-                        <div class="flex items-center mb-6">
-                            <div
-                                class="w-12 h-12 bg-secondary-600 rounded-full flex items-center justify-center text-white mr-4">
-                                <i class="fas fa-users"></i>
+                    {{-- Step 2: Data Pribadi --}}
+                    <div data-step="2" class="hidden">
+                        <div class="bg-accent-50 rounded-2xl p-6 md:p-8 mb-8 border border-accent-100">
+                            <div class="flex items-center mb-6">
+                                <div class="w-12 h-12 bg-accent-600 rounded-xl flex items-center justify-center text-white mr-4 flex-shrink-0 shadow-md">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        @foreach ($renderIcon('user') as $d)
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                                        @endforeach
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-bold text-gray-800">Data Pribadi Siswa</h3>
+                                    <p class="text-sm text-gray-500">Langkah 2 dari 4</p>
+                                </div>
                             </div>
-                            <h3 class="text-xl font-bold text-gray-800">Data Orang Tua</h3>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                @foreach ($dataPribadiFields as $field)
+                                    <div class="space-y-2 {{ $field['span'] ?? '' }}">
+                                        <label for="{{ $field['id'] }}" class="block text-sm font-semibold text-gray-700">
+                                            {{ $field['label'] }} <span class="text-red-500">*</span>
+                                        </label>
+                                        <div class="relative">
+                                            <svg class="w-5 h-5 absolute left-4 top-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                @foreach ($renderIcon($field['icon']) as $d)
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                                                @endforeach
+                                            </svg>
+
+                                            @if ($field['type'] === 'select')
+                                                <select id="{{ $field['id'] }}" name="{{ $field['id'] }}" required
+                                                        class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-accent-500 focus:border-accent-500 bg-white shadow-sm transition-all duration-200 @error($field['id']) border-red-500 ring-2 ring-red-200 @enderror">
+                                                    <option value="">{{ $field['placeholder'] }}</option>
+                                                    @foreach ($field['options'] as $val => $optLabel)
+                                                        <option value="{{ $val }}" {{ old($field['id']) == $val ? 'selected' : '' }}>{{ $optLabel }}</option>
+                                                    @endforeach
+                                                </select>
+                                            @elseif ($field['type'] === 'textarea')
+                                                <textarea id="{{ $field['id'] }}" name="{{ $field['id'] }}" required rows="3"
+                                                          class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-accent-500 focus:border-accent-500 bg-white shadow-sm transition-all duration-200 @error($field['id']) border-red-500 ring-2 ring-red-200 @enderror"
+                                                          placeholder="{{ $field['placeholder'] }}">{{ old($field['id']) }}</textarea>
+                                            @else
+                                                <input type="{{ $field['type'] }}" id="{{ $field['id'] }}" name="{{ $field['id'] }}" required
+                                                       @if (isset($field['maxlength'])) maxlength="{{ $field['maxlength'] }}" @endif
+                                                       class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-accent-500 focus:border-accent-500 bg-white shadow-sm transition-all duration-200 @error($field['id']) border-red-500 ring-2 ring-red-200 @enderror"
+                                                       value="{{ old($field['id']) }}" placeholder="{{ $field['placeholder'] ?? '' }}">
+                                            @endif
+                                        </div>
+                                        @error($field['id'])
+                                            <p class="text-sm text-red-600">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+                                @endforeach
+                            </div>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <!-- Nama Ayah -->
-                            <div class="space-y-2">
-                                <label for="nama_ayah" class="block text-sm font-semibold text-gray-700">
-                                    Nama Ayah <span class="text-red-500">*</span>
-                                </label>
-                                <div class="relative">
-                                    <i class="fas fa-male absolute left-4 top-4 text-gray-400"></i>
-                                    <input type="text" id="nama_ayah" name="nama_ayah" required
-                                        class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 bg-white shadow-sm transition-all duration-200 @error('nama_ayah') border-red-500 ring-2 ring-red-200 @enderror"
-                                        value="{{ old('nama_ayah') }}" placeholder="Nama lengkap ayah">
-                                </div>
-                                @error('nama_ayah')
-                                    <p class="text-sm text-red-600 flex items-center">
-                                        <i class="fas fa-exclamation-circle mr-2"></i>{{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
-
-                            <!-- Pekerjaan Ayah -->
-                            <div class="space-y-2">
-                                <label for="pekerjaan_ayah" class="block text-sm font-semibold text-gray-700">
-                                    Pekerjaan Ayah <span class="text-red-500">*</span>
-                                </label>
-                                <div class="relative">
-                                    <i class="fas fa-briefcase absolute left-4 top-4 text-gray-400"></i>
-                                    <input type="text" id="pekerjaan_ayah" name="pekerjaan_ayah" required
-                                        class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 bg-white shadow-sm transition-all duration-200 @error('pekerjaan_ayah') border-red-500 ring-2 ring-red-200 @enderror"
-                                        value="{{ old('pekerjaan_ayah') }}" placeholder="Pekerjaan ayah">
-                                </div>
-                                @error('pekerjaan_ayah')
-                                    <p class="text-sm text-red-600 flex items-center">
-                                        <i class="fas fa-exclamation-circle mr-2"></i>{{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
-
-                            <!-- Nama Ibu -->
-                            <div class="space-y-2">
-                                <label for="nama_ibu" class="block text-sm font-semibold text-gray-700">
-                                    Nama Ibu <span class="text-red-500">*</span>
-                                </label>
-                                <div class="relative">
-                                    <i class="fas fa-female absolute left-4 top-4 text-gray-400"></i>
-                                    <input type="text" id="nama_ibu" name="nama_ibu" required
-                                        class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 bg-white shadow-sm transition-all duration-200 @error('nama_ibu') border-red-500 ring-2 ring-red-200 @enderror"
-                                        value="{{ old('nama_ibu') }}" placeholder="Nama lengkap ibu">
-                                </div>
-                                @error('nama_ibu')
-                                    <p class="text-sm text-red-600 flex items-center">
-                                        <i class="fas fa-exclamation-circle mr-2"></i>{{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
-
-                            <!-- Pekerjaan Ibu -->
-                            <div class="space-y-2">
-                                <label for="pekerjaan_ibu" class="block text-sm font-semibold text-gray-700">
-                                    Pekerjaan Ibu <span class="text-red-500">*</span>
-                                </label>
-                                <div class="relative">
-                                    <i class="fas fa-briefcase absolute left-4 top-4 text-gray-400"></i>
-                                    <input type="text" id="pekerjaan_ibu" name="pekerjaan_ibu" required
-                                        class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 bg-white shadow-sm transition-all duration-200 @error('pekerjaan_ibu') border-red-500 ring-2 ring-red-200 @enderror"
-                                        value="{{ old('pekerjaan_ibu') }}" placeholder="Pekerjaan ibu">
-                                </div>
-                                @error('pekerjaan_ibu')
-                                    <p class="text-sm text-red-600 flex items-center">
-                                        <i class="fas fa-exclamation-circle mr-2"></i>{{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
-
-                            <!-- No HP Orang Tua -->
-                            <div class="space-y-2 md:col-span-2">
-                                <label for="no_hp_orang_tua" class="block text-sm font-semibold text-gray-700">
-                                    No. HP Orang Tua <span class="text-red-500">*</span>
-                                </label>
-                                <div class="relative">
-                                    <i class="fas fa-phone absolute left-4 top-4 text-gray-400"></i>
-                                    <input type="tel" id="no_hp_orang_tua" name="no_hp_orang_tua" required
-                                        class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 bg-white shadow-sm transition-all duration-200 @error('no_hp_orang_tua') border-red-500 ring-2 ring-red-200 @enderror"
-                                        value="{{ old('no_hp_orang_tua') }}" placeholder="08xxxxxxxxxx">
-                                </div>
-                                @error('no_hp_orang_tua')
-                                    <p class="text-sm text-red-600 flex items-center">
-                                        <i class="fas fa-exclamation-circle mr-2"></i>{{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
+                        <div class="flex justify-between">
+                            <button type="button" data-prev="1"
+                                    class="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    @foreach ($renderIcon('arrow-left') as $d)
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                                    @endforeach
+                                </svg>
+                                Kembali
+                            </button>
+                            <button type="button" data-next="3"
+                                    class="inline-flex items-center px-6 py-3 bg-accent-600 text-white font-semibold rounded-xl hover:bg-accent-700 transition shadow-md hover:shadow-lg">
+                                Lanjut
+                                <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    @foreach ($renderIcon('arrow-right') as $d)
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                                    @endforeach
+                                </svg>
+                            </button>
                         </div>
                     </div>
 
-                    <!-- Step 4: Upload Berkas -->
-                    <div class="bg-gradient-to-r from-primary-100 to-primary-50 rounded-xl p-8 mb-8 border border-primary-200">
-                        <div class="flex items-center mb-6">
-                            <div
-                                class="w-12 h-12 bg-primary-700 rounded-full flex items-center justify-center text-white mr-4">
-                                <i class="fas fa-cloud-upload-alt"></i>
+                    {{-- Step 3: Data Orang Tua --}}
+                    <div data-step="3" class="hidden">
+                        <div class="bg-secondary-50 rounded-2xl p-6 md:p-8 mb-8 border border-secondary-100">
+                            <div class="flex items-center mb-6">
+                                <div class="w-12 h-12 bg-secondary-600 rounded-xl flex items-center justify-center text-white mr-4 flex-shrink-0 shadow-md">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        @foreach ($renderIcon('users') as $d)
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                                        @endforeach
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-bold text-gray-800">Data Orang Tua</h3>
+                                    <p class="text-sm text-gray-500">Langkah 3 dari 4</p>
+                                </div>
                             </div>
-                            <h3 class="text-xl font-bold text-gray-800">Upload Berkas Persyaratan</h3>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                @foreach ($dataOrangTuaFields as $field)
+                                    <div class="space-y-2 {{ $field['span'] ?? '' }}">
+                                        <label for="{{ $field['id'] }}" class="block text-sm font-semibold text-gray-700">
+                                            {{ $field['label'] }} <span class="text-red-500">*</span>
+                                        </label>
+                                        <div class="relative">
+                                            <svg class="w-5 h-5 absolute left-4 top-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                @foreach ($renderIcon($field['icon']) as $d)
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                                                @endforeach
+                                            </svg>
+                                            <input type="{{ $field['type'] }}" id="{{ $field['id'] }}" name="{{ $field['id'] }}" required
+                                                   class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 bg-white shadow-sm transition-all duration-200 @error($field['id']) border-red-500 ring-2 ring-red-200 @enderror"
+                                                   value="{{ old($field['id']) }}" placeholder="{{ $field['placeholder'] }}">
+                                        </div>
+                                        @error($field['id'])
+                                            <p class="text-sm text-red-600">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+                                @endforeach
+                            </div>
                         </div>
 
-                        <div class="space-y-6">
-                            <!-- Upload Ijazah -->
-                            <div class="space-y-2">
-                                <label for="ijazah_path" class="block text-sm font-semibold text-gray-700">
-                                    Upload Ijazah (PDF) <span class="text-red-500">*</span>
-                                </label>
-                                <div
-                                    class="relative border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-secondary-500 transition-colors duration-200 bg-white">
-                                    <div class="text-center">
-                                        <i class="fas fa-file-pdf text-4xl text-gray-400 mb-4"></i>
-                                        <div class="text-sm text-gray-600 mb-2">
-                                            <strong>Klik untuk upload</strong> atau drag & drop file
-                                        </div>
-                                        <div class="text-xs text-gray-500">PDF maksimal 5MB</div>
-                                    </div>
-                                    <input type="file" id="ijazah_path" name="ijazah_path" accept=".pdf" required
-                                        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer @error('ijazah_path') border-red-500 @enderror">
-                                </div>
-                                @error('ijazah_path')
-                                    <p class="text-sm text-red-600 flex items-center">
-                                        <i class="fas fa-exclamation-circle mr-2"></i>{{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
-
-                            <!-- Upload KK -->
-                            <div class="space-y-2">
-                                <label for="kk_path" class="block text-sm font-semibold text-gray-700">
-                                    Upload Kartu Keluarga (PDF) <span class="text-red-500">*</span>
-                                </label>
-                                <div
-                                    class="relative border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-secondary-500 transition-colors duration-200 bg-white">
-                                    <div class="text-center">
-                                        <i class="fas fa-file-pdf text-4xl text-gray-400 mb-4"></i>
-                                        <div class="text-sm text-gray-600 mb-2">
-                                            <strong>Klik untuk upload</strong> atau drag & drop file
-                                        </div>
-                                        <div class="text-xs text-gray-500">PDF maksimal 5MB</div>
-                                    </div>
-                                    <input type="file" id="kk_path" name="kk_path" accept=".pdf" required
-                                        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer @error('kk_path') border-red-500 @enderror">
-                                </div>
-                                @error('kk_path')
-                                    <p class="text-sm text-red-600 flex items-center">
-                                        <i class="fas fa-exclamation-circle mr-2"></i>{{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
-
-                            <!-- Upload Akta -->
-                            <div class="space-y-2">
-                                <label for="akta_path" class="block text-sm font-semibold text-gray-700">
-                                    Upload Akta Kelahiran (PDF) <span class="text-red-500">*</span>
-                                </label>
-                                <div
-                                    class="relative border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-secondary-500 transition-colors duration-200 bg-white">
-                                    <div class="text-center">
-                                        <i class="fas fa-file-pdf text-4xl text-gray-400 mb-4"></i>
-                                        <div class="text-sm text-gray-600 mb-2">
-                                            <strong>Klik untuk upload</strong> atau drag & drop file
-                                        </div>
-                                        <div class="text-xs text-gray-500">PDF maksimal 5MB</div>
-                                    </div>
-                                    <input type="file" id="akta_path" name="akta_path" accept=".pdf" required
-                                        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer @error('akta_path') border-red-500 @enderror">
-                                </div>
-                                @error('akta_path')
-                                    <p class="text-sm text-red-600 flex items-center">
-                                        <i class="fas fa-exclamation-circle mr-2"></i>{{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
-
-                            <!-- Upload Foto -->
-                            <div class="space-y-2">
-                                <label for="foto_path" class="block text-sm font-semibold text-gray-700">
-                                    Upload Pas Foto (JPG/PNG) <span class="text-red-500">*</span>
-                                </label>
-                                <div
-                                    class="relative border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-secondary-500 transition-colors duration-200 bg-white">
-                                    <div class="text-center">
-                                        <i class="fas fa-image text-4xl text-gray-400 mb-4"></i>
-                                        <div class="text-sm text-gray-600 mb-2">
-                                            <strong>Klik untuk upload</strong> atau drag & drop file
-                                        </div>
-                                        <div class="text-xs text-gray-500">JPG/PNG maksimal 2MB</div>
-                                    </div>
-                                    <input type="file" id="foto_path" name="foto_path" accept="image/*" required
-                                        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer @error('foto_path') border-red-500 @enderror">
-                                </div>
-                                @error('foto_path')
-                                    <p class="text-sm text-red-600 flex items-center">
-                                        <i class="fas fa-exclamation-circle mr-2"></i>{{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
-
-                            <!-- Upload SKL -->
-                            <div class="space-y-2">
-                                <label for="skl_path" class="block text-sm font-semibold text-gray-700">
-                                    Upload Surat Keterangan Lulus (PDF) <span class="text-red-500">*</span>
-                                </label>
-                                <div
-                                    class="relative border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-secondary-500 transition-colors duration-200 bg-white">
-                                    <div class="text-center">
-                                        <i class="fas fa-file-pdf text-4xl text-gray-400 mb-4"></i>
-                                        <div class="text-sm text-gray-600 mb-2">
-                                            <strong>Klik untuk upload</strong> atau drag & drop file
-                                        </div>
-                                        <div class="text-xs text-gray-500">PDF maksimal 5MB</div>
-                                    </div>
-                                    <input type="file" id="skl_path" name="skl_path" accept=".pdf" required
-                                        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer @error('skl_path') border-red-500 @enderror">
-                                </div>
-                                @error('skl_path')
-                                    <p class="text-sm text-red-600 flex items-center">
-                                        <i class="fas fa-exclamation-circle mr-2"></i>{{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
+                        <div class="flex justify-between">
+                            <button type="button" data-prev="2"
+                                    class="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    @foreach ($renderIcon('arrow-left') as $d)
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                                    @endforeach
+                                </svg>
+                                Kembali
+                            </button>
+                            <button type="button" data-next="4"
+                                    class="inline-flex items-center px-6 py-3 bg-secondary-500 text-white font-semibold rounded-xl hover:bg-secondary-600 transition shadow-md hover:shadow-lg">
+                                Lanjut
+                                <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    @foreach ($renderIcon('arrow-right') as $d)
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                                    @endforeach
+                                </svg>
+                            </button>
                         </div>
                     </div>
 
-                    <!-- Submit Button -->
-                    <div class="text-center pt-8">
-                        <button type="submit"
-                            class="inline-flex items-center px-12 py-4 bg-gradient-to-r from-primary-600 to-primary-800 text-white text-lg font-semibold rounded-full shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 focus:ring-4 focus:ring-primary-300">
-                            <i class="fas fa-paper-plane mr-3"></i>
-                            Kirim Pendaftaran
-                        </button>
+                    {{-- Step 4: Upload Berkas --}}
+                    <div data-step="4" class="hidden">
+                        <div class="bg-orange-50 rounded-2xl p-6 md:p-8 mb-8 border border-orange-100">
+                            <div class="flex items-center mb-6">
+                                <div class="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center text-white mr-4 flex-shrink-0 shadow-md">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        @foreach ($renderIcon('upload') as $d)
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                                        @endforeach
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-bold text-gray-800">Upload Berkas Persyaratan</h3>
+                                    <p class="text-sm text-gray-500">Langkah 4 dari 4 — hampir selesai!</p>
+                                </div>
+                            </div>
 
-                        <p class="text-sm text-gray-500 mt-4">
+                            <div class="grid sm:grid-cols-2 gap-6">
+                                @foreach ($uploadFields as $field)
+                                    <div class="space-y-2 {{ $loop->last ? 'sm:col-span-2' : '' }}">
+                                        <label for="{{ $field['id'] }}" class="block text-sm font-semibold text-gray-700">
+                                            {{ $field['label'] }} <span class="text-red-500">*</span>
+                                        </label>
+                                        <div class="relative border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-orange-500 transition-colors duration-200 bg-white">
+                                            <div class="text-center pointer-events-none">
+                                                <svg class="w-9 h-9 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                    @foreach ($renderIcon($field['icon']) as $d)
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                                                    @endforeach
+                                                </svg>
+                                                <div class="text-sm text-gray-600 mb-1">
+                                                    <strong>Klik untuk upload</strong>
+                                                </div>
+                                                <div class="text-xs text-gray-500">{{ $field['hint'] }}</div>
+                                            </div>
+                                            <input type="file" id="{{ $field['id'] }}" name="{{ $field['id'] }}" accept="{{ $field['accept'] }}" required
+                                                   class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                                        </div>
+                                        @error($field['id'])
+                                            <p class="text-sm text-red-600">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center">
+                            <button type="button" data-prev="3"
+                                    class="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    @foreach ($renderIcon('arrow-left') as $d)
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                                    @endforeach
+                                </svg>
+                                Kembali
+                            </button>
+                            <button type="submit"
+                                    class="inline-flex items-center px-8 py-4 bg-gradient-primary text-white text-lg font-semibold rounded-full shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 focus:ring-4 focus:ring-primary-300">
+                                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    @foreach ($renderIcon('paper-plane') as $d)
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                                    @endforeach
+                                </svg>
+                                Kirim Pendaftaran
+                            </button>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-4 text-center">
                             Dengan mengirim formulir ini, Anda menyetujui syarat dan ketentuan yang berlaku
                         </p>
                     </div>
@@ -816,141 +663,121 @@
         </div>
     </section>
 
-    <!-- Footer CTA -->
-    <section class="bg-gradient-to-r from-primary-600 to-primary-800 py-16">
+    {{-- ============ CTA BANTUAN ============ --}}
+    <section class="bg-gradient-primary py-16">
         <div class="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
             <h2 class="text-3xl font-bold text-white mb-4">Butuh Bantuan?</h2>
-            <p class="text-xl text-primary-100 mb-8">Tim kami siap membantu Anda dalam proses pendaftaran</p>
-
+            <p class="text-xl text-white/90 mb-8">Tim kami siap membantu Anda dalam proses pendaftaran</p>
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="tel:{{ $profileSekolah->telp ?? '' }}"
-                    class="inline-flex items-center px-6 py-3 bg-white text-primary-600 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-200">
-                    <i class="fas fa-phone mr-2"></i>
-                    {{ $profileSekolah->telp ?? '' }}
+                <a href="tel:{{ $profileSekolah->telp }}"
+                   class="inline-flex items-center justify-center px-6 py-3 bg-white text-primary-600 rounded-xl font-semibold hover:bg-gray-100 transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        @foreach ($renderIcon('phone') as $d)
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                        @endforeach
+                    </svg>
+                    {{ $profileSekolah->telp }}
                 </a>
-                <a href="mailto:{{ $profileSekolah->email ?? '' }}"
-                    class="inline-flex items-center px-6 py-3 bg-primary-500 text-white rounded-lg font-semibold hover:bg-primary-400 transition-colors duration-200">
-                    <i class="fas fa-envelope mr-2"></i>
-                    {{ $profileSekolah->email ?? '' }}
+                <a href="mailto:{{ $profileSekolah->email }}"
+                   class="inline-flex items-center justify-center px-6 py-3 bg-white/10 text-white rounded-xl font-semibold hover:bg-white/20 transition-colors duration-200 border border-white/20">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        @foreach ($renderIcon('envelope') as $d)
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                        @endforeach
+                    </svg>
+                    {{ $profileSekolah->email }}
                 </a>
             </div>
         </div>
     </section>
 
-    <style>
-        /* Note: fadeInUp/float animations and the scrollbar theme already
-           live globally in app.css and use the primary theme color, so
-           they are intentionally not redefined here. */
-
-        /* File upload hover effects (secondary/warm accent from app.css theme) */
-        .border-dashed:hover {
-            border-color: var(--color-secondary-500);
-            background-color: var(--color-secondary-50);
-        }
-
-        /* Smooth focus transitions */
-        input:focus,
-        select:focus,
-        textarea:focus {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Button hover effects */
-        button:hover {
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-        }
-    </style>
+    @include('spmb.partials.footer')
 
     <script>
-        // File upload preview and validation
-        document.querySelectorAll('input[type="file"]').forEach(input => {
-            input.addEventListener('change', function() {
-                const file = this.files[0];
-                const parent = this.closest('.border-dashed');
+        (function () {
+            const form = document.getElementById('form-wizard');
+            const totalSteps = {{ count($stepLabels) }};
+            let current = 1;
 
-                if (file) {
-                    parent.classList.add('border-accent-500', 'bg-accent-50');
-                    parent.classList.remove('border-gray-300');
+            function stepEl(n) {
+                return form.querySelector(`[data-step="${n}"]`);
+            }
 
-                    const icon = parent.querySelector('i');
-                    icon.className = 'fas fa-check-circle text-4xl text-accent-500 mb-4';
+            function validateStep(n) {
+                const fields = stepEl(n).querySelectorAll('input[required], select[required], textarea[required]');
+                let valid = true;
+                fields.forEach((f) => {
+                    if (!f.checkValidity()) {
+                        f.classList.add('border-red-500');
+                        valid = false;
+                    } else {
+                        f.classList.remove('border-red-500');
+                    }
+                });
+                if (!valid) fields[0]?.reportValidity();
+                return valid;
+            }
 
-                    const text = parent.querySelector('.text-sm');
-                    text.innerHTML = `<strong class="text-accent-600">File terpilih:</strong> ${file.name}`;
-                } else {
-                    parent.classList.remove('border-accent-500', 'bg-accent-50');
-                    parent.classList.add('border-gray-300');
+            function updateIndicators() {
+                form.querySelectorAll('[data-step-indicator]').forEach((wrap) => {
+                    const num = parseInt(wrap.dataset.stepIndicator, 10);
+                    const circle = wrap.querySelector('.step-circle');
+                    const label = wrap.querySelector('span');
+                    circle.classList.remove('bg-primary-600', 'text-white', 'ring-4', 'ring-primary-200', 'bg-gray-200', 'text-gray-500');
+                    label?.classList.remove('text-primary-600', 'text-gray-400');
+                    if (num < current) {
+                        circle.classList.add('bg-primary-600', 'text-white');
+                        label?.classList.add('text-primary-600');
+                    } else if (num === current) {
+                        circle.classList.add('bg-primary-600', 'text-white', 'ring-4', 'ring-primary-200');
+                        label?.classList.add('text-primary-600');
+                    } else {
+                        circle.classList.add('bg-gray-200', 'text-gray-500');
+                        label?.classList.add('text-gray-400');
+                    }
+                });
+            }
+
+            function showStep(n) {
+                for (let i = 1; i <= totalSteps; i++) {
+                    const el = stepEl(i);
+                    if (!el) continue;
+                    el.classList.toggle('hidden', i !== n);
+                    if (i === n) el.classList.add('animate-fade-in-up');
                 }
-            });
-        });
+                current = n;
+                updateIndicators();
+                stepEl(n).scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
 
-        document.querySelector('a[href="#form-pendaftaran"]')?.addEventListener('click', function(e) {
-            e.preventDefault();
-            document.getElementById('form-pendaftaran').scrollIntoView({
-                behavior: 'smooth'
-            });
-        });
-
-        document.querySelectorAll('input, select, textarea').forEach(field => {
-            field.addEventListener('blur', function() {
-                if (this.value && this.checkValidity()) {
-                    this.classList.add('border-accent-500');
-                    this.classList.remove('border-red-500');
-                } else if (this.value && !this.checkValidity()) {
-                    this.classList.add('border-red-500');
-                    this.classList.remove('border-accent-500');
-                }
-            });
-        });
-
-        // Progress bar animation
-        const steps = document.querySelectorAll('.w-10.h-10');
-        const progressBars = document.querySelectorAll('.h-2.bg-primary-600');
-
-        function updateProgress() {
-            let completedSteps = 0;
-
-            // Check each section
-            const jalurSelect = document.getElementById('jalur_pendaftaran_id');
-            if (jalurSelect && jalurSelect.value) completedSteps = 1;
-
-            const requiredPersonalFields = ['nama_lengkap', 'jenis_kelamin', 'nik', 'nisn'];
-            if (requiredPersonalFields.every(id => document.getElementById(id)?.value)) completedSteps = 2;
-
-            const requiredParentFields = ['nama_ayah', 'nama_ibu', 'no_hp_orang_tua'];
-            if (completedSteps === 2 && requiredParentFields.every(id => document.getElementById(id)?.value))
-                completedSteps = 3;
-
-            const fileFields = ['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path'];
-            if (completedSteps === 3 && fileFields.every(id => document.getElementById(id)?.files.length > 0))
-                completedSteps = 4;
-
-            // Update progress visualization
-            steps.forEach((step, index) => {
-                if (index < completedSteps) {
-                    step.classList.add('bg-primary-600', 'text-white');
-                    step.classList.remove('bg-gray-200', 'text-gray-400');
-                    step.parentElement.classList.add('text-primary-600');
-                    step.parentElement.classList.remove('text-gray-400');
-                }
+            form.querySelectorAll('[data-next]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const fromStep = current;
+                    const toStep = parseInt(btn.dataset.next, 10);
+                    if (validateStep(fromStep)) showStep(toStep);
+                });
             });
 
-            progressBars.forEach((bar, index) => {
-                if (index < completedSteps - 1) {
-                    bar.style.width = '100%';
-                } else if (index === completedSteps - 1) {
-                    bar.style.width = '50%';
-                }
+            form.querySelectorAll('[data-prev]').forEach((btn) => {
+                btn.addEventListener('click', () => showStep(parseInt(btn.dataset.prev, 10)));
             });
-        }
 
-        // Monitor form changes
-        document.querySelectorAll('input, select').forEach(field => {
-            field.addEventListener('change', updateProgress);
-        });
+            // Preview file upload
+            form.querySelectorAll('input[type="file"]').forEach((input) => {
+                input.addEventListener('change', function () {
+                    const file = this.files[0];
+                    const wrap = this.closest('.border-dashed');
+                    const hint = wrap.querySelector('.text-sm.text-gray-600');
+                    if (file) {
+                        wrap.classList.add('border-accent-500', 'bg-accent-50');
+                        wrap.classList.remove('border-gray-300');
+                        if (hint) hint.innerHTML = `<strong class="text-accent-600">✓ ${file.name}</strong>`;
+                    }
+                });
+            });
 
-        // Initial progress check
-        updateProgress();
+            updateIndicators();
+        })();
     </script>
+
 @endsection

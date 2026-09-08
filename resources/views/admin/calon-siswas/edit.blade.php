@@ -29,7 +29,7 @@
         </div>
     </div>
     <div class="card-body-nexus">
-        <form method="POST" action="{{ route('admin.calon-siswas.update', $calon) }}">
+        <form method="POST" action="{{ route('admin.calon-siswas.update', $calon) }}" enctype="multipart/form-data">
             @csrf
             @method('PUT')
             @include('admin.calon-siswas._form', ['calon' => $calon, 'jalurs' => $jalurs, 'tahunAjarans' => $tahunAjarans, 'tahunAktif' => null, 'isEdit' => true])

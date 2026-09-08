@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class CalonSiswaController extends Controller implements HasMiddleware
@@ -72,11 +73,15 @@ class CalonSiswaController extends Controller implements HasMiddleware
         $validated['no_pendaftaran'] = $this->generateNoPendaftaran();
         $validated['status_pendaftaran'] = $validated['status_pendaftaran'] ?? 'menunggu';
 
+        $berkasFields = ['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path'];
+        $calonData = collect($validated)->except($berkasFields)->toArray();
+        $berkasUploads = collect($validated)->only($berkasFields)->filter()->toArray();
+
         // Kuota check with lock before create
         try {
-            DB::transaction(function () use (&$validated) {
-                $kuota = KuotaPendaftaran::where('tahun_ajaran_id', $validated['tahun_ajaran_id'])
-                    ->where('jalur_pendaftaran_id', $validated['jalur_pendaftaran_id'])
+            DB::transaction(function () use ($calonData, $berkasUploads) {
+                $kuota = KuotaPendaftaran::where('tahun_ajaran_id', $calonData['tahun_ajaran_id'])
+                    ->where('jalur_pendaftaran_id', $calonData['jalur_pendaftaran_id'])
                     ->lockForUpdate()
                     ->first();
 
@@ -84,7 +89,15 @@ class CalonSiswaController extends Controller implements HasMiddleware
                     throw new \RuntimeException('Kuota jalur ini sudah penuh.');
                 }
 
-                $calon = CalonSiswa::create($validated);
+                $calon = CalonSiswa::create($calonData);
+
+                if (! empty($berkasUploads)) {
+                    $berkasData = [];
+                    foreach ($berkasUploads as $field => $file) {
+                        $berkasData[$field] = $file->store('berkas', 'public');
+                    }
+                    $calon->berkasCalonSiswa()->create($berkasData);
+                }
 
                 LogStatusPendaftaran::create([
                     'calon_siswa_id' => $calon->id,
@@ -134,7 +147,24 @@ class CalonSiswaController extends Controller implements HasMiddleware
             return back()->with('error', 'Tidak dapat mengganti jalur/tahun untuk calon yang sudah diterima. Ubah status dulu.')->withInput();
         }
 
-        $calonSiswa->update($validated);
+        $berkasFields = ['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path'];
+        $calonData = collect($validated)->except($berkasFields)->toArray();
+        $berkasUploads = collect($validated)->only($berkasFields)->filter()->toArray();
+
+        DB::transaction(function () use ($calonSiswa, $calonData, $berkasUploads) {
+            $calonSiswa->update($calonData);
+
+            if (! empty($berkasUploads)) {
+                $berkas = $calonSiswa->berkasCalonSiswa()->firstOrCreate([]);
+                foreach ($berkasUploads as $field => $file) {
+                    if ($berkas->$field) {
+                        Storage::disk('public')->delete($berkas->$field);
+                    }
+                    $berkas->$field = $file->store('berkas', 'public');
+                }
+                $berkas->save();
+            }
+        });
 
         return redirect()->route('admin.calon-siswas.show', $calonSiswa)->with('success', 'Data calon siswa diperbarui.');
     }
@@ -197,6 +227,11 @@ class CalonSiswaController extends Controller implements HasMiddleware
             'berkas_perlu_perbaikan.*' => ['string', 'in:ijazah_path,kk_path,akta_path,foto_path,skl_path'],
             'alasan_penolakan' => ['nullable', 'string', 'max:1000'],
             'catatan_berkas' => ['nullable', 'string', 'max:1000'],
+            'ijazah_path' => ['nullable', 'file', 'mimes:pdf', 'max:5120'],
+            'kk_path' => ['nullable', 'file', 'mimes:pdf', 'max:5120'],
+            'akta_path' => ['nullable', 'file', 'mimes:pdf', 'max:5120'],
+            'foto_path' => ['nullable', 'file', 'mimes:jpg,jpeg,png', 'max:2048'],
+            'skl_path' => ['nullable', 'file', 'mimes:pdf', 'max:5120'],
         ]);
 
         $berkas = $calonSiswa->berkasCalonSiswa;
@@ -207,12 +242,23 @@ class CalonSiswaController extends Controller implements HasMiddleware
             ]);
         }
 
-        $berkas->update([
+        $data = [
             'status_verifikasi' => $request->boolean('status_verifikasi'),
             'berkas_perlu_perbaikan' => $request->input('berkas_perlu_perbaikan'),
             'alasan_penolakan' => $request->input('alasan_penolakan'),
             'catatan_berkas' => $request->input('catatan_berkas'),
-        ]);
+        ];
+
+        foreach (['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path'] as $field) {
+            if ($request->hasFile($field)) {
+                if ($berkas->$field) {
+                    Storage::disk('public')->delete($berkas->$field);
+                }
+                $data[$field] = $request->file($field)->store('berkas', 'public');
+            }
+        }
+
+        $berkas->update($data);
 
         return back()->with('success', 'Verifikasi berkas diperbarui.');
     }
@@ -227,6 +273,13 @@ class CalonSiswaController extends Controller implements HasMiddleware
                     ->first();
                 if ($kuota && $kuota->terisi > 0) {
                     $kuota->decrement('terisi');
+                }
+            }
+            if ($calonSiswa->berkasCalonSiswa) {
+                foreach (['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path'] as $field) {
+                    if ($calonSiswa->berkasCalonSiswa->$field) {
+                        Storage::disk('public')->delete($calonSiswa->berkasCalonSiswa->$field);
+                    }
                 }
             }
             $calonSiswa->delete();
