@@ -100,6 +100,32 @@
                     @else
                         <p style="font-size: 13px; color: var(--text-muted);">Belum ada berkas.</p>
                     @endif
+
+                    @if ($calon->sertifikatPrestasis->isNotEmpty())
+                        <h6 class="mt-3 mb-2" style="font-size: 13px; font-weight: 700;">Sertifikat Prestasi</h6>
+                        <div class="table-responsive">
+                            <table class="table-nexus w-100" style="font-size: 13px;">
+                                <thead><tr><th>Nama Kejuaraan</th><th>Status</th><th>File</th></tr></thead>
+                                <tbody>
+                                    @foreach ($calon->sertifikatPrestasis as $s)
+                                        <tr>
+                                            <td>{{ $s->nama_sertifikat }}</td>
+                                            <td>
+                                                @if(in_array('sertifikat', ($b ?? null)?->berkas_perlu_perbaikan ?? []))
+                                                    <span class="badge-nexus badge-danger">perlu perbaikan</span>
+                                                @elseif(($b ?? null)?->status_verifikasi)
+                                                    <span class="badge-nexus badge-info">terverifikasi</span>
+                                                @else
+                                                    <span class="badge-nexus badge-neutral">menunggu</span>
+                                                @endif
+                                            </td>
+                                            <td><a href="{{ Storage::disk('public')->url($s->file_path) }}" target="_blank" class="text-primary">Lihat</a></td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>

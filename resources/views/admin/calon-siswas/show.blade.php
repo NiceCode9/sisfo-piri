@@ -76,6 +76,23 @@
                     <p style="font-size: 13px; color: var(--text-muted);">Belum ada berkas.</p>
                 @endif
 
+                @if ($calon->sertifikatPrestasis->isNotEmpty())
+                    <h6 class="mt-3 mb-2" style="font-size: 13px; font-weight: 700;">Sertifikat Prestasi</h6>
+                    <div class="table-responsive">
+                        <table class="table-nexus w-100" style="font-size: 13px;">
+                            <thead><tr><th>Nama Kejuaraan</th><th>File</th></tr></thead>
+                            <tbody>
+                                @foreach ($calon->sertifikatPrestasis as $s)
+                                    <tr>
+                                        <td>{{ $s->nama_sertifikat }}</td>
+                                        <td><a href="{{ Storage::disk('public')->url($s->file_path) }}" target="_blank" class="text-primary">Lihat</a></td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+
                 @can('berkas-calon-siswas.edit')
                 <hr class="my-3" />
                 <form method="POST" action="{{ route('admin.calon-siswas.berkas', $calon) }}" class="d-flex flex-column gap-2" enctype="multipart/form-data">
@@ -106,7 +123,7 @@
 
                     <label class="form-label" style="font-size: 12px;">Berkas perlu perbaikan</label>
                     <div class="d-flex flex-wrap gap-2">
-                        @foreach (['ijazah_path','kk_path','akta_path','foto_path','skl_path'] as $f)
+                        @foreach (['ijazah_path','kk_path','akta_path','foto_path','skl_path','sertifikat'] as $f)
                             <div class="form-check">
                                 <input type="checkbox" name="berkas_perlu_perbaikan[]" value="{{ $f }}" id="perlu-{{ $f }}" class="form-check-input" @checked(in_array($f, old('berkas_perlu_perbaikan', $calon->berkasCalonSiswa->berkas_perlu_perbaikan ?? []))) />
                                 <label class="form-check-label" style="font-size: 12px;" for="perlu-{{ $f }}">{{ $f }}</label>

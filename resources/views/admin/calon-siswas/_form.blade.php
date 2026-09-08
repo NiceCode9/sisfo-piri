@@ -242,8 +242,94 @@
     @endforeach
 </div>
 
+<hr class="my-4" style="border-color: var(--border-color);" />
+
+{{-- Section F: Sertifikat Prestasi --}}
+<div class="d-flex align-items-center gap-2 mb-3">
+    <div class="d-flex align-items-center justify-content-center rounded-3" style="width:36px;height:36px;background:#f59e0b;color:#fff;"><i class="fa-solid fa-medal"></i></div>
+    <div>
+        <div style="font-weight:700;font-size:14px;color:var(--text-primary);">Sertifikat Prestasi</div>
+        <div style="font-size:12px;color:var(--text-muted);">Wajib bila jalur ber-flag sertifikat. Maks 5 file, PDF/JPG maks 5MB per file.</div>
+    </div>
+</div>
+
+@php $existingSertifikat = $calon->sertifikatPrestasis ?? collect(); @endphp
+@if ($existingSertifikat->isNotEmpty())
+    <div class="table-responsive mb-3">
+        <table class="table-nexus w-100" style="font-size: 13px;">
+            <thead><tr><th>Nama Kejuaraan</th><th>File</th><th></th></tr></thead>
+            <tbody>
+                @foreach ($existingSertifikat as $s)
+                    <tr>
+                        <td>{{ $s->nama_sertifikat }}</td>
+                        <td><a href="{{ Storage::disk('public')->url($s->file_path) }}" target="_blank" class="text-primary"><i class="fa-solid fa-eye"></i> Lihat</a></td>
+                        <td>
+                            <form action="{{ route('admin.calon-siswas.sertifikat.destroy', $s) }}" method="POST" class="d-inline">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="btn-icon btn btn-nexus-outline btn-sm text-danger" data-confirm="Hapus sertifikat {{ $s->nama_sertifikat }}?"><i class="fa-solid fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+@endif
+
+<div id="sertifikat-rows" class="d-flex flex-column gap-2">
+    <div class="sertifikat-row row g-2">
+        <div class="col-12 col-md-6">
+            <input type="text" name="sertifikat[0][nama]" class="form-control" placeholder="Nama kejuaraan (cth: Juara 1 Pencak Silat Provinsi 2025)" />
+        </div>
+        <div class="col-12 col-md-5">
+            <input type="file" name="sertifikat[0][file]" accept=".pdf,.jpg,.jpeg,.png" class="form-control" />
+        </div>
+        <div class="col-12 col-md-1">
+            <button type="button" class="sertifikat-remove btn btn-nexus-outline btn-sm w-100" title="Hapus baris"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+    </div>
+</div>
+<button type="button" id="sertifikat-add" class="btn btn-nexus-outline btn-sm mt-2"><i class="fa-solid fa-plus"></i> Tambah Sertifikat (maks 5)</button>
+@error('sertifikat')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+
 @push('scripts')
 <script>
+(function () {
+    const rows = document.getElementById('sertifikat-rows');
+    const addBtn = document.getElementById('sertifikat-add');
+    if (!rows || !addBtn) return;
+    let idx = rows.querySelectorAll('.sertifikat-row').length;
+
+    function refresh() {
+        const count = rows.querySelectorAll('.sertifikat-row').length;
+        rows.querySelectorAll('.sertifikat-remove').forEach((btn) => {
+            btn.style.display = count > 1 ? '' : 'none';
+        });
+        addBtn.disabled = count >= 5;
+    }
+
+    addBtn.addEventListener('click', () => {
+        if (rows.querySelectorAll('.sertifikat-row').length >= 5) return;
+        const i = idx++;
+        const div = document.createElement('div');
+        div.className = 'sertifikat-row row g-2';
+        div.innerHTML =
+            `<div class="col-12 col-md-6"><input type="text" name="sertifikat[${i}][nama]" class="form-control" placeholder="Nama kejuaraan" /></div>` +
+            `<div class="col-12 col-md-5"><input type="file" name="sertifikat[${i}][file]" accept=".pdf,.jpg,.jpeg,.png" class="form-control" /></div>` +
+            `<div class="col-12 col-md-1"><button type="button" class="sertifikat-remove btn btn-nexus-outline btn-sm w-100" title="Hapus baris"><i class="fa-solid fa-xmark"></i></button></div>`;
+        rows.appendChild(div);
+        refresh();
+    });
+
+    rows.addEventListener('click', (e) => {
+        const btn = e.target.closest('.sertifikat-remove');
+        if (!btn || rows.querySelectorAll('.sertifikat-row').length <= 1) return;
+        btn.closest('.sertifikat-row').remove();
+        refresh();
+    });
+
+    refresh();
+})();
 document.querySelectorAll('input[type="file"][name$="_path"]').forEach(input => {
     input.addEventListener('change', function() {
         const nameEl = document.querySelector('.file-name[data-for="'+this.name+'"]');

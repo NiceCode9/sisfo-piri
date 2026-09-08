@@ -10,10 +10,12 @@ class JalurPendaftaran extends Model
         'nama_jalur',
         'deskripsi',
         'aktif',
+        'wajib_sertifikat',
     ];
 
     protected $casts = [
         'aktif' => 'boolean',
+        'wajib_sertifikat' => 'boolean',
     ];
 
     public function kuotaPendaftaran()

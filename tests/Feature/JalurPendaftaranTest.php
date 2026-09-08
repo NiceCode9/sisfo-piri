@@ -42,6 +42,7 @@ test('super-admin dapat menambah jalur', function () {
         'nama_jalur' => 'Jalur Test',
         'deskripsi' => 'Deskripsi test',
         'aktif' => 1,
+        'wajib_sertifikat' => 0,
     ]);
 
     $response->assertRedirect(route('admin.jalur-pendaftarans.index'));
@@ -55,6 +56,7 @@ test('nama jalur duplikat ditolak', function () {
     $response = $this->actingAs(superAdmin())->post(route('admin.jalur-pendaftarans.store'), [
         'nama_jalur' => $ada->nama_jalur,
         'aktif' => 1,
+        'wajib_sertifikat' => 0,
     ]);
 
     $response->assertSessionHasErrors('nama_jalur');
@@ -67,10 +69,11 @@ test('super-admin dapat memperbarui jalur', function () {
         'nama_jalur' => $jalur->nama_jalur,
         'deskripsi' => 'Diperbarui',
         'aktif' => 0,
+        'wajib_sertifikat' => 1,
     ]);
 
     $response->assertRedirect(route('admin.jalur-pendaftarans.index'));
-    expect($jalur->fresh()->deskripsi)->toBe('Diperbarui')->and($jalur->fresh()->aktif)->toBeFalse();
+    expect($jalur->fresh()->deskripsi)->toBe('Diperbarui')->and($jalur->fresh()->aktif)->toBeFalse()->and($jalur->fresh()->wajib_sertifikat)->toBeTrue();
 });
 
 test('hapus jalur berelasi diblokir', function () {

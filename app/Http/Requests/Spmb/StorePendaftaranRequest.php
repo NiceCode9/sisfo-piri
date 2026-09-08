@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Spmb;
 
+use App\Models\JalurPendaftaran;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -40,6 +41,23 @@ class StorePendaftaranRequest extends FormRequest
             'akta_path' => ['required', 'file', 'mimes:pdf', 'max:5120'],
             'foto_path' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:2048'],
             'skl_path' => ['required', 'file', 'mimes:pdf', 'max:5120'],
+            'sertifikat' => ['nullable', 'array', 'max:5'],
+            'sertifikat.*.nama' => ['required_with:sertifikat', 'string', 'max:255'],
+            'sertifikat.*.file' => ['required_with:sertifikat', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
         ];
+    }
+
+    /**
+     * Sertifikat wajib (min 1) bila jalur yang dipilih ber-flag wajib_sertifikat.
+     */
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $jalur = JalurPendaftaran::find($this->input('jalur_pendaftaran_id'));
+
+            if ($jalur?->wajib_sertifikat && empty($this->file('sertifikat'))) {
+                $validator->errors()->add('sertifikat', 'Jalur '.$jalur->nama_jalur.' mewajibkan minimal 1 sertifikat prestasi.');
+            }
+        });
     }
 }

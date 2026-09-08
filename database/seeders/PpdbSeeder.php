@@ -72,6 +72,12 @@ class PpdbSeeder extends Seeder
                 'deskripsi' => 'Jalur pendaftaran untuk siswa pindahan dari sekolah lain',
                 'aktif' => true,
             ],
+            [
+                'nama_jalur' => 'Jalur Prestasi Olahraga',
+                'deskripsi' => 'Jalur pendaftaran untuk siswa berprestasi di bidang olahraga (wajib upload sertifikat kejuaraan)',
+                'aktif' => true,
+                'wajib_sertifikat' => true,
+            ],
         ];
 
         foreach ($jalurPendaftaran as $jalur) {
@@ -110,6 +116,13 @@ class PpdbSeeder extends Seeder
                 'kuota' => 20,
                 'terisi' => 5,
                 'keterangan' => 'Kuota untuk jalur mutasi tahun ajaran 2024/2025',
+            ],
+            [
+                'tahun_ajaran_id' => $tahunAjaranAktif->id,
+                'jalur_pendaftaran_id' => $jalurIds[4], // Jalur Prestasi Olahraga
+                'kuota' => 20,
+                'terisi' => 0,
+                'keterangan' => 'Kuota untuk jalur prestasi olahraga tahun ajaran 2024/2025',
             ],
         ];
 

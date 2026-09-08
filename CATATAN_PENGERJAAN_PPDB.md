@@ -31,7 +31,7 @@ npm run dev          # vite HMR
 npm run build        # production
 
 vendor/bin/pint --dirty --format agent   # WAJIB setelah edit PHP
-php artisan test --compact               # semua test (120 saat ini)
+php artisan test --compact               # semua test (127 saat ini)
 php artisan test --compact --filter=nama # satu test
 php artisan migrate:fresh --seed         # reset DB lokal (seed Role+Permission+Menu+Ppdb+Gelombang)
 php artisan route:list
@@ -118,7 +118,7 @@ database/migrations/ 25 migrasi awal + 2026_09_08_091806_create_gelombangs_table
 database/seeders/ RoleSeeder (5 role), PermissionSeeder (30 perms), MenuSeeder (13 menus), PpdbSeeder (4 TA, 4 jalur, 4 kuota, 5 biaya, 5 jadwal, 3 pengumuman, 3 gelombang), DatabaseSeeder call order
 resources/views/layouts/app.blade.php (Nexus), spmb.blade.php (Tailwind), admin/calon-siswas/* (5 file), admin/gelombangs/*, admin/biaya-pendaftarans/*, admin/pengumumans/*, admin/tahun-ajarans/*, admin/jalur-pendaftarans/*, admin/jadwal-ppdbs/*, admin/kuota-pendaftarans/* (index/create/edit/_form tiap modul, progress terisi/kuota di index Kuota), spmb/pendaftaran.blade.php (action route spmb.store — pernah tertulis pendaftaran.store, sudah dibetulkan), spmb/home.blade.php (navbar, hero, jalur-seleksi, alur, gelombang, biaya, pengumuman-home, ekstrakurikuler), siswa/dashboard.blade.php
 routes/web.php (51 baris, 62 route): / (spmb.home), /pendaftaran (spmb.*), /pengumuman/*, /siswa/dashboard (role:siswa), /login, admin/* 11 resources (7 lama + tahun-ajarans, jalur-pendaftarans, jadwal-ppdbs, kuota-pendaftarans)
-tests/Feature/ 13 file 120 test: Auth 6, AdminDashboard 2, Example 1, Users 9, Roles 10, Menus 10, CalonSiswa 10, SpmbPendaftaran 6, BerkasVerification 5, Gelombang 9, Biaya 8, Pengumuman 10, TahunAjaran 9, JalurPendaftaran 8, JadwalPpdb 8, KuotaPendaftaran 8
+tests/Feature/ 14 file 127 test: Auth 6, AdminDashboard 2, Example 1, Users 9, Roles 10, Menus 10, CalonSiswa 10, SpmbPendaftaran 6, BerkasVerification 5, Gelombang 9, Biaya 8, Pengumuman 10, TahunAjaran 9, JalurPendaftaran 8, JadwalPpdb 8, KuotaPendaftaran 8, SertifikatPrestasi 7
 ```
 
 ---
@@ -156,8 +156,8 @@ tests/Feature/ 13 file 120 test: Auth 6, AdminDashboard 2, Example 1, Users 9, R
 ## 8. Cara Verifikasi Cepat
 
 ```bash
-php artisan migrate:fresh --seed  # 3 gelombang 80/70/30, 3 pengumuman, 5 biaya, kuota 200/50/30/20
-php artisan test --compact         # harus 120/120
+php artisan migrate:fresh --seed  # 3 gelombang 80/70/30, 3 pengumuman, 5 biaya, kuota 200/50/30/20/20(olahraga)
+php artisan test --compact         # harus 127/127
 php artisan route:list | findstr spmb
 # Publik: buka /pendaftaran → isi 5 berkas → submit → flash Username: nisn Password: xxx No: PPDB-...
 # Login nisn/password → redirect /siswa/dashboard (role siswa) → pantau status, berkas, log
@@ -168,7 +168,14 @@ php artisan route:list | findstr spmb
 
 ## 9. Next Priority (disarankan)
 
-1. **Master CRUD selesai (120 test)** — next prioritas **Pembayaran** (`Pembayaran` CRUD + upload `bukti_pembayaran_path` + linkage ke `BiayaPendaftaran`, lalu angsuran) untuk membuka menu orphan terakhir order 16.
+1. **Master CRUD + Sertifikat selesai (127 test)** — next prioritas **Pembayaran** (`Pembayaran` CRUD + upload `bukti_pembayaran_path` + linkage ke `BiayaPendaftaran`, lalu angsuran) untuk membuka menu orphan terakhir order 16.
+
+### 4.6 Sertifikat Prestasi Olahraga
+- **Tabel `sertifikat_prestasis`** (`calon_siswa_id` cascade, `nama_sertifikat`, `file_path` di `berkas/sertifikat`); `CalonSiswa hasMany sertifikatPrestasis`. Tabel berkas 5 kolom tidak diubah.
+- **Flag `wajib_sertifikat`** di `jalur_pendaftarans` (dikelola CRUD Jalur) + seed `Jalur Prestasi Olahraga` + kuota 20.
+- **Publik:** validasi kondisional di `StorePendaftaranRequest::withValidator` (wajib min 1 bila flag), `sertifikat` array max 5 (nama required, file pdf/jpg 5MB); section dinamis di step 4 (toggle via `data-wajib-sertifikat`, tambah/hapus baris JS); simpan dalam transaksi `SpmbController@store`.
+- **Admin:** Section F di form calon (list existing + hapus per file via `DELETE calon-siswas/sertifikat/{sertifikat}` + tambah dinamis); tampil di show + dashboard siswa; enum `berkas_perlu_perbaikan` terima nilai `sertifikat`; `destroy` hapus file sertifikat.
+- **Tests:** `SertifikatPrestasiTest` 7 (wajib/min-1, sukses 2 file, reguler lolos, max 5, mimes, hapus file, admin create).
 2. User pilih: `Biaya/Pengumuman` sudah dinamis `hanya wajib_bayar=true` total `Rp 3.850.000`, pengumuman `semua status_aktif` — sudah sesuai.
 3. Jangan ubah `gelombangs` `kuota` sinkron ke `kuota_pendaftarans` (terpisah) sesuai rekomendasi — biarkan manual.
 

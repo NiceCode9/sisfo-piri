@@ -50,6 +50,11 @@ class CalonSiswa extends Model
         return $this->hasOne(BerkasCalonSiswa::class);
     }
 
+    public function sertifikatPrestasis()
+    {
+        return $this->hasMany(SertifikatPrestasi::class);
+    }
+
     public function pembayaran()
     {
         return $this->hasMany(Pembayaran::class);

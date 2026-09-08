@@ -424,7 +424,7 @@
                                 <option value="">🎯 Pilih Jalur Pendaftaran</option>
                                 @foreach ($jalurPendaftarans as $jalur)
                                     @if ($jalur->aktif)
-                                        <option value="{{ $jalur->id }}" {{ old('jalur_pendaftaran_id') == $jalur->id ? 'selected' : '' }}>{{ $jalur->nama_jalur }}</option>
+                                        <option value="{{ $jalur->id }}" data-wajib-sertifikat="{{ $jalur->wajib_sertifikat ? 1 : 0 }}" {{ old('jalur_pendaftaran_id') == $jalur->id ? 'selected' : '' }}>{{ $jalur->nama_jalur }}</option>
                                     @endif
                                 @endforeach
                             </select>
@@ -632,6 +632,55 @@
                                     </div>
                                 @endforeach
                             </div>
+
+                            {{-- Sertifikat prestasi: tampil hanya bila jalur mewajibkan --}}
+                            @php $oldSertifikat = old('sertifikat', []); @endphp
+                            <div id="sertifikat-section" class="mt-8 {{ collect($oldSertifikat)->isNotEmpty() ? '' : 'hidden' }}">
+                                <h4 class="text-lg font-bold text-gray-800 mb-1">Sertifikat Prestasi <span class="text-red-500">*</span></h4>
+                                <p class="text-sm text-gray-500 mb-4">Jalur yang dipilih mewajibkan minimal 1 sertifikat (maks 5). PDF/JPG, maks 5MB per file.</p>
+                                <div id="sertifikat-rows" class="space-y-4">
+                                    @forelse ($oldSertifikat as $i => $row)
+                                        <div class="sertifikat-row grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-4 items-end bg-white border border-gray-200 rounded-xl p-4">
+                                            <div>
+                                                <label class="block text-sm font-semibold text-gray-700 mb-2">Nama Kejuaraan <span class="text-red-500">*</span></label>
+                                                <input type="text" name="sertifikat[{{ $i }}][nama]" value="{{ $row['nama'] ?? '' }}" placeholder="cth: Juara 1 Pencak Silat Provinsi 2025"
+                                                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white shadow-sm transition-all duration-200" />
+                                                @error("sertifikat.{$i}.nama")<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-semibold text-gray-700 mb-2">File Sertifikat <span class="text-red-500">*</span></label>
+                                                <input type="file" name="sertifikat[{{ $i }}][file]" accept=".pdf,.jpg,.jpeg,.png"
+                                                       class="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white shadow-sm text-sm text-gray-600" />
+                                                @error("sertifikat.{$i}.file")<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
+                                            </div>
+                                            <button type="button" class="sertifikat-remove inline-flex items-center justify-center w-11 h-11 bg-red-50 text-red-600 font-semibold rounded-xl hover:bg-red-100 transition" title="Hapus baris">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                            </button>
+                                        </div>
+                                    @empty
+                                        <div class="sertifikat-row grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-4 items-end bg-white border border-gray-200 rounded-xl p-4">
+                                            <div>
+                                                <label class="block text-sm font-semibold text-gray-700 mb-2">Nama Kejuaraan <span class="text-red-500">*</span></label>
+                                                <input type="text" name="sertifikat[0][nama]" value="" placeholder="cth: Juara 1 Pencak Silat Provinsi 2025"
+                                                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white shadow-sm transition-all duration-200" />
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-semibold text-gray-700 mb-2">File Sertifikat <span class="text-red-500">*</span></label>
+                                                <input type="file" name="sertifikat[0][file]" accept=".pdf,.jpg,.jpeg,.png"
+                                                       class="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white shadow-sm text-sm text-gray-600" />
+                                            </div>
+                                            <button type="button" class="sertifikat-remove inline-flex items-center justify-center w-11 h-11 bg-red-50 text-red-600 font-semibold rounded-xl hover:bg-red-100 transition" title="Hapus baris">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                            </button>
+                                        </div>
+                                    @endforelse
+                                </div>
+                                <button type="button" id="sertifikat-add"
+                                        class="mt-4 inline-flex items-center px-5 py-2.5 bg-white border-2 border-dashed border-orange-400 text-orange-600 font-semibold rounded-xl hover:bg-orange-50 transition">
+                                    + Tambah Sertifikat (maks 5)
+                                </button>
+                                @error('sertifikat')<p class="text-sm text-red-600 mt-2">{{ $message }}</p>@enderror
+                            </div>
                         </div>
 
                         <div class="flex justify-between items-center">
@@ -761,6 +810,63 @@
             form.querySelectorAll('[data-prev]').forEach((btn) => {
                 btn.addEventListener('click', () => showStep(parseInt(btn.dataset.prev, 10)));
             });
+
+            // Sertifikat prestasi dinamis (wajib bila jalur ber-flag)
+            const jalurSelect = document.getElementById('jalur_pendaftaran_id');
+            const sertSection = document.getElementById('sertifikat-section');
+            const sertRows = document.getElementById('sertifikat-rows');
+            const sertAdd = document.getElementById('sertifikat-add');
+            let sertIndex = sertRows.querySelectorAll('.sertifikat-row').length;
+
+            function sertifikatWajib() {
+                const opt = jalurSelect.selectedOptions[0];
+                return !!(opt && opt.dataset.wajibSertifikat === '1');
+            }
+
+            function toggleSertifikat() {
+                const wajib = sertifikatWajib();
+                sertSection.classList.toggle('hidden', !wajib);
+                sertRows.querySelectorAll('.sertifikat-row').forEach((row) => {
+                    row.querySelectorAll('input').forEach((inp) => { inp.required = wajib; });
+                });
+            }
+
+            function refreshSertifikatButtons() {
+                const rows = sertRows.querySelectorAll('.sertifikat-row');
+                rows.forEach((row) => {
+                    row.querySelector('.sertifikat-remove').style.display = rows.length > 1 ? '' : 'none';
+                });
+                sertAdd.disabled = rows.length >= 5;
+                sertAdd.classList.toggle('opacity-50', rows.length >= 5);
+            }
+
+            sertAdd.addEventListener('click', () => {
+                if (sertRows.querySelectorAll('.sertifikat-row').length >= 5) return;
+                const idx = sertIndex++;
+                const div = document.createElement('div');
+                div.className = 'sertifikat-row grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-4 items-end bg-white border border-gray-200 rounded-xl p-4';
+                div.innerHTML =
+                    `<div><label class="block text-sm font-semibold text-gray-700 mb-2">Nama Kejuaraan <span class="text-red-500">*</span></label>` +
+                    `<input type="text" name="sertifikat[${idx}][nama]" placeholder="cth: Juara 1 Pencak Silat Provinsi 2025" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white shadow-sm transition-all duration-200" /></div>` +
+                    `<div><label class="block text-sm font-semibold text-gray-700 mb-2">File Sertifikat <span class="text-red-500">*</span></label>` +
+                    `<input type="file" name="sertifikat[${idx}][file]" accept=".pdf,.jpg,.jpeg,.png" class="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white shadow-sm text-sm text-gray-600" /></div>` +
+                    `<button type="button" class="sertifikat-remove inline-flex items-center justify-center w-11 h-11 bg-red-50 text-red-600 font-semibold rounded-xl hover:bg-red-100 transition" title="Hapus baris">` +
+                    `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>`;
+                sertRows.appendChild(div);
+                if (sertifikatWajib()) div.querySelectorAll('input').forEach((inp) => { inp.required = true; });
+                refreshSertifikatButtons();
+            });
+
+            sertRows.addEventListener('click', (e) => {
+                const btn = e.target.closest('.sertifikat-remove');
+                if (!btn || sertRows.querySelectorAll('.sertifikat-row').length <= 1) return;
+                btn.closest('.sertifikat-row').remove();
+                refreshSertifikatButtons();
+            });
+
+            jalurSelect.addEventListener('change', toggleSertifikat);
+            toggleSertifikat();
+            refreshSertifikatButtons();
 
             // Preview file upload
             form.querySelectorAll('input[type="file"]').forEach((input) => {

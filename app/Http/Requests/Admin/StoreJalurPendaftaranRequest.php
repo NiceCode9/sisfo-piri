@@ -24,6 +24,7 @@ class StoreJalurPendaftaranRequest extends FormRequest
             'nama_jalur' => ['required', 'string', 'max:100', 'unique:jalur_pendaftarans,nama_jalur'],
             'deskripsi' => ['nullable', 'string', 'max:1000'],
             'aktif' => ['required', 'boolean'],
+            'wajib_sertifikat' => ['required', 'boolean'],
         ];
     }
 }

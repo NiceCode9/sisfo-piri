@@ -9,6 +9,7 @@ use App\Models\CalonSiswa;
 use App\Models\JalurPendaftaran;
 use App\Models\KuotaPendaftaran;
 use App\Models\LogStatusPendaftaran;
+use App\Models\SertifikatPrestasi;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use Illuminate\Http\RedirectResponse;
@@ -26,7 +27,7 @@ class CalonSiswaController extends Controller implements HasMiddleware
         return [
             new Middleware('permission:calon-siswas.view', only: ['index', 'show']),
             new Middleware('permission:calon-siswas.create', only: ['create', 'store']),
-            new Middleware('permission:calon-siswas.edit', only: ['edit', 'update', 'updateStatus', 'verifyBerkas']),
+            new Middleware('permission:calon-siswas.edit', only: ['edit', 'update', 'updateStatus', 'verifyBerkas', 'destroySertifikat']),
             new Middleware('permission:calon-siswas.delete', only: ['destroy']),
         ];
     }
@@ -75,12 +76,13 @@ class CalonSiswaController extends Controller implements HasMiddleware
         $validated['status_pendaftaran'] = $validated['status_pendaftaran'] ?? 'menunggu';
 
         $berkasFields = ['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path'];
-        $calonData = collect($validated)->except($berkasFields)->toArray();
+        $calonData = collect($validated)->except([...$berkasFields, 'sertifikat'])->toArray();
         $berkasUploads = collect($validated)->only($berkasFields)->filter()->toArray();
+        $sertifikatUploads = $request->file('sertifikat', []);
 
         // Kuota check with lock before create
         try {
-            DB::transaction(function () use ($calonData, $berkasUploads) {
+            DB::transaction(function () use ($calonData, $berkasUploads, $sertifikatUploads, $request) {
                 $kuota = KuotaPendaftaran::where('tahun_ajaran_id', $calonData['tahun_ajaran_id'])
                     ->where('jalur_pendaftaran_id', $calonData['jalur_pendaftaran_id'])
                     ->lockForUpdate()
@@ -100,6 +102,13 @@ class CalonSiswaController extends Controller implements HasMiddleware
                     $calon->berkasCalonSiswa()->create($berkasData);
                 }
 
+                foreach ($sertifikatUploads as $i => $item) {
+                    $calon->sertifikatPrestasis()->create([
+                        'nama_sertifikat' => $request->input("sertifikat.{$i}.nama", 'Sertifikat Prestasi'),
+                        'file_path' => $item['file']->store('berkas/sertifikat', 'public'),
+                    ]);
+                }
+
                 LogStatusPendaftaran::create([
                     'calon_siswa_id' => $calon->id,
                     'status_sebelumnya' => null,
@@ -117,7 +126,7 @@ class CalonSiswaController extends Controller implements HasMiddleware
 
     public function show(CalonSiswa $calonSiswa): View
     {
-        $calonSiswa->load(['jalurPendaftaran', 'tahunAjaran', 'berkasCalonSiswa', 'logStatusPendaftaran.user']);
+        $calonSiswa->load(['jalurPendaftaran', 'tahunAjaran', 'berkasCalonSiswa', 'sertifikatPrestasis', 'logStatusPendaftaran.user']);
 
         return view('admin.calon-siswas.show', [
             'calon' => $calonSiswa,
@@ -149,10 +158,11 @@ class CalonSiswaController extends Controller implements HasMiddleware
         }
 
         $berkasFields = ['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path'];
-        $calonData = collect($validated)->except($berkasFields)->toArray();
+        $calonData = collect($validated)->except([...$berkasFields, 'sertifikat'])->toArray();
         $berkasUploads = collect($validated)->only($berkasFields)->filter()->toArray();
+        $sertifikatUploads = $request->file('sertifikat', []);
 
-        DB::transaction(function () use ($calonSiswa, $calonData, $berkasUploads) {
+        DB::transaction(function () use ($calonSiswa, $calonData, $berkasUploads, $sertifikatUploads, $request) {
             $calonSiswa->update($calonData);
 
             if (! empty($berkasUploads)) {
@@ -164,6 +174,13 @@ class CalonSiswaController extends Controller implements HasMiddleware
                     $berkas->$field = $file->store('berkas', 'public');
                 }
                 $berkas->save();
+            }
+
+            foreach ($sertifikatUploads as $i => $item) {
+                $calonSiswa->sertifikatPrestasis()->create([
+                    'nama_sertifikat' => $request->input("sertifikat.{$i}.nama", 'Sertifikat Prestasi'),
+                    'file_path' => $item['file']->store('berkas/sertifikat', 'public'),
+                ]);
             }
         });
 
@@ -238,7 +255,7 @@ class CalonSiswaController extends Controller implements HasMiddleware
         $request->validate([
             'status_verifikasi' => ['required', 'boolean'],
             'berkas_perlu_perbaikan' => ['nullable', 'array'],
-            'berkas_perlu_perbaikan.*' => ['string', 'in:ijazah_path,kk_path,akta_path,foto_path,skl_path'],
+            'berkas_perlu_perbaikan.*' => ['string', 'in:ijazah_path,kk_path,akta_path,foto_path,skl_path,sertifikat'],
             'alasan_penolakan' => ['nullable', 'string', 'max:1000'],
             'catatan_berkas' => ['nullable', 'string', 'max:1000'],
             'ijazah_path' => ['nullable', 'file', 'mimes:pdf', 'max:5120'],
@@ -277,6 +294,15 @@ class CalonSiswaController extends Controller implements HasMiddleware
         return back()->with('success', 'Verifikasi berkas diperbarui.');
     }
 
+    public function destroySertifikat(SertifikatPrestasi $sertifikat): RedirectResponse
+    {
+        Storage::disk('public')->delete($sertifikat->file_path);
+        $nama = $sertifikat->nama_sertifikat;
+        $sertifikat->delete();
+
+        return back()->with('success', "Sertifikat {$nama} dihapus.");
+    }
+
     public function destroy(CalonSiswa $calonSiswa): RedirectResponse
     {
         DB::transaction(function () use ($calonSiswa) {
@@ -295,6 +321,9 @@ class CalonSiswaController extends Controller implements HasMiddleware
                         Storage::disk('public')->delete($calonSiswa->berkasCalonSiswa->$field);
                     }
                 }
+            }
+            foreach ($calonSiswa->sertifikatPrestasis as $sertifikat) {
+                Storage::disk('public')->delete($sertifikat->file_path);
             }
             $calonSiswa->delete();
         });

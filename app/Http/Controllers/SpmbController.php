@@ -137,6 +137,13 @@ class SpmbController extends Controller
 
                 $calon->berkasCalonSiswa()->create($berkasData);
 
+                foreach ($request->file('sertifikat', []) as $i => $item) {
+                    $calon->sertifikatPrestasis()->create([
+                        'nama_sertifikat' => $request->input("sertifikat.{$i}.nama", 'Sertifikat Prestasi'),
+                        'file_path' => $item['file']->store('berkas/sertifikat', 'public'),
+                    ]);
+                }
+
                 LogStatusPendaftaran::create([
                     'calon_siswa_id' => $calon->id,
                     'status_sebelumnya' => null,

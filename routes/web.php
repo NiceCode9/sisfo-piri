@@ -41,6 +41,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::resource('calon-siswas', CalonSiswaController::class);
     Route::patch('calon-siswas/{calon_siswa}/status', [CalonSiswaController::class, 'updateStatus'])->name('calon-siswas.status');
     Route::patch('calon-siswas/{calon_siswa}/berkas', [CalonSiswaController::class, 'verifyBerkas'])->name('calon-siswas.berkas');
+    Route::delete('calon-siswas/sertifikat/{sertifikat}', [CalonSiswaController::class, 'destroySertifikat'])->name('calon-siswas.sertifikat.destroy');
     Route::resource('biaya-pendaftarans', BiayaPendaftaranController::class)->except(['show']);
     Route::resource('pengumumans', PengumumanController::class)->except(['show']);
     Route::resource('gelombangs', GelombangController::class)->except(['show']);
