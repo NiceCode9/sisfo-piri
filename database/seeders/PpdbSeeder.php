@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\BiayaPendaftaran;
+use App\Models\Gelombang;
 use App\Models\JadwalPpdb;
 use App\Models\JalurPendaftaran;
 use App\Models\KuotaPendaftaran;
@@ -235,6 +236,65 @@ class PpdbSeeder extends Seeder
 
         foreach ($pengumumans as $p) {
             Pengumuman::create($p);
+        }
+
+        // 7. Seeder Gelombang (terpisah dari jadwal_ppdbs)
+        $gelombangs = [
+            [
+                'tahun_ajaran_id' => $tahunAjaranAktif->id,
+                'nama_gelombang' => 'Gelombang 1',
+                'nomor_urut' => 1,
+                'badge' => 'EARLY BIRD',
+                'tanggal_buka' => '2026-10-01',
+                'tanggal_tutup' => '2026-11-30',
+                'tanggal_tes' => '2026-12-07',
+                'tanggal_pengumuman' => '2026-12-14',
+                'kuota' => 80,
+                'terisi' => 28,
+                'diskon_persen' => 15,
+                'keuntungan' => ['Gratis seragam olahraga', 'Prioritas pilihan kelas'],
+                'keterangan' => 'Gelombang awal dengan diskon terbesar',
+                'warna_border' => 'primary-600',
+                'is_aktif' => true,
+            ],
+            [
+                'tahun_ajaran_id' => $tahunAjaranAktif->id,
+                'nama_gelombang' => 'Gelombang 2',
+                'nomor_urut' => 2,
+                'badge' => 'RECOMMENDED',
+                'tanggal_buka' => '2026-12-15',
+                'tanggal_tutup' => '2027-01-31',
+                'tanggal_tes' => '2027-02-08',
+                'tanggal_pengumuman' => '2027-02-15',
+                'kuota' => 70,
+                'terisi' => 14,
+                'diskon_persen' => 10,
+                'keuntungan' => ['Gratis tas sekolah', 'Gratis try-out persiapan'],
+                'keterangan' => 'Gelombang favorit',
+                'warna_border' => 'secondary-600',
+                'is_aktif' => true,
+            ],
+            [
+                'tahun_ajaran_id' => $tahunAjaranAktif->id,
+                'nama_gelombang' => 'Gelombang 3',
+                'nomor_urut' => 3,
+                'badge' => 'LAST CHANCE',
+                'tanggal_buka' => '2027-02-16',
+                'tanggal_tutup' => '2027-03-31',
+                'tanggal_tes' => '2027-04-05',
+                'tanggal_pengumuman' => '2027-04-12',
+                'kuota' => 30,
+                'terisi' => 3,
+                'diskon_persen' => 5,
+                'keuntungan' => ['Gratis alat tulis', 'Kesempatan terakhir!'],
+                'keterangan' => 'Gelombang terakhir',
+                'warna_border' => 'accent-600',
+                'is_aktif' => true,
+            ],
+        ];
+
+        foreach ($gelombangs as $g) {
+            Gelombang::create($g);
         }
 
         echo "Seeder PPDB berhasil dijalankan!\n";

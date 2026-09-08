@@ -40,6 +40,10 @@ class PermissionSeeder extends Seeder
             'pengumumans.create',
             'pengumumans.edit',
             'pengumumans.delete',
+            'gelombangs.view',
+            'gelombangs.create',
+            'gelombangs.edit',
+            'gelombangs.delete',
         ];
 
         foreach ($permissions as $name) {
@@ -59,6 +63,7 @@ class PermissionSeeder extends Seeder
                 'berkas-calon-siswas.view', 'berkas-calon-siswas.edit',
                 'biaya-pendaftarans.view', 'biaya-pendaftarans.create', 'biaya-pendaftarans.edit',
                 'pengumumans.view', 'pengumumans.create', 'pengumumans.edit',
+                'gelombangs.view', 'gelombangs.create', 'gelombangs.edit',
             ]);
     }
 }

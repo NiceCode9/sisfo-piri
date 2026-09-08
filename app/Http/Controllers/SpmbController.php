@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Spmb\StorePendaftaranRequest;
 use App\Models\BiayaPendaftaran;
 use App\Models\CalonSiswa;
+use App\Models\Gelombang;
 use App\Models\JadwalPpdb;
 use App\Models\JalurPendaftaran;
 use App\Models\KuotaPendaftaran;
@@ -27,12 +28,16 @@ class SpmbController extends Controller
             ? BiayaPendaftaran::where('tahun_ajaran_id', $tahunAjaranAktif->id)->orderBy('jenis_biaya')->get()
             : collect();
         $pengumumans = Pengumuman::where('status_aktif', true)->orderByDesc('tanggal_pengumuman')->limit(3)->get();
+        $gelombangs = $tahunAjaranAktif
+            ? Gelombang::where('tahun_ajaran_id', $tahunAjaranAktif->id)->where('is_aktif', true)->orderBy('nomor_urut')->get()
+            : Gelombang::where('is_aktif', true)->orderBy('nomor_urut')->get();
 
         return view('spmb.home', [
             'tahunAjaranAktif' => $tahunAjaranAktif,
             'jadwalPpdbs' => $jadwalPpdbs,
             'biayas' => $biayas,
             'pengumumans' => $pengumumans,
+            'gelombangs' => $gelombangs,
         ]);
     }
 

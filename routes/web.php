@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\BiayaPendaftaranController;
 use App\Http\Controllers\Admin\CalonSiswaController;
+use App\Http\Controllers\Admin\GelombangController;
 use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Admin\PengumumanController;
 use App\Http\Controllers\Admin\RoleController;
@@ -33,4 +34,5 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::patch('calon-siswas/{calon_siswa}/berkas', [CalonSiswaController::class, 'verifyBerkas'])->name('calon-siswas.berkas');
     Route::resource('biaya-pendaftarans', BiayaPendaftaranController::class)->except(['show']);
     Route::resource('pengumumans', PengumumanController::class)->except(['show']);
+    Route::resource('gelombangs', GelombangController::class)->except(['show']);
 });

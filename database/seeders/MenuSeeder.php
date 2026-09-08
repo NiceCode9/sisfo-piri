@@ -20,9 +20,10 @@ class MenuSeeder extends Seeder
             ['name' => 'Jalur Pendaftaran', 'icon' => 'fa-solid fa-signs-post', 'order' => 12],
             ['name' => 'Jadwal PPDB', 'icon' => 'fa-solid fa-calendar-days', 'order' => 13],
             ['name' => 'Kuota', 'icon' => 'fa-solid fa-chart-pie', 'order' => 14],
-            ['name' => 'Pembayaran', 'icon' => 'fa-solid fa-dollar-sign', 'order' => 15],
-            ['name' => 'Biaya Pendaftaran', 'icon' => 'fa-solid fa-money-bill-wave', 'route' => 'admin.biaya-pendaftarans.index', 'permission' => 'biaya-pendaftarans.view', 'order' => 16],
-            ['name' => 'Pengumuman', 'icon' => 'fa-solid fa-bullhorn', 'route' => 'admin.pengumumans.index', 'permission' => 'pengumumans.view', 'order' => 17],
+            ['name' => 'Gelombang', 'icon' => 'fa-solid fa-layer-group', 'route' => 'admin.gelombangs.index', 'permission' => 'gelombangs.view', 'order' => 15],
+            ['name' => 'Pembayaran', 'icon' => 'fa-solid fa-dollar-sign', 'order' => 16],
+            ['name' => 'Biaya Pendaftaran', 'icon' => 'fa-solid fa-money-bill-wave', 'route' => 'admin.biaya-pendaftarans.index', 'permission' => 'biaya-pendaftarans.view', 'order' => 17],
+            ['name' => 'Pengumuman', 'icon' => 'fa-solid fa-bullhorn', 'route' => 'admin.pengumumans.index', 'permission' => 'pengumumans.view', 'order' => 18],
 
             ['name' => 'Sistem', 'is_header' => true, 'order' => 20],
             ['name' => 'Role', 'icon' => 'fa-solid fa-user-tie', 'route' => 'admin.roles.index', 'permission' => 'roles.view', 'order' => 21],
