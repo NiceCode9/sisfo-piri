@@ -25,6 +25,9 @@
     {{-- Biaya Pendidikan --}}
     @include('spmb.partials.biaya')
 
+    {{-- Pengumuman Terbaru --}}
+    @include('spmb.partials.pengumuman-home')
+
     {{-- Ekstrakurikuler --}}
     @include('spmb.partials.ekstrakurikuler')
 

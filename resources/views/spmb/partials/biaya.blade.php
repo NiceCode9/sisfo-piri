@@ -1,4 +1,8 @@
-{{-- TODO: ganti dengan data asli biaya pendidikan --}}
+@php
+    $biayas = $biayas ?? collect();
+    $biayasWajib = $biayas->where('wajib_bayar', true);
+    $totalWajib = $biayasWajib->sum('jumlah');
+@endphp
 
 <section id="biaya" class="py-20 bg-white">
     <div class="container mx-auto px-4">
@@ -9,7 +13,7 @@
                 Biaya <span class="text-primary-600">Pendidikan</span>
             </h2>
             <p class="text-lg text-gray-600">
-                Investasi terbaik untuk masa depan putra-putri Anda dengan biaya yang transparan
+                Investasi terbaik untuk masa depan putra-putri Anda dengan biaya yang transparan — Tahun Ajaran {{ $tahunAjaranAktif->nama_tahun_ajaran ?? '2026/2027' }}
             </p>
         </div>
 
@@ -18,7 +22,7 @@
             
             {{-- Table Header --}}
             <div class="bg-gradient-primary px-8 py-6">
-                <h3 class="text-xl md:text-2xl font-bold text-white text-center">Rincian Biaya Tahun Ajaran 2026/2027</h3>
+                <h3 class="text-xl md:text-2xl font-bold text-white text-center">Rincian Biaya Tahun Ajaran {{ $tahunAjaranAktif->nama_tahun_ajaran ?? '2026/2027' }}</h3>
             </div>
 
             {{-- Desktop Table --}}
@@ -33,117 +37,39 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200">
-                        {{-- Biaya Pendaftaran --}}
-                        <tr class="hover:bg-slate-50 transition">
-                            <td class="px-6 py-4 text-sm text-gray-700 font-semibold">1</td>
-                            <td class="px-6 py-4">
-                                <div class="font-bold text-gray-800">Biaya Pendaftaran</div>
-                                <div class="text-xs text-gray-500">Registration Fee</div>
-                            </td>
-                            <td class="px-6 py-4 text-right">
-                                <div class="font-bold text-lg text-primary-600">Rp 300.000</div>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-600">
-                                Dibayar saat mendaftar<br/>
-                                <span class="text-accent-600 font-semibold">Tidak dapat dikembalikan</span>
-                            </td>
-                        </tr>
-
-                        {{-- Biaya SPP --}}
-                        <tr class="hover:bg-slate-50 transition">
-                            <td class="px-6 py-4 text-sm text-gray-700 font-semibold">2</td>
-                            <td class="px-6 py-4">
-                                <div class="font-bold text-gray-800">SPP Bulanan</div>
-                                <div class="text-xs text-gray-500">Monthly Tuition</div>
-                            </td>
-                            <td class="px-6 py-4 text-right">
-                                <div class="font-bold text-lg text-primary-600">Rp 850.000</div>
-                                <div class="text-xs text-gray-500">/bulan</div>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-600">
-                                Dibayar setiap tanggal 1-10<br/>
-                                Sudah termasuk kegiatan ekstrakurikuler
-                            </td>
-                        </tr>
-
-                        {{-- Uang Pangkal --}}
-                        <tr class="hover:bg-slate-50 transition">
-                            <td class="px-6 py-4 text-sm text-gray-700 font-semibold">3</td>
-                            <td class="px-6 py-4">
-                                <div class="font-bold text-gray-800">Uang Pangkal</div>
-                                <div class="text-xs text-gray-500">Admission Fee</div>
-                            </td>
-                            <td class="px-6 py-4 text-right">
-                                <div class="font-bold text-lg text-primary-600">Rp 5.500.000</div>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-600">
-                                Dibayar 1x saat diterima<br/>
-                                <span class="text-secondary-600 font-semibold">Bisa dicicil 2x</span>
-                            </td>
-                        </tr>
-
-                        {{-- Seragam --}}
-                        <tr class="hover:bg-slate-50 transition">
-                            <td class="px-6 py-4 text-sm text-gray-700 font-semibold">4</td>
-                            <td class="px-6 py-4">
-                                <div class="font-bold text-gray-800">Seragam & Atribut</div>
-                                <div class="text-xs text-gray-500">Uniform Package</div>
-                            </td>
-                            <td class="px-6 py-4 text-right">
-                                <div class="font-bold text-lg text-primary-600">Rp 1.200.000</div>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-600">
-                                3 stel seragam lengkap<br/>
-                                (Putih-biru, Pramuka, Olahraga)
-                            </td>
-                        </tr>
-
-                        {{-- Buku & LKS --}}
-                        <tr class="hover:bg-slate-50 transition">
-                            <td class="px-6 py-4 text-sm text-gray-700 font-semibold">5</td>
-                            <td class="px-6 py-4">
-                                <div class="font-bold text-gray-800">Buku & LKS</div>
-                                <div class="text-xs text-gray-500">Books & Workbooks</div>
-                            </td>
-                            <td class="px-6 py-4 text-right">
-                                <div class="font-bold text-lg text-primary-600">Rp 900.000</div>
-                                <div class="text-xs text-gray-500">/tahun</div>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-600">
-                                Paket buku pelajaran kelas 7<br/>
-                                Dibayar di awal tahun ajaran
-                            </td>
-                        </tr>
-
-                        {{-- Kegiatan --}}
-                        <tr class="hover:bg-slate-50 transition">
-                            <td class="px-6 py-4 text-sm text-gray-700 font-semibold">6</td>
-                            <td class="px-6 py-4">
-                                <div class="font-bold text-gray-800">Kegiatan Tahunan</div>
-                                <div class="text-xs text-gray-500">Annual Activities</div>
-                            </td>
-                            <td class="px-6 py-4 text-right">
-                                <div class="font-bold text-lg text-primary-600">Rp 1.500.000</div>
-                                <div class="text-xs text-gray-500">/tahun</div>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-600">
-                                Study tour, pentas seni,<br/>
-                                kemah, dan kegiatan lainnya
-                            </td>
-                        </tr>
+                        @forelse ($biayas as $idx => $biaya)
+                            <tr class="hover:bg-slate-50 transition">
+                                <td class="px-6 py-4 text-sm text-gray-700 font-semibold">{{ $idx + 1 }}</td>
+                                <td class="px-6 py-4">
+                                    <div class="font-bold text-gray-800">{{ $biaya->jenis_biaya }}</div>
+                                    <div class="text-xs text-gray-500">{{ $biaya->wajib_bayar ? 'Wajib' : 'Opsional' }} @if($biaya->dapat_diangsur) • Bisa dicicil @endif</div>
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <div class="font-bold text-lg text-primary-600">Rp {{ number_format($biaya->jumlah,0,',','.') }}</div>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-600">
+                                    {{ $biaya->keterangan ?? '-' }}
+                                    @if($biaya->dapat_diangsur && $biaya->max_cicilan)
+                                        <br/><span class="text-secondary-600 font-semibold">Bisa dicicil {{ $biaya->max_cicilan }}x</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="4" class="px-6 py-8 text-center text-sm text-gray-500">Belum ada rincian biaya untuk tahun ajaran ini.</td></tr>
+                        @endforelse
 
                         {{-- Total --}}
                         <tr class="bg-primary-50 border-t-2 border-primary-600">
                             <td colspan="2" class="px-6 py-5">
-                                <div class="font-extrabold text-lg text-gray-800 uppercase">Total Biaya Awal</div>
-                                <div class="text-xs text-gray-600">Biaya yang harus dibayar saat diterima</div>
+                                <div class="font-extrabold text-lg text-gray-800 uppercase">Total Biaya Wajib</div>
+                                <div class="text-xs text-gray-600">Hanya yang wajib dibayar</div>
                             </td>
                             <td class="px-6 py-5 text-right">
-                                <div class="font-extrabold text-2xl text-primary-700">Rp 9.400.000</div>
+                                <div class="font-extrabold text-2xl text-primary-700">Rp {{ number_format($totalWajib,0,',','.') }}</div>
                             </td>
                             <td class="px-6 py-5 text-sm text-gray-600">
                                 <span class="inline-block px-3 py-1 bg-secondary-500 text-white text-xs font-bold rounded-full">
-                                    Belum termasuk SPP bulanan
+                                    {{ $biayasWajib->count() }} komponen wajib
                                 </span>
                             </td>
                         </tr>
@@ -153,99 +79,34 @@
 
             {{-- Mobile Cards --}}
             <div class="md:hidden p-4 space-y-4">
-                
-                <div class="bg-slate-50 rounded-2xl p-5 border-l-4 border-primary-600">
-                    <div class="flex justify-between items-start mb-3">
-                        <div>
-                            <div class="font-bold text-gray-800">Biaya Pendaftaran</div>
-                            <div class="text-xs text-gray-500">Registration Fee</div>
+                @forelse ($biayas as $biaya)
+                    <div class="bg-slate-50 rounded-2xl p-5 border-l-4 border-primary-600">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <div class="font-bold text-gray-800">{{ $biaya->jenis_biaya }}</div>
+                                <div class="text-xs text-gray-500">{{ $biaya->wajib_bayar ? 'Wajib' : 'Opsional' }} @if($biaya->dapat_diangsur) • Cicil {{ $biaya->max_cicilan ?? '' }}x @endif</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-bold text-lg text-primary-600">Rp {{ number_format($biaya->jumlah,0,',','.') }}</div>
+                            </div>
                         </div>
-                        <div class="text-right">
-                            <div class="font-bold text-lg text-primary-600">Rp 300.000</div>
-                        </div>
+                        <p class="text-xs text-gray-600">{{ $biaya->keterangan ?? '-' }}</p>
                     </div>
-                    <p class="text-xs text-gray-600">Dibayar saat mendaftar. <span class="text-accent-600 font-semibold">Tidak dapat dikembalikan</span></p>
-                </div>
-
-                <div class="bg-slate-50 rounded-2xl p-5 border-l-4 border-primary-600">
-                    <div class="flex justify-between items-start mb-3">
-                        <div>
-                            <div class="font-bold text-gray-800">SPP Bulanan</div>
-                            <div class="text-xs text-gray-500">Monthly Tuition</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="font-bold text-lg text-primary-600">Rp 850.000</div>
-                            <div class="text-xs text-gray-500">/bulan</div>
-                        </div>
-                    </div>
-                    <p class="text-xs text-gray-600">Dibayar setiap tanggal 1-10. Sudah termasuk kegiatan ekstrakurikuler</p>
-                </div>
-
-                <div class="bg-slate-50 rounded-2xl p-5 border-l-4 border-primary-600">
-                    <div class="flex justify-between items-start mb-3">
-                        <div>
-                            <div class="font-bold text-gray-800">Uang Pangkal</div>
-                            <div class="text-xs text-gray-500">Admission Fee</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="font-bold text-lg text-primary-600">Rp 5.500.000</div>
-                        </div>
-                    </div>
-                    <p class="text-xs text-gray-600">Dibayar 1x saat diterima. <span class="text-secondary-600 font-semibold">Bisa dicicil 2x</span></p>
-                </div>
-
-                <div class="bg-slate-50 rounded-2xl p-5 border-l-4 border-primary-600">
-                    <div class="flex justify-between items-start mb-3">
-                        <div>
-                            <div class="font-bold text-gray-800">Seragam & Atribut</div>
-                            <div class="text-xs text-gray-500">Uniform Package</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="font-bold text-lg text-primary-600">Rp 1.200.000</div>
-                        </div>
-                    </div>
-                    <p class="text-xs text-gray-600">3 stel seragam lengkap (Putih-biru, Pramuka, Olahraga)</p>
-                </div>
-
-                <div class="bg-slate-50 rounded-2xl p-5 border-l-4 border-primary-600">
-                    <div class="flex justify-between items-start mb-3">
-                        <div>
-                            <div class="font-bold text-gray-800">Buku & LKS</div>
-                            <div class="text-xs text-gray-500">Books & Workbooks</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="font-bold text-lg text-primary-600">Rp 900.000</div>
-                            <div class="text-xs text-gray-500">/tahun</div>
-                        </div>
-                    </div>
-                    <p class="text-xs text-gray-600">Paket buku pelajaran kelas 7. Dibayar di awal tahun ajaran</p>
-                </div>
-
-                <div class="bg-slate-50 rounded-2xl p-5 border-l-4 border-primary-600">
-                    <div class="flex justify-between items-start mb-3">
-                        <div>
-                            <div class="font-bold text-gray-800">Kegiatan Tahunan</div>
-                            <div class="text-xs text-gray-500">Annual Activities</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="font-bold text-lg text-primary-600">Rp 1.500.000</div>
-                            <div class="text-xs text-gray-500">/tahun</div>
-                        </div>
-                    </div>
-                    <p class="text-xs text-gray-600">Study tour, pentas seni, kemah, dan kegiatan lainnya</p>
-                </div>
+                @empty
+                    <p class="text-sm text-gray-500 text-center py-6">Belum ada rincian biaya.</p>
+                @endforelse
 
                 <div class="bg-primary-600 rounded-2xl p-5 text-white">
                     <div class="flex justify-between items-center">
                         <div>
-                            <div class="font-extrabold text-lg uppercase">Total Biaya Awal</div>
-                            <div class="text-xs text-white/80">Biaya saat diterima</div>
+                            <div class="font-extrabold text-lg uppercase">Total Biaya Wajib</div>
+                            <div class="text-xs text-white/80">Hanya yang wajib</div>
                         </div>
                         <div class="text-right">
-                            <div class="font-extrabold text-2xl">Rp 9.400.000</div>
+                            <div class="font-extrabold text-2xl">Rp {{ number_format($totalWajib,0,',','.') }}</div>
                         </div>
                     </div>
-                    <p class="text-xs text-white/90 mt-3">Belum termasuk SPP bulanan</p>
+                    <p class="text-xs text-white/90 mt-3">{{ $biayasWajib->count() }} komponen wajib</p>
                 </div>
 
             </div>

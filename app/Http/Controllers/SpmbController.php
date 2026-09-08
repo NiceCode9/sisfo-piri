@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Spmb\StorePendaftaranRequest;
+use App\Models\BiayaPendaftaran;
 use App\Models\CalonSiswa;
 use App\Models\JadwalPpdb;
 use App\Models\JalurPendaftaran;
 use App\Models\KuotaPendaftaran;
 use App\Models\LogStatusPendaftaran;
+use App\Models\Pengumuman;
 use App\Models\TahunAjaran;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -21,10 +23,16 @@ class SpmbController extends Controller
         $jadwalPpdbs = $tahunAjaranAktif
             ? JadwalPpdb::where('tahun_ajaran_id', $tahunAjaranAktif->id)->orderBy('tanggal_mulai')->get()
             : collect();
+        $biayas = $tahunAjaranAktif
+            ? BiayaPendaftaran::where('tahun_ajaran_id', $tahunAjaranAktif->id)->orderBy('jenis_biaya')->get()
+            : collect();
+        $pengumumans = Pengumuman::where('status_aktif', true)->orderByDesc('tanggal_pengumuman')->limit(3)->get();
 
         return view('spmb.home', [
             'tahunAjaranAktif' => $tahunAjaranAktif,
             'jadwalPpdbs' => $jadwalPpdbs,
+            'biayas' => $biayas,
+            'pengumumans' => $pengumumans,
         ]);
     }
 
@@ -121,5 +129,19 @@ class SpmbController extends Controller
         }
 
         return redirect()->route('spmb.pendaftaran')->with('success', 'Pendaftaran berhasil! Nomor pendaftaran Anda: '.$calon->no_pendaftaran);
+    }
+
+    public function pengumumanIndex(): View
+    {
+        $pengumumans = Pengumuman::where('status_aktif', true)->orderByDesc('tanggal_pengumuman')->paginate(9);
+
+        return view('spmb.pengumuman.index', compact('pengumumans'));
+    }
+
+    public function pengumumanShow(Pengumuman $pengumuman): View
+    {
+        abort_unless($pengumuman->status_aktif, 404);
+
+        return view('spmb.pengumuman.show', compact('pengumuman'));
     }
 }

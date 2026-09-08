@@ -6,6 +6,7 @@ use App\Models\BiayaPendaftaran;
 use App\Models\JadwalPpdb;
 use App\Models\JalurPendaftaran;
 use App\Models\KuotaPendaftaran;
+use App\Models\Pengumuman;
 use App\Models\TahunAjaran;
 use Illuminate\Database\Seeder;
 
@@ -205,6 +206,35 @@ class PpdbSeeder extends Seeder
 
         foreach ($jadwalPpdb as $jadwal) {
             JadwalPpdb::create($jadwal);
+        }
+
+        // 6. Seeder Pengumuman
+        $pengumumans = [
+            [
+                'tahun_ajaran_id' => $tahunAjaranAktif->id,
+                'judul' => 'Jadwal PPDB 2026/2027 Telah Dibuka',
+                'isi' => 'Pendaftaran online PPDB tahun ajaran 2026/2027 resmi dibuka mulai 1 Mei 2026. Silakan daftar melalui menu Pendaftaran.',
+                'tanggal_pengumuman' => '2026-04-28',
+                'status_aktif' => true,
+            ],
+            [
+                'tahun_ajaran_id' => $tahunAjaranAktif->id,
+                'judul' => 'Pengumuman Hasil Seleksi Gelombang 1',
+                'isi' => 'Hasil seleksi gelombang 1 telah diumumkan. Calon yang dinyatakan diterima harap melakukan daftar ulang sesuai jadwal.',
+                'tanggal_pengumuman' => '2026-06-25',
+                'status_aktif' => true,
+            ],
+            [
+                'tahun_ajaran_id' => $tahunAjaranAktif->id,
+                'judul' => 'Informasi Biaya Pendidikan 2026/2027',
+                'isi' => 'Rincian biaya pendidikan tahun ajaran 2026/2027 dapat dilihat pada halaman Biaya. Siswa berprestasi berkesempatan mendapat beasiswa.',
+                'tanggal_pengumuman' => '2026-04-30',
+                'status_aktif' => true,
+            ],
+        ];
+
+        foreach ($pengumumans as $p) {
+            Pengumuman::create($p);
         }
 
         echo "Seeder PPDB berhasil dijalankan!\n";
