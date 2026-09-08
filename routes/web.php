@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\PengumumanController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Siswa\DashboardController;
 use App\Http\Controllers\SpmbController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,6 +24,10 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')->name('logout');
+
+Route::prefix('siswa')->name('siswa.')->middleware(['auth', 'role:siswa'])->group(function () {
+    Route::get('/dashboard', DashboardController::class)->name('dashboard');
+});
 
 Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::get('/', fn () => view('admin.dashboard'))->name('dashboard');

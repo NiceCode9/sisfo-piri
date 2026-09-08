@@ -9,6 +9,7 @@ use App\Models\CalonSiswa;
 use App\Models\JalurPendaftaran;
 use App\Models\KuotaPendaftaran;
 use App\Models\LogStatusPendaftaran;
+use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -211,6 +212,19 @@ class CalonSiswaController extends Controller implements HasMiddleware
                     'user_id' => auth()->id(),
                     'catatan' => $request->input('catatan'),
                 ]);
+
+                if ($oldStatus !== 'diterima' && $newStatus === 'diterima' && $calonSiswa->user_id) {
+                    Siswa::firstOrCreate(
+                        ['calon_siswa_id' => $calonSiswa->id],
+                        [
+                            'user_id' => $calonSiswa->user_id,
+                            'nisn' => $calonSiswa->nisn,
+                            'tahun_ajaran_id' => $calonSiswa->tahun_ajaran_id,
+                            'tanggal_diterima' => now()->toDateString(),
+                            'is_aktif' => true,
+                        ]
+                    );
+                }
             });
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());

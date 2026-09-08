@@ -44,6 +44,7 @@ class PermissionSeeder extends Seeder
             'gelombangs.create',
             'gelombangs.edit',
             'gelombangs.delete',
+            'siswas.view',
         ];
 
         foreach ($permissions as $name) {
@@ -65,5 +66,8 @@ class PermissionSeeder extends Seeder
                 'pengumumans.view', 'pengumumans.create', 'pengumumans.edit',
                 'gelombangs.view', 'gelombangs.create', 'gelombangs.edit',
             ]);
+
+        Role::firstOrCreate(['name' => 'siswa', 'guard_name' => 'web'])
+            ->givePermissionTo(['siswas.view']);
     }
 }

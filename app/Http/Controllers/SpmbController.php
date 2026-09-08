@@ -12,8 +12,10 @@ use App\Models\KuotaPendaftaran;
 use App\Models\LogStatusPendaftaran;
 use App\Models\Pengumuman;
 use App\Models\TahunAjaran;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class SpmbController extends Controller
@@ -72,8 +74,15 @@ class SpmbController extends Controller
             return back()->withErrors(['jalur_pendaftaran_id' => 'Pendaftaran belum dibuka (tahun ajaran aktif belum diatur).'])->withInput();
         }
 
+        $passwordPlain = null;
+        $newUser = null;
+
         try {
-            $calon = DB::transaction(function () use ($validated, $tahunAjaranAktif, $request) {
+            $calon = DB::transaction(function () use ($validated, $tahunAjaranAktif, $request, &$passwordPlain, &$newUser) {
+                if (User::where('username', $validated['nisn'])->exists()) {
+                    throw new \RuntimeException('NISN sudah terdaftar sebagai akun. Gunakan NISN lain atau hubungi admin.');
+                }
+
                 $kuota = KuotaPendaftaran::where('tahun_ajaran_id', $tahunAjaranAktif->id)
                     ->where('jalur_pendaftaran_id', $validated['jalur_pendaftaran_id'])
                     ->lockForUpdate()
@@ -85,9 +94,20 @@ class SpmbController extends Controller
 
                 $noPendaftaran = sprintf('PPDB-%s-%04d', date('Y'), CalonSiswa::whereYear('created_at', date('Y'))->count() + 1);
 
+                $passwordPlain = Str::random(8);
+
+                $newUser = User::create([
+                    'username' => $validated['nisn'],
+                    'name' => $validated['nama_lengkap'],
+                    'email' => $validated['email'],
+                    'password' => $passwordPlain,
+                ]);
+                $newUser->assignRole('siswa');
+
                 $calon = CalonSiswa::create([
                     'jalur_pendaftaran_id' => $validated['jalur_pendaftaran_id'],
                     'tahun_ajaran_id' => $tahunAjaranAktif->id,
+                    'user_id' => $newUser->id,
                     'no_pendaftaran' => $noPendaftaran,
                     'nik' => $validated['nik'],
                     'nisn' => $validated['nisn'],
@@ -121,11 +141,9 @@ class SpmbController extends Controller
                     'calon_siswa_id' => $calon->id,
                     'status_sebelumnya' => null,
                     'status_baru' => 'menunggu',
-                    'user_id' => null,
+                    'user_id' => $newUser->id,
                     'catatan' => 'Pendaftaran via form publik',
                 ]);
-
-                // terisi only increments when status becomes diterima, not on menunggu — so no increment here
 
                 return $calon;
             });
@@ -133,7 +151,7 @@ class SpmbController extends Controller
             return back()->withErrors(['jalur_pendaftaran_id' => $e->getMessage()])->withInput();
         }
 
-        return redirect()->route('spmb.pendaftaran')->with('success', 'Pendaftaran berhasil! Nomor pendaftaran Anda: '.$calon->no_pendaftaran);
+        return redirect()->route('spmb.pendaftaran')->with('success', 'Pendaftaran berhasil! No: '.$calon->no_pendaftaran.' | Username: '.$newUser->username.' | Password: '.$passwordPlain.' — Simpan kredensial ini untuk login memantau status.');
     }
 
     public function pengumumanIndex(): View

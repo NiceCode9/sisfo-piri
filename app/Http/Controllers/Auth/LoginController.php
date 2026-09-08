@@ -28,6 +28,12 @@ class LoginController extends Controller
 
         $request->session()->regenerate();
 
+        $user = $request->user();
+
+        if ($user->hasRole('siswa')) {
+            return redirect()->intended(route('siswa.dashboard'));
+        }
+
         return redirect()->intended(route('admin.dashboard'));
     }
 

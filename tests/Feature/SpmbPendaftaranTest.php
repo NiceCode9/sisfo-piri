@@ -4,6 +4,7 @@ use App\Models\CalonSiswa;
 use App\Models\JalurPendaftaran;
 use App\Models\KuotaPendaftaran;
 use App\Models\TahunAjaran;
+use Database\Seeders\PermissionSeeder;
 use Database\Seeders\PpdbSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\Storage;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    $this->seed(PermissionSeeder::class);
     $this->seed(PpdbSeeder::class);
     Storage::fake('public');
 });
