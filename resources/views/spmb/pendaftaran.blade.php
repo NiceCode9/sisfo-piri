@@ -60,7 +60,7 @@
             <div
                 class="inline-flex items-center px-4 py-2 bg-white bg-opacity-10 backdrop-blur-sm rounded-full text-white text-sm mb-6">
                 <i class="fas fa-graduation-cap mr-2"></i>
-                Tahun Ajaran {{ \Carbon\Carbon::now()->format('Y') }}/{{ \Carbon\Carbon::now()->addYear()->format('Y') }}
+                Tahun Ajaran {{ $tahunAjaranAktif->nama_tahun_ajaran ?? \Carbon\Carbon::now()->format('Y').'/'.\Carbon\Carbon::now()->addYear()->format('Y') }}
             </div>
 
             <h1 class="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
@@ -126,7 +126,7 @@
                         class="absolute left-1/2 transform -translate-x-1/2 h-full w-1 bg-gradient-to-b from-primary-500 to-primary-700 rounded-full">
                     </div>
 
-                    {{-- @foreach ($jadwalPpdb as $index => $jadwal)
+                    @foreach ($jadwalPpdb as $index => $jadwal)
                         <div
                             class="relative flex items-center mb-8 {{ $index % 2 == 0 ? 'flex-row' : 'flex-row-reverse' }}">
                             <div class="w-5/12 {{ $index % 2 == 0 ? 'text-right pr-8' : 'text-left pl-8' }}">
@@ -140,8 +140,8 @@
                                         </div>
                                     </div>
                                     <h3 class="text-lg font-bold text-gray-800 mb-2">{{ $jadwal->nama_jadwal }}</h3>
-                                    <p class="text-sm text-gray-600 mb-2">{{ $jadwal->tanggal_mulai }} -
-                                        {{ $jadwal->tanggal_selesai }}</p>
+                                    <p class="text-sm text-gray-600 mb-2">{{ \Carbon\Carbon::parse($jadwal->tanggal_mulai)->format('d M Y') }} -
+                                        {{ \Carbon\Carbon::parse($jadwal->tanggal_selesai)->format('d M Y') }}</p>
                                     @if ($jadwal->keterangan)
                                         <p class="text-sm text-gray-500">{{ $jadwal->keterangan }}</p>
                                     @endif
@@ -154,7 +154,7 @@
 
                             <div class="w-5/12"></div>
                         </div>
-                    @endforeach --}}
+                    @endforeach
                 </div>
             </div>
 
@@ -269,7 +269,7 @@
             @endif
 
             <div class="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
-                <form method="POST" action="" enctype="multipart/form-data"
+                <form method="POST" action="{{ route('spmb.store') }}" enctype="multipart/form-data"
                     class="p-8">
                     @csrf
 
@@ -326,18 +326,18 @@
                                 class="w-full px-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white shadow-sm transition-all duration-200 @error('jalur_pendaftaran_id') border-red-500 ring-2 ring-red-200 @enderror">
                                 <option value="">🎯 Pilih Jalur Pendaftaran</option>
 
-                                {{-- @foreach ($jalurPendaftarans as $jalur)
+                                @foreach ($jalurPendaftarans as $jalur)
                                     @if ($jalur->aktif)
+                                        @php $kuota = ($kuotaMap[$jalur->id] ?? null); @endphp
                                         <option value="{{ $jalur->id }}"
                                             {{ old('jalur_pendaftaran_id') == $jalur->id ? 'selected' : '' }}>
                                             {{ $jalur->nama_jalur }}
-                                            @if ($jalur->kuotaPendaftaran->where('tahun_ajaran_id', $tahunAjaranAktif->id)->first())
-                                                (Sisa Kuota:
-                                                {{ $jalur->kuotaPendaftaran->where('tahun_ajaran_id', $tahunAjaranAktif->id)->first()->kuota - $jalur->kuotaPendaftaran->where('tahun_ajaran_id', $tahunAjaranAktif->id)->first()->terisi }})
+                                            @if ($kuota)
+                                                (Sisa Kuota: {{ $kuota->kuota - $kuota->terisi }})
                                             @endif
                                         </option>
                                     @endif
-                                @endforeach --}}
+                                @endforeach
                             </select>
                             @error('jalur_pendaftaran_id')
                                 <p class="mt-2 text-sm text-red-600 flex items-center">

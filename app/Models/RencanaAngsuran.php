@@ -21,6 +21,11 @@ class RencanaAngsuran extends Model
         'catatan',
     ];
 
+    public function calonSiswa()
+    {
+        return $this->belongsTo(CalonSiswa::class);
+    }
+
     public function biayaPendaftaran()
     {
         return $this->belongsTo(BiayaPendaftaran::class);

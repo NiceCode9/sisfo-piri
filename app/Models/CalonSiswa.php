@@ -64,4 +64,9 @@ class CalonSiswa extends Model
     {
         return $this->hasMany(PembayaranLainnya::class);
     }
+
+    public function rencanaAngsuran()
+    {
+        return $this->hasMany(RencanaAngsuran::class);
+    }
 }

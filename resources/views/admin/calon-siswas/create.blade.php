@@ -1,0 +1,37 @@
+@extends('layouts.app')
+
+@section('title', 'Nexus Admin — Tambah Calon Siswa')
+@section('breadcrumb', 'Tambah Calon Siswa')
+
+@section('content')
+<div class="page-header d-flex flex-wrap align-items-start justify-content-between gap-3">
+    <div>
+        <h1 class="page-title">Tambah Calon Siswa</h1>
+        <p class="page-subtitle mb-0">Input pendaftar manual (admin)</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ route('admin.calon-siswas.index') }}" class="btn btn-nexus-outline btn-sm">
+            <i class="fa-solid fa-arrow-left"></i> Kembali
+        </a>
+    </div>
+</div>
+
+<div class="card-nexus">
+    <div class="card-header-nexus">
+        <div>
+            <h5 class="card-title">Data Calon Siswa</h5>
+            <p class="card-subtitle">No pendaftaran akan digenerate otomatis (PPDB-YYYY-XXXX)</p>
+        </div>
+    </div>
+    <div class="card-body-nexus">
+        <form method="POST" action="{{ route('admin.calon-siswas.store') }}">
+            @csrf
+            @include('admin.calon-siswas._form', ['calon' => null, 'jalurs' => $jalurs, 'tahunAjarans' => $tahunAjarans, 'tahunAktif' => $tahunAktif, 'isEdit' => false])
+            <div class="d-flex gap-2 justify-content-end mt-2">
+                <a href="{{ route('admin.calon-siswas.index') }}" class="btn btn-nexus-outline">Batal</a>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
+@endsection

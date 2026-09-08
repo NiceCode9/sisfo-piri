@@ -14,7 +14,7 @@ class TahunAjaran extends Model
         'nama_tahun_ajaran',
         'tanggal_mulai',
         'tanggal_selesai',
-        'status_aktif'
+        'status_aktif',
     ];
 
     public function jadwalPpdb(): HasMany
@@ -32,7 +32,7 @@ class TahunAjaran extends Model
         return $this->hasMany(Siswa::class);
     }
 
-    public function kuotaPendaftaran(): HAsMany
+    public function kuotaPendaftaran(): HasMany
     {
         return $this->hasMany(KuotaPendaftaran::class);
     }

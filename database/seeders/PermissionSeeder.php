@@ -26,6 +26,12 @@ class PermissionSeeder extends Seeder
             'menus.create',
             'menus.edit',
             'menus.delete',
+            'calon-siswas.view',
+            'calon-siswas.create',
+            'calon-siswas.edit',
+            'calon-siswas.delete',
+            'berkas-calon-siswas.view',
+            'berkas-calon-siswas.edit',
         ];
 
         foreach ($permissions as $name) {
@@ -41,6 +47,8 @@ class PermissionSeeder extends Seeder
                 'users.view', 'users.create', 'users.edit',
                 'roles.view', 'roles.create', 'roles.edit',
                 'menus.view', 'menus.create', 'menus.edit',
+                'calon-siswas.view', 'calon-siswas.create', 'calon-siswas.edit',
+                'berkas-calon-siswas.view', 'berkas-calon-siswas.edit',
             ]);
     }
 }

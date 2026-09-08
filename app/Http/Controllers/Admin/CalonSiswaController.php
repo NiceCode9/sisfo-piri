@@ -1,0 +1,245 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StoreCalonSiswaRequest;
+use App\Http\Requests\Admin\UpdateCalonSiswaRequest;
+use App\Models\CalonSiswa;
+use App\Models\JalurPendaftaran;
+use App\Models\KuotaPendaftaran;
+use App\Models\LogStatusPendaftaran;
+use App\Models\TahunAjaran;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
+
+class CalonSiswaController extends Controller implements HasMiddleware
+{
+    public static function middleware(): array
+    {
+        return [
+            new Middleware('permission:calon-siswas.view', only: ['index', 'show']),
+            new Middleware('permission:calon-siswas.create', only: ['create', 'store']),
+            new Middleware('permission:calon-siswas.edit', only: ['edit', 'update', 'updateStatus', 'verifyBerkas']),
+            new Middleware('permission:calon-siswas.delete', only: ['destroy']),
+        ];
+    }
+
+    public function index(): View
+    {
+        $calons = CalonSiswa::with(['jalurPendaftaran', 'tahunAjaran', 'berkasCalonSiswa'])
+            ->when(request('search'), fn ($q, $s) => $q->where(fn ($qq) => $qq
+                ->where('no_pendaftaran', 'like', "%{$s}%")
+                ->orWhere('nama_lengkap', 'like', "%{$s}%")
+                ->orWhere('nik', 'like', "%{$s}%")
+            ))
+            ->when(request('jalur'), fn ($q, $v) => $q->where('jalur_pendaftaran_id', $v))
+            ->when(request('status'), fn ($q, $v) => $q->where('status_pendaftaran', $v))
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('admin.calon-siswas.index', [
+            'calons' => $calons,
+            'jalurs' => JalurPendaftaran::where('aktif', true)->orderBy('nama_jalur')->get(),
+        ]);
+    }
+
+    public function create(): View
+    {
+        return view('admin.calon-siswas.create', [
+            'jalurs' => JalurPendaftaran::where('aktif', true)->orderBy('nama_jalur')->get(),
+            'tahunAjarans' => TahunAjaran::orderByDesc('tanggal_mulai')->get(),
+            'tahunAktif' => TahunAjaran::aktif()->first(),
+        ]);
+    }
+
+    public function store(StoreCalonSiswaRequest $request): RedirectResponse
+    {
+        $validated = $request->validated();
+
+        $tahunAjaranId = $validated['tahun_ajaran_id'] ?? TahunAjaran::aktif()->first()?->id;
+
+        if (! $tahunAjaranId) {
+            return back()->with('error', 'Tahun ajaran aktif belum diatur.')->withInput();
+        }
+
+        $validated['tahun_ajaran_id'] = $tahunAjaranId;
+        $validated['no_pendaftaran'] = $this->generateNoPendaftaran();
+        $validated['status_pendaftaran'] = $validated['status_pendaftaran'] ?? 'menunggu';
+
+        // Kuota check with lock before create
+        try {
+            DB::transaction(function () use (&$validated) {
+                $kuota = KuotaPendaftaran::where('tahun_ajaran_id', $validated['tahun_ajaran_id'])
+                    ->where('jalur_pendaftaran_id', $validated['jalur_pendaftaran_id'])
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($kuota && $kuota->terisi >= $kuota->kuota) {
+                    throw new \RuntimeException('Kuota jalur ini sudah penuh.');
+                }
+
+                $calon = CalonSiswa::create($validated);
+
+                LogStatusPendaftaran::create([
+                    'calon_siswa_id' => $calon->id,
+                    'status_sebelumnya' => null,
+                    'status_baru' => $calon->status_pendaftaran,
+                    'user_id' => auth()->id(),
+                    'catatan' => 'Pendaftaran dibuat via admin',
+                ]);
+            });
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage())->withInput();
+        }
+
+        return redirect()->route('admin.calon-siswas.index')->with('success', 'Calon siswa berhasil ditambahkan.');
+    }
+
+    public function show(CalonSiswa $calonSiswa): View
+    {
+        $calonSiswa->load(['jalurPendaftaran', 'tahunAjaran', 'berkasCalonSiswa', 'logStatusPendaftaran.user']);
+
+        return view('admin.calon-siswas.show', [
+            'calon' => $calonSiswa,
+        ]);
+    }
+
+    public function edit(CalonSiswa $calonSiswa): View
+    {
+        return view('admin.calon-siswas.edit', [
+            'calon' => $calonSiswa,
+            'jalurs' => JalurPendaftaran::where('aktif', true)->orderBy('nama_jalur')->get(),
+            'tahunAjarans' => TahunAjaran::orderByDesc('tanggal_mulai')->get(),
+        ]);
+    }
+
+    public function update(UpdateCalonSiswaRequest $request, CalonSiswa $calonSiswa): RedirectResponse
+    {
+        $validated = $request->validated();
+
+        // If jalur/tahun changed and current status is diterima, adjust kuota?
+        $oldJalur = $calonSiswa->jalur_pendaftaran_id;
+        $oldTahun = $calonSiswa->tahun_ajaran_id;
+        $oldStatus = $calonSiswa->status_pendaftaran;
+        $newJalur = $validated['jalur_pendaftaran_id'];
+        $newTahun = $validated['tahun_ajaran_id'] ?? $oldTahun;
+
+        if (($oldJalur !== $newJalur || $oldTahun != $newTahun) && $oldStatus === 'diterima') {
+            return back()->with('error', 'Tidak dapat mengganti jalur/tahun untuk calon yang sudah diterima. Ubah status dulu.')->withInput();
+        }
+
+        $calonSiswa->update($validated);
+
+        return redirect()->route('admin.calon-siswas.show', $calonSiswa)->with('success', 'Data calon siswa diperbarui.');
+    }
+
+    public function updateStatus(Request $request, CalonSiswa $calonSiswa): RedirectResponse
+    {
+        $request->validate([
+            'status' => ['required', 'in:menunggu,diterima,ditolak,daftar_ulang'],
+            'catatan' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $newStatus = $request->input('status');
+        $oldStatus = $calonSiswa->status_pendaftaran;
+
+        if ($newStatus === $oldStatus) {
+            return back()->with('error', 'Status tidak berubah.');
+        }
+
+        try {
+            DB::transaction(function () use ($calonSiswa, $oldStatus, $newStatus, $request) {
+                // Lock kuota row for this jalur/tahun
+                $kuota = KuotaPendaftaran::where('tahun_ajaran_id', $calonSiswa->tahun_ajaran_id)
+                    ->where('jalur_pendaftaran_id', $calonSiswa->jalur_pendaftaran_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($kuota) {
+                    if ($oldStatus !== 'diterima' && $newStatus === 'diterima') {
+                        if ($kuota->terisi >= $kuota->kuota) {
+                            throw new \RuntimeException('Kuota jalur ini sudah penuh, tidak dapat menerima.');
+                        }
+                        $kuota->increment('terisi');
+                    } elseif ($oldStatus === 'diterima' && $newStatus !== 'diterima') {
+                        $kuota->decrement('terisi');
+                    }
+                }
+
+                $calonSiswa->update(['status_pendaftaran' => $newStatus]);
+
+                LogStatusPendaftaran::create([
+                    'calon_siswa_id' => $calonSiswa->id,
+                    'status_sebelumnya' => $oldStatus,
+                    'status_baru' => $newStatus,
+                    'user_id' => auth()->id(),
+                    'catatan' => $request->input('catatan'),
+                ]);
+            });
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', "Status diubah {$oldStatus} → {$newStatus}.");
+    }
+
+    public function verifyBerkas(Request $request, CalonSiswa $calonSiswa): RedirectResponse
+    {
+        $request->validate([
+            'status_verifikasi' => ['required', 'boolean'],
+            'berkas_perlu_perbaikan' => ['nullable', 'array'],
+            'berkas_perlu_perbaikan.*' => ['string', 'in:ijazah_path,kk_path,akta_path,foto_path,skl_path'],
+            'alasan_penolakan' => ['nullable', 'string', 'max:1000'],
+            'catatan_berkas' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $berkas = $calonSiswa->berkasCalonSiswa;
+
+        if (! $berkas) {
+            $berkas = $calonSiswa->berkasCalonSiswa()->create([
+                'status_verifikasi' => $request->boolean('status_verifikasi'),
+            ]);
+        }
+
+        $berkas->update([
+            'status_verifikasi' => $request->boolean('status_verifikasi'),
+            'berkas_perlu_perbaikan' => $request->input('berkas_perlu_perbaikan'),
+            'alasan_penolakan' => $request->input('alasan_penolakan'),
+            'catatan_berkas' => $request->input('catatan_berkas'),
+        ]);
+
+        return back()->with('success', 'Verifikasi berkas diperbarui.');
+    }
+
+    public function destroy(CalonSiswa $calonSiswa): RedirectResponse
+    {
+        DB::transaction(function () use ($calonSiswa) {
+            if ($calonSiswa->status_pendaftaran === 'diterima') {
+                $kuota = KuotaPendaftaran::where('tahun_ajaran_id', $calonSiswa->tahun_ajaran_id)
+                    ->where('jalur_pendaftaran_id', $calonSiswa->jalur_pendaftaran_id)
+                    ->lockForUpdate()
+                    ->first();
+                if ($kuota && $kuota->terisi > 0) {
+                    $kuota->decrement('terisi');
+                }
+            }
+            $calonSiswa->delete();
+        });
+
+        return redirect()->route('admin.calon-siswas.index')->with('success', 'Calon siswa dihapus.');
+    }
+
+    private function generateNoPendaftaran(): string
+    {
+        $year = date('Y');
+        $count = CalonSiswa::whereYear('created_at', $year)->count() + 1;
+
+        return sprintf('PPDB-%s-%04d', $year, $count);
+    }
+}

@@ -16,7 +16,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Dashboard', 'icon' => 'fa-solid fa-th-large', 'route' => 'admin.dashboard', 'order' => 1],
 
             ['name' => 'PPDB', 'is_header' => true, 'order' => 10],
-            ['name' => 'Calon Siswa', 'icon' => 'fa-solid fa-user-graduate', 'order' => 11],
+            ['name' => 'Calon Siswa', 'icon' => 'fa-solid fa-user-graduate', 'route' => 'admin.calon-siswas.index', 'permission' => 'calon-siswas.view', 'order' => 11],
             ['name' => 'Jalur Pendaftaran', 'icon' => 'fa-solid fa-signs-post', 'order' => 12],
             ['name' => 'Jadwal PPDB', 'icon' => 'fa-solid fa-calendar-days', 'order' => 13],
             ['name' => 'Kuota', 'icon' => 'fa-solid fa-chart-pie', 'order' => 14],
