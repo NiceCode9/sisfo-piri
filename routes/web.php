@@ -3,9 +3,13 @@
 use App\Http\Controllers\Admin\BiayaPendaftaranController;
 use App\Http\Controllers\Admin\CalonSiswaController;
 use App\Http\Controllers\Admin\GelombangController;
+use App\Http\Controllers\Admin\JadwalPpdbController;
+use App\Http\Controllers\Admin\JalurPendaftaranController;
+use App\Http\Controllers\Admin\KuotaPendaftaranController;
 use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Admin\PengumumanController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\TahunAjaranController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Siswa\DashboardController;
@@ -40,4 +44,8 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::resource('biaya-pendaftarans', BiayaPendaftaranController::class)->except(['show']);
     Route::resource('pengumumans', PengumumanController::class)->except(['show']);
     Route::resource('gelombangs', GelombangController::class)->except(['show']);
+    Route::resource('tahun-ajarans', TahunAjaranController::class)->except(['show']);
+    Route::resource('jalur-pendaftarans', JalurPendaftaranController::class)->except(['show']);
+    Route::resource('jadwal-ppdbs', JadwalPpdbController::class)->except(['show']);
+    Route::resource('kuota-pendaftarans', KuotaPendaftaranController::class)->except(['show']);
 });

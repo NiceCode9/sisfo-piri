@@ -17,9 +17,10 @@ class MenuSeeder extends Seeder
 
             ['name' => 'PPDB', 'is_header' => true, 'order' => 10],
             ['name' => 'Calon Siswa', 'icon' => 'fa-solid fa-user-graduate', 'route' => 'admin.calon-siswas.index', 'permission' => 'calon-siswas.view', 'order' => 11],
-            ['name' => 'Jalur Pendaftaran', 'icon' => 'fa-solid fa-signs-post', 'order' => 12],
-            ['name' => 'Jadwal PPDB', 'icon' => 'fa-solid fa-calendar-days', 'order' => 13],
-            ['name' => 'Kuota', 'icon' => 'fa-solid fa-chart-pie', 'order' => 14],
+            ['name' => 'Tahun Ajaran', 'icon' => 'fa-solid fa-calendar-check', 'route' => 'admin.tahun-ajarans.index', 'permission' => 'tahun-ajarans.view', 'order' => 11],
+            ['name' => 'Jalur Pendaftaran', 'icon' => 'fa-solid fa-signs-post', 'route' => 'admin.jalur-pendaftarans.index', 'permission' => 'jalur-pendaftarans.view', 'order' => 12],
+            ['name' => 'Jadwal PPDB', 'icon' => 'fa-solid fa-calendar-days', 'route' => 'admin.jadwal-ppdbs.index', 'permission' => 'jadwal-ppdbs.view', 'order' => 13],
+            ['name' => 'Kuota', 'icon' => 'fa-solid fa-chart-pie', 'route' => 'admin.kuota-pendaftarans.index', 'permission' => 'kuota-pendaftarans.view', 'order' => 14],
             ['name' => 'Gelombang', 'icon' => 'fa-solid fa-layer-group', 'route' => 'admin.gelombangs.index', 'permission' => 'gelombangs.view', 'order' => 15],
             ['name' => 'Pembayaran', 'icon' => 'fa-solid fa-dollar-sign', 'order' => 16],
             ['name' => 'Biaya Pendaftaran', 'icon' => 'fa-solid fa-money-bill-wave', 'route' => 'admin.biaya-pendaftarans.index', 'permission' => 'biaya-pendaftarans.view', 'order' => 17],

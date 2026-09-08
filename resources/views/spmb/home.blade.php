@@ -5,7 +5,7 @@
 @section('content')
 
     {{-- Navbar --}}
-    @include('spmb.partials.navbar')
+    @include('spmb.partials.navbar', ['transparent' => true])
 
     {{-- Hero Section --}}
     @include('spmb.partials.hero')

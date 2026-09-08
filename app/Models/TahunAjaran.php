@@ -17,6 +17,12 @@ class TahunAjaran extends Model
         'status_aktif',
     ];
 
+    protected $casts = [
+        'tanggal_mulai' => 'date',
+        'tanggal_selesai' => 'date',
+        'status_aktif' => 'boolean',
+    ];
+
     public function jadwalPpdb(): HasMany
     {
         return $this->hasMany(JadwalPpdb::class);

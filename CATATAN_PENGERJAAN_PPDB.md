@@ -31,7 +31,7 @@ npm run dev          # vite HMR
 npm run build        # production
 
 vendor/bin/pint --dirty --format agent   # WAJIB setelah edit PHP
-php artisan test --compact               # semua test (87 saat ini)
+php artisan test --compact               # semua test (120 saat ini)
 php artisan test --compact --filter=nama # satu test
 php artisan migrate:fresh --seed         # reset DB lokal (seed Role+Permission+Menu+Ppdb+Gelombang)
 php artisan route:list
@@ -64,9 +64,9 @@ e079af6 feat: PPDB inti — CalonSiswa admin CRUD + pendaftaran publik + kuota l
 ### 4.1 Auth & Sistem (commit b99d316 + 4abcfab)
 - **Login username** `LoginController` `throttle:5,1`, `session regenerate`, `logout POST`, middleware `guest`/`auth`
 - **Role:** `super-admin, admin, guru, siswa, orang-tua` (RoleSeeder) — `superadmin/superadmin123`
-- **Permission 30:** `users/roles/menus/calon-siswas/berkas-calon-siswas/biaya-pendaftarans/pengumumans/gelombangs` ×4 + `siswas.view`
+- **Permission 47:** 11 resource ×4 (`users, roles, menus, calon-siswas, biaya-pendaftarans, pengumumans, gelombangs, tahun-ajarans, jalur-pendaftarans, jadwal-ppdbs, kuota-pendaftarans`) + `berkas-calon-siswas` view/edit + `siswas.view`
   - `super-admin → all`, `admin → view/create/edit` tanpa `delete`, `siswa → siswas.view`
-- **CRUD:** `UserController` (HasMiddleware, assignableRoles, cegah hapus diri & super-admin terakhir), `RoleController`, `MenuController` (dual permission `permission` string + pivot `menu_permission`), `GelombangController`, `BiayaPendaftaranController`, `PengumumanController`
+- **CRUD:** `UserController` (HasMiddleware, assignableRoles, cegah hapus diri & super-admin terakhir), `RoleController`, `MenuController` (dual permission `permission` string + pivot `menu_permission`), `GelombangController`, `BiayaPendaftaranController`, `PengumumanController`, `TahunAjaranController` (aktivasi = transaksi nonaktifkan lainnya, blokir hapus berelasi), `JalurPendaftaranController`, `JadwalPpdbController`, `KuotaPendaftaranController` (unique tahun+jalur, `terisi lte:kuota`, blokir hapus bila terisi>0)
 - **Views admin:** `admin/users, roles, menus, gelombangs, biaya-pendaftarans, pengumumans` — `card-nexus`, `table-nexus`, `form-floating`, `pagination::bootstrap-5`
 - **Tests:** `UsersTest 9, RolesTest 10, MenusTest 10, GelombangTest 9, BiayaPendaftaranTest 8, PengumumanTest 10` (pattern `superAdmin()` guard `function_exists`)
 
@@ -113,12 +113,12 @@ app/Http/Controllers/
   SpmbController.php (home, create, store, pengumumanIndex/Show)
   Siswa/DashboardController.php
 app/Models/ CalonSiswa, BerkasCalonSiswa, LogStatusPendaftaran, TahunAjaran (scopeAktif), Gelombang (persentase), BiayaPendaftaran, Pengumuman (table pengumuman), KuotaPendaftaran, JadwalPpdb, JalurPendaftaran, Siswa (expand), User (hasOne calonSiswa/siswa, HasRoles), Menu (parent/children, scopeUserCanAccess)
-app/Http/Requests/Admin/ StoreCalonSiswa/UpdateCalonSiswa, StoreGelombang/UpdateGelombang, StoreBiaya/UpdateBiaya, StorePengumuman/UpdatePengumuman + Spmb/StorePendaftaranRequest
+app/Http/Requests/Admin/ StoreCalonSiswa/UpdateCalonSiswa, StoreGelombang/UpdateGelombang, StoreBiaya/UpdateBiaya, StorePengumuman/UpdatePengumuman, StoreTahunAjaran/UpdateTahunAjaran, StoreJalurPendaftaran/UpdateJalurPendaftaran, StoreJadwalPpdb/UpdateJadwalPpdb, StoreKuotaPendaftaran/UpdateKuotaPendaftaran (unique tahun+jalur via Rule::unique where, terisi lte:kuota) + Spmb/StorePendaftaranRequest
 database/migrations/ 25 migrasi awal + 2026_09_08_091806_create_gelombangs_table + 2026_09_08_094918_expand_siswas_table + username unique
 database/seeders/ RoleSeeder (5 role), PermissionSeeder (30 perms), MenuSeeder (13 menus), PpdbSeeder (4 TA, 4 jalur, 4 kuota, 5 biaya, 5 jadwal, 3 pengumuman, 3 gelombang), DatabaseSeeder call order
-resources/views/layouts/app.blade.php (Nexus), spmb.blade.php (Tailwind), admin/calon-siswas/* (5 file), admin/gelombangs/*, admin/biaya-pendaftarans/*, admin/pengumumans/*, spmb/pendaftaran.blade.php (action route spmb.store, jalur+kuotaMap, 5 file), spmb/home.blade.php (navbar, hero, jalur-seleksi, alur, gelombang, biaya, pengumuman-home, ekstrakurikuler), siswa/dashboard.blade.php
-routes/web.php (38 baris, 38 route): / (spmb.home), /pendaftaran (spmb.*), /pengumuman/*, /siswa/dashboard (role:siswa), /login, admin/* 7 resources
-tests/Feature/ 9 file 87 test: Auth 6, AdminDashboard 2, Example 1, Users 9, Roles 10, Menus 10, CalonSiswa 10, SpmbPendaftaran 6, BerkasVerification 5, Gelombang 9, Biaya 8, Pengumuman 10
+resources/views/layouts/app.blade.php (Nexus), spmb.blade.php (Tailwind), admin/calon-siswas/* (5 file), admin/gelombangs/*, admin/biaya-pendaftarans/*, admin/pengumumans/*, admin/tahun-ajarans/*, admin/jalur-pendaftarans/*, admin/jadwal-ppdbs/*, admin/kuota-pendaftarans/* (index/create/edit/_form tiap modul, progress terisi/kuota di index Kuota), spmb/pendaftaran.blade.php (action route spmb.store — pernah tertulis pendaftaran.store, sudah dibetulkan), spmb/home.blade.php (navbar, hero, jalur-seleksi, alur, gelombang, biaya, pengumuman-home, ekstrakurikuler), siswa/dashboard.blade.php
+routes/web.php (51 baris, 62 route): / (spmb.home), /pendaftaran (spmb.*), /pengumuman/*, /siswa/dashboard (role:siswa), /login, admin/* 11 resources (7 lama + tahun-ajarans, jalur-pendaftarans, jadwal-ppdbs, kuota-pendaftarans)
+tests/Feature/ 13 file 120 test: Auth 6, AdminDashboard 2, Example 1, Users 9, Roles 10, Menus 10, CalonSiswa 10, SpmbPendaftaran 6, BerkasVerification 5, Gelombang 9, Biaya 8, Pengumuman 10, TahunAjaran 9, JalurPendaftaran 8, JadwalPpdb 8, KuotaPendaftaran 8
 ```
 
 ---
@@ -126,7 +126,7 @@ tests/Feature/ 9 file 87 test: Auth 6, AdminDashboard 2, Example 1, Users 9, Rol
 ## 6. Yang BELUM / Akan Dikerjakan (PPDB)
 
 **Disepakati ditunda (jawaban user):**
-- **Master CRUD:** `TahunAjaran, JalurPendaftaran, JadwalPpdb, KuotaPendaftaran` — seeder sudah ada (user akan seed manual), CRUD admin nanti setelah PPDB inti. Menu `Jalur 12, Jadwal 13, Kuota 14` masih `route=null` (sengaja dibiarkan). `JadwalPpdb` 5 fase Mei-Juni tetap dipakai untuk timeline pendaftaran (bukan gelombang).
+- **Master CRUD SELESAI (sesi rumah):** `TahunAjaran, JalurPendaftaran, JadwalPpdb, KuotaPendaftaran` + menu baru `Tahun Ajaran` order 11 + orphan `Jalur 12, Jadwal 13, Kuota 14` dibuka (route + permission `*.view`). Keputusan: aktivasi tahun otomatis nonaktifkan lainnya (transaksi), hapus diblokir bila berelasi (kecuali Jadwal), `terisi` editable ≤ kuota, kombinasi tahun+jalur unique di validasi. `JadwalPpdb` 5 fase Mei-Juni tetap dipakai untuk timeline pendaftaran (bukan gelombang).
 - **Keuangan lanjutan:** `Pembayaran, RencanaAngsuran, DetailAngsuran, PembayaranLainnya` — menu `Pembayaran` order16 masih `route=null`, ditunda (user: "nanti, setelah ppdb inti jalan"). `BiayaPendaftaran` sudah CRUD, tapi belum linkage ke `Pembayaran` saat daftar.
 - **Kuota seeder:** biarkan `terisi 150/35/20/5` (hanya dummy, tidak reset ke 0).
 
@@ -157,7 +157,7 @@ tests/Feature/ 9 file 87 test: Auth 6, AdminDashboard 2, Example 1, Users 9, Rol
 
 ```bash
 php artisan migrate:fresh --seed  # 3 gelombang 80/70/30, 3 pengumuman, 5 biaya, kuota 200/50/30/20
-php artisan test --compact         # harus 87/87 (60+27)
+php artisan test --compact         # harus 120/120
 php artisan route:list | findstr spmb
 # Publik: buka /pendaftaran → isi 5 berkas → submit → flash Username: nisn Password: xxx No: PPDB-...
 # Login nisn/password → redirect /siswa/dashboard (role siswa) → pantau status, berkas, log
@@ -168,7 +168,7 @@ php artisan route:list | findstr spmb
 
 ## 9. Next Priority (disarankan)
 
-1. **Test PPDB sudah selesai (87)** — next bisa **Master CRUD** (Tahun/Jalur/Jadwal/Kuota) untuk membuka 4 menu orphan, atau **Pembayaran** jika butuh transaksi.
+1. **Master CRUD selesai (120 test)** — next prioritas **Pembayaran** (`Pembayaran` CRUD + upload `bukti_pembayaran_path` + linkage ke `BiayaPendaftaran`, lalu angsuran) untuk membuka menu orphan terakhir order 16.
 2. User pilih: `Biaya/Pengumuman` sudah dinamis `hanya wajib_bayar=true` total `Rp 3.850.000`, pengumuman `semua status_aktif` — sudah sesuai.
 3. Jangan ubah `gelombangs` `kuota` sinkron ke `kuota_pendaftarans` (terpisah) sesuai rekomendasi — biarkan manual.
 

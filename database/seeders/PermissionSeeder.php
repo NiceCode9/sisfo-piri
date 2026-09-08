@@ -45,6 +45,22 @@ class PermissionSeeder extends Seeder
             'gelombangs.edit',
             'gelombangs.delete',
             'siswas.view',
+            'tahun-ajarans.view',
+            'tahun-ajarans.create',
+            'tahun-ajarans.edit',
+            'tahun-ajarans.delete',
+            'jalur-pendaftarans.view',
+            'jalur-pendaftarans.create',
+            'jalur-pendaftarans.edit',
+            'jalur-pendaftarans.delete',
+            'jadwal-ppdbs.view',
+            'jadwal-ppdbs.create',
+            'jadwal-ppdbs.edit',
+            'jadwal-ppdbs.delete',
+            'kuota-pendaftarans.view',
+            'kuota-pendaftarans.create',
+            'kuota-pendaftarans.edit',
+            'kuota-pendaftarans.delete',
         ];
 
         foreach ($permissions as $name) {
@@ -65,6 +81,10 @@ class PermissionSeeder extends Seeder
                 'biaya-pendaftarans.view', 'biaya-pendaftarans.create', 'biaya-pendaftarans.edit',
                 'pengumumans.view', 'pengumumans.create', 'pengumumans.edit',
                 'gelombangs.view', 'gelombangs.create', 'gelombangs.edit',
+                'tahun-ajarans.view', 'tahun-ajarans.create', 'tahun-ajarans.edit',
+                'jalur-pendaftarans.view', 'jalur-pendaftarans.create', 'jalur-pendaftarans.edit',
+                'jadwal-ppdbs.view', 'jadwal-ppdbs.create', 'jadwal-ppdbs.edit',
+                'kuota-pendaftarans.view', 'kuota-pendaftarans.create', 'kuota-pendaftarans.edit',
             ]);
 
         Role::firstOrCreate(['name' => 'siswa', 'guard_name' => 'web'])

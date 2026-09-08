@@ -9,7 +9,11 @@ class JalurPendaftaran extends Model
     protected $fillable = [
         'nama_jalur',
         'deskripsi',
-        'aktif'
+        'aktif',
+    ];
+
+    protected $casts = [
+        'aktif' => 'boolean',
     ];
 
     public function kuotaPendaftaran()

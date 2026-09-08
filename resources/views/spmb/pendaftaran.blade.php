@@ -122,7 +122,7 @@
 
 @section('content')
 
-    @include('spmb.partials.navbar')
+    @include('spmb.partials.navbar', ['transparent' => true])
 
     {{-- ============ HERO ============ --}}
     <section class="relative bg-gradient-primary py-24 overflow-hidden">
@@ -375,7 +375,7 @@
             @endif
 
             <div class="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
-                <form method="POST" action="" enctype="multipart/form-data" id="form-wizard" class="p-6 md:p-10">
+                <form method="POST" action="{{ route('spmb.store') }}" enctype="multipart/form-data" id="form-wizard" class="p-6 md:p-10">
                     @csrf
 
                     {{-- Progress Steps --}}
