@@ -18,6 +18,14 @@ class PermissionSeeder extends Seeder
             'users.create',
             'users.edit',
             'users.delete',
+            'roles.view',
+            'roles.create',
+            'roles.edit',
+            'roles.delete',
+            'menus.view',
+            'menus.create',
+            'menus.edit',
+            'menus.delete',
         ];
 
         foreach ($permissions as $name) {
@@ -29,6 +37,10 @@ class PermissionSeeder extends Seeder
             ->givePermissionTo(Permission::all());
 
         Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web'])
-            ->givePermissionTo(['users.view', 'users.create', 'users.edit']);
+            ->givePermissionTo([
+                'users.view', 'users.create', 'users.edit',
+                'roles.view', 'roles.create', 'roles.edit',
+                'menus.view', 'menus.create', 'menus.edit',
+            ]);
     }
 }

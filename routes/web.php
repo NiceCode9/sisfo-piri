@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Admin\MenuController;
+use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use Illuminate\Support\Facades\Route;
@@ -22,4 +24,6 @@ Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')-
 Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::get('/', fn () => view('admin.dashboard'))->name('dashboard');
     Route::resource('users', UserController::class)->except(['show']);
+    Route::resource('roles', RoleController::class)->except(['show']);
+    Route::resource('menus', MenuController::class)->except(['show']);
 });

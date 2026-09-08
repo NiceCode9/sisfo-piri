@@ -11,13 +11,15 @@ beforeEach(function () {
     $this->seed(PermissionSeeder::class);
 });
 
-function superAdmin(): User
-{
-    $user = User::factory()->create();
+if (! function_exists('superAdmin')) {
+    function superAdmin(): User
+    {
+        $user = User::factory()->create();
 
-    $user->assignRole('super-admin');
+        $user->assignRole('super-admin');
 
-    return $user;
+        return $user;
+    }
 }
 
 test('tamu tidak dapat membuka daftar pengguna', function () {

@@ -23,8 +23,9 @@ class MenuSeeder extends Seeder
             ['name' => 'Pembayaran', 'icon' => 'fa-solid fa-dollar-sign', 'order' => 15],
 
             ['name' => 'Sistem', 'is_header' => true, 'order' => 20],
-            ['name' => 'Menu', 'icon' => 'fa-solid fa-bars', 'order' => 21],
-            ['name' => 'Pengguna & Role', 'icon' => 'fa-solid fa-users-gear', 'route' => 'admin.users.index', 'permission' => 'users.view', 'order' => 22],
+            ['name' => 'Role', 'icon' => 'fa-solid fa-user-tie', 'route' => 'admin.roles.index', 'permission' => 'roles.view', 'order' => 21],
+            ['name' => 'Menu', 'icon' => 'fa-solid fa-bars', 'route' => 'admin.menus.index', 'permission' => 'menus.view', 'order' => 22],
+            ['name' => 'Pengguna & Role', 'icon' => 'fa-solid fa-users-gear', 'route' => 'admin.users.index', 'permission' => 'users.view', 'order' => 23],
         ];
 
         foreach ($menus as $menu) {
