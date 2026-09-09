@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\KuotaPendaftaranController;
 use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Admin\PembayaranController;
 use App\Http\Controllers\Admin\PengumumanController;
+use App\Http\Controllers\Admin\RencanaAngsuranController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\TahunAjaranController;
 use App\Http\Controllers\Admin\UserController;
@@ -33,7 +34,6 @@ Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')-
 
 Route::prefix('siswa')->name('siswa.')->middleware(['auth', 'role:siswa'])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
-    Route::post('/pembayarans/upload', [App\Http\Controllers\Siswa\PembayaranController::class, 'store'])->name('pembayarans.store');
 });
 
 Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
@@ -54,4 +54,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::resource('kuota-pendaftarans', KuotaPendaftaranController::class)->except(['show']);
     Route::resource('pembayarans', PembayaranController::class);
     Route::patch('pembayarans/{pembayaran}/status', [PembayaranController::class, 'updateStatus'])->name('pembayarans.status');
+    Route::post('pembayarans/{pembayaran}/rencana', [RencanaAngsuranController::class, 'store'])->name('rencana.store');
+    Route::patch('rencana-angsuran/{rencana}/batal', [RencanaAngsuranController::class, 'batal'])->name('rencana.batal');
+    Route::patch('detail-angsuran/{detail}/denda', [RencanaAngsuranController::class, 'updateDenda'])->name('rencana.denda');
 });

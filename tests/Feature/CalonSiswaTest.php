@@ -43,6 +43,29 @@ test('super-admin dapat membuka daftar calon siswa', function () {
     $response->assertOk()->assertSee('Daftar Calon Siswa');
 });
 
+test('halaman show tampil gaya modern lengkap', function () {
+    $calon = CalonSiswa::create([
+        'jalur_pendaftaran_id' => JalurPendaftaran::first()->id,
+        'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
+        'no_pendaftaran' => 'PPDB-2026-0001',
+        'nik' => '1234567890123456',
+        'nama_lengkap' => 'Show Test',
+        'jenis_kelamin' => 'L',
+        'tempat_lahir' => 'Test',
+        'tanggal_lahir' => '2010-01-01',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Test',
+        'status_pendaftaran' => 'menunggu',
+    ]);
+
+    $response = $this->actingAs(superAdmin())->get(route('admin.calon-siswas.show', $calon));
+
+    $response->assertOk();
+    foreach (['header-section', 'document-list', 'payment-history', 'modalPembayaran', 'form-status', 'Rincian Biaya'] as $marker) {
+        $response->assertSee($marker, false);
+    }
+});
+
 test('super-admin dapat menambah calon siswa beserta berkas', function () {
     $jalur = JalurPendaftaran::first();
 

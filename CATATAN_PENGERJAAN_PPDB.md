@@ -31,7 +31,7 @@ npm run dev          # vite HMR
 npm run build        # production
 
 vendor/bin/pint --dirty --format agent   # WAJIB setelah edit PHP
-php artisan test --compact               # semua test (127 saat ini)
+php artisan test --compact               # semua test (150 saat ini)
 php artisan test --compact --filter=nama # satu test
 php artisan migrate:fresh --seed         # reset DB lokal (seed Role+Permission+Menu+Ppdb+Gelombang)
 php artisan route:list
@@ -52,10 +52,14 @@ e079af6 feat: PPDB inti — CalonSiswa admin CRUD + pendaftaran publik + kuota l
 56bc5aa fix: rapikan form calon siswa 5 section + upload berkas admin nullable (agama select, dashed upload)
 6a4208f feat: test PPDB inti (CalonSiswa/Spmb/Berkas 21 test) + Biaya/Pengumuman CRUD + publik dinamis (60 test)
 5bef942 feat: gelombang terpisah dari jadwal_ppdbs dengan CRUD admin (3 gelombang template Early Bird 80/70/30)
-213440b feat: auto-akun siswa saat daftar (nisn) + dashboard pantau status + Siswa expand (87 test) ← HEAD
+213440b feat: auto-akun siswa saat daftar (nisn) + dashboard pantau status + Siswa expand (87 test)
+9b6b7e6 feat: sertifikat prestasi olahraga multi-file per jalur (127 test)
+a0dd198 feat: berkas KRM & KIP opsional di pendaftaran (kantor)
+8888aaf feat: halaman about sekolah di frontend (kantor)
+1ca208a feat: pembayaran manual + auto-create saat diterima + upload bukti (kantor) ← HEAD
 ```
 
-**Working tree bersih** setelah `213440b` (kecuali file catatan ini).
+**Working tree bersih** setelah `1ca208a`.
 
 ---
 
@@ -64,8 +68,8 @@ e079af6 feat: PPDB inti — CalonSiswa admin CRUD + pendaftaran publik + kuota l
 ### 4.1 Auth & Sistem (commit b99d316 + 4abcfab)
 - **Login username** `LoginController` `throttle:5,1`, `session regenerate`, `logout POST`, middleware `guest`/`auth`
 - **Role:** `super-admin, admin, guru, siswa, orang-tua` (RoleSeeder) — `superadmin/superadmin123`
-- **Permission 47:** 11 resource ×4 (`users, roles, menus, calon-siswas, biaya-pendaftarans, pengumumans, gelombangs, tahun-ajarans, jalur-pendaftarans, jadwal-ppdbs, kuota-pendaftarans`) + `berkas-calon-siswas` view/edit + `siswas.view`
-  - `super-admin → all`, `admin → view/create/edit` tanpa `delete`, `siswa → siswas.view`
+- **Permission 55:** 13 resource ×4 (`users, roles, menus, calon-siswas, biaya-pendaftarans, pengumumans, gelombangs, tahun-ajarans, jalur-pendaftarans, jadwal-ppdbs, kuota-pendaftarans, pembayarans, rencana-angsurans`) + `berkas-calon-siswas` view/edit + `siswas.view`
+  - `super-admin → all`, `admin → view/create/edit` tanpa `delete` (+ `pembayarans.*` tanpa delete, `rencana-angsurans.*` tanpa delete), `siswa → siswas.view + pembayarans.view/create`
 - **CRUD:** `UserController` (HasMiddleware, assignableRoles, cegah hapus diri & super-admin terakhir), `RoleController`, `MenuController` (dual permission `permission` string + pivot `menu_permission`), `GelombangController`, `BiayaPendaftaranController`, `PengumumanController`, `TahunAjaranController` (aktivasi = transaksi nonaktifkan lainnya, blokir hapus berelasi), `JalurPendaftaranController`, `JadwalPpdbController`, `KuotaPendaftaranController` (unique tahun+jalur, `terisi lte:kuota`, blokir hapus bila terisi>0)
 - **Views admin:** `admin/users, roles, menus, gelombangs, biaya-pendaftarans, pengumumans` — `card-nexus`, `table-nexus`, `form-floating`, `pagination::bootstrap-5`
 - **Tests:** `UsersTest 9, RolesTest 10, MenusTest 10, GelombangTest 9, BiayaPendaftaranTest 8, PengumumanTest 10` (pattern `superAdmin()` guard `function_exists`)
@@ -93,13 +97,31 @@ e079af6 feat: PPDB inti — CalonSiswa admin CRUD + pendaftaran publik + kuota l
 - **Publik:** `SpmbController home` kirim `gelombangs where is_aktif order nomor_urut`, `spmb/partials/gelombang.blade.php` dinamis `@forelse` gradient `match warna_border`, kuota progress, keuntungan loop
 - **Menu:** `Gelombang` order15 `fa-layer-group` `admin.gelombangs.index` (sisakan `Jalur 12, Jadwal 13, Kuota 14` masih `route=null` — sengaja, CRUD master ditunda sesuai keputusan user)
 
-### 4.5 Auto-Akun Siswa (213440b) ← terbaru
+### 4.5 Auto-Akun Siswa (213440b)
+
 - **Spec user:** `username = nisn`, generate otomatis `Str::random(8)`, role `siswa` saja, langsung buat `Siswa` saat `diterima`, login langsung `menunggu` untuk pantau.
 - **Siswa expand:** `siswas` tambah 8 kolom (sudah di atas), `User hasOne calonSiswa/siswa`, `CalonSiswa belongsTo user`
 - **Spmb store:** dalam transaksi cek `User where username nisn exists → error`, `User::create(username:nisn, name, email, password plain)` `assignRole('siswa')`, `CalonSiswa create user_id`, flash `Username: nisn | Password: xxx (simpan!) No: PPDB-...`
 - **Login:** `LoginController store` cabang `if hasRole('siswa') → siswa.dashboard else admin.dashboard`
 - **Dashboard siswa:** `Siswa/DashboardController __invoke` `CalonSiswa where user_id auth` + `berkas, log, tahun, jalur` + `siswa`, view `siswa/dashboard.blade.php` (`layouts/app` card status badge + berkas `perlu perbaikan` + log timeline + pembayaran placeholder), route `GET /siswa/dashboard role:siswa siswa.dashboard`
-- **Promosi:** `CalonSiswaController updateStatus` setelah `diterima` → `Siswa::firstOrCreate(calon_siswa_id, user_id, nisn, tahun_ajaran_id, tanggal_diterima)`
+- **Promosi:** `CalonSiswaController updateStatus` setelah `diterima` → `Siswa::firstOrCreate(calon_siswa_id, user_id, nisn, tahun_ajaran_id, tanggal_diterima)` + auto-create 4 tagihan `Pembayaran` wajib_bayar (lihat 4.7)
+
+### 4.7 Pembayaran (1ca208a, kantor) ← terbaru
+- **Admin CRUD:** `Admin/PembayaranController` (HasMiddleware `pembayarans.*`) — kode `PAY-YYYY-XXXX`, `status menunggu/berhasil/gagal` via `PATCH pembayarans/{pembayaran}/status`, `metode transfer/tunai`, `bukti_pembayaran_path` store disk `public/bukti`, views `admin/pembayarans/*` (index/create/edit/show/_form). Menu `Pembayaran` order16 → `admin.pembayarans.index` (orphan terakhir tersambung).
+- **Auto-create tagihan:** `CalonSiswaController updateStatus` saat `diterima` → buat `Pembayaran` untuk tiap `BiayaPendaftaran wajib_bayar=true` tahun aktif (`Biaya Pendaftaran, Uang Pangkal, Seragam, Buku`), status `menunggu`.
+- **Sisi siswa:** `Siswa/PembayaranController@store` — upload bukti untuk tagihan miliknya (`POST /pembayarans/upload`, nama rute `siswa.pembayarans.store`, grup `siswa.` + `role:siswa`); dashboard eager `pembayaran` + card tabel + upload per tagihan `menunggu`; show calon admin ada card Pembayaran + tombol verifikasi berhasil/gagal + placeholder Rencana Angsuran.
+- **Tests:** `PembayaranTest` 11 (CRUD + validasi + auto-create 4 tagihan), `RencanaAngsuranTest` 12 (generate, guard, bayar, lunas, denda, batal, hapus).
+- **Upload siswa DICABUT total** (keputusan user): route `siswa.pembayarans.store` + `Siswa/PembayaranController` + card dashboard + eager dihapus; role siswa kembali hanya `siswas.view`. Pembayaran murni admin.
+
+### 4.9 Angsuran Admin-Only
+- **Buat rencana dari tagihan** (`POST pembayarans/{pembayaran}/rencana`, perm `rencana-angsurans.create`): syarat biaya `dapat_diangsur` + tagihan `menunggu` + belum ada rencana aktif; validasi DP ≥ `min_dp`, DP ≤ total, cicilan ≤ `max_cicilan`; transaksi buat DP (`dp_angsuran`, berhasil) + `RencanaAngsuran` (`ANG-YYYY-XXXX`, FK `pembayaran_id` induk) + N detail (jatuh tempo bulanan `addMonthsNoOverflow`, nominal rata + selisih di terakhir).
+- **Bayar cicilan** via form inline per baris → `PembayaranController@store` (`cicilan_angsuran` + `detail_angsuran_id`, cek milik calon sama + belum dibayar); verifikasi `berhasil` → hook `tutupCicilan`: detail `dibayar`, `sisa_hutang = total−dp−Σterbayar`, semua lunas → rencana `lunas` + induk `berhasil`.
+- **Aturan:** denda manual per detail (`PATCH detail-angsuran/{detail}/denda`, blokir bila dibayar); status `terlambat` hanya badge tampilan; `batal` (`PATCH rencana-angsuran/{rencana}/batal`) hanya bila belum ada dibayar; hapus pembayaran cicilan terverifikasi diblokir; hapus induk aktif diblokir.
+- **Views:** card rencana di show pembayaran (form buat + tabel detail + bayar inline + denda + batal); show calon link kode → show tagihan + kolom sisa.
+
+### 4.8 KRM/KIP & About (a0dd198 + 8888aaf, kantor)
+- **Berkas KRM & KIP opsional:** migrasi tambah `krm_path` + `kip_path` nullable di `berkas_calon_siswas`; fillable jadi 7 berkas; request admin + publik `nullable mimes pdf/jpg max 5MB`; loop 7 berkas di `CalonSiswaController` store/update/verify + `SpmbController@store` (+ delete old); view publik card opsional (`required false`); admin Section E/show/perbaikan/dashboard siswa 7 baris.
+- **About frontend:** `spmb/about.blade.php` + rute + link navbar (`spmb.home` tetap kirim data lama).
 
 ---
 
@@ -109,16 +131,18 @@ e079af6 feat: PPDB inti — CalonSiswa admin CRUD + pendaftaran publik + kuota l
 app/Http/Controllers/
   Auth/LoginController.php (username, throttle, regenerate, redirect cabang siswa)
   Admin/UserController.php, RoleController.php, MenuController.php, GelombangController.php,
-         BiayaPendaftaranController.php, PengumumanController.php, CalonSiswaController.php
-  SpmbController.php (home, create, store, pengumumanIndex/Show)
-  Siswa/DashboardController.php
-app/Models/ CalonSiswa, BerkasCalonSiswa, LogStatusPendaftaran, TahunAjaran (scopeAktif), Gelombang (persentase), BiayaPendaftaran, Pengumuman (table pengumuman), KuotaPendaftaran, JadwalPpdb, JalurPendaftaran, Siswa (expand), User (hasOne calonSiswa/siswa, HasRoles), Menu (parent/children, scopeUserCanAccess)
-app/Http/Requests/Admin/ StoreCalonSiswa/UpdateCalonSiswa, StoreGelombang/UpdateGelombang, StoreBiaya/UpdateBiaya, StorePengumuman/UpdatePengumuman, StoreTahunAjaran/UpdateTahunAjaran, StoreJalurPendaftaran/UpdateJalurPendaftaran, StoreJadwalPpdb/UpdateJadwalPpdb, StoreKuotaPendaftaran/UpdateKuotaPendaftaran (unique tahun+jalur via Rule::unique where, terisi lte:kuota) + Spmb/StorePendaftaranRequest
-database/migrations/ 25 migrasi awal + 2026_09_08_091806_create_gelombangs_table + 2026_09_08_094918_expand_siswas_table + username unique
-database/seeders/ RoleSeeder (5 role), PermissionSeeder (30 perms), MenuSeeder (13 menus), PpdbSeeder (4 TA, 4 jalur, 4 kuota, 5 biaya, 5 jadwal, 3 pengumuman, 3 gelombang), DatabaseSeeder call order
-resources/views/layouts/app.blade.php (Nexus), spmb.blade.php (Tailwind), admin/calon-siswas/* (5 file), admin/gelombangs/*, admin/biaya-pendaftarans/*, admin/pengumumans/*, admin/tahun-ajarans/*, admin/jalur-pendaftarans/*, admin/jadwal-ppdbs/*, admin/kuota-pendaftarans/* (index/create/edit/_form tiap modul, progress terisi/kuota di index Kuota), spmb/pendaftaran.blade.php (action route spmb.store — pernah tertulis pendaftaran.store, sudah dibetulkan), spmb/home.blade.php (navbar, hero, jalur-seleksi, alur, gelombang, biaya, pengumuman-home, ekstrakurikuler), siswa/dashboard.blade.php
-routes/web.php (51 baris, 62 route): / (spmb.home), /pendaftaran (spmb.*), /pengumuman/*, /siswa/dashboard (role:siswa), /login, admin/* 11 resources (7 lama + tahun-ajarans, jalur-pendaftarans, jadwal-ppdbs, kuota-pendaftarans)
-tests/Feature/ 14 file 127 test: Auth 6, AdminDashboard 2, Example 1, Users 9, Roles 10, Menus 10, CalonSiswa 10, SpmbPendaftaran 6, BerkasVerification 5, Gelombang 9, Biaya 8, Pengumuman 10, TahunAjaran 9, JalurPendaftaran 8, JadwalPpdb 8, KuotaPendaftaran 8, SertifikatPrestasi 7
+         BiayaPendaftaranController.php, PengumumanController.php, CalonSiswaController.php,
+         TahunAjaran/JalurPendaftaran/JadwalPpdb/KuotaPendaftaranController.php, PembayaranController.php (hook tutupCicilan),
+         RencanaAngsuranController.php (store rencana + DP, denda, batal)
+  SpmbController.php (home, create, store, pengumumanIndex/Show, about)
+  Siswa/DashboardController.php (tanpa pembayaran)
+app/Models/ CalonSiswa (hasMany sertifikatPrestasis), BerkasCalonSiswa (7 berkas: +krm/kip), SertifikatPrestasi, LogStatusPendaftaran, TahunAjaran (scopeAktif), Gelombang (persentase), BiayaPendaftaran, Pengumuman (table pengumuman), KuotaPendaftaran, JadwalPpdb, JalurPendaftaran (wajib_sertifikat), Siswa (expand), Pembayaran, User (hasOne calonSiswa/siswa, HasRoles), Menu (parent/children, scopeUserCanAccess)
+app/Http/Requests/Admin/ StoreCalonSiswa/UpdateCalonSiswa, StoreGelombang/UpdateGelombang, StoreBiaya/UpdateBiaya, StorePengumuman/UpdatePengumuman, StoreTahunAjaran/UpdateTahunAjaran, StoreJalurPendaftaran/UpdateJalurPendaftaran, StoreJadwalPpdb/UpdateJadwalPpdb, StoreKuotaPendaftaran/UpdateKuotaPendaftaran (unique tahun+jalur via Rule::unique where, terisi lte:kuota), StorePembayaran/UpdatePembayaran (+detail_angsuran_id), StoreRencanaAngsuranRequest (dp/cicilan/tanggal) + Spmb/StorePendaftaranRequest (sertifikat kondisional via withValidator)
+database/migrations/ 25 migrasi awal + gelombangs + expand siswas + username unique + sertifikat_prestasis + wajib_sertifikat di jalur + krm/kip di berkas + pembayaran_id di rencana_angsurans
+database/seeders/ RoleSeeder (5 role), PermissionSeeder (55 perms), MenuSeeder (14 menus: +Tahun Ajaran, Pembayaran tersambung), PpdbSeeder (4 TA, 5 jalur: +Prestasi Olahraga wajib_sertifikat, 5 kuota, 5 biaya, 5 jadwal, 3 pengumuman, 3 gelombang), DatabaseSeeder call order
+resources/views/layouts/app.blade.php (Nexus), spmb.blade.php (Tailwind), admin/calon-siswas/* (+Section F sertifikat, card Pembayaran di show), admin/gelombangs/*, admin/biaya-pendaftarans/*, admin/pengumumans/*, admin/tahun-ajarans/*, admin/jalur-pendaftarans/* (checkbox wajib_sertifikat), admin/jadwal-ppdbs/*, admin/kuota-pendaftarans/*, admin/pembayarans/* (index/create/edit/show/_form), spmb/pendaftaran.blade.php (7 berkas + section sertifikat dinamis step 4), spmb/home.blade.php, spmb/about.blade.php, siswa/dashboard.blade.php (card Pembayaran + upload)
+routes/web.php (±60 baris, ±93 route): / (spmb.home), /about, /pendaftaran (spmb.*), /pengumuman/*, siswa/dashboard (tanpa upload), /login, admin/* 12 resources (+pembayarans full + status patch + rencana.store/batal/denda)
+tests/Feature/ 16 file 150 test: Auth 6, AdminDashboard 2, Example 1, Users 9, Roles 10, Menus 10, CalonSiswa 10, SpmbPendaftaran 6, BerkasVerification 5, Gelombang 9, Biaya 8, Pengumuman 10, TahunAjaran 9, JalurPendaftaran 8, JadwalPpdb 8, KuotaPendaftaran 8, SertifikatPrestasi 7, Pembayaran 11, RencanaAngsuran 12
 ```
 
 ---
@@ -127,15 +151,12 @@ tests/Feature/ 14 file 127 test: Auth 6, AdminDashboard 2, Example 1, Users 9, R
 
 **Disepakati ditunda (jawaban user):**
 - **Master CRUD SELESAI (sesi rumah):** `TahunAjaran, JalurPendaftaran, JadwalPpdb, KuotaPendaftaran` + menu baru `Tahun Ajaran` order 11 + orphan `Jalur 12, Jadwal 13, Kuota 14` dibuka (route + permission `*.view`). Keputusan: aktivasi tahun otomatis nonaktifkan lainnya (transaksi), hapus diblokir bila berelasi (kecuali Jadwal), `terisi` editable ≤ kuota, kombinasi tahun+jalur unique di validasi. `JadwalPpdb` 5 fase Mei-Juni tetap dipakai untuk timeline pendaftaran (bukan gelombang).
-- **Keuangan lanjutan:** `Pembayaran, RencanaAngsuran, DetailAngsuran, PembayaranLainnya` — menu `Pembayaran` order16 masih `route=null`, ditunda (user: "nanti, setelah ppdb inti jalan"). `BiayaPendaftaran` sudah CRUD, tapi belum linkage ke `Pembayaran` saat daftar.
-- **Kuota seeder:** biarkan `terisi 150/35/20/5` (hanya dummy, tidak reset ke 0).
+- **Keuangan sebagian SELESAI (kantor, 1ca208a):** `Pembayaran` CRUD + upload bukti + auto-create 4 tagihan saat diterima + upload sisi siswa. Menu order16 tersambung. Sisa: `RencanaAngsuran` (`kode_angsuran ANG-YYYY-XXXX`), `DetailAngsuran` per cicilan, `PembayaranLainnya` — permission `rencana-angsurans.*` sudah di-seed tapi belum ada controller/route/view.
+- **Kuota seeder:** biarkan dummy (tidak reset ke 0).
 
 **Belum ada sama sekali (butuh bila lanjut):**
-- `TahunAjaran` CRUD (toggle 1 aktif)
-- `Pembayaran` CRUD + upload `bukti_pembayaran_path`, `status menunggu/berhasil/gagal`
-- `RencanaAngsuran` generate `kode_angsuran ANG-YYYY-XXXX` + `DetailAngsuran` per cicilan
-- Test untuk `Tahun/Jalur/Jadwal/Kuota/Pembayaran` (0 test)
 - Email notifikasi setelah pendaftaran (sekarang hanya flash password), cek jendela `JadwalPpdb` sebelum `store`
+- `PembayaranLainnya` (tabel + model ada, belum ada fitur)
 
 **Modul lain (AGENTS.md):** Absensi, E-Learning, CBT (JSON API `routes/api.php` belum ada) — belum disentuh.
 
@@ -157,7 +178,7 @@ tests/Feature/ 14 file 127 test: Auth 6, AdminDashboard 2, Example 1, Users 9, R
 
 ```bash
 php artisan migrate:fresh --seed  # 3 gelombang 80/70/30, 3 pengumuman, 5 biaya, kuota 200/50/30/20/20(olahraga)
-php artisan test --compact         # harus 127/127
+php artisan test --compact         # harus 150/150
 php artisan route:list | findstr spmb
 # Publik: buka /pendaftaran → isi 5 berkas → submit → flash Username: nisn Password: xxx No: PPDB-...
 # Login nisn/password → redirect /siswa/dashboard (role siswa) → pantau status, berkas, log
@@ -168,9 +189,9 @@ php artisan route:list | findstr spmb
 
 ## 9. Next Priority (disarankan)
 
-1. **Master CRUD + Sertifikat selesai (127 test)** — next prioritas **Pembayaran** (`Pembayaran` CRUD + upload `bukti_pembayaran_path` + linkage ke `BiayaPendaftaran`, lalu angsuran) untuk membuka menu orphan terakhir order 16.
+1. **Keuangan selesai penuh (150 test)** — pembayaran + angsuran admin-only, upload siswa dicabut. Semua menu orphan tersambung. Next bila perlu: email notifikasi, cek jendela `JadwalPpdb`, `PembayaranLainnya`, atau modul Absensi.
 
-### 4.6 Sertifikat Prestasi Olahraga
+**Sertifikat prestasi (sudah selesai sesi rumah, 9b6b7e6):**
 - **Tabel `sertifikat_prestasis`** (`calon_siswa_id` cascade, `nama_sertifikat`, `file_path` di `berkas/sertifikat`); `CalonSiswa hasMany sertifikatPrestasis`. Tabel berkas 5 kolom tidak diubah.
 - **Flag `wajib_sertifikat`** di `jalur_pendaftarans` (dikelola CRUD Jalur) + seed `Jalur Prestasi Olahraga` + kuota 20.
 - **Publik:** validasi kondisional di `StorePendaftaranRequest::withValidator` (wajib min 1 bila flag), `sertifikat` array max 5 (nama required, file pdf/jpg 5MB); section dinamis di step 4 (toggle via `data-wajib-sertifikat`, tambah/hapus baris JS); simpan dalam transaksi `SpmbController@store`.
@@ -181,4 +202,4 @@ php artisan route:list | findstr spmb
 
 ---
 
-*File ini dibuat 2026-09-08 setelah commit `213440b` — ganti bila ada commit baru.*
+*File ini dibuat 2026-09-08 setelah commit `213440b`, diperbarui sesi rumah (master CRUD + sertifikat, 127 test) lalu sinkron kerja kantor per `1ca208a` pada 2026-09-09 — ganti bila ada commit baru.*

@@ -98,8 +98,9 @@ class PermissionSeeder extends Seeder
                 'rencana-angsurans.view', 'rencana-angsurans.create', 'rencana-angsurans.edit',
             ]);
 
+        // Pembayaran murni admin: siswa hanya boleh lihat status pendaftaran.
         Role::firstOrCreate(['name' => 'siswa', 'guard_name' => 'web'])
-            ->givePermissionTo(['siswas.view', 'pembayarans.view', 'pembayarans.create']);
+            ->syncPermissions(['siswas.view']);
 
         // ensure siswa still can view own payments even after permission cache
         app()[PermissionRegistrar::class]->forgetCachedPermissions();

@@ -128,7 +128,7 @@ class CalonSiswaController extends Controller implements HasMiddleware
 
     public function show(CalonSiswa $calonSiswa): View
     {
-        $calonSiswa->load(['jalurPendaftaran', 'tahunAjaran', 'berkasCalonSiswa', 'sertifikatPrestasis', 'logStatusPendaftaran.user', 'pembayaran.biayaPendaftaran', 'rencanaAngsuran.detailAngsuran']);
+        $calonSiswa->load(['jalurPendaftaran', 'tahunAjaran', 'tahunAjaran.biayaPendaftaran', 'berkasCalonSiswa', 'sertifikatPrestasis', 'logStatusPendaftaran.user', 'pembayaran.biayaPendaftaran', 'rencanaAngsuran.detailAngsuran']);
 
         return view('admin.calon-siswas.show', [
             'calon' => $calonSiswa,

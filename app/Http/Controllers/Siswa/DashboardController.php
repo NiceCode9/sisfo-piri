@@ -11,7 +11,7 @@ class DashboardController extends Controller
     public function __invoke(): View
     {
         $user = auth()->user();
-        $calon = CalonSiswa::with(['berkasCalonSiswa', 'sertifikatPrestasis', 'jalurPendaftaran', 'tahunAjaran', 'logStatusPendaftaran.user', 'pembayaran.biayaPendaftaran', 'rencanaAngsuran.detailAngsuran'])
+        $calon = CalonSiswa::with(['berkasCalonSiswa', 'sertifikatPrestasis', 'jalurPendaftaran', 'tahunAjaran', 'logStatusPendaftaran.user'])
             ->where('user_id', $user->id)
             ->latest()
             ->first();

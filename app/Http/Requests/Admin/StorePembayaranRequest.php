@@ -20,6 +20,7 @@ class StorePembayaranRequest extends FormRequest
         return [
             'calon_siswa_id' => ['required', 'integer', 'exists:calon_siswas,id'],
             'biaya_pendaftaran_id' => ['nullable', 'integer', 'exists:biaya_pendaftarans,id'],
+            'detail_angsuran_id' => ['nullable', 'integer', 'exists:detail_angsurans,id'],
             'jumlah' => ['required', 'numeric', 'min:0'],
             'metode_pembayaran' => ['required', 'string', 'in:transfer,tunai'],
             'jenis_pembayaran' => ['nullable', 'string', 'in:penuh,dp_angsuran,cicilan_angsuran'],
