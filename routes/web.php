@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\JadwalPpdbController;
 use App\Http\Controllers\Admin\JalurPendaftaranController;
 use App\Http\Controllers\Admin\KuotaPendaftaranController;
 use App\Http\Controllers\Admin\MenuController;
+use App\Http\Controllers\Admin\PembayaranController;
 use App\Http\Controllers\Admin\PengumumanController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\TahunAjaranController;
@@ -32,6 +33,7 @@ Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')-
 
 Route::prefix('siswa')->name('siswa.')->middleware(['auth', 'role:siswa'])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::post('/pembayarans/upload', [App\Http\Controllers\Siswa\PembayaranController::class, 'store'])->name('pembayarans.store');
 });
 
 Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
@@ -50,4 +52,6 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::resource('jalur-pendaftarans', JalurPendaftaranController::class)->except(['show']);
     Route::resource('jadwal-ppdbs', JadwalPpdbController::class)->except(['show']);
     Route::resource('kuota-pendaftarans', KuotaPendaftaranController::class)->except(['show']);
+    Route::resource('pembayarans', PembayaranController::class);
+    Route::patch('pembayarans/{pembayaran}/status', [PembayaranController::class, 'updateStatus'])->name('pembayarans.status');
 });

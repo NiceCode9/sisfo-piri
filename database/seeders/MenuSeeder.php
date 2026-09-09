@@ -22,7 +22,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Jadwal PPDB', 'icon' => 'fa-solid fa-calendar-days', 'route' => 'admin.jadwal-ppdbs.index', 'permission' => 'jadwal-ppdbs.view', 'order' => 13],
             ['name' => 'Kuota', 'icon' => 'fa-solid fa-chart-pie', 'route' => 'admin.kuota-pendaftarans.index', 'permission' => 'kuota-pendaftarans.view', 'order' => 14],
             ['name' => 'Gelombang', 'icon' => 'fa-solid fa-layer-group', 'route' => 'admin.gelombangs.index', 'permission' => 'gelombangs.view', 'order' => 15],
-            ['name' => 'Pembayaran', 'icon' => 'fa-solid fa-dollar-sign', 'order' => 16],
+            ['name' => 'Pembayaran', 'icon' => 'fa-solid fa-dollar-sign', 'route' => 'admin.pembayarans.index', 'permission' => 'pembayarans.view', 'order' => 16],
             ['name' => 'Biaya Pendaftaran', 'icon' => 'fa-solid fa-money-bill-wave', 'route' => 'admin.biaya-pendaftarans.index', 'permission' => 'biaya-pendaftarans.view', 'order' => 17],
             ['name' => 'Pengumuman', 'icon' => 'fa-solid fa-bullhorn', 'route' => 'admin.pengumumans.index', 'permission' => 'pengumumans.view', 'order' => 18],
 

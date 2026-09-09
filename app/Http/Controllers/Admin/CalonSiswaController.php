@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreCalonSiswaRequest;
 use App\Http\Requests\Admin\UpdateCalonSiswaRequest;
+use App\Models\BiayaPendaftaran;
 use App\Models\CalonSiswa;
 use App\Models\JalurPendaftaran;
 use App\Models\KuotaPendaftaran;
 use App\Models\LogStatusPendaftaran;
+use App\Models\Pembayaran;
 use App\Models\SertifikatPrestasi;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
@@ -126,7 +128,7 @@ class CalonSiswaController extends Controller implements HasMiddleware
 
     public function show(CalonSiswa $calonSiswa): View
     {
-        $calonSiswa->load(['jalurPendaftaran', 'tahunAjaran', 'berkasCalonSiswa', 'sertifikatPrestasis', 'logStatusPendaftaran.user']);
+        $calonSiswa->load(['jalurPendaftaran', 'tahunAjaran', 'berkasCalonSiswa', 'sertifikatPrestasis', 'logStatusPendaftaran.user', 'pembayaran.biayaPendaftaran', 'rencanaAngsuran.detailAngsuran']);
 
         return view('admin.calon-siswas.show', [
             'calon' => $calonSiswa,
@@ -241,6 +243,27 @@ class CalonSiswaController extends Controller implements HasMiddleware
                             'is_aktif' => true,
                         ]
                     );
+
+                    // Auto-create pembayaran untuk semua biaya wajib tahun tersebut
+                    $biayasWajib = BiayaPendaftaran::where('tahun_ajaran_id', $calonSiswa->tahun_ajaran_id)
+                        ->where('wajib_bayar', true)
+                        ->get();
+
+                    foreach ($biayasWajib as $biaya) {
+                        Pembayaran::firstOrCreate(
+                            [
+                                'calon_siswa_id' => $calonSiswa->id,
+                                'biaya_pendaftaran_id' => $biaya->id,
+                            ],
+                            [
+                                'kode_pembayaran' => $this->generateKodePembayaran(),
+                                'jumlah' => $biaya->jumlah,
+                                'metode_pembayaran' => 'transfer',
+                                'jenis_pembayaran' => 'penuh',
+                                'status' => 'menunggu',
+                            ]
+                        );
+                    }
                 }
             });
         } catch (\RuntimeException $e) {
@@ -339,5 +362,13 @@ class CalonSiswaController extends Controller implements HasMiddleware
         $count = CalonSiswa::whereYear('created_at', $year)->count() + 1;
 
         return sprintf('PPDB-%s-%04d', $year, $count);
+    }
+
+    private function generateKodePembayaran(): string
+    {
+        $year = date('Y');
+        $count = Pembayaran::whereYear('created_at', $year)->count() + 1;
+
+        return sprintf('PAY-%s-%04d', $year, $count);
     }
 }

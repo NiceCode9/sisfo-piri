@@ -143,6 +143,77 @@
                 @endcan
             </div>
         </div>
+
+        <div class="card-nexus mb-3">
+            <div class="card-header-nexus">
+                <h5 class="card-title">Pembayaran</h5>
+                @can('pembayarans.create')
+                    <a href="{{ route('admin.pembayarans.create', ['calon_siswa_id' => $calon->id]) }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Tambah</a>
+                @endcan
+            </div>
+            <div class="card-body-nexus p-0">
+                <div class="table-responsive">
+                    <table class="table-nexus w-100" style="font-size: 13px;">
+                        <thead><tr><th>Kode</th><th>Biaya</th><th>Jumlah</th><th>Status</th><th>Bukti</th><th>Aksi</th></tr></thead>
+                        <tbody>
+                            @forelse ($calon->pembayaran as $bayar)
+                                <tr>
+                                    <td style="font-size:12px;">{{ $bayar->kode_pembayaran }}</td>
+                                    <td>{{ $bayar->biayaPendaftaran->jenis_biaya ?? '-' }}<div style="font-size:11px;color:var(--text-muted);">{{ $bayar->jenis_pembayaran }}</div></td>
+                                    <td>Rp {{ number_format($bayar->jumlah,0,',','.') }}</td>
+                                    <td>
+                                        @php $badge = $bayar->status==='berhasil'?'badge-info':($bayar->status==='gagal'?'badge-danger':'badge-neutral'); @endphp
+                                        <span class="badge-nexus {{ $badge }}">{{ $bayar->status }}</span>
+                                    </td>
+                                    <td>
+                                        @if($bayar->bukti_pembayaran_path)
+                                            <a href="{{ Storage::disk('public')->url($bayar->bukti_pembayaran_path) }}" target="_blank" class="text-primary">Lihat</a>
+                                        @else — @endif
+                                    </td>
+                                    <td>
+                                        <a href="{{ route('admin.pembayarans.show', $bayar) }}" class="btn-icon btn btn-nexus-outline btn-sm"><i class="fa-solid fa-eye"></i></a>
+                                        @if($bayar->status !== 'berhasil')
+                                            <form action="{{ route('admin.pembayarans.updateStatus', $bayar) }}" method="POST" class="d-inline">
+                                                @csrf @method('PATCH')
+                                                <input type="hidden" name="status" value="berhasil" />
+                                                <button type="submit" class="btn-icon btn btn-nexus-outline btn-sm text-success" title="Verifikasi berhasil"><i class="fa-solid fa-check"></i></button>
+                                            </form>
+                                            <form action="{{ route('admin.pembayarans.updateStatus', $bayar) }}" method="POST" class="d-inline">
+                                                @csrf @method('PATCH')
+                                                <input type="hidden" name="status" value="gagal" />
+                                                <button type="submit" class="btn-icon btn btn-nexus-outline btn-sm text-danger" title="Tolak"><i class="fa-solid fa-xmark"></i></button>
+                                            </form>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="6" class="text-center py-3" style="color:var(--text-muted);">Belum ada tagihan. Akan auto-create saat status diterima.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+                @if($calon->rencanaAngsuran->isNotEmpty())
+                    <div class="mt-3">
+                        <h6 style="font-size:13px;font-weight:600;">Rencana Angsuran</h6>
+                        <div class="table-responsive">
+                            <table class="table-nexus w-100" style="font-size:12px;">
+                                <thead><tr><th>Kode</th><th>Total</th><th>Cicilan</th><th>Status</th></tr></thead>
+                                <tbody>
+                                    @foreach($calon->rencanaAngsuran as $rencana)
+                                        <tr>
+                                            <td>{{ $rencana->kode_angsuran }}</td>
+                                            <td>Rp {{ number_format($rencana->total_biaya,0,',','.') }}</td>
+                                            <td>{{ $rencana->jumlah_cicilan }}× Rp {{ number_format($rencana->nominal_per_cicilan,0,',','.') }}</td>
+                                            <td><span class="badge-nexus badge-neutral">{{ $rencana->status }}</span></td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                @endif
+            </div>
+        </div>
     </div>
 
     <div class="col-12 col-lg-4">

@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class PermissionSeeder extends Seeder
 {
@@ -61,6 +62,14 @@ class PermissionSeeder extends Seeder
             'kuota-pendaftarans.create',
             'kuota-pendaftarans.edit',
             'kuota-pendaftarans.delete',
+            'pembayarans.view',
+            'pembayarans.create',
+            'pembayarans.edit',
+            'pembayarans.delete',
+            'rencana-angsurans.view',
+            'rencana-angsurans.create',
+            'rencana-angsurans.edit',
+            'rencana-angsurans.delete',
         ];
 
         foreach ($permissions as $name) {
@@ -85,9 +94,14 @@ class PermissionSeeder extends Seeder
                 'jalur-pendaftarans.view', 'jalur-pendaftarans.create', 'jalur-pendaftarans.edit',
                 'jadwal-ppdbs.view', 'jadwal-ppdbs.create', 'jadwal-ppdbs.edit',
                 'kuota-pendaftarans.view', 'kuota-pendaftarans.create', 'kuota-pendaftarans.edit',
+                'pembayarans.view', 'pembayarans.create', 'pembayarans.edit',
+                'rencana-angsurans.view', 'rencana-angsurans.create', 'rencana-angsurans.edit',
             ]);
 
         Role::firstOrCreate(['name' => 'siswa', 'guard_name' => 'web'])
-            ->givePermissionTo(['siswas.view']);
+            ->givePermissionTo(['siswas.view', 'pembayarans.view', 'pembayarans.create']);
+
+        // ensure siswa still can view own payments even after permission cache
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
     }
 }

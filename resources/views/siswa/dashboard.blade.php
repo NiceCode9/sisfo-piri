@@ -134,9 +134,47 @@
             <div class="card-nexus mb-3">
                 <div class="card-header-nexus"><h5 class="card-title">Pembayaran</h5></div>
                 <div class="card-body-nexus">
-                    <p style="font-size: 13px; color: var(--text-muted);">Informasi pembayaran akan tampil di sini setelah diterima.</p>
-                    @if($calon->status_pendaftaran === 'diterima')
-                        <a href="#" class="btn btn-primary btn-sm w-100 mt-2">Lihat Rincian Biaya</a>
+                    @if($calon->pembayaran->isEmpty())
+                        <p style="font-size: 13px; color: var(--text-muted);">
+                            @if($calon->status_pendaftaran === 'diterima')
+                                Tagihan sedang disiapkan admin.
+                            @else
+                                Tagihan akan dibuat setelah status <strong>diterima</strong>.
+                            @endif
+                        </p>
+                    @else
+                        <div class="table-responsive">
+                            <table class="table-nexus w-100" style="font-size: 12px;">
+                                <thead><tr><th>Biaya</th><th>Jumlah</th><th>Status</th></tr></thead>
+                                <tbody>
+                                    @foreach($calon->pembayaran as $bayar)
+                                        <tr>
+                                            <td>{{ $bayar->biayaPendaftaran->jenis_biaya ?? $bayar->kode_pembayaran }}<div style="font-size:11px;color:var(--text-muted);">{{ $bayar->kode_pembayaran }}</div></td>
+                                            <td>Rp {{ number_format($bayar->jumlah,0,',','.') }}</td>
+                                            <td>
+                                                @php $badge = $bayar->status==='berhasil'?'badge-info':($bayar->status==='gagal'?'badge-danger':'badge-neutral'); @endphp
+                                                <span class="badge-nexus {{ $badge }}">{{ $bayar->status }}</span>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                        <hr class="my-3" />
+                        @foreach($calon->pembayaran->where('status','menunggu') as $bayar)
+                            <form method="POST" action="{{ route('siswa.pembayarans.store') }}" enctype="multipart/form-data" class="mb-3 p-2 border rounded-3" style="border-color:var(--border-color);">
+                                @csrf
+                                <input type="hidden" name="pembayaran_id" value="{{ $bayar->id }}" />
+                                <label class="form-label" style="font-size:12px;">Upload bukti untuk {{ $bayar->biayaPendaftaran->jenis_biaya ?? $bayar->kode_pembayaran }}</label>
+                                @if($bayar->bukti_pembayaran_path)
+                                    <div style="font-size:11px;">Saat ini: <a href="{{ Storage::disk('public')->url($bayar->bukti_pembayaran_path) }}" target="_blank" class="text-primary">Lihat</a></div>
+                                @endif
+                                <input type="file" name="bukti_pembayaran_path" accept=".pdf,.jpg,.jpeg,.png" class="form-control form-control-sm mt-1" required />
+                                @error('bukti_pembayaran_path')<div class="text-danger" style="font-size:11px;">{{ $message }}</div>@enderror
+                                <button type="submit" class="btn btn-primary btn-sm w-100 mt-2">Upload Bukti (menunggu verifikasi)</button>
+                            </form>
+                        @endforeach
+                        <div style="font-size:11px;color:var(--text-muted);">Siswa upload → menunggu, admin verifikasi → berhasil/gagal. Admin upload langsung berhasil.</div>
                     @endif
                 </div>
             </div>
