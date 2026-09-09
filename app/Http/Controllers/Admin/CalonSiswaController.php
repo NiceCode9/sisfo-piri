@@ -75,7 +75,7 @@ class CalonSiswaController extends Controller implements HasMiddleware
         $validated['no_pendaftaran'] = $this->generateNoPendaftaran();
         $validated['status_pendaftaran'] = $validated['status_pendaftaran'] ?? 'menunggu';
 
-        $berkasFields = ['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path'];
+        $berkasFields = ['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path', 'krm_path', 'kip_path'];
         $calonData = collect($validated)->except([...$berkasFields, 'sertifikat'])->toArray();
         $berkasUploads = collect($validated)->only($berkasFields)->filter()->toArray();
         $sertifikatUploads = $request->file('sertifikat', []);
@@ -157,7 +157,7 @@ class CalonSiswaController extends Controller implements HasMiddleware
             return back()->with('error', 'Tidak dapat mengganti jalur/tahun untuk calon yang sudah diterima. Ubah status dulu.')->withInput();
         }
 
-        $berkasFields = ['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path'];
+        $berkasFields = ['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path', 'krm_path', 'kip_path'];
         $calonData = collect($validated)->except([...$berkasFields, 'sertifikat'])->toArray();
         $berkasUploads = collect($validated)->only($berkasFields)->filter()->toArray();
         $sertifikatUploads = $request->file('sertifikat', []);
@@ -255,7 +255,7 @@ class CalonSiswaController extends Controller implements HasMiddleware
         $request->validate([
             'status_verifikasi' => ['required', 'boolean'],
             'berkas_perlu_perbaikan' => ['nullable', 'array'],
-            'berkas_perlu_perbaikan.*' => ['string', 'in:ijazah_path,kk_path,akta_path,foto_path,skl_path,sertifikat'],
+            'berkas_perlu_perbaikan.*' => ['string', 'in:ijazah_path,kk_path,akta_path,foto_path,skl_path,krm_path,kip_path,sertifikat'],
             'alasan_penolakan' => ['nullable', 'string', 'max:1000'],
             'catatan_berkas' => ['nullable', 'string', 'max:1000'],
             'ijazah_path' => ['nullable', 'file', 'mimes:pdf', 'max:5120'],
@@ -263,6 +263,8 @@ class CalonSiswaController extends Controller implements HasMiddleware
             'akta_path' => ['nullable', 'file', 'mimes:pdf', 'max:5120'],
             'foto_path' => ['nullable', 'file', 'mimes:jpg,jpeg,png', 'max:2048'],
             'skl_path' => ['nullable', 'file', 'mimes:pdf', 'max:5120'],
+            'krm_path' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'kip_path' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
         ]);
 
         $berkas = $calonSiswa->berkasCalonSiswa;
@@ -280,7 +282,7 @@ class CalonSiswaController extends Controller implements HasMiddleware
             'catatan_berkas' => $request->input('catatan_berkas'),
         ];
 
-        foreach (['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path'] as $field) {
+        foreach (['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path', 'krm_path', 'kip_path'] as $field) {
             if ($request->hasFile($field)) {
                 if ($berkas->$field) {
                     Storage::disk('public')->delete($berkas->$field);
@@ -316,7 +318,7 @@ class CalonSiswaController extends Controller implements HasMiddleware
                 }
             }
             if ($calonSiswa->berkasCalonSiswa) {
-                foreach (['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path'] as $field) {
+                foreach (['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path', 'krm_path', 'kip_path'] as $field) {
                     if ($calonSiswa->berkasCalonSiswa->$field) {
                         Storage::disk('public')->delete($calonSiswa->berkasCalonSiswa->$field);
                     }

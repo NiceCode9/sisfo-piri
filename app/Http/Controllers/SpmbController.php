@@ -129,7 +129,7 @@ class SpmbController extends Controller
                 ]);
 
                 $berkasData = [];
-                foreach (['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path'] as $field) {
+                foreach (['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path', 'krm_path', 'kip_path'] as $field) {
                     if ($request->hasFile($field)) {
                         $berkasData[$field] = $request->file($field)->store('berkas', 'public');
                     }

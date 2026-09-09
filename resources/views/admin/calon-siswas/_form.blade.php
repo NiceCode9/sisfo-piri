@@ -217,6 +217,8 @@
         'akta_path' => ['label' => 'Akta Kelahiran (PDF)', 'accept' => '.pdf', 'icon' => 'fa-file-pdf', 'hint' => 'PDF maksimal 5MB'],
         'foto_path' => ['label' => 'Pas Foto (JPG/PNG)', 'accept' => 'image/*', 'icon' => 'fa-image', 'hint' => 'JPG/PNG maksimal 2MB'],
         'skl_path' => ['label' => 'SKL (PDF)', 'accept' => '.pdf', 'icon' => 'fa-file-pdf', 'hint' => 'PDF maksimal 5MB'],
+        'krm_path' => ['label' => 'KRM (opsional)', 'accept' => '.pdf,image/*', 'icon' => 'fa-file-pdf', 'hint' => 'PDF/JPG 5MB (opsional)'],
+        'kip_path' => ['label' => 'KIP (opsional)', 'accept' => '.pdf,image/*', 'icon' => 'fa-file-pdf', 'hint' => 'PDF/JPG 5MB (opsional)'],
     ];
 @endphp
 

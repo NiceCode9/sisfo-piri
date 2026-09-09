@@ -16,6 +16,8 @@ class BerkasCalonSiswa extends Model
         'akta_path',
         'foto_path',
         'skl_path',
+        'krm_path',
+        'kip_path',
         'catatan_berkas',
         'berkas_perlu_perbaikan',
         'alasan_penolakan',

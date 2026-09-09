@@ -41,6 +41,8 @@ class StorePendaftaranRequest extends FormRequest
             'akta_path' => ['required', 'file', 'mimes:pdf', 'max:5120'],
             'foto_path' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:2048'],
             'skl_path' => ['required', 'file', 'mimes:pdf', 'max:5120'],
+            'krm_path' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'kip_path' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'sertifikat' => ['nullable', 'array', 'max:5'],
             'sertifikat.*.nama' => ['required_with:sertifikat', 'string', 'max:255'],
             'sertifikat.*.file' => ['required_with:sertifikat', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],

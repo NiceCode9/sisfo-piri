@@ -108,11 +108,13 @@
     ];
 
     $uploadFields = [
-        ['id' => 'ijazah_path', 'label' => 'Ijazah', 'icon' => 'document', 'accept' => '.pdf', 'hint' => 'PDF, maks 5MB'],
-        ['id' => 'kk_path', 'label' => 'Kartu Keluarga', 'icon' => 'document', 'accept' => '.pdf', 'hint' => 'PDF, maks 5MB'],
-        ['id' => 'akta_path', 'label' => 'Akta Kelahiran', 'icon' => 'document', 'accept' => '.pdf', 'hint' => 'PDF, maks 5MB'],
-        ['id' => 'foto_path', 'label' => 'Pas Foto', 'icon' => 'image', 'accept' => 'image/*', 'hint' => 'JPG/PNG, maks 2MB'],
-        ['id' => 'skl_path', 'label' => 'Surat Keterangan Lulus', 'icon' => 'document', 'accept' => '.pdf', 'hint' => 'PDF, maks 5MB'],
+        ['id' => 'ijazah_path', 'label' => 'Ijazah', 'icon' => 'document', 'accept' => '.pdf', 'hint' => 'PDF, maks 5MB', 'required' => true],
+        ['id' => 'kk_path', 'label' => 'Kartu Keluarga', 'icon' => 'document', 'accept' => '.pdf', 'hint' => 'PDF, maks 5MB', 'required' => true],
+        ['id' => 'akta_path', 'label' => 'Akta Kelahiran', 'icon' => 'document', 'accept' => '.pdf', 'hint' => 'PDF, maks 5MB', 'required' => true],
+        ['id' => 'foto_path', 'label' => 'Pas Foto', 'icon' => 'image', 'accept' => 'image/*', 'hint' => 'JPG/PNG, maks 2MB', 'required' => true],
+        ['id' => 'skl_path', 'label' => 'Surat Keterangan Lulus', 'icon' => 'document', 'accept' => '.pdf', 'hint' => 'PDF, maks 5MB', 'required' => true],
+        ['id' => 'krm_path', 'label' => 'KRM', 'icon' => 'document', 'accept' => '.pdf,image/*', 'hint' => 'PDF/JPG, maks 5MB (opsional)', 'required' => false],
+        ['id' => 'kip_path', 'label' => 'KIP', 'icon' => 'document', 'accept' => '.pdf,image/*', 'hint' => 'PDF/JPG, maks 5MB (opsional)', 'required' => false],
     ];
 
     $stepLabels = [1 => 'Jalur', 2 => 'Data Pribadi', 3 => 'Data Ortu', 4 => 'Upload Berkas'];
@@ -609,7 +611,7 @@
                                 @foreach ($uploadFields as $field)
                                     <div class="space-y-2 {{ $loop->last ? 'sm:col-span-2' : '' }}">
                                         <label for="{{ $field['id'] }}" class="block text-sm font-semibold text-gray-700">
-                                            {{ $field['label'] }} <span class="text-red-500">*</span>
+                                            {{ $field['label'] }} @if($field['required'] ?? true)<span class="text-red-500">*</span>@else<span class="text-gray-400 font-normal">(opsional)</span>@endif
                                         </label>
                                         <div class="relative border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-orange-500 transition-colors duration-200 bg-white">
                                             <div class="text-center pointer-events-none">
@@ -623,7 +625,7 @@
                                                 </div>
                                                 <div class="text-xs text-gray-500">{{ $field['hint'] }}</div>
                                             </div>
-                                            <input type="file" id="{{ $field['id'] }}" name="{{ $field['id'] }}" accept="{{ $field['accept'] }}" required
+                                            <input type="file" id="{{ $field['id'] }}" name="{{ $field['id'] }}" accept="{{ $field['accept'] }}" @if($field['required'] ?? true) required @endif
                                                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
                                         </div>
                                         @error($field['id'])

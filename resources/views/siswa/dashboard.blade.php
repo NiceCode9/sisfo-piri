@@ -69,7 +69,7 @@
                             <table class="table-nexus w-100" style="font-size: 13px;">
                                 <thead><tr><th>Berkas</th><th>Status</th><th>File</th></tr></thead>
                                 <tbody>
-                                    @foreach (['ijazah_path'=>'Ijazah','kk_path'=>'KK','akta_path'=>'Akta','foto_path'=>'Foto','skl_path'=>'SKL'] as $field=>$label)
+                                    @foreach (['ijazah_path'=>'Ijazah','kk_path'=>'KK','akta_path'=>'Akta','foto_path'=>'Foto','skl_path'=>'SKL','krm_path'=>'KRM','kip_path'=>'KIP'] as $field=>$label)
                                         <tr>
                                             <td>{{ $label }}</td>
                                             <td>

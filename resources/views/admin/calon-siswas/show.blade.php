@@ -53,7 +53,7 @@
                         <table class="table-nexus w-100" style="font-size: 13px;">
                             <thead><tr><th>Berkas</th><th>File</th></tr></thead>
                             <tbody>
-                                @foreach (['ijazah_path'=>'Ijazah','kk_path'=>'KK','akta_path'=>'Akta','foto_path'=>'Foto','skl_path'=>'SKL'] as $field=>$label)
+                                @foreach (['ijazah_path'=>'Ijazah','kk_path'=>'KK','akta_path'=>'Akta','foto_path'=>'Foto','skl_path'=>'SKL','krm_path'=>'KRM (opsional)','kip_path'=>'KIP (opsional)'] as $field=>$label)
                                     <tr>
                                         <td>{{ $label }}</td>
                                         <td>
@@ -109,7 +109,7 @@
                     <div style="font-size:11px;color:var(--text-muted);">PDF 5MB (ijazah/kk/akta/skl), Foto JPG/PNG 2MB. Akan hapus file lama bila diganti.</div>
                     @php $berkas2 = $calon->berkasCalonSiswa; @endphp
                     <div class="row g-2">
-                        @foreach (['ijazah_path'=>['label'=>'Ijazah','accept'=>'.pdf'], 'kk_path'=>['label'=>'KK','accept'=>'.pdf'], 'akta_path'=>['label'=>'Akta','accept'=>'.pdf'], 'foto_path'=>['label'=>'Foto','accept'=>'image/*'], 'skl_path'=>['label'=>'SKL','accept'=>'.pdf']] as $fld=>$meta)
+                        @foreach (['ijazah_path'=>['label'=>'Ijazah','accept'=>'.pdf'], 'kk_path'=>['label'=>'KK','accept'=>'.pdf'], 'akta_path'=>['label'=>'Akta','accept'=>'.pdf'], 'foto_path'=>['label'=>'Foto','accept'=>'image/*'], 'skl_path'=>['label'=>'SKL','accept'=>'.pdf'], 'krm_path'=>['label'=>'KRM (opsional)','accept'=>'.pdf,image/*'], 'kip_path'=>['label'=>'KIP (opsional)','accept'=>'.pdf,image/*']] as $fld=>$meta)
                             <div class="col-12 col-sm-6">
                                 <label class="form-label" style="font-size:12px;" for="berkas-{{ $fld }}">{{ $meta['label'] }}</label>
                                 @if ($berkas2 && $berkas2->$fld)
@@ -123,7 +123,7 @@
 
                     <label class="form-label" style="font-size: 12px;">Berkas perlu perbaikan</label>
                     <div class="d-flex flex-wrap gap-2">
-                        @foreach (['ijazah_path','kk_path','akta_path','foto_path','skl_path','sertifikat'] as $f)
+                        @foreach (['ijazah_path','kk_path','akta_path','foto_path','skl_path','krm_path','kip_path','sertifikat'] as $f)
                             <div class="form-check">
                                 <input type="checkbox" name="berkas_perlu_perbaikan[]" value="{{ $f }}" id="perlu-{{ $f }}" class="form-check-input" @checked(in_array($f, old('berkas_perlu_perbaikan', $calon->berkasCalonSiswa->berkas_perlu_perbaikan ?? []))) />
                                 <label class="form-check-label" style="font-size: 12px;" for="perlu-{{ $f }}">{{ $f }}</label>
