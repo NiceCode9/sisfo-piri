@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [SpmbController::class, 'home'])->name('spmb.home');
 Route::get('/pendaftaran', [SpmbController::class, 'create'])->name('spmb.pendaftaran');
+Route::get('/tentang', [SpmbController::class, 'about'])->name('spmb.about');
 Route::post('/pendaftaran', [SpmbController::class, 'store'])->name('spmb.store')->middleware('throttle:5,1');
 Route::get('/pengumuman', [SpmbController::class, 'pengumumanIndex'])->name('spmb.pengumuman.index');
 Route::get('/pengumuman/{pengumuman}', [SpmbController::class, 'pengumumanShow'])->name('spmb.pengumuman.show');

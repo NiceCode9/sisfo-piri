@@ -174,4 +174,8 @@ class SpmbController extends Controller
 
         return view('spmb.pengumuman.show', compact('pengumuman'));
     }
+
+    public function about(){
+        return view('spmb.about');
+    }
 }
