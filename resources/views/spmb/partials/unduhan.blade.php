@@ -1,21 +1,16 @@
 @php
-    // TODO: taruh gambar brosur/alur pendaftaran asli di /public/images/,
-    // lalu sesuaikan path di bawah. Format JPG/PNG (atau WebP), bukan PDF,
-    // karena harus bisa ditampilkan langsung sebagai gambar di halaman.
-    $dokumenUnduhan = [
-        [
-            'title' => 'Brosur SPMB',
-            'desc' => 'Info lengkap program, keunggulan, dan biaya pendidikan',
-            'image' => asset('0001.jpg'),
-        ],
-        [
-            'title' => 'Alur Pendaftaran',
-            'desc' => 'Panduan langkah demi langkah proses pendaftaran',
-            'image' => asset('0002.jpg'),
-        ],
-    ];
+    // Dokumen dari database (dikelola via halaman admin Brosur); section disembunyikan bila kosong.
+    $dokumenUnduhan = ($brosurs ?? collect())
+        ->filter(fn ($b) => ! empty($b->image_path))
+        ->map(fn ($b) => [
+            'title' => $b->title,
+            'desc' => $b->desc,
+            'image' => Storage::disk('public')->url($b->image_path),
+        ])
+        ->values();
 @endphp
 
+@if ($dokumenUnduhan->isNotEmpty())
 <section id="unduhan" class="py-20 bg-slate-50">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12">
@@ -84,6 +79,7 @@
         </div>
     </div>
 </section>
+@endif
 
 <script>
     (function () {

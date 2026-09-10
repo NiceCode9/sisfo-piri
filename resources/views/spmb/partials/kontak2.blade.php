@@ -85,11 +85,8 @@
 
                                     @switch($card['title'])
                                         @case('Alamat Sekolah')
-                                            {{-- TODO: ganti dengan alamat asli --}}
                                             <p class="text-gray-600 leading-relaxed">
-                                                Jl. Pendidikan No. 123<br/>
-                                                Kelurahan Maju Jaya, Kecamatan Harapan<br/>
-                                                Kota Bandung, Jawa Barat 40123
+                                                {!! nl2br(e($profileSekolah->alamat ?? "Jl. Pendidikan No. 123\nKelurahan Maju Jaya, Kecamatan Harapan\nKota Bandung, Jawa Barat 40123")) !!}
                                             </p>
                                             @break
 
@@ -97,8 +94,8 @@
                                             <div class="space-y-2">
                                                 <div>
                                                     <div class="text-sm text-gray-500">Telepon Sekolah</div>
-                                                    <a href="tel:+622212345678" class="text-gray-800 font-semibold hover:text-primary-600 transition">
-                                                        (022) 1234-5678
+                                                    <a href="tel:{{ preg_replace('/[^0-9+]/', '', $profileSekolah->telp ?? '+622212345678') }}" class="text-gray-800 font-semibold hover:text-primary-600 transition">
+                                                        {{ $profileSekolah->telp ?? '(022) 1234-5678' }}
                                                     </a>
                                                 </div>
                                                 <div>
@@ -119,14 +116,14 @@
                                             <div class="space-y-1">
                                                 <div>
                                                     <div class="text-sm text-gray-500">Email Umum</div>
-                                                    <a href="mailto:info@smpharapanbangsa.sch.id" class="text-gray-800 font-semibold hover:text-primary-600 transition break-all">
-                                                        info@smpharapanbangsa.sch.id
+                                                    <a href="mailto:{{ $profileSekolah->email ?? 'info@smpharapanbangsa.sch.id' }}" class="text-gray-800 font-semibold hover:text-primary-600 transition break-all">
+                                                        {{ $profileSekolah->email ?? 'info@smpharapanbangsa.sch.id' }}
                                                     </a>
                                                 </div>
                                                 <div>
                                                     <div class="text-sm text-gray-500">Email SPMB</div>
-                                                    <a href="mailto:spmb@smpharapanbangsa.sch.id" class="text-gray-800 font-semibold hover:text-primary-600 transition break-all">
-                                                        spmb@smpharapanbangsa.sch.id
+                                                    <a href="mailto:{{ $profileSekolah->email ?? 'spmb@smpharapanbangsa.sch.id' }}" class="text-gray-800 font-semibold hover:text-primary-600 transition break-all">
+                                                        {{ $profileSekolah->email ?? 'spmb@smpharapanbangsa.sch.id' }}
                                                     </a>
                                                 </div>
                                             </div>
@@ -160,9 +157,8 @@
                     {{-- Map: tinggi tetap per breakpoint, bukan h-full (hindari circular height dependency) --}}
                     <div class="bg-white rounded-3xl p-4 shadow-lg">
                         <div class="w-full h-[300px] md:h-[400px] lg:h-[500px] rounded-2xl overflow-hidden">
-                            {{-- TODO: ganti dengan embed Google Maps asli sekolah --}}
                             <iframe
-                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3960.798694104159!2d107.6191228!3d-6.914744!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNsKwNTQnNTMuMSJTIDEwN8KwMzcnMDguOCJF!5e0!3m2!1sen!2sid!4v1234567890123!5m2!1sen!2sid"
+                                src="{{ $profileSekolah->maps_embed_url ?? 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3960.798694104159!2d107.6191228!3d-6.914744!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNsKwNTQnNTMuMSJTIDEwN8KwMzcnMDguOCJF!5e0!3m2!1sen!2sid!4v1234567890123!5m2!1sen!2sid' }}"
                                 width="100%"
                                 height="100%"
                                 style="border:0;"

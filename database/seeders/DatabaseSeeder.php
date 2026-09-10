@@ -27,6 +27,9 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
             MenuSeeder::class,
             PpdbSeeder::class,
+            ProfilSekolahSeeder::class,
+            BrosurSeeder::class,
+            GaleriSeeder::class,
         ]);
     }
 }

@@ -3,6 +3,9 @@
 namespace App\Providers;
 
 use App\Models\Menu;
+use App\Models\ProfilSekolah;
+use App\Models\Siswa;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -30,6 +33,14 @@ class AppServiceProvider extends ServiceProvider
                 ->get();
 
             $view->with('adminMenus', $menus);
+        });
+
+        // Profil sekolah + statistik untuk seluruh halaman publik (spmb.*).
+        View::composer('spmb.*', function ($view) {
+            $profil = Schema::hasTable('profil_sekolahs') ? ProfilSekolah::aktif() : null;
+
+            $view->with('profileSekolah', $profil);
+            $view->with('jumlahSiswaAktif', Schema::hasTable('siswas') ? Siswa::where('is_aktif', true)->count() : 0);
         });
     }
 }

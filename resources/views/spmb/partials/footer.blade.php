@@ -1,7 +1,12 @@
-{{-- TODO: ganti dengan data asli sekolah --}}
 @php
-    $schoolName = 'SMP Harapan Bangsa'; // ganti dengan nama sekolah asli
-    $schoolLogo = 'https://via.placeholder.com/100x100?text=Logo'; // ganti dengan logo asli
+    // $profileSekolah dishare otomatis via View composer (spmb.*); fallback bila baris profil belum ada.
+    $schoolName = $profileSekolah->nama_sekolah ?? 'SMP Harapan Bangsa';
+    $schoolLogo = ! empty($profileSekolah->logo_path)
+        ? Storage::disk('public')->url($profileSekolah->logo_path)
+        : 'https://via.placeholder.com/100x100?text=Logo';
+    $schoolAlamat = $profileSekolah->alamat ?? null;
+    $schoolTelp = $profileSekolah->telp ?? '(022) 1234-5678';
+    $schoolEmail = $profileSekolah->email ?? 'spmb@smpharapanbangsa.sch.id';
     $currentYear = date('Y');
 @endphp
 
@@ -167,8 +172,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                         </svg>
                         <span class="text-slate-400 text-sm">
-                            Jl. Pendidikan No. 123<br/>
-                            Kota Bandung, Jawa Barat 40123
+                            {!! nl2br(e($schoolAlamat ?? "Jl. Pendidikan No. 123\nKota Bandung, Jawa Barat 40123")) !!}
                         </span>
                     </li>
                     <li class="flex items-start">
@@ -176,7 +180,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
                         </svg>
                         <div class="text-slate-400 text-sm">
-                            <div>(022) 1234-5678</div>
+                            <div>{{ $schoolTelp }}</div>
                             <a href="https://wa.me/6281234567890" class="text-accent-400 hover:text-accent-300 transition">0812-3456-7890 (WA)</a>
                         </div>
                     </li>
@@ -184,8 +188,8 @@
                         <svg class="w-5 h-5 text-accent-500 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                         </svg>
-                        <a href="mailto:spmb@smpharapanbangsa.sch.id" class="text-slate-400 hover:text-white transition text-sm">
-                            spmb@smpharapanbangsa.sch.id
+                        <a href="mailto:{{ $schoolEmail }}" class="text-slate-400 hover:text-white transition text-sm">
+                            {{ $schoolEmail }}
                         </a>
                     </li>
                 </ul>

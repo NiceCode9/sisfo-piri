@@ -17,16 +17,16 @@
         'email' => 'info@smpharapanbangsa.sch.id',
     ];
 
-    $tahunBerjalan = date('Y') - $profileSekolah->tahun_berdiri;
+    $tahunBerjalan = date('Y') - ($profileSekolah->tahun_berdiri ?? 2011);
 
     $stats = [
-        ['value' => '500+', 'label' => 'Siswa Aktif'],
+        ['value' => ($jumlahSiswaAktif ?? 0) > 0 ? $jumlahSiswaAktif . '+' : '500+', 'label' => 'Siswa Aktif'],
         ['value' => '35+', 'label' => 'Tenaga Pendidik'],
         ['value' => $tahunBerjalan . '+', 'label' => 'Tahun Berdiri'],
-        ['value' => $profileSekolah->akreditasi, 'label' => 'Akreditasi'],
+        ['value' => $profileSekolah->akreditasi ?? 'A', 'label' => 'Akreditasi'],
     ];
 
-    $misiList = [
+    $misiList = ! empty($profileSekolah->misi) ? $profileSekolah->misi : [
         'Menyelenggarakan pembelajaran yang aktif, kreatif, dan menyenangkan berbasis Kurikulum Merdeka',
         'Membentuk karakter siswa yang berakhlak mulia, disiplin, dan bertanggung jawab',
         'Mengembangkan potensi akademik dan non-akademik siswa secara seimbang',
@@ -53,11 +53,19 @@
     ];
 
     $kepalaSekolah = (object) [
-        'nama' => 'Dr. Ahmad Fauzi, M.Pd.',
+        'nama' => $profileSekolah->nama_kepala ?? 'Dr. Ahmad Fauzi, M.Pd.',
         'jabatan' => 'Kepala Sekolah',
-        'foto' => 'https://via.placeholder.com/400x400?text=Foto+Kepala+Sekolah',
-        'sambutan' => 'Selamat datang di ' . $profileSekolah->nama_sekolah . '. Kami berkomitmen menghadirkan pendidikan berkualitas yang membentuk generasi cerdas, berkarakter, dan siap menghadapi tantangan masa depan. Mari bergabung bersama kami.',
+        'foto' => ! empty($profileSekolah->foto_kepala_path)
+            ? Storage::disk('public')->url($profileSekolah->foto_kepala_path)
+            : 'https://via.placeholder.com/400x400?text=Foto+Kepala+Sekolah',
+        'sambutan' => $profileSekolah->sambutan ?? ('Selamat datang di ' . $profileSekolah->nama_sekolah . '. Kami berkomitmen menghadirkan pendidikan berkualitas yang membentuk generasi cerdas, berkarakter, dan siap menghadapi tantangan masa depan. Mari bergabung bersama kami.'),
     ];
+
+    $fotoGedung = ! empty($profileSekolah->foto_gedung_path)
+        ? Storage::disk('public')->url($profileSekolah->foto_gedung_path)
+        : 'https://via.placeholder.com/600x500?text=Gedung+Sekolah';
+
+    $visiSekolah = $profileSekolah->visi ?? 'Mewujudkan generasi yang cerdas, berkarakter, dan berprestasi untuk masa depan Indonesia yang gemilang.';
 
     $icons = [
         'heart' => ['M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z'],
@@ -102,7 +110,7 @@
             </h1>
 
             <p class="text-lg md:text-xl text-white/90 max-w-2xl mx-auto mb-10 leading-relaxed">
-                Sejak {{ $profileSekolah->tahun_berdiri }}, kami berkomitmen membentuk generasi cerdas, berkarakter, dan berprestasi untuk masa depan Indonesia yang gemilang.
+                Sejak {{ $profileSekolah->tahun_berdiri ?? '-' }}, kami berkomitmen membentuk generasi cerdas, berkarakter, dan berprestasi untuk masa depan Indonesia yang gemilang.
             </p>
 
             {{-- Stats --}}
@@ -122,12 +130,11 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid lg:grid-cols-2 gap-12 items-center">
                 <div class="relative">
-                    {{-- TODO: ganti dengan foto asli gedung/kegiatan sekolah --}}
-                    <img src="https://via.placeholder.com/600x500?text=Gedung+Sekolah"
+                    <img src="{{ $fotoGedung }}"
                          alt="Gedung {{ $profileSekolah->nama_sekolah }}"
                          class="rounded-3xl shadow-2xl w-full h-auto object-cover">
                     <div class="absolute -bottom-6 -right-6 z-10 bg-white rounded-2xl p-5 shadow-xl hidden md:block">
-                        <div class="text-3xl font-extrabold text-primary-600">{{ $profileSekolah->tahun_berdiri }}</div>
+                        <div class="text-3xl font-extrabold text-primary-600">{{ $profileSekolah->tahun_berdiri ?? '-' }}</div>
                         <div class="text-sm text-gray-500">Tahun Berdiri</div>
                     </div>
                 </div>
@@ -139,7 +146,7 @@
                     </h2>
                     {{-- TODO: ganti dengan narasi sejarah asli sekolah --}}
                     <p class="text-gray-600 leading-relaxed">
-                        {{ $profileSekolah->nama_sekolah }} didirikan pada tahun {{ $profileSekolah->tahun_berdiri }} dengan visi menghadirkan pendidikan menengah pertama yang berkualitas dan terjangkau bagi masyarakat sekitar.
+                        {{ $profileSekolah->nama_sekolah }} didirikan pada tahun {{ $profileSekolah->tahun_berdiri ?? '-' }} dengan visi menghadirkan pendidikan yang berkualitas dan terjangkau bagi masyarakat sekitar.
                     </p>
                     <p class="text-gray-600 leading-relaxed">
                         Selama {{ $tahunBerjalan }} tahun perjalanan, kami terus berkembang — dari fasilitas, kurikulum, hingga kualitas tenaga pendidik — untuk memastikan setiap siswa mendapatkan pengalaman belajar terbaik dan siap melangkah ke jenjang pendidikan berikutnya.
@@ -178,9 +185,8 @@
                         </svg>
                     </div>
                     <h3 class="text-2xl font-bold mb-4">Visi</h3>
-                    {{-- TODO: ganti dengan visi asli sekolah --}}
                     <p class="text-white/90 leading-relaxed text-lg">
-                        Mewujudkan generasi yang cerdas, berkarakter, dan berprestasi untuk masa depan Indonesia yang gemilang.
+                        {{ $visiSekolah }}
                     </p>
                 </div>
 

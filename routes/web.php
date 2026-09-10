@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Admin\BiayaPendaftaranController;
+use App\Http\Controllers\Admin\BrosurController;
 use App\Http\Controllers\Admin\CalonSiswaController;
+use App\Http\Controllers\Admin\GaleriController;
 use App\Http\Controllers\Admin\GelombangController;
 use App\Http\Controllers\Admin\JadwalPpdbController;
 use App\Http\Controllers\Admin\JalurPendaftaranController;
@@ -10,6 +12,7 @@ use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Admin\PembayaranController;
 use App\Http\Controllers\Admin\PembayaranLainnyaController;
 use App\Http\Controllers\Admin\PengumumanController;
+use App\Http\Controllers\Admin\ProfilSekolahController;
 use App\Http\Controllers\Admin\RencanaAngsuranController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\TahunAjaranController;
@@ -48,6 +51,8 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::delete('calon-siswas/sertifikat/{sertifikat}', [CalonSiswaController::class, 'destroySertifikat'])->name('calon-siswas.sertifikat.destroy');
     Route::resource('biaya-pendaftarans', BiayaPendaftaranController::class)->except(['show']);
     Route::resource('pengumumans', PengumumanController::class)->except(['show']);
+    Route::resource('brosurs', BrosurController::class)->except(['show']);
+    Route::resource('galeris', GaleriController::class)->except(['show']);
     Route::resource('gelombangs', GelombangController::class)->except(['show']);
     Route::resource('tahun-ajarans', TahunAjaranController::class)->except(['show']);
     Route::resource('jalur-pendaftarans', JalurPendaftaranController::class)->except(['show']);
@@ -65,4 +70,6 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::post('pembayarans/{pembayaran}/rencana', [RencanaAngsuranController::class, 'store'])->name('rencana.store');
     Route::patch('rencana-angsuran/{rencana}/batal', [RencanaAngsuranController::class, 'batal'])->name('rencana.batal');
     Route::patch('detail-angsuran/{detail}/denda', [RencanaAngsuranController::class, 'updateDenda'])->name('rencana.denda');
+    Route::get('profil-sekolah', [ProfilSekolahController::class, 'edit'])->name('profil-sekolah.edit');
+    Route::put('profil-sekolah', [ProfilSekolahController::class, 'update'])->name('profil-sekolah.update');
 });

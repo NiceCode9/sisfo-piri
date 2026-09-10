@@ -74,6 +74,16 @@ class PermissionSeeder extends Seeder
             'pembayaran-lainnyas.create',
             'pembayaran-lainnyas.edit',
             'pembayaran-lainnyas.delete',
+            'profil-sekolahs.view',
+            'profil-sekolahs.edit',
+            'brosurs.view',
+            'brosurs.create',
+            'brosurs.edit',
+            'brosurs.delete',
+            'galeris.view',
+            'galeris.create',
+            'galeris.edit',
+            'galeris.delete',
         ];
 
         foreach ($permissions as $name) {
@@ -101,6 +111,9 @@ class PermissionSeeder extends Seeder
                 'pembayarans.view', 'pembayarans.create', 'pembayarans.edit',
                 'rencana-angsurans.view', 'rencana-angsurans.create', 'rencana-angsurans.edit',
                 'pembayaran-lainnyas.view', 'pembayaran-lainnyas.create', 'pembayaran-lainnyas.edit',
+                'profil-sekolahs.view', 'profil-sekolahs.edit',
+                'brosurs.view', 'brosurs.create', 'brosurs.edit',
+                'galeris.view', 'galeris.create', 'galeris.edit',
             ]);
 
         // Pembayaran murni admin: siswa hanya boleh lihat status pendaftaran.

@@ -31,7 +31,7 @@ npm run dev          # vite HMR
 npm run build        # production
 
 vendor/bin/pint --dirty --format agent   # WAJIB setelah edit PHP
-php artisan test --compact               # semua test (150 saat ini)
+php artisan test --compact               # semua test (205 saat ini)
 php artisan test --compact --filter=nama # satu test
 php artisan migrate:fresh --seed         # reset DB lokal (seed Role+Permission+Menu+Ppdb+Gelombang)
 php artisan route:list
@@ -56,10 +56,22 @@ e079af6 feat: PPDB inti — CalonSiswa admin CRUD + pendaftaran publik + kuota l
 9b6b7e6 feat: sertifikat prestasi olahraga multi-file per jalur (127 test)
 a0dd198 feat: berkas KRM & KIP opsional di pendaftaran (kantor)
 8888aaf feat: halaman about sekolah di frontend (kantor)
-1ca208a feat: pembayaran manual + auto-create saat diterima + upload bukti (kantor) ← HEAD
+1ca208a feat: pembayaran manual + auto-create saat diterima + upload bukti (kantor)
+d8a7885 feat: angsuran admin-only + cabut pembayaran siswa + show gaya app lama (152 test)
+ff20a08 feat: filter belum-lunas di create + angsuran satu langkah + redirect modal (kantor)
+1b949a2 fix: pembayaran admin langsung berhasil + bukti wajib transfer (kantor)
+cbc0b5b feat: show pembayaran rapi + export excel/pdf + filter tanggal (kantor)
+80ba414 feat: pembayaran lainnya LNN + export + dashboard siswa (kantor)
+a8d0e6d feat: modal bayar show dengan dropdown biaya + grid rincian (kantor)
+398d250 fix: 6 bug angsuran + DP cicilan ke-0 + backfill (kantor)
+961dd3a feat: penanda DP / Cicilan ke-N di tabel pembayaran (kantor)
+7cc8aba fix: sisa tidak minus saat angsuran lunas anti double-count (kantor)
+ab23607 feat: kwitansi PDF + terbilang per pembayaran (kantor)
+6be6ba7 feat: section unduh brosur + demo seeder tanpa tagihan (kantor)
+afec941 fix: partials unduhan brosur (kantor) ← HEAD
 ```
 
-**Working tree bersih** setelah `1ca208a`.
+**Working tree bersih** setelah `afec941` (kecuali `public/0001.jpg`, `public/0002.jpg` untracked untuk brosur).
 
 ---
 
@@ -68,17 +80,17 @@ a0dd198 feat: berkas KRM & KIP opsional di pendaftaran (kantor)
 ### 4.1 Auth & Sistem (commit b99d316 + 4abcfab)
 - **Login username** `LoginController` `throttle:5,1`, `session regenerate`, `logout POST`, middleware `guest`/`auth`
 - **Role:** `super-admin, admin, guru, siswa, orang-tua` (RoleSeeder) — `superadmin/superadmin123`
-- **Permission 55:** 13 resource ×4 (`users, roles, menus, calon-siswas, biaya-pendaftarans, pengumumans, gelombangs, tahun-ajarans, jalur-pendaftarans, jadwal-ppdbs, kuota-pendaftarans, pembayarans, rencana-angsurans`) + `berkas-calon-siswas` view/edit + `siswas.view`
-  - `super-admin → all`, `admin → view/create/edit` tanpa `delete` (+ `pembayarans.*` tanpa delete, `rencana-angsurans.*` tanpa delete), `siswa → siswas.view + pembayarans.view/create`
-- **CRUD:** `UserController` (HasMiddleware, assignableRoles, cegah hapus diri & super-admin terakhir), `RoleController`, `MenuController` (dual permission `permission` string + pivot `menu_permission`), `GelombangController`, `BiayaPendaftaranController`, `PengumumanController`, `TahunAjaranController` (aktivasi = transaksi nonaktifkan lainnya, blokir hapus berelasi), `JalurPendaftaranController`, `JadwalPpdbController`, `KuotaPendaftaranController` (unique tahun+jalur, `terisi lte:kuota`, blokir hapus bila terisi>0)
+- **Permission 69:** 16 resource ×4 (+`galeris`) + `profil-sekolahs` view/edit + `berkas-calon-siswas` view/edit + `siswas.view`
+  - `super-admin → all`, `admin → view/create/edit` tanpa `delete` (semua modul), `siswa → siswas.view` saja (upload pembayaran dicabut total)
+- **CRUD:** `UserController` (HasMiddleware, assignableRoles, cegah hapus diri & super-admin terakhir), `RoleController`, `MenuController` (dual permission `permission` string + pivot `menu_permission`), `GelombangController`, `BiayaPendaftaranController`, `PengumumanController`, `TahunAjaranController` (aktivasi = transaksi nonaktifkan lainnya, blokir hapus berelasi), `JalurPendaftaranController`, `JadwalPpdbController`, `KuotaPendaftaranController` (unique tahun+jalur, `terisi lte:kuota`, blokir hapus bila terisi>0), `PembayaranController` (+`storeDenganAngsuran` satu langkah, `tutupCicilan`, export/kwitansi), `PembayaranLainnyaController`, `RencanaAngsuranController` (store rencana+DP, denda, batal)
 - **Views admin:** `admin/users, roles, menus, gelombangs, biaya-pendaftarans, pengumumans` — `card-nexus`, `table-nexus`, `form-floating`, `pagination::bootstrap-5`
 - **Tests:** `UsersTest 9, RolesTest 10, MenusTest 10, GelombangTest 9, BiayaPendaftaranTest 8, PengumumanTest 10` (pattern `superAdmin()` guard `function_exists`)
 
 ### 4.2 PPDB Inti (e079af6 + 56bc5aa)
 - **Model fix:** `TahunAjaran HAsMany typo`, `CalonSiswa hasMany rencanaAngsuran`, `RencanaAngsuran belongsTo calonSiswa`, `siswas` expand (`calon_siswa_id, user_id, nis, nisn, tahun_ajaran_id, kelas_id, tanggal_diterima, is_aktif`)
 - **CalonSiswa:** `CalonSiswaController` 7 route resource + `PATCH status` (kuota `lockForUpdate` increment/decrement) + `PATCH berkas` (Storage delete old + store baru). `index` search `no_pendaftaran|nama|nik` + filter `jalur/status` paginate 10.
-- **Form admin:** `admin/calon-siswas/_form` 5 section (Jalur&Tahun, Data Pribadi, Kontak&Alamat, Orang Tua, Berkas) — `agama` select 6 opsi, alamat `height:80px`, 5 file dashed `PDF 5MB / JPG 2MB` + preview `Lihat` + `@push('scripts')` file-name JS, `create/edit` `enctype multipart`
-- **Request:** `StoreCalonSiswaRequest`/`UpdateCalonSiswaRequest` (`nik 16 unique`, `nisn 10 nullable unique`, `agama in:Islam...Khonghucu`, 5 berkas `nullable mimes pdf/jpg max`), `StorePendaftaranRequest` (publik `required` 5 berkas)
+- **Form admin:** `admin/calon-siswas/_form` 6 section (+Sertifikat F) — `agama` select 6 opsi, alamat `height:80px`, 7 file dashed `PDF 5MB / JPG 2MB` (+KRM/KIP opsional) + preview `Lihat` + `@push('scripts')` file-name JS, `create/edit` `enctype multipart`
+- **Request:** `StoreCalonSiswaRequest`/`UpdateCalonSiswaRequest` (`nik 16 unique`, `nisn 10 nullable unique`, `agama in:Islam...Khonghucu`, 7 berkas `nullable mimes pdf/jpg max` + `sertifikat` array max 5), `StorePendaftaranRequest` (publik `required` 5 berkas + KRM/KIP opsional + sertifikat kondisional)
 - **Publik:** `SpmbController home()` kirim `tahunAjaranAktif, jadwalPpdbs, biayas, pengumumans limit3, gelombangs`, `create()` kirim `jalurPendaftarans, kuotaMap`, `store()` transaksi kuota + `PPDB-YYYY-XXXX` + 5 berkas `store('berkas','public')` + `LogStatusPendaftaran`
 - **Routes:** `GET / → spmb.home`, `GET /pendaftaran → spmb.pendaftaran`, `POST /pendaftaran → spmb.store throttle:5,1`, `GET /pengumuman` + `/{pengumuman}` + admin `calon-siswas` resource
 - **Tests:** `CalonSiswaTest 10, SpmbPendaftaranTest 6, BerkasVerificationTest 5` (`Storage::fake('public')`, `UploadedFile::fake`)
@@ -110,8 +122,11 @@ a0dd198 feat: berkas KRM & KIP opsional di pendaftaran (kantor)
 - **Admin CRUD:** `Admin/PembayaranController` (HasMiddleware `pembayarans.*`) — kode `PAY-YYYY-XXXX`, `status menunggu/berhasil/gagal` via `PATCH pembayarans/{pembayaran}/status`, `metode transfer/tunai`, `bukti_pembayaran_path` store disk `public/bukti`, views `admin/pembayarans/*` (index/create/edit/show/_form). Menu `Pembayaran` order16 → `admin.pembayarans.index` (orphan terakhir tersambung).
 - **Auto-create tagihan:** `CalonSiswaController updateStatus` saat `diterima` → buat `Pembayaran` untuk tiap `BiayaPendaftaran wajib_bayar=true` tahun aktif (`Biaya Pendaftaran, Uang Pangkal, Seragam, Buku`), status `menunggu`.
 - **Sisi siswa:** `Siswa/PembayaranController@store` — upload bukti untuk tagihan miliknya (`POST /pembayarans/upload`, nama rute `siswa.pembayarans.store`, grup `siswa.` + `role:siswa`); dashboard eager `pembayaran` + card tabel + upload per tagihan `menunggu`; show calon admin ada card Pembayaran + tombol verifikasi berhasil/gagal + placeholder Rencana Angsuran.
-- **Tests:** `PembayaranTest` 11 (CRUD + validasi + auto-create 4 tagihan), `RencanaAngsuranTest` 12 (generate, guard, bayar, lunas, denda, batal, hapus).
+- **Tests:** `PembayaranTest` 25 (CRUD + validasi + auto-create 4 tagihan + filter belum-lunas + angsuran satu langkah + export + kwitansi + penanda DP/cicilan), `RencanaAngsuranTest` 17 (generate, guard, bayar, lunas, denda, batal, hapus + anti double-count).
 - **Upload siswa DICABUT total** (keputusan user): route `siswa.pembayarans.store` + `Siswa/PembayaranController` + card dashboard + eager dihapus; role siswa kembali hanya `siswas.view`. Pembayaran murni admin.
+- **Pematangan kantor:** create filter calon belum-lunas; **angsuran satu langkah** (`storeDenganAngsuran`: induk + DP + rencana + jadwal sekaligus, anti-duplikat); admin langsung `berhasil` + bukti wajib transfer; **export Excel/PDF** (`PembayaransExport`, view pdf) + filter tanggal; penanda DP/Cicilan ke-N di tabel; **kwitansi PDF + terbilang** per pembayaran; show pembayaran rapi; modal show dropdown seluruh biaya + grid rincian.
+- **DP cicilan ke-0:** pembayaran DP terhubung ke detail `cicilan_ke=0` + migrasi backfill idempoten untuk rencana lama.
+- **Anti double-count lunas:** tagihan induk yang ikut berhasil dikecualikan dari sisa (filter create, scope `CalonSiswa`, ringkasan show) + test.
 
 ### 4.9 Angsuran Admin-Only
 - **Buat rencana dari tagihan** (`POST pembayarans/{pembayaran}/rencana`, perm `rencana-angsurans.create`): syarat biaya `dapat_diangsur` + tagihan `menunggu` + belum ada rencana aktif; validasi DP ≥ `min_dp`, DP ≤ total, cicilan ≤ `max_cicilan`; transaksi buat DP (`dp_angsuran`, berhasil) + `RencanaAngsuran` (`ANG-YYYY-XXXX`, FK `pembayaran_id` induk) + N detail (jatuh tempo bulanan `addMonthsNoOverflow`, nominal rata + selisih di terakhir).
@@ -122,6 +137,13 @@ a0dd198 feat: berkas KRM & KIP opsional di pendaftaran (kantor)
 ### 4.8 KRM/KIP & About (a0dd198 + 8888aaf, kantor)
 - **Berkas KRM & KIP opsional:** migrasi tambah `krm_path` + `kip_path` nullable di `berkas_calon_siswas`; fillable jadi 7 berkas; request admin + publik `nullable mimes pdf/jpg max 5MB`; loop 7 berkas di `CalonSiswaController` store/update/verify + `SpmbController@store` (+ delete old); view publik card opsional (`required false`); admin Section E/show/perbaikan/dashboard siswa 7 baris.
 - **About frontend:** `spmb/about.blade.php` + rute + link navbar (`spmb.home` tetap kirim data lama).
+- **Unduh brosur:** `spmb/partials/unduhan.blade.php` di home + gambar `public/0001.jpg`, `public/0002.jpg` (saat sinkron masih untracked — commit bila sudah final).
+- **Demo seeder:** pembuatan 20 tagihan di-comment-out (calon demo tanpa tagihan; kuota increment tetap bila calon baru).
+
+### 4.10 Pembayaran Lainnya / LNN (80ba414, kantor)
+- **CRUD penuh:** `PembayaranLainnyaController` (HasMiddleware `pembayaran-lainnyas.*`) + Store/Update request + views `admin/pembayaran-lainnyas/*` (index/create/edit/show/_form + pdf) + export Excel (`PembayaranLainnyaExport`) + permission `pembayaran-lainnyas.*`.
+- **Menyatu:** tampil di show calon + dashboard siswa; `CalonSiswaController@show` eager terkait.
+- **Tests:** `PembayaranLainnyaTest` 11.
 
 ---
 
@@ -133,16 +155,17 @@ app/Http/Controllers/
   Admin/UserController.php, RoleController.php, MenuController.php, GelombangController.php,
          BiayaPendaftaranController.php, PengumumanController.php, CalonSiswaController.php,
          TahunAjaran/JalurPendaftaran/JadwalPpdb/KuotaPendaftaranController.php, PembayaranController.php (hook tutupCicilan),
-         RencanaAngsuranController.php (store rencana + DP, denda, batal)
+         RencanaAngsuranController.php (store rencana + DP, denda, batal), BrosurController.php
   SpmbController.php (home, create, store, pengumumanIndex/Show, about)
   Siswa/DashboardController.php (tanpa pembayaran)
 app/Models/ CalonSiswa (hasMany sertifikatPrestasis), BerkasCalonSiswa (7 berkas: +krm/kip), SertifikatPrestasi, LogStatusPendaftaran, TahunAjaran (scopeAktif), Gelombang (persentase), BiayaPendaftaran, Pengumuman (table pengumuman), KuotaPendaftaran, JadwalPpdb, JalurPendaftaran (wajib_sertifikat), Siswa (expand), Pembayaran, User (hasOne calonSiswa/siswa, HasRoles), Menu (parent/children, scopeUserCanAccess)
-app/Http/Requests/Admin/ StoreCalonSiswa/UpdateCalonSiswa, StoreGelombang/UpdateGelombang, StoreBiaya/UpdateBiaya, StorePengumuman/UpdatePengumuman, StoreTahunAjaran/UpdateTahunAjaran, StoreJalurPendaftaran/UpdateJalurPendaftaran, StoreJadwalPpdb/UpdateJadwalPpdb, StoreKuotaPendaftaran/UpdateKuotaPendaftaran (unique tahun+jalur via Rule::unique where, terisi lte:kuota), StorePembayaran/UpdatePembayaran (+detail_angsuran_id), StoreRencanaAngsuranRequest (dp/cicilan/tanggal) + Spmb/StorePendaftaranRequest (sertifikat kondisional via withValidator)
-database/migrations/ 25 migrasi awal + gelombangs + expand siswas + username unique + sertifikat_prestasis + wajib_sertifikat di jalur + krm/kip di berkas + pembayaran_id di rencana_angsurans
-database/seeders/ RoleSeeder (5 role), PermissionSeeder (55 perms), MenuSeeder (14 menus: +Tahun Ajaran, Pembayaran tersambung), PpdbSeeder (4 TA, 5 jalur: +Prestasi Olahraga wajib_sertifikat, 5 kuota, 5 biaya, 5 jadwal, 3 pengumuman, 3 gelombang), DatabaseSeeder call order
-resources/views/layouts/app.blade.php (Nexus), spmb.blade.php (Tailwind), admin/calon-siswas/* (+Section F sertifikat, card Pembayaran di show), admin/gelombangs/*, admin/biaya-pendaftarans/*, admin/pengumumans/*, admin/tahun-ajarans/*, admin/jalur-pendaftarans/* (checkbox wajib_sertifikat), admin/jadwal-ppdbs/*, admin/kuota-pendaftarans/*, admin/pembayarans/* (index/create/edit/show/_form), spmb/pendaftaran.blade.php (7 berkas + section sertifikat dinamis step 4), spmb/home.blade.php, spmb/about.blade.php, siswa/dashboard.blade.php (card Pembayaran + upload)
-routes/web.php (±60 baris, ±93 route): / (spmb.home), /about, /pendaftaran (spmb.*), /pengumuman/*, siswa/dashboard (tanpa upload), /login, admin/* 12 resources (+pembayarans full + status patch + rencana.store/batal/denda)
-tests/Feature/ 16 file 150 test: Auth 6, AdminDashboard 2, Example 1, Users 9, Roles 10, Menus 10, CalonSiswa 10, SpmbPendaftaran 6, BerkasVerification 5, Gelombang 9, Biaya 8, Pengumuman 10, TahunAjaran 9, JalurPendaftaran 8, JadwalPpdb 8, KuotaPendaftaran 8, SertifikatPrestasi 7, Pembayaran 11, RencanaAngsuran 12
+app/Http/Requests/Admin/ StoreCalonSiswa/UpdateCalonSiswa, StoreGelombang/UpdateGelombang, StoreBiaya/UpdateBiaya, StorePengumuman/UpdatePengumuman, StoreTahunAjaran/UpdateTahunAjaran, StoreJalurPendaftaran/UpdateJalurPendaftaran, StoreJadwalPpdb/UpdateJadwalPpdb, StoreKuotaPendaftaran/UpdateKuotaPendaftaran (unique tahun+jalur via Rule::unique where, terisi lte:kuota), StorePembayaran/UpdatePembayaran (+detail_angsuran_id, bukti wajib transfer), StoreRencanaAngsuranRequest (dp/cicilan/tanggal), StorePembayaranLainnya/UpdatePembayaranLainnya + Spmb/StorePendaftaranRequest (sertifikat kondisional via withValidator)
+app/Exports/ PembayaransExport.php, PembayaranLainnyaExport.php (maatwebsite/excel)
+database/migrations/ 25 migrasi awal + gelombangs + expand siswas + username unique + sertifikat_prestasis + wajib_sertifikat di jalur + krm/kip di berkas + pembayaran_id di rencana_angsurans + backfill DP cicilan ke-0
+database/seeders/ RoleSeeder (5 role), PermissionSeeder (65 perms: +profil 2, +brosur 4), MenuSeeder (16 menus: +Tahun Ajaran, Pembayaran tersambung, Profil Sekolah 24, Brosur 19), PpdbSeeder (4 TA, 5 jalur: +Prestasi Olahraga wajib_sertifikat, 5 kuota, 5 biaya, 5 jadwal, 3 pengumuman, 3 gelombang), ProfilSekolahSeeder (placeholder GANTI:), BrosurSeeder (2 baris tanpa file), DemoCalonSiswaSeeder (5 calon demo, tagihan di-comment-out), DatabaseSeeder call order
+resources/views/layouts/app.blade.php (Nexus), spmb.blade.php (Tailwind), admin/calon-siswas/* (+Section F sertifikat, card Pembayaran di show, modal bayar dropdown biaya + grid rincian), admin/gelombangs/*, admin/biaya-pendaftarans/*, admin/pengumumans/*, admin/tahun-ajarans/*, admin/jalur-pendaftarans/* (checkbox wajib_sertifikat), admin/jadwal-ppdbs/*, admin/kuota-pendaftarans/*, admin/pembayarans/* (index filter tanggal + penanda DP/cicilan + create/edit/show/_form + pdf + kwitansi), admin/pembayaran-lainnyas/* (index/create/edit/show/_form + pdf), spmb/pendaftaran.blade.php (7 berkas + section sertifikat dinamis step 4), spmb/home.blade.php (+section unduhan brosur), spmb/about.blade.php, spmb/partials/unduhan.blade.php, siswa/dashboard.blade.php (card LNN, tanpa upload pembayaran)
+routes/web.php (68 baris, ±109 route): / (spmb.home), /about, /pendaftaran (spmb.*), /pengumuman/*, siswa/dashboard, /login, admin/* 13 resources (+pembayaran-lainnyas + pembayarans status/kwitansi/export + rencana.store/batal/denda)
+tests/Feature/ 23 file 205 test: Auth 6, AdminDashboard 2, Example 1, Users 9, Roles 10, Menus 10, CalonSiswa 12, SpmbPendaftaran 6, BerkasVerification 5, Gelombang 9, Biaya 8, Pengumuman 10, TahunAjaran 9, JalurPendaftaran 8, JadwalPpdb 8, KuotaPendaftaran 8, SertifikatPrestasi 7, Pembayaran 25, PembayaranLainnya 11, RencanaAngsuran 17, ProfilSekolah 7, Brosur 8, Galeri 8
 ```
 
 ---
@@ -151,12 +174,12 @@ tests/Feature/ 16 file 150 test: Auth 6, AdminDashboard 2, Example 1, Users 9, R
 
 **Disepakati ditunda (jawaban user):**
 - **Master CRUD SELESAI (sesi rumah):** `TahunAjaran, JalurPendaftaran, JadwalPpdb, KuotaPendaftaran` + menu baru `Tahun Ajaran` order 11 + orphan `Jalur 12, Jadwal 13, Kuota 14` dibuka (route + permission `*.view`). Keputusan: aktivasi tahun otomatis nonaktifkan lainnya (transaksi), hapus diblokir bila berelasi (kecuali Jadwal), `terisi` editable ≤ kuota, kombinasi tahun+jalur unique di validasi. `JadwalPpdb` 5 fase Mei-Juni tetap dipakai untuk timeline pendaftaran (bukan gelombang).
-- **Keuangan sebagian SELESAI (kantor, 1ca208a):** `Pembayaran` CRUD + upload bukti + auto-create 4 tagihan saat diterima + upload sisi siswa. Menu order16 tersambung. Sisa: `RencanaAngsuran` (`kode_angsuran ANG-YYYY-XXXX`), `DetailAngsuran` per cicilan, `PembayaranLainnya` — permission `rencana-angsurans.*` sudah di-seed tapi belum ada controller/route/view.
+- **Keuangan SELESAI penuh (kantor + rumah, d8a7885 → afec941):** `Pembayaran` CRUD + auto-create tagihan + angsuran admin-only (2 langkah + satu langkah) + DP ke-0 + export/kwitansi + LNN. Upload siswa dicabut. Semua orphan tersambung.
 - **Kuota seeder:** biarkan dummy (tidak reset ke 0).
 
 **Belum ada sama sekali (butuh bila lanjut):**
 - Email notifikasi setelah pendaftaran (sekarang hanya flash password), cek jendela `JadwalPpdb` sebelum `store`
-- `PembayaranLainnya` (tabel + model ada, belum ada fitur)
+- Commit gambar brosur `public/0001.jpg`, `public/0002.jpg` (masih untracked)
 
 **Modul lain (AGENTS.md):** Absensi, E-Learning, CBT (JSON API `routes/api.php` belum ada) — belum disentuh.
 
@@ -178,7 +201,7 @@ tests/Feature/ 16 file 150 test: Auth 6, AdminDashboard 2, Example 1, Users 9, R
 
 ```bash
 php artisan migrate:fresh --seed  # 3 gelombang 80/70/30, 3 pengumuman, 5 biaya, kuota 200/50/30/20/20(olahraga)
-php artisan test --compact         # harus 150/150
+php artisan test --compact         # harus 205/205
 php artisan route:list | findstr spmb
 # Publik: buka /pendaftaran → isi 5 berkas → submit → flash Username: nisn Password: xxx No: PPDB-...
 # Login nisn/password → redirect /siswa/dashboard (role siswa) → pantau status, berkas, log
@@ -189,7 +212,25 @@ php artisan route:list | findstr spmb
 
 ## 9. Next Priority (disarankan)
 
-1. **Keuangan selesai penuh (150 test)** — pembayaran + angsuran admin-only, upload siswa dicabut. Semua menu orphan tersambung. Next bila perlu: email notifikasi, cek jendela `JadwalPpdb`, `PembayaranLainnya`, atau modul Absensi.
+1. **PPDB + keuangan selesai penuh (182 test, 59 permission)** — semua orphan tersambung, LNN menyatu. Next bila perlu: email notifikasi, cek jendela `JadwalPpdb`, commit gambar brosur, atau modul Absensi.
+
+### 4.11 Profil Sekolah Dinamis (singleton)
+- **Tabel `profil_sekolahs`:** identitas (nama, npsn, alamat, telp, email, website), profil (tahun_berdiri, akreditasi A/B/C, logo/foto gedung), sambutan/visi/misi (json), kepala (nama + foto), `maps_embed_url` (validasi prefix google embed anti-XSS). Seeder placeholder bertanda `GANTI:`.
+- **Kelola:** `ProfilSekolahController@edit/update` (perm `profil-sekolahs.view/edit`, menu Profil Sekolah order 24), request validasi file + misi max 20, ganti file hapus lama, misi dinamis tambah/hapus JS.
+- **Publik:** `View::composer('spmb.*')` share `$profileSekolah` + `$jumlahSiswaAktif` (count `siswas.is_aktif`; guru masih dummy sampai modul guru); about pakai data asli (misi/visi/sambutan/kepala/foto/stats); navbar/footer/kontak/kontak2/pendaftaran ganti hardcoded (map pakai URL DB, fallback embed lama).
+- **Tests:** `ProfilSekolahTest` 7 (189 total).
+
+### 4.12 Brosur Dinamis (upload via app)
+- **Tabel `brosurs`:** `title, desc, image_path (brosur/), order, is_active` + scope `aktif`.
+- **Kelola:** `BrosurController` CRUD (perm `brosurs.*`, menu Brosur order 19), gambar JPG/PNG/WebP 5MB, ganti/hapus file ikut storage.
+- **Publik:** `SpmbController@home` kirim `$brosurs` aktif; partial unduhan loop DB (filter ber-gambar), **section sembunyi bila kosong**; lightbox tak berubah.
+- **Tests:** `BrosurTest` 8 (197 total).
+
+### 4.13 Galeri & Prestasi Dinamis (satu tabel + tipe)
+- **Tabel `galeris`:** `tipe` enum (galeri/prestasi), `title, desc, image_path (galeri/, wajib bila tipe galeri), tanggal (wajib bila prestasi), order, is_active` + scope `aktif/foto/prestasi`.
+- **Kelola:** `GaleriController` CRUD (perm `galeris.*`, menu Galeri order 20, blok Sistem digeser 30–34), form tanggal dinamis per tipe, ganti/hapus file ikut storage.
+- **Publik:** home kirim `$galeriFotos` (cap 8) + `$prestasis` (3 terbaru); mosaik posisional (index 0 & 5 besar), carousel loop semua, highlight gradien siklis; **blok sembunyi independen** bila kosong.
+- **Tests:** `GaleriTest` 8 (205 total).
 
 **Sertifikat prestasi (sudah selesai sesi rumah, 9b6b7e6):**
 - **Tabel `sertifikat_prestasis`** (`calon_siswa_id` cascade, `nama_sertifikat`, `file_path` di `berkas/sertifikat`); `CalonSiswa hasMany sertifikatPrestasis`. Tabel berkas 5 kolom tidak diubah.
@@ -202,4 +243,4 @@ php artisan route:list | findstr spmb
 
 ---
 
-*File ini dibuat 2026-09-08 setelah commit `213440b`, diperbarui sesi rumah (master CRUD + sertifikat, 127 test) lalu sinkron kerja kantor per `1ca208a` pada 2026-09-09 — ganti bila ada commit baru.*
+*File ini dibuat 2026-09-08 setelah commit `213440b`, diperbarui sesi rumah (master CRUD + sertifikat 127 test; angsuran + cabut siswa 152 test) lalu sinkron kerja kantor per `afec941` pada 2026-09-10 (182 test) — ganti bila ada commit baru.*

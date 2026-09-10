@@ -1,7 +1,9 @@
-{{-- TODO: ganti dengan data asli sekolah --}}
 @php
-    $schoolName = 'SMP Harapan Bangsa'; // ganti dengan nama sekolah asli
-    $schoolLogo = 'https://via.placeholder.com/120x120?text=Logo'; // ganti dengan logo asli
+    // $profileSekolah dishare otomatis via View composer (spmb.*); fallback bila baris profil belum ada.
+    $schoolName = $profileSekolah->nama_sekolah ?? 'SMP Harapan Bangsa';
+    $schoolLogo = ! empty($profileSekolah->logo_path)
+        ? Storage::disk('public')->url($profileSekolah->logo_path)
+        : 'https://via.placeholder.com/120x120?text=Logo';
 
     // Set true HANYA jika section persis di bawah navbar adalah hero berwarna gelap
     // (mis. bg-gradient-primary). Untuk halaman biasa (list, detail, form tanpa hero gelap),

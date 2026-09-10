@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Spmb\StorePendaftaranRequest;
 use App\Models\BiayaPendaftaran;
+use App\Models\Brosur;
 use App\Models\CalonSiswa;
+use App\Models\Galeri;
 use App\Models\Gelombang;
 use App\Models\JadwalPpdb;
 use App\Models\JalurPendaftaran;
@@ -33,6 +35,9 @@ class SpmbController extends Controller
         $gelombangs = $tahunAjaranAktif
             ? Gelombang::where('tahun_ajaran_id', $tahunAjaranAktif->id)->where('is_aktif', true)->orderBy('nomor_urut')->get()
             : Gelombang::where('is_aktif', true)->orderBy('nomor_urut')->get();
+        $brosurs = Brosur::aktif()->orderBy('order')->orderByDesc('created_at')->get();
+        $galeriFotos = Galeri::aktif()->foto()->whereNotNull('image_path')->orderBy('order')->orderByDesc('created_at')->take(8)->get();
+        $prestasis = Galeri::aktif()->prestasi()->orderByDesc('tanggal')->orderBy('order')->take(3)->get();
 
         return view('spmb.home', [
             'tahunAjaranAktif' => $tahunAjaranAktif,
@@ -40,6 +45,9 @@ class SpmbController extends Controller
             'biayas' => $biayas,
             'pengumumans' => $pengumumans,
             'gelombangs' => $gelombangs,
+            'brosurs' => $brosurs,
+            'galeriFotos' => $galeriFotos,
+            'prestasis' => $prestasis,
         ]);
     }
 
@@ -175,7 +183,8 @@ class SpmbController extends Controller
         return view('spmb.pengumuman.show', compact('pengumuman'));
     }
 
-    public function about(){
+    public function about()
+    {
         return view('spmb.about');
     }
 }
