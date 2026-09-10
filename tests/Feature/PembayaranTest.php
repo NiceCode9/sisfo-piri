@@ -307,7 +307,7 @@ test('store satu langkah angsuran membuat DP + rencana + cicilan', function () {
 
     expect($rencana)->not->toBeNull()
         ->and($rencana->jumlah_cicilan)->toBe(2)
-        ->and($rencana->detailAngsuran()->count())->toBe(2);
+        ->and($rencana->detailAngsuran()->where('cicilan_ke', '>', 0)->count())->toBe(2);
 
     $dp = Pembayaran::where('calon_siswa_id', $calon->id)
         ->where('jenis_pembayaran', 'dp_angsuran')

@@ -1516,6 +1516,10 @@
                                     'keterangan' => $biaya->keterangan,
                                     'dapat_diangsur' => $biaya->dapat_diangsur,
                                     'tagihan_id' => $tagihanMenunggu?->id,
+                                    'rencana_aktif' => $calon->rencanaAngsuran
+                                        ->where('biaya_pendaftaran_id', $biaya->id)
+                                        ->where('status', 'aktif')
+                                        ->isNotEmpty(),
                                 ];
                             }
                         }
@@ -1587,7 +1591,7 @@
                                 <div class="table-responsive">
                                     @foreach ($rencana->detailAngsuran->sortBy('cicilan_ke') as $angsuran)
                                         <div class="installment-row">
-                                            <div class="installment-number">{{ $angsuran->cicilan_ke }}</div>
+                                            <div class="installment-number">{{ $angsuran->cicilan_ke === 0 ? 'DP' : $angsuran->cicilan_ke }}</div>
                                             <div class="installment-details">
                                                 <div class="installment-date">
                                                     {{ \Carbon\Carbon::parse($angsuran->tanggal_jatuh_tempo)->format('d/m/Y') }}
@@ -1600,9 +1604,15 @@
                                                 </span>
                                             </div>
                                             <div class="installment-action">
-                                                @if ($rencana->pembayaran_id)
-                                                    <a href="{{ route('admin.pembayarans.show', $rencana->pembayaran_id) }}" class="btn btn-sm btn-primary">Kelola</a>
-                                                @endif
+                                                @can('pembayarans.create')
+                                                    @if ($angsuran->status !== 'dibayar' && $rencana->status === 'aktif')
+                                                        <button type="button" class="btn btn-sm btn-primary"
+                                                            onclick="setCicilan('{{ $angsuran->id }}', '{{ $rencana->biaya_pendaftaran_id }}', '{{ $angsuran->nominal_cicilan + $angsuran->denda }}', 'Cicilan ke-{{ $angsuran->cicilan_ke }} — Rp {{ number_format($angsuran->nominal_cicilan + $angsuran->denda, 0, ',', '.') }}')"
+                                                            data-bs-toggle="modal" data-bs-target="#modalBayarCicilan">
+                                                            Bayar
+                                                        </button>
+                                                    @endif
+                                                @endcan
                                             </div>
                                         </div>
                                     @endforeach
@@ -1640,11 +1650,15 @@
                                     </div>
                                     <div class="fee-action">
                                         @can('pembayarans.create')
-                                            <button type="button" class="btn btn-primary"
-                                                onclick="setBiayaId('{{ $biaya['id'] }}', '{{ $biaya['sisa'] }}', '{{ $biaya['mata_uang'] }}', '{{ $biaya['dapat_diangsur'] ? 1 : 0 }}')"
-                                                data-bs-toggle="modal" data-bs-target="#modalPembayaran">
-                                                <i class="bi bi-credit-card me-1"></i>Bayar
-                                            </button>
+                                            @if (empty($biaya['rencana_aktif']))
+                                                <button type="button" class="btn btn-primary"
+                                                    onclick="setBiayaId('{{ $biaya['id'] }}', '{{ $biaya['sisa'] }}', '{{ $biaya['mata_uang'] }}', '{{ $biaya['dapat_diangsur'] ? 1 : 0 }}')"
+                                                    data-bs-toggle="modal" data-bs-target="#modalPembayaran">
+                                                    <i class="bi bi-credit-card me-1"></i>Bayar
+                                                </button>
+                                            @else
+                                                <span class="text-muted" style="font-size:11px;">Dibayar via cicilan di bawah</span>
+                                            @endif
                                             @if ($biaya['dapat_diangsur'] && $biaya['tagihan_id'])
                                                 <a href="{{ route('admin.pembayarans.show', $biaya['tagihan_id']) }}" class="btn btn-outline-primary">
                                                     <i class="bi bi-calendar-range me-1"></i>Angsuran
@@ -1773,7 +1787,7 @@
                                             <input type="number" step="0.01" class="form-control" id="modal_dp_dibayar" name="dp_dibayar" min="0" />
                                         </div>
                                         <div class="col-md-4">
-                                            <label for="modal_jumlah_cicilan" class="form-label">Jumlah Cicilan</label>
+                                            <label for="modal_jumlah_cicilan" class="form-label">Dicicil Berapa Kali <span class="text-muted" style="font-size:11px;">(cth: 3 = 3x bayar)</span></label>
                                             <input type="number" class="form-control" id="modal_jumlah_cicilan" name="jumlah_cicilan" min="1" max="60" />
                                         </div>
                                         <div class="col-md-4">
@@ -1916,6 +1930,59 @@
                     </div>
                 </div>
             @endcan
+
+            <!-- Modal Bayar Cicilan (tetap di show calon, tanpa pindah halaman) -->
+            @can('pembayarans.create')
+                <div class="modal fade" id="modalBayarCicilan" tabindex="-1" aria-labelledby="modalBayarCicilanLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="modalBayarCicilanLabel">
+                                    <i class="bi bi-credit-card me-2"></i>Bayar Cicilan
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <form action="{{ route('admin.pembayarans.store') }}" method="POST" enctype="multipart/form-data">
+                                @csrf
+                                <input type="hidden" name="calon_siswa_id" value="{{ $calon->id }}" />
+                                <input type="hidden" name="jenis_pembayaran" value="cicilan_angsuran" />
+                                <input type="hidden" name="detail_angsuran_id" id="cicilan_detail_id" />
+                                <input type="hidden" name="biaya_pendaftaran_id" id="cicilan_biaya_id" />
+                                <input type="hidden" name="jumlah" id="cicilan_jumlah" />
+                                <input type="hidden" name="redirect_to" value="{{ route('admin.calon-siswas.show', $calon) }}" />
+                                <div class="modal-body">
+                                    <div class="alert alert-info py-2" style="font-size:13px;" id="cicilan_info">Pilih cicilan yang akan dibayar.</div>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label for="cicilan_metode" class="form-label">Metode <span class="text-danger">*</span></label>
+                                            <select class="form-select" id="cicilan_metode" name="metode_pembayaran" required>
+                                                <option value="transfer">Transfer Bank</option>
+                                                <option value="tunai">Tunai</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="cicilan_tanggal" class="form-label">Tanggal Bayar</label>
+                                            <input type="date" class="form-control" id="cicilan_tanggal" name="tanggal_pembayaran" value="{{ date('Y-m-d') }}" />
+                                        </div>
+                                        <div class="col-12">
+                                            <label for="cicilan_bukti" class="form-label">Bukti <span class="text-muted" style="font-size:11px;">(wajib bila transfer)</span></label>
+                                            <input type="file" class="form-control" id="cicilan_bukti" name="bukti_pembayaran_path" accept=".pdf,.jpg,.jpeg,.png" />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                        <i class="bi bi-x-lg me-1"></i>Batal
+                                    </button>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-check-lg me-1"></i>Simpan Pembayaran
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            @endcan
         </div>
     </div>
 @endsection
@@ -1964,6 +2031,22 @@
         document.getElementById('metode_pembayaran')?.addEventListener('change', function () {
             document.getElementById('bukti_pembayaran').required = this.value === 'transfer';
         });
+
+        // Modal bayar cicilan: isi detail + nominal, bukti wajib bila transfer
+        document.getElementById('cicilan_metode')?.addEventListener('change', function () {
+            document.getElementById('cicilan_bukti').required = this.value === 'transfer';
+        });
+
+        function setCicilan(detailId, biayaId, nominal, label) {
+            document.getElementById('cicilan_detail_id').value = detailId;
+            document.getElementById('cicilan_biaya_id').value = biayaId;
+            document.getElementById('cicilan_jumlah').value = nominal;
+            document.getElementById('cicilan_info').textContent = label;
+            var metode = document.getElementById('cicilan_metode');
+            if (metode) {
+                document.getElementById('cicilan_bukti').required = metode.value === 'transfer';
+            }
+        }
 
         document.addEventListener('DOMContentLoaded', function() {
             // Animate cards on load with stagger effect

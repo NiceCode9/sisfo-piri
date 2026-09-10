@@ -176,7 +176,7 @@
                         @foreach ($rencana->detailAngsuran->sortBy('cicilan_ke') as $d)
                             @php $telat = $d->status !== 'dibayar' && $d->tanggal_jatuh_tempo < now()->toDateString(); @endphp
                             <tr>
-                                <td>Ke-{{ $d->cicilan_ke }}</td>
+                                <td>{{ $d->cicilan_ke === 0 ? 'DP' : 'Ke-'.$d->cicilan_ke }}</td>
                                 <td>Rp {{ number_format($d->nominal_cicilan,0,',','.') }}</td>
                                 <td>
                                     Rp {{ number_format($d->denda,0,',','.') }}
@@ -245,7 +245,7 @@
                             @error('dp_dibayar')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-12 col-sm-4">
-                            <label class="form-label" for="jumlah_cicilan">Jumlah Cicilan @if($pembayaran->biayaPendaftaran->max_cicilan)(maks {{ $pembayaran->biayaPendaftaran->max_cicilan }})@endif</label>
+                            <label class="form-label" for="jumlah_cicilan">Dicicil Berapa Kali @if($pembayaran->biayaPendaftaran->max_cicilan)(maks {{ $pembayaran->biayaPendaftaran->max_cicilan }}x)@endif</label>
                             <input type="number" name="jumlah_cicilan" id="jumlah_cicilan" value="{{ old('jumlah_cicilan', $pembayaran->biayaPendaftaran->max_cicilan ?? 3) }}" min="1" class="form-control @error('jumlah_cicilan') is-invalid @enderror" required />
                             @error('jumlah_cicilan')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>

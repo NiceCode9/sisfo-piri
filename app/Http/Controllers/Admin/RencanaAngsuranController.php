@@ -73,8 +73,8 @@ class RencanaAngsuranController extends Controller implements HasMiddleware
         }
 
         DB::transaction(function () use ($validated, $pembayaran, $total, $dp, $n, $sisa) {
-            // Catat DP sebagai pembayaran
-            Pembayaran::create([
+            // Catat DP sebagai pembayaran (detail_angsuran_id diisi setelah baris DP ke-0 dibuat)
+            $dpBayar = Pembayaran::create([
                 'calon_siswa_id' => $pembayaran->calon_siswa_id,
                 'biaya_pendaftaran_id' => $pembayaran->biaya_pendaftaran_id,
                 'kode_pembayaran' => $this->generateKode(),
@@ -101,6 +101,21 @@ class RencanaAngsuranController extends Controller implements HasMiddleware
                 'status' => 'aktif',
                 'catatan' => $validated['catatan'] ?? null,
             ]);
+
+            // Baris ke-0 = DP, ikut termasuk sebagai angsuran (sudah dibayar)
+            $dpDetail = null;
+            if ($dp > 0) {
+                $dpDetail = $rencana->detailAngsuran()->create([
+                    'cicilan_ke' => 0,
+                    'nominal_cicilan' => $dp,
+                    'tanggal_jatuh_tempo' => now()->toDateString(),
+                    'denda' => 0,
+                    'total_bayar' => $dp,
+                    'tanggal_bayar' => now()->toDateString(),
+                    'status' => 'dibayar',
+                ]);
+                $dpBayar->update(['detail_angsuran_id' => $dpDetail->id]);
+            }
 
             // Nominal per cicilan sama besar, selisih pembulatan di cicilan terakhir
             $perCicilan = floor($sisa / $n);
@@ -143,7 +158,7 @@ class RencanaAngsuranController extends Controller implements HasMiddleware
      */
     public function batal(RencanaAngsuran $rencana): RedirectResponse
     {
-        if ($rencana->detailAngsuran()->where('status', 'dibayar')->exists()) {
+        if ($rencana->detailAngsuran()->where('cicilan_ke', '>', 0)->where('status', 'dibayar')->exists()) {
             return back()->with('error', 'Rencana tidak dapat dibatalkan karena sudah ada cicilan yang dibayar.');
         }
 

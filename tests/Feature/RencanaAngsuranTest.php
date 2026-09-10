@@ -105,12 +105,12 @@ test('buat rencana hasilkan DP + detail cicilan benar', function () {
         ->and((float) $rencana->total_biaya)->toBe(2500000.0)
         ->and((float) $rencana->dp_dibayar)->toBe(500000.0)
         ->and((float) $rencana->sisa_hutang)->toBe(2000000.0)
-        ->and($rencana->detailAngsuran)->toHaveCount(3);
+        ->and($rencana->detailAngsuran()->where('cicilan_ke', '>', 0)->count())->toBe(3);
 
     // 2.000.000 / 3 = 666.666 ×2 + 666.668 terakhir
-    $nominals = $rencana->detailAngsuran->sortBy('cicilan_ke')->pluck('nominal_cicilan')->map(fn ($v) => (float) $v)->all();
+    $nominals = $rencana->detailAngsuran()->where('cicilan_ke', '>', 0)->orderBy('cicilan_ke')->pluck('nominal_cicilan')->map(fn ($v) => (float) $v)->all();
     expect($nominals)->toBe([666666.0, 666666.0, 666668.0])
-        ->and($rencana->detailAngsuran->sum(fn ($d) => (float) $d->nominal_cicilan))->toBe(2000000.0);
+        ->and((float) $rencana->detailAngsuran()->where('cicilan_ke', '>', 0)->sum('nominal_cicilan'))->toBe(2000000.0);
 
     $dp = Pembayaran::where('calon_siswa_id', $tagihan->calon_siswa_id)->where('jenis_pembayaran', 'dp_angsuran')->first();
     expect($dp)->not->toBeNull()
@@ -204,7 +204,7 @@ test('semua cicilan lunas menutup rencana dan induk', function () {
     $tagihan = buatTagihanAngsuran();
     $rencana = buatRencana($this, $tagihan, 2);
 
-    foreach ($rencana->detailAngsuran()->orderBy('cicilan_ke')->get() as $detail) {
+    foreach ($rencana->detailAngsuran()->where('cicilan_ke', '>', 0)->orderBy('cicilan_ke')->get() as $detail) {
         $this->actingAs(superAdmin())->post(route('admin.pembayarans.store'), [
             'calon_siswa_id' => $tagihan->calon_siswa_id,
             'biaya_pendaftaran_id' => $tagihan->biaya_pendaftaran_id,
@@ -297,4 +297,72 @@ test('hapus pembayaran cicilan terverifikasi diblokir', function () {
         ->assertSessionHas('error');
 
     expect(Pembayaran::find($bayar->id))->not->toBeNull();
+});
+
+test('DP tercatat sebagai baris cicilan ke-0 dan terhubung', function () {
+    $tagihan = buatTagihanAngsuran();
+    $rencana = buatRencana($this, $tagihan, 3, 500000);
+
+    $dpDetail = $rencana->detailAngsuran()->where('cicilan_ke', 0)->first();
+
+    expect($dpDetail)->not->toBeNull()
+        ->and($dpDetail->status)->toBe('dibayar')
+        ->and((float) $dpDetail->total_bayar)->toBe(500000.0);
+
+    $dpBayar = Pembayaran::where('jenis_pembayaran', 'dp_angsuran')
+        ->where('calon_siswa_id', $tagihan->calon_siswa_id)
+        ->first();
+
+    expect($dpBayar)->not->toBeNull()
+        ->and($dpBayar->detail_angsuran_id)->toBe($dpDetail->id);
+});
+
+test('bayar 1 dari 3 via store langsung menutup tanpa patch', function () {
+    $tagihan = buatTagihanAngsuran();
+    $rencana = buatRencana($this, $tagihan, 3, 500000);
+    $detail = $rencana->detailAngsuran()->where('cicilan_ke', 1)->first();
+
+    $this->actingAs(superAdmin())->post(route('admin.pembayarans.store'), [
+        'calon_siswa_id' => $tagihan->calon_siswa_id,
+        'biaya_pendaftaran_id' => $tagihan->biaya_pendaftaran_id,
+        'detail_angsuran_id' => $detail->id,
+        'jumlah' => (float) $detail->nominal_cicilan,
+        'metode_pembayaran' => 'tunai',
+        'redirect_to' => route('admin.calon-siswas.show', $tagihan->calon_siswa_id),
+    ])->assertRedirect(route('admin.calon-siswas.show', $tagihan->calon_siswa_id));
+
+    expect($detail->fresh()->status)->toBe('dibayar')
+        ->and($rencana->detailAngsuran()->where('cicilan_ke', '>', 0)->where('status', '!=', 'dibayar')->count())->toBe(2)
+        ->and($rencana->fresh()->status)->toBe('aktif')
+        ->and($tagihan->fresh()->status)->toBe('menunggu');
+});
+
+test('bayar semua via store menutup rencana dan induk otomatis', function () {
+    $tagihan = buatTagihanAngsuran();
+    $rencana = buatRencana($this, $tagihan, 2, 500000);
+
+    foreach ($rencana->detailAngsuran()->where('cicilan_ke', '>', 0)->orderBy('cicilan_ke')->get() as $detail) {
+        $this->actingAs(superAdmin())->post(route('admin.pembayarans.store'), [
+            'calon_siswa_id' => $tagihan->calon_siswa_id,
+            'biaya_pendaftaran_id' => $tagihan->biaya_pendaftaran_id,
+            'detail_angsuran_id' => $detail->id,
+            'jumlah' => (float) $detail->nominal_cicilan,
+            'metode_pembayaran' => 'tunai',
+        ])->assertRedirect(route('admin.pembayarans.index'));
+    }
+
+    expect($rencana->fresh()->status)->toBe('lunas')
+        ->and((float) $rencana->fresh()->sisa_hutang)->toBe(0.0)
+        ->and($tagihan->fresh()->status)->toBe('berhasil');
+});
+
+test('show calon sembunyikan bayar bila rencana aktif', function () {
+    $tagihan = buatTagihanAngsuran();
+    buatRencana($this, $tagihan, 3, 500000);
+
+    $response = $this->actingAs(superAdmin())->get(route('admin.calon-siswas.show', $tagihan->calon_siswa_id));
+
+    $response->assertOk();
+    $response->assertSee('Dibayar via cicilan di bawah', false);
+    $response->assertSee('modalBayarCicilan', false);
 });

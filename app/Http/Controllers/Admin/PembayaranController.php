@@ -127,6 +127,15 @@ class PembayaranController extends Controller implements HasMiddleware
 
         $pembayaran = Pembayaran::create(collect($validated)->except(['buat_angsuran', 'dp_dibayar', 'jumlah_cicilan', 'tanggal_mulai', 'redirect_to'])->toArray());
 
+        // Pembayaran cicilan yang langsung berhasil menutup detail + rencana
+        // (tutupCicilan melunasi induk otomatis saat cicilan terakhir dibayar).
+        if ($pembayaran->jenis_pembayaran === 'cicilan_angsuran'
+            && $pembayaran->detail_angsuran_id
+            && $pembayaran->status === 'berhasil'
+        ) {
+            $this->tutupCicilan($pembayaran->fresh());
+        }
+
         return $this->redirectAfterStore($request, "Pembayaran {$pembayaran->kode_pembayaran} berhasil dibuat.");
     }
 
@@ -182,12 +191,13 @@ class PembayaranController extends Controller implements HasMiddleware
                 'keterangan_angsuran' => $validated['keterangan_angsuran'] ?? null,
             ]);
 
+            $dpBayar = null;
             if ($dp > 0) {
                 $bukti = $request->hasFile('bukti_pembayaran_path')
                     ? $request->file('bukti_pembayaran_path')->store('bukti', 'public')
                     : null;
 
-                Pembayaran::create([
+                $dpBayar = Pembayaran::create([
                     'calon_siswa_id' => $validated['calon_siswa_id'],
                     'biaya_pendaftaran_id' => $biaya->id,
                     'kode_pembayaran' => $this->generateKode(),
@@ -215,6 +225,20 @@ class PembayaranController extends Controller implements HasMiddleware
                 'tanggal_selesai' => Carbon::parse($validated['tanggal_mulai'])->addMonthsNoOverflow($n - 1)->toDateString(),
                 'status' => 'aktif',
             ]);
+
+            // Baris ke-0 = DP, ikut termasuk sebagai angsuran (sudah dibayar)
+            if ($dpBayar) {
+                $dpDetail = $rencana->detailAngsuran()->create([
+                    'cicilan_ke' => 0,
+                    'nominal_cicilan' => $dp,
+                    'tanggal_jatuh_tempo' => now()->toDateString(),
+                    'denda' => 0,
+                    'total_bayar' => $dp,
+                    'tanggal_bayar' => now()->toDateString(),
+                    'status' => 'dibayar',
+                ]);
+                $dpBayar->update(['detail_angsuran_id' => $dpDetail->id]);
+            }
 
             $perCicilan = floor($sisa / $n);
             $mulai = Carbon::parse($validated['tanggal_mulai']);
@@ -353,10 +377,11 @@ class PembayaranController extends Controller implements HasMiddleware
             ]);
 
             $rencana = $detail->rencanaAngsuran()->lockForUpdate()->first();
-            $terbayar = (float) $rencana->detailAngsuran()->where('status', 'dibayar')->sum('total_bayar');
+            // Baris ke-0 (DP) dikecualikan: DP sudah dihitung via kolom dp_dibayar.
+            $terbayar = (float) $rencana->detailAngsuran()->where('cicilan_ke', '>', 0)->where('status', 'dibayar')->sum('total_bayar');
             $rencana->update(['sisa_hutang' => max(0, $rencana->total_biaya - $rencana->dp_dibayar - $terbayar)]);
 
-            $belum = $rencana->detailAngsuran()->where('status', '!=', 'dibayar')->count();
+            $belum = $rencana->detailAngsuran()->where('cicilan_ke', '>', 0)->where('status', '!=', 'dibayar')->count();
 
             if ($belum === 0) {
                 $rencana->update(['status' => 'lunas', 'sisa_hutang' => 0]);

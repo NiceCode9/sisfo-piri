@@ -71,7 +71,7 @@
     <div class="col-12 col-sm-4">
         <div class="form-floating">
             <input type="number" name="jumlah_cicilan" value="{{ old('jumlah_cicilan') }}" class="form-control @error('jumlah_cicilan') is-invalid @enderror" id="jumlah_cicilan" placeholder="Cicilan" min="1" max="60" />
-            <label for="jumlah_cicilan">Jumlah Cicilan</label>
+            <label for="jumlah_cicilan">Dicicil Berapa Kali</label>
             @error('jumlah_cicilan')<div class="invalid-feedback">{{ $message }}</div>@enderror
         </div>
     </div>
