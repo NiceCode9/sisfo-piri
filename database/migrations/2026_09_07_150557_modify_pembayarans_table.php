@@ -7,16 +7,18 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * Pengecualian konsolidasi: FK ke detail_angsurans harus di file
+     * terpisah karena tabel detail_angsurans dibuat SETELAH pembayarans
+     * (urutan timestamp). Kolom non-FK sudah di file create.
      */
     public function up(): void
     {
-        Schema::table('pembayarans', function (Blueprint $table) {
-            $table->foreignId('detail_angsuran_id')->nullable()->after('biaya_pendaftaran_id')
-                ->constrained('detail_angsurans')->onDelete('set null');
-            $table->enum('jenis_pembayaran', ['penuh', 'dp_angsuran', 'cicilan_angsuran'])->default('penuh')->after('metode_pembayaran');
-            $table->text('keterangan_angsuran')->nullable()->after('jenis_pembayaran');
-        });
+        if (! Schema::hasColumn('pembayarans', 'detail_angsuran_id')) {
+            Schema::table('pembayarans', function (Blueprint $table) {
+                $table->foreignId('detail_angsuran_id')->nullable()->after('biaya_pendaftaran_id')
+                    ->constrained('detail_angsurans')->onDelete('set null');
+            });
+        }
     }
 
     /**
@@ -26,7 +28,6 @@ return new class extends Migration
     {
         Schema::table('pembayarans', function (Blueprint $table) {
             $table->dropConstrainedForeignId('detail_angsuran_id');
-            $table->dropColumn(['jenis_pembayaran', 'keterangan_angsuran']);
         });
     }
 };

@@ -30,6 +30,7 @@ class DatabaseSeeder extends Seeder
             ProfilSekolahSeeder::class,
             BrosurSeeder::class,
             GaleriSeeder::class,
+            AkademikSeeder::class,
         ]);
     }
 }

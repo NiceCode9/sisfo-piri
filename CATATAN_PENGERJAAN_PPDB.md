@@ -31,7 +31,7 @@ npm run dev          # vite HMR
 npm run build        # production
 
 vendor/bin/pint --dirty --format agent   # WAJIB setelah edit PHP
-php artisan test --compact               # semua test (205 saat ini)
+php artisan test --compact               # semua test (250 saat ini)
 php artisan test --compact --filter=nama # satu test
 php artisan migrate:fresh --seed         # reset DB lokal (seed Role+Permission+Menu+Ppdb+Gelombang)
 php artisan route:list
@@ -80,7 +80,7 @@ afec941 fix: partials unduhan brosur (kantor) ← HEAD
 ### 4.1 Auth & Sistem (commit b99d316 + 4abcfab)
 - **Login username** `LoginController` `throttle:5,1`, `session regenerate`, `logout POST`, middleware `guest`/`auth`
 - **Role:** `super-admin, admin, guru, siswa, orang-tua` (RoleSeeder) — `superadmin/superadmin123`
-- **Permission 69:** 16 resource ×4 (+`galeris`) + `profil-sekolahs` view/edit + `berkas-calon-siswas` view/edit + `siswas.view`
+- **Permission 91:** 16 resource ×4 + `galeris` ×4 + `gurus, mata-pelajarans, kelas, pengampus, wali-kelas` ×4 + `kenaikan-kelas` view/execute + `profil-sekolahs` view/edit + `berkas-calon-siswas` view/edit + `siswas.view`
   - `super-admin → all`, `admin → view/create/edit` tanpa `delete` (semua modul), `siswa → siswas.view` saja (upload pembayaran dicabut total)
 - **CRUD:** `UserController` (HasMiddleware, assignableRoles, cegah hapus diri & super-admin terakhir), `RoleController`, `MenuController` (dual permission `permission` string + pivot `menu_permission`), `GelombangController`, `BiayaPendaftaranController`, `PengumumanController`, `TahunAjaranController` (aktivasi = transaksi nonaktifkan lainnya, blokir hapus berelasi), `JalurPendaftaranController`, `JadwalPpdbController`, `KuotaPendaftaranController` (unique tahun+jalur, `terisi lte:kuota`, blokir hapus bila terisi>0), `PembayaranController` (+`storeDenganAngsuran` satu langkah, `tutupCicilan`, export/kwitansi), `PembayaranLainnyaController`, `RencanaAngsuranController` (store rencana+DP, denda, batal)
 - **Views admin:** `admin/users, roles, menus, gelombangs, biaya-pendaftarans, pengumumans` — `card-nexus`, `table-nexus`, `form-floating`, `pagination::bootstrap-5`
@@ -165,7 +165,7 @@ database/migrations/ 25 migrasi awal + gelombangs + expand siswas + username uni
 database/seeders/ RoleSeeder (5 role), PermissionSeeder (65 perms: +profil 2, +brosur 4), MenuSeeder (16 menus: +Tahun Ajaran, Pembayaran tersambung, Profil Sekolah 24, Brosur 19), PpdbSeeder (4 TA, 5 jalur: +Prestasi Olahraga wajib_sertifikat, 5 kuota, 5 biaya, 5 jadwal, 3 pengumuman, 3 gelombang), ProfilSekolahSeeder (placeholder GANTI:), BrosurSeeder (2 baris tanpa file), DemoCalonSiswaSeeder (5 calon demo, tagihan di-comment-out), DatabaseSeeder call order
 resources/views/layouts/app.blade.php (Nexus), spmb.blade.php (Tailwind), admin/calon-siswas/* (+Section F sertifikat, card Pembayaran di show, modal bayar dropdown biaya + grid rincian), admin/gelombangs/*, admin/biaya-pendaftarans/*, admin/pengumumans/*, admin/tahun-ajarans/*, admin/jalur-pendaftarans/* (checkbox wajib_sertifikat), admin/jadwal-ppdbs/*, admin/kuota-pendaftarans/*, admin/pembayarans/* (index filter tanggal + penanda DP/cicilan + create/edit/show/_form + pdf + kwitansi), admin/pembayaran-lainnyas/* (index/create/edit/show/_form + pdf), spmb/pendaftaran.blade.php (7 berkas + section sertifikat dinamis step 4), spmb/home.blade.php (+section unduhan brosur), spmb/about.blade.php, spmb/partials/unduhan.blade.php, siswa/dashboard.blade.php (card LNN, tanpa upload pembayaran)
 routes/web.php (68 baris, ±109 route): / (spmb.home), /about, /pendaftaran (spmb.*), /pengumuman/*, siswa/dashboard, /login, admin/* 13 resources (+pembayaran-lainnyas + pembayarans status/kwitansi/export + rencana.store/batal/denda)
-tests/Feature/ 23 file 205 test: Auth 6, AdminDashboard 2, Example 1, Users 9, Roles 10, Menus 10, CalonSiswa 12, SpmbPendaftaran 6, BerkasVerification 5, Gelombang 9, Biaya 8, Pengumuman 10, TahunAjaran 9, JalurPendaftaran 8, JadwalPpdb 8, KuotaPendaftaran 8, SertifikatPrestasi 7, Pembayaran 25, PembayaranLainnya 11, RencanaAngsuran 17, ProfilSekolah 7, Brosur 8, Galeri 8
+tests/Feature/ 29 file 250 test: Auth 6, AdminDashboard 2, Example 1, Users 9, Roles 10, Menus 10, CalonSiswa 12, SpmbPendaftaran 6, BerkasVerification 5, Gelombang 9, Biaya 8, Pengumuman 10, TahunAjaran 9, JalurPendaftaran 8, JadwalPpdb 8, KuotaPendaftaran 8, SertifikatPrestasi 7, Pembayaran 25, PembayaranLainnya 11, RencanaAngsuran 17, ProfilSekolah 7, Brosur 8, Galeri 8, Guru 8, MataPelajaran 8, Kelas 8, Pengampu 7, WaliKelas 7, KenaikanKelas 7
 ```
 
 ---
@@ -201,7 +201,7 @@ tests/Feature/ 23 file 205 test: Auth 6, AdminDashboard 2, Example 1, Users 9, R
 
 ```bash
 php artisan migrate:fresh --seed  # 3 gelombang 80/70/30, 3 pengumuman, 5 biaya, kuota 200/50/30/20/20(olahraga)
-php artisan test --compact         # harus 205/205
+php artisan test --compact         # harus 250/250
 php artisan route:list | findstr spmb
 # Publik: buka /pendaftaran → isi 5 berkas → submit → flash Username: nisn Password: xxx No: PPDB-...
 # Login nisn/password → redirect /siswa/dashboard (role siswa) → pantau status, berkas, log
@@ -225,6 +225,16 @@ php artisan route:list | findstr spmb
 - **Kelola:** `BrosurController` CRUD (perm `brosurs.*`, menu Brosur order 19), gambar JPG/PNG/WebP 5MB, ganti/hapus file ikut storage.
 - **Publik:** `SpmbController@home` kirim `$brosurs` aktif; partial unduhan loop DB (filter ber-gambar), **section sembunyi bila kosong**; lightbox tak berubah.
 - **Tests:** `BrosurTest` 8 (197 total).
+
+### 4.14 Data Master Akademik (fondasi absensi & e-learning)
+- **Bug diperbaiki:** migrasi `riwayat_kelas` merujuk tabel tak ada (`siswa`→`siswas`, `tahun_ajaran`→`tahun_ajarans`); DB live ternyata masih stub. Komentar tingkat `10/11/12`→`7/8/9`.
+- **Aturan konsolidasi migrasi (keputusan user):** satu tabel = satu file create. 9 file alter dilipat (username unique, expand siswas/gurus, krm/kip, wajib_sertifikat, pembayaran_id rencana, kolom pengampu) + file-file `expand_*/sync_*` dihapus; `create_siswas` digeser timestamp ke 144116 (setelah `kelas`) agar FK fresh-migrate valid. Pengecualian: `modify_pembayarans` dipertahankan hanya untuk FK `detail_angsuran_id` (tabel detail dibuat setelah pembayarans) + `backfill_dp` (migrasi data). Setelah ini: ubah file create langsung, wajib `migrate:fresh --seed`.
+- **Tabel:** `gurus` expand (user_id login + role guru, nip unique, nama, jk, telp, alamat, is_aktif), `mata_pelajarans` (kode unique, nama, kelompok A/B/C, kkm, aktif), `pengampus` (**tabel kunci**: guru+mapel+kelas+tahun, unique mapel+kelas+tahun), `wali_kelas` (unique kelas+tahun). Kelas timeless, penugasan di-scope tahun.
+- **Relasi:** Guru/Pengampu/WaliKelas/Kelas/RiwayatKelas/TahunAjaran/Siswa saling terhubung; `Pengampu` didokumentasikan sebagai jangkar nilai/materi/tugas/absensi.
+- **Seeder `AkademikSeeder`:** kasus sekolah — Guru A→MTK 7A+7B, Guru D→MTK 7C+7D (+wali 7A/7C), akun guru-a/guru-d password `password`.
+- **CRUD:** Guru (buat akun otomatis, blokir hapus bila bertugas), Mapel, Kelas (filter tingkat, blokir hapus berelasi), Pengampu (filter tahun/kelas/guru, cegah duplikat, histori beda tahun boleh), WaliKelas + menu header Akademik 21–27 + permission (admin view/create/edit).
+- **Naik kelas/lulus:** halaman `admin.kenaikan` (filter tahun/kelas, checkbox, bulk): naikkan tulis riwayat aktif + pindah kelas (idempoten, lewati yang sudah ada); luluskan tulis riwayat lulus + `is_aktif=false`. Perm `kenaikan-kelas.view/execute`.
+- **Tests:** Guru 8, Mapel 8, Kelas 8, Pengampu 7, Wali 7, Kenaikan 7 (250 total).
 
 ### 4.13 Galeri & Prestasi Dinamis (satu tabel + tipe)
 - **Tabel `galeris`:** `tipe` enum (galeri/prestasi), `title, desc, image_path (galeri/, wajib bila tipe galeri), tanggal (wajib bila prestasi), order, is_active` + scope `aktif/foto/prestasi`.

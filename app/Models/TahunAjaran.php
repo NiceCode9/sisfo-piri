@@ -54,6 +54,16 @@ class TahunAjaran extends Model
         return $this->hasMany(RiwayatKelas::class);
     }
 
+    public function pengampus(): HasMany
+    {
+        return $this->hasMany(Pengampu::class);
+    }
+
+    public function waliKelas(): HasMany
+    {
+        return $this->hasMany(WaliKelas::class);
+    }
+
     public function scopeAktif($query)
     {
         return $query->where('status_aktif', true);

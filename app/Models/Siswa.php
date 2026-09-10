@@ -45,4 +45,9 @@ class Siswa extends Model
     {
         return $this->belongsTo(Kelas::class);
     }
+
+    public function riwayatKelas()
+    {
+        return $this->hasMany(RiwayatKelas::class);
+    }
 }

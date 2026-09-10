@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('calon_siswa_id')->constrained('calon_siswas')->onDelete('cascade');
             $table->foreignId('biaya_pendaftaran_id')->constrained('biaya_pendaftarans')->onDelete('cascade');
+            $table->foreignId('pembayaran_id')->nullable()->constrained('pembayarans')->onDelete('set null'); // tagihan induk
             $table->string('kode_angsuran')->unique(); // Format: ANG-YYYY-XXXX
             $table->decimal('total_biaya', 10, 2);
             $table->decimal('dp_dibayar', 10, 2)->default(0); // down payment yang sudah dibayar

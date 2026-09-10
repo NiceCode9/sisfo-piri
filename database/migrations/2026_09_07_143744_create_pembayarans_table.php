@@ -18,6 +18,8 @@ return new class extends Migration
             $table->string('kode_pembayaran')->unique();
             $table->decimal('jumlah', 10, 2);
             $table->string('metode_pembayaran'); // transfer, tunai
+            $table->enum('jenis_pembayaran', ['penuh', 'dp_angsuran', 'cicilan_angsuran'])->default('penuh');
+            $table->text('keterangan_angsuran')->nullable();
             $table->string('bukti_pembayaran_path')->nullable();
             $table->date('tanggal_pembayaran')->nullable();
             $table->enum('status', ['menunggu', 'berhasil', 'gagal'])->default('menunggu');

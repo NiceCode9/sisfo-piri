@@ -19,6 +19,8 @@ return new class extends Migration
             $table->string('akta_path')->nullable();
             $table->string('foto_path')->nullable();
             $table->string('skl_path')->nullable(); // Surat Keterangan Lulus
+            $table->string('krm_path')->nullable();
+            $table->string('kip_path')->nullable();
             $table->text('catatan_berkas')->nullable();
             $table->boolean('status_verifikasi')->default(false);
             $table->json('berkas_perlu_perbaikan')->nullable();

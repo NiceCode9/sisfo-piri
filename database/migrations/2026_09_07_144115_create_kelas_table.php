@@ -13,6 +13,9 @@ return new class extends Migration
     {
         Schema::create('kelas', function (Blueprint $table) {
             $table->id();
+            $table->string('nama_kelas'); // Contoh: 7A, 7B, 8A
+            $table->string('tingkat'); // 7, 8, 9 (SMP, wajib)
+            $table->text('deskripsi')->nullable();
             $table->timestamps();
         });
     }

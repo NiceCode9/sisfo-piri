@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('nama_jalur');
             $table->text('deskripsi')->nullable();
             $table->boolean('aktif')->default(true);
+            $table->boolean('wajib_sertifikat')->default(false);
             $table->timestamps();
         });
     }

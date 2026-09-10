@@ -13,6 +13,13 @@ return new class extends Migration
     {
         Schema::create('gurus', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('set null');
+            $table->string('nip')->nullable()->unique();
+            $table->string('nama');
+            $table->enum('jenis_kelamin', ['L', 'P']);
+            $table->string('telp', 50)->nullable();
+            $table->text('alamat')->nullable();
+            $table->boolean('is_aktif')->default(true);
             $table->timestamps();
         });
     }

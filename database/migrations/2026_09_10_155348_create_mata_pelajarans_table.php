@@ -11,8 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('siswas', function (Blueprint $table) {
+        Schema::create('mata_pelajarans', function (Blueprint $table) {
             $table->id();
+            $table->string('kode', 20)->unique(); // MTK, IPA, BHS
+            $table->string('nama'); // Matematika
+            $table->enum('kelompok', ['A', 'B', 'C'])->default('A');
+            $table->unsignedTinyInteger('kkm')->default(75);
+            $table->boolean('is_aktif')->default(true);
             $table->timestamps();
         });
     }
@@ -22,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('siswas');
+        Schema::dropIfExists('mata_pelajarans');
     }
 };

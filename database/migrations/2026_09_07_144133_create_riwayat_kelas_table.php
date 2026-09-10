@@ -13,6 +13,11 @@ return new class extends Migration
     {
         Schema::create('riwayat_kelas', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('siswa_id')->constrained('siswas')->onDelete('cascade');
+            $table->foreignId('kelas_id')->constrained('kelas')->onDelete('cascade');
+            $table->foreignId('tahun_ajaran_id')->constrained('tahun_ajarans')->onDelete('cascade');
+            $table->enum('status', ['aktif', 'lulus', 'pindah', 'dropout'])->default('aktif');
+            $table->text('keterangan')->nullable();
             $table->timestamps();
         });
     }

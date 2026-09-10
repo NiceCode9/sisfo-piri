@@ -28,6 +28,14 @@ class MenuSeeder extends Seeder
             ['name' => 'Brosur', 'icon' => 'fa-solid fa-file-image', 'route' => 'admin.brosurs.index', 'permission' => 'brosurs.view', 'order' => 19],
             ['name' => 'Galeri', 'icon' => 'fa-solid fa-images', 'route' => 'admin.galeris.index', 'permission' => 'galeris.view', 'order' => 20],
 
+            ['name' => 'Akademik', 'is_header' => true, 'order' => 21],
+            ['name' => 'Guru', 'icon' => 'fa-solid fa-chalkboard-user', 'route' => 'admin.gurus.index', 'permission' => 'gurus.view', 'order' => 22],
+            ['name' => 'Mata Pelajaran', 'icon' => 'fa-solid fa-book-open', 'route' => 'admin.mata-pelajarans.index', 'permission' => 'mata-pelajarans.view', 'order' => 23],
+            ['name' => 'Kelas', 'icon' => 'fa-solid fa-school-flag', 'route' => 'admin.kelas.index', 'permission' => 'kelas.view', 'order' => 24],
+            ['name' => 'Pengampu', 'icon' => 'fa-solid fa-clipboard-user', 'route' => 'admin.pengampus.index', 'permission' => 'pengampus.view', 'order' => 25],
+            ['name' => 'Wali Kelas', 'icon' => 'fa-solid fa-user-tie', 'route' => 'admin.wali-kelas.index', 'permission' => 'wali-kelas.view', 'order' => 26],
+            ['name' => 'Kenaikan Kelas', 'icon' => 'fa-solid fa-arrow-up-right-dots', 'route' => 'admin.kenaikan.index', 'permission' => 'kenaikan-kelas.view', 'order' => 27],
+
             ['name' => 'Sistem', 'is_header' => true, 'order' => 30],
             ['name' => 'Role', 'icon' => 'fa-solid fa-user-tie', 'route' => 'admin.roles.index', 'permission' => 'roles.view', 'order' => 31],
             ['name' => 'Menu', 'icon' => 'fa-solid fa-bars', 'route' => 'admin.menus.index', 'permission' => 'menus.view', 'order' => 32],
