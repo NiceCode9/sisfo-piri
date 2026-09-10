@@ -1661,6 +1661,66 @@
                 </div>
             </div>
 
+            <!-- Pembayaran Lainnya -->
+            <div class="card modern-card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title">
+                        <i class="bi bi-receipt me-2"></i>Pembayaran Lainnya
+                    </h5>
+                    <div class="d-flex gap-2">
+                        <a href="{{ route('admin.pembayaran-lainnyas.index', ['search' => $calon->no_pendaftaran]) }}" class="btn btn-outline-light btn-sm">
+                            <i class="bi bi-list-ul me-1"></i>Lihat Semua
+                        </a>
+                        @can('pembayaran-lainnyas.create')
+                            <button type="button" class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#modalPembayaranLainnya">
+                                <i class="bi bi-plus-circle me-1"></i>Tambah
+                            </button>
+                        @endcan
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if ($calon->pembayaranLainnya->isNotEmpty())
+                        <div class="table-responsive">
+                            <table class="table-nexus w-100" style="font-size: 13px;">
+                                <thead><tr><th>Kode</th><th>Nama Biaya</th><th>Jumlah</th><th>Status</th><th>Bukti</th><th>Aksi</th></tr></thead>
+                                <tbody>
+                                    @foreach ($calon->pembayaranLainnya as $lain)
+                                        <tr>
+                                            <td style="font-size:12px;">{{ $lain->kode_pembayaran }}</td>
+                                            <td>{{ $lain->nama_biaya }}</td>
+                                            <td>Rp {{ number_format($lain->jumlah, 0, ',', '.') }}</td>
+                                            <td>
+                                                @php $badgeLain = $lain->status === 'berhasil' ? 'badge-info' : ($lain->status === 'gagal' ? 'badge-danger' : 'badge-neutral'); @endphp
+                                                <span class="badge-nexus {{ $badgeLain }}">{{ $lain->status }}</span>
+                                            </td>
+                                            <td>
+                                                @if($lain->bukti_pembayaran_path)
+                                                    <a href="{{ Storage::disk('public')->url($lain->bukti_pembayaran_path) }}" target="_blank" class="text-primary">Lihat</a>
+                                                @else — @endif
+                                            </td>
+                                            <td>
+                                                <div class="d-flex gap-1">
+                                                    <a href="{{ route('admin.pembayaran-lainnyas.show', $lain) }}" class="btn-icon btn btn-nexus-outline btn-sm"><i class="fa-solid fa-eye"></i></a>
+                                                    @if($lain->status !== 'berhasil')
+                                                        <form action="{{ route('admin.pembayaran-lainnyas.status', $lain) }}" method="POST" class="d-inline">
+                                                            @csrf @method('PATCH')
+                                                            <input type="hidden" name="status" value="berhasil" />
+                                                            <button type="submit" class="btn-icon btn btn-nexus-outline btn-sm text-success" title="Verifikasi berhasil"><i class="fa-solid fa-check"></i></button>
+                                                        </form>
+                                                    @endif
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <p class="empty-text">Belum ada pembayaran lainnya untuk calon ini.</p>
+                    @endif
+                </div>
+            </div>
+
             <!-- Payment Modal -->
             @can('pembayarans.create')
                 <div class="modal fade" id="modalPembayaran" tabindex="-1" aria-labelledby="modalPembayaranLabel" aria-hidden="true">
@@ -1746,6 +1806,85 @@
                                     </button>
                                     <button type="submit" class="btn btn-primary">
                                         <i class="bi bi-check-lg me-1"></i>Simpan Pembayaran
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            @endcan
+
+            <!-- Modal Pembayaran Lainnya -->
+            @can('pembayaran-lainnyas.create')
+                <div class="modal fade" id="modalPembayaranLainnya" tabindex="-1" aria-labelledby="modalPembayaranLainnyaLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="modalPembayaranLainnyaLabel">
+                                    <i class="bi bi-plus-circle me-2"></i>Tambah Pembayaran Lainnya
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <form action="{{ route('admin.pembayaran-lainnyas.store') }}" method="POST" enctype="multipart/form-data">
+                                @csrf
+                                <input type="hidden" name="calon_siswa_id" value="{{ $calon->id }}" />
+                                <input type="hidden" name="redirect_to" value="{{ route('admin.calon-siswas.show', $calon) }}" />
+                                <div class="modal-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label for="lain_nama_biaya" class="form-label">
+                                                <i class="bi bi-tag text-success me-1"></i>Nama Biaya <span class="text-danger">*</span>
+                                            </label>
+                                            <input type="text" class="form-control" id="lain_nama_biaya" name="nama_biaya" required placeholder="cth: Denda keterlambatan" />
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="lain_jumlah" class="form-label">
+                                                <i class="bi bi-currency-dollar text-success me-1"></i>Jumlah <span class="text-danger">*</span>
+                                            </label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">Rp</span>
+                                                <input type="number" class="form-control" id="lain_jumlah" name="jumlah" required placeholder="0" min="0" />
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="lain_metode" class="form-label">
+                                                <i class="bi bi-credit-card text-primary me-1"></i>Metode Pembayaran <span class="text-danger">*</span>
+                                            </label>
+                                            <select class="form-select" id="lain_metode" name="metode_pembayaran" required>
+                                                <option value="">Pilih metode pembayaran</option>
+                                                <option value="transfer">Transfer Bank</option>
+                                                <option value="tunai">Tunai</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="lain_tanggal" class="form-label">
+                                                <i class="bi bi-calendar-event text-info me-1"></i>Tanggal Pembayaran
+                                            </label>
+                                            <input type="date" class="form-control" id="lain_tanggal" name="tanggal_pembayaran" value="{{ date('Y-m-d') }}" />
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="lain_bukti" class="form-label">
+                                                <i class="bi bi-cloud-upload text-warning me-1"></i>Bukti Pembayaran
+                                            </label>
+                                            <input type="file" class="form-control" id="lain_bukti" name="bukti_pembayaran_path" accept=".pdf,.jpg,.jpeg,.png" />
+                                            <div class="form-text">
+                                                <i class="bi bi-info-circle me-1"></i><strong>Wajib</strong> bila transfer, opsional bila tunai.
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="lain_catatan" class="form-label">
+                                                <i class="bi bi-chat-text text-secondary me-1"></i>Catatan
+                                            </label>
+                                            <textarea class="form-control" id="lain_catatan" name="catatan" rows="3" placeholder="Opsional..."></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                        <i class="bi bi-x-lg me-1"></i>Batal
+                                    </button>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-check-lg me-1"></i>Simpan
                                     </button>
                                 </div>
                             </form>

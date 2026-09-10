@@ -145,5 +145,49 @@
             </div>
         </div>
     </div>
+
+    <div class="card-nexus mt-3">
+        <div class="card-header-nexus"><h5 class="card-title">Riwayat Pembayaran</h5></div>
+        <div class="card-body-nexus">
+            @php
+                $semuaBayar = $calon->pembayaran->map(fn ($p) => [
+                    'kode' => $p->kode_pembayaran,
+                    'nama' => $p->biayaPendaftaran->jenis_biaya ?? $p->kode_pembayaran,
+                    'jumlah' => $p->jumlah,
+                    'status' => $p->status,
+                    'tanggal' => $p->tanggal_pembayaran,
+                ])->concat($calon->pembayaranLainnya->map(fn ($p) => [
+                    'kode' => $p->kode_pembayaran,
+                    'nama' => $p->nama_biaya.' (lainnya)',
+                    'jumlah' => $p->jumlah,
+                    'status' => $p->status,
+                    'tanggal' => $p->tanggal_pembayaran,
+                ]));
+            @endphp
+            @if($semuaBayar->isEmpty())
+                <p class="mb-0" style="font-size:13px;color:var(--text-muted);">Belum ada tagihan. Tagihan dibuat otomatis setelah status diterima.</p>
+            @else
+                <div class="table-responsive">
+                    <table class="table-nexus w-100" style="font-size:13px;">
+                        <thead><tr><th>Kode</th><th>Biaya</th><th>Jumlah</th><th>Status</th><th>Tanggal</th></tr></thead>
+                        <tbody>
+                            @foreach($semuaBayar as $row)
+                                <tr>
+                                    <td style="font-size:12px;">{{ $row['kode'] }}</td>
+                                    <td>{{ $row['nama'] }}</td>
+                                    <td>Rp {{ number_format($row['jumlah'],0,',','.') }}</td>
+                                    <td>
+                                        @php $badge = $row['status']==='berhasil' ? 'badge-info' : ($row['status']==='gagal' ? 'badge-danger' : 'badge-neutral'); @endphp
+                                        <span class="badge-nexus {{ $badge }}">{{ $row['status'] }}</span>
+                                    </td>
+                                    <td>{{ $row['tanggal'] ? \Carbon\Carbon::parse($row['tanggal'])->format('d M Y') : '-' }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div>
+    </div>
 @endif
 @endsection

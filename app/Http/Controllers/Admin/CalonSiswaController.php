@@ -128,7 +128,7 @@ class CalonSiswaController extends Controller implements HasMiddleware
 
     public function show(CalonSiswa $calonSiswa): View
     {
-        $calonSiswa->load(['jalurPendaftaran', 'tahunAjaran', 'tahunAjaran.biayaPendaftaran', 'berkasCalonSiswa', 'sertifikatPrestasis', 'logStatusPendaftaran.user', 'pembayaran.biayaPendaftaran', 'rencanaAngsuran.detailAngsuran']);
+        $calonSiswa->load(['jalurPendaftaran', 'tahunAjaran', 'tahunAjaran.biayaPendaftaran', 'berkasCalonSiswa', 'sertifikatPrestasis', 'logStatusPendaftaran.user', 'pembayaran.biayaPendaftaran', 'pembayaranLainnya', 'rencanaAngsuran.detailAngsuran']);
 
         return view('admin.calon-siswas.show', [
             'calon' => $calonSiswa,
@@ -349,6 +349,11 @@ class CalonSiswaController extends Controller implements HasMiddleware
             }
             foreach ($calonSiswa->sertifikatPrestasis as $sertifikat) {
                 Storage::disk('public')->delete($sertifikat->file_path);
+            }
+            foreach ($calonSiswa->pembayaranLainnya as $lain) {
+                if ($lain->bukti_pembayaran_path) {
+                    Storage::disk('public')->delete($lain->bukti_pembayaran_path);
+                }
             }
             $calonSiswa->delete();
         });

@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\JalurPendaftaranController;
 use App\Http\Controllers\Admin\KuotaPendaftaranController;
 use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Admin\PembayaranController;
+use App\Http\Controllers\Admin\PembayaranLainnyaController;
 use App\Http\Controllers\Admin\PengumumanController;
 use App\Http\Controllers\Admin\RencanaAngsuranController;
 use App\Http\Controllers\Admin\RoleController;
@@ -56,6 +57,10 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::get('pembayarans/export/pdf', [PembayaranController::class, 'exportPdf'])->name('pembayarans.export.pdf');
     Route::resource('pembayarans', PembayaranController::class);
     Route::patch('pembayarans/{pembayaran}/status', [PembayaranController::class, 'updateStatus'])->name('pembayarans.status');
+    Route::get('pembayaran-lainnyas/export/excel', [PembayaranLainnyaController::class, 'exportExcel'])->name('pembayaran-lainnyas.export.excel');
+    Route::get('pembayaran-lainnyas/export/pdf', [PembayaranLainnyaController::class, 'exportPdf'])->name('pembayaran-lainnyas.export.pdf');
+    Route::resource('pembayaran-lainnyas', PembayaranLainnyaController::class);
+    Route::patch('pembayaran-lainnyas/{pembayaran_lainnya}/status', [PembayaranLainnyaController::class, 'updateStatus'])->name('pembayaran-lainnyas.status');
     Route::post('pembayarans/{pembayaran}/rencana', [RencanaAngsuranController::class, 'store'])->name('rencana.store');
     Route::patch('rencana-angsuran/{rencana}/batal', [RencanaAngsuranController::class, 'batal'])->name('rencana.batal');
     Route::patch('detail-angsuran/{detail}/denda', [RencanaAngsuranController::class, 'updateDenda'])->name('rencana.denda');
