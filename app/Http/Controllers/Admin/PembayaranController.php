@@ -51,7 +51,7 @@ class PembayaranController extends Controller implements HasMiddleware
      */
     protected function filteredQuery(): Builder
     {
-        return Pembayaran::with(['calonSiswa', 'biayaPendaftaran'])
+        return Pembayaran::with(['calonSiswa', 'biayaPendaftaran', 'detailAngsuran'])
             ->when(request('search'), fn ($q, $s) => $q->where('kode_pembayaran', 'like', "%{$s}%")
                 ->orWhereHas('calonSiswa', fn ($qq) => $qq->where('nama_lengkap', 'like', "%{$s}%")))
             ->when(request('status'), fn ($q, $v) => $q->where('status', $v))

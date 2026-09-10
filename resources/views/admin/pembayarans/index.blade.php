@@ -53,7 +53,13 @@
                         <tr>
                             <td style="font-size:12.5px;font-weight:600;">{{ $p->kode_pembayaran }}</td>
                             <td style="font-size:12.5px;">{{ $p->calonSiswa->nama_lengkap ?? '-' }}<div style="font-size:11px;color:var(--text-muted);">{{ $p->calonSiswa->no_pendaftaran ?? '' }}</div></td>
-                            <td style="font-size:12.5px;">{{ $p->biayaPendaftaran->jenis_biaya ?? '-' }}</td>
+                            <td style="font-size:12.5px;">{{ $p->biayaPendaftaran->jenis_biaya ?? '-' }}
+                                @if($p->jenis_pembayaran === 'dp_angsuran')
+                                    <div class="mt-1"><span class="badge-nexus badge-purple">DP</span></div>
+                                @elseif($p->jenis_pembayaran === 'cicilan_angsuran')
+                                    <div class="mt-1"><span class="badge-nexus badge-info">Cicilan ke-{{ $p->detailAngsuran->cicilan_ke ?? '?' }}</span></div>
+                                @endif
+                            </td>
                             <td style="font-size:13px;">Rp {{ number_format($p->jumlah,0,',','.') }}</td>
                             <td><span class="badge-nexus badge-neutral">{{ $p->metode_pembayaran }}</span></td>
                             <td>

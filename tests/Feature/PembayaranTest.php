@@ -2,6 +2,7 @@
 
 use App\Models\BiayaPendaftaran;
 use App\Models\CalonSiswa;
+use App\Models\DetailAngsuran;
 use App\Models\JalurPendaftaran;
 use App\Models\Pembayaran;
 use App\Models\RencanaAngsuran;
@@ -314,6 +315,68 @@ test('store satu langkah angsuran membuat DP + rencana + cicilan', function () {
         ->first();
 
     expect($dp)->not->toBeNull()->and($dp->status)->toBe('berhasil');
+});
+
+test('index menandai DP dan cicilan ke-N, penuh tanpa penanda', function () {
+    $calon = buatCalon();
+    $biaya = BiayaPendaftaran::where('jenis_biaya', 'Uang Pangkal')->first();
+
+    Pembayaran::create([
+        'calon_siswa_id' => $calon->id,
+        'biaya_pendaftaran_id' => $biaya->id,
+        'kode_pembayaran' => 'PAY-2026-0401',
+        'jumlah' => 500000,
+        'metode_pembayaran' => 'tunai',
+        'jenis_pembayaran' => 'dp_angsuran',
+        'status' => 'berhasil',
+    ]);
+
+    $detail = DetailAngsuran::create([
+        'rencana_angsuran_id' => RencanaAngsuran::create([
+            'calon_siswa_id' => $calon->id,
+            'biaya_pendaftaran_id' => $biaya->id,
+            'kode_angsuran' => 'ANG-2026-0401',
+            'total_biaya' => $biaya->jumlah,
+            'dp_dibayar' => 500000,
+            'sisa_hutang' => $biaya->jumlah - 500000,
+            'jumlah_cicilan' => 2,
+            'nominal_per_cicilan' => 1000000,
+            'tanggal_mulai' => '2026-09-01',
+            'tanggal_selesai' => '2026-10-01',
+            'status' => 'aktif',
+        ])->id,
+        'cicilan_ke' => 1,
+        'nominal_cicilan' => 1000000,
+        'tanggal_jatuh_tempo' => '2026-09-01',
+        'denda' => 0,
+        'status' => 'belum_bayar',
+    ]);
+
+    Pembayaran::create([
+        'calon_siswa_id' => $calon->id,
+        'biaya_pendaftaran_id' => $biaya->id,
+        'detail_angsuran_id' => $detail->id,
+        'kode_pembayaran' => 'PAY-2026-0402',
+        'jumlah' => 1000000,
+        'metode_pembayaran' => 'tunai',
+        'jenis_pembayaran' => 'cicilan_angsuran',
+        'status' => 'menunggu',
+    ]);
+
+    Pembayaran::create([
+        'calon_siswa_id' => $calon->id,
+        'kode_pembayaran' => 'PAY-2026-0403',
+        'jumlah' => 100000,
+        'metode_pembayaran' => 'tunai',
+        'jenis_pembayaran' => 'penuh',
+        'status' => 'berhasil',
+    ]);
+
+    $response = $this->actingAs(superAdmin())->get(route('admin.pembayarans.index'));
+
+    $response->assertOk();
+    $response->assertSee('>DP<', false);
+    $response->assertSee('Cicilan ke-1', false);
 });
 
 test('store via modal show kembali ke show calon', function () {
