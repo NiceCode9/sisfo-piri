@@ -1624,7 +1624,7 @@
                                     <div class="fee-action">
                                         @can('pembayarans.create')
                                             <button type="button" class="btn btn-primary"
-                                                onclick="setBiayaId('{{ $biaya['id'] }}', '{{ $biaya['sisa'] }}', '{{ $biaya['mata_uang'] }}')"
+                                                onclick="setBiayaId('{{ $biaya['id'] }}', '{{ $biaya['sisa'] }}', '{{ $biaya['mata_uang'] }}', '{{ $biaya['dapat_diangsur'] ? 1 : 0 }}')"
                                                 data-bs-toggle="modal" data-bs-target="#modalPembayaran">
                                                 <i class="bi bi-credit-card me-1"></i>Bayar
                                             </button>
@@ -1664,7 +1664,26 @@
                                 <input type="hidden" name="calon_siswa_id" value="{{ $calon->id }}" />
                                 <input type="hidden" name="jenis_pembayaran" value="penuh" />
                                 <input type="hidden" id="selected_biaya_id" name="biaya_pendaftaran_id" />
+                                <input type="hidden" name="redirect_to" value="{{ route('admin.calon-siswas.show', $calon) }}" />
                                 <div class="modal-body">
+                                    <div class="form-check mb-3 d-none" id="angsuran-check-wrap">
+                                        <input type="checkbox" name="buat_angsuran" value="1" id="modal_buat_angsuran" class="form-check-input" />
+                                        <label class="form-check-label" for="modal_buat_angsuran">Buat sebagai angsuran <span class="text-muted" style="font-size:11px;">(tagihan + DP + jadwal cicilan sekaligus)</span></label>
+                                    </div>
+                                    <div class="row g-3 mb-3 d-none" id="modal-angsuran-fields">
+                                        <div class="col-md-4">
+                                            <label for="modal_dp_dibayar" class="form-label">DP Dibayar</label>
+                                            <input type="number" step="0.01" class="form-control" id="modal_dp_dibayar" name="dp_dibayar" min="0" />
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="modal_jumlah_cicilan" class="form-label">Jumlah Cicilan</label>
+                                            <input type="number" class="form-control" id="modal_jumlah_cicilan" name="jumlah_cicilan" min="1" max="60" />
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="modal_tanggal_mulai" class="form-label">Mulai Cicilan</label>
+                                            <input type="date" class="form-control" id="modal_tanggal_mulai" name="tanggal_mulai" />
+                                        </div>
+                                    </div>
                                     <div class="row g-3">
                                         <div class="col-md-6">
                                             <label for="jumlah" class="form-label">
@@ -1727,12 +1746,27 @@
 
 @push('scripts')
     <script>
-        // Set biaya ID for payment modal (bayar penuh per biaya)
-        function setBiayaId(biayaId, jumlah, mataUang) {
+        // Set biaya ID for payment modal (bayar penuh per biaya, atau angsuran bila bisa)
+        function setBiayaId(biayaId, jumlah, mataUang, dapatDiangsur) {
             document.getElementById('selected_biaya_id').value = biayaId;
             document.getElementById('jumlah').value = jumlah;
             document.getElementById('mata-uang-addon').textContent = mataUang;
+            var wrap = document.getElementById('angsuran-check-wrap');
+            var check = document.getElementById('modal_buat_angsuran');
+            var fields = document.getElementById('modal-angsuran-fields');
+            if (wrap && check && fields) {
+                var bisa = String(dapatDiangsur) === '1';
+                wrap.classList.toggle('d-none', !bisa);
+                if (!bisa) {
+                    check.checked = false;
+                    fields.classList.add('d-none');
+                }
+            }
         }
+
+        document.getElementById('modal_buat_angsuran')?.addEventListener('change', function () {
+            document.getElementById('modal-angsuran-fields')?.classList.toggle('d-none', !this.checked);
+        });
 
         document.addEventListener('DOMContentLoaded', function() {
             // Animate cards on load with stagger effect

@@ -10,11 +10,14 @@ use App\Models\CalonSiswa;
 use App\Models\DetailAngsuran;
 use App\Models\Pembayaran;
 use App\Models\RencanaAngsuran;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class PembayaranController extends Controller implements HasMiddleware
@@ -45,7 +48,7 @@ class PembayaranController extends Controller implements HasMiddleware
     public function create(): View
     {
         return view('admin.pembayarans.create', [
-            'calons' => CalonSiswa::with('jalurPendaftaran')->orderByDesc('created_at')->limit(100)->get(),
+            'calons' => $this->calonBelumLunas(),
             'biayas' => BiayaPendaftaran::orderBy('jenis_biaya')->get(),
         ]);
     }
@@ -69,6 +72,14 @@ class PembayaranController extends Controller implements HasMiddleware
             $validated['jenis_pembayaran'] = 'cicilan_angsuran';
         }
 
+        if ($request->boolean('buat_angsuran')) {
+            if (! empty($validated['detail_angsuran_id'])) {
+                return back()->with('error', 'Pilih salah satu: bayar cicilan yang ada atau buat rencana angsuran baru.')->withInput();
+            }
+
+            return $this->storeDenganAngsuran($request, $validated);
+        }
+
         $validated['kode_pembayaran'] = $this->generateKode();
         $validated['status'] = $validated['status'] ?? ($request->hasFile('bukti_pembayaran_path') ? 'berhasil' : 'menunggu');
         $validated['jenis_pembayaran'] = $validated['jenis_pembayaran'] ?? 'penuh';
@@ -78,9 +89,127 @@ class PembayaranController extends Controller implements HasMiddleware
             $validated['tanggal_pembayaran'] = $validated['tanggal_pembayaran'] ?? now()->toDateString();
         }
 
-        $pembayaran = Pembayaran::create($validated);
+        $pembayaran = Pembayaran::create(collect($validated)->except(['buat_angsuran', 'dp_dibayar', 'jumlah_cicilan', 'tanggal_mulai', 'redirect_to'])->toArray());
 
-        return redirect()->route('admin.pembayarans.index')->with('success', "Pembayaran {$pembayaran->kode_pembayaran} berhasil dibuat.");
+        return $this->redirectAfterStore($request, "Pembayaran {$pembayaran->kode_pembayaran} berhasil dibuat.");
+    }
+
+    /**
+     * Satu langkah: buat tagihan induk + DP + rencana + jadwal cicilan.
+     */
+    protected function storeDenganAngsuran(StorePembayaranRequest $request, array $validated): RedirectResponse
+    {
+        $biaya = BiayaPendaftaran::find($validated['biaya_pendaftaran_id'] ?? null);
+
+        if (! $biaya || ! $biaya->dapat_diangsur) {
+            return back()->with('error', 'Angsuran hanya untuk biaya yang dapat diangsur.')->withInput();
+        }
+
+        $total = (float) $validated['jumlah'];
+        $dp = (float) ($validated['dp_dibayar'] ?? 0);
+        $n = (int) ($validated['jumlah_cicilan'] ?? 0);
+
+        if ($dp < (float) ($biaya->min_dp ?? 0)) {
+            return back()->withErrors(['dp_dibayar' => 'DP minimal Rp '.number_format($biaya->min_dp, 0, ',', '.').'.'])->withInput();
+        }
+
+        if ($dp >= $total) {
+            return back()->withErrors(['dp_dibayar' => 'DP harus lebih kecil dari total tagihan.'])->withInput();
+        }
+
+        if ($biaya->max_cicilan && $n > $biaya->max_cicilan) {
+            return back()->withErrors(['jumlah_cicilan' => "Maksimal {$biaya->max_cicilan} cicilan untuk biaya ini."])->withInput();
+        }
+
+        $duplikat = RencanaAngsuran::where('calon_siswa_id', $validated['calon_siswa_id'])
+            ->where('biaya_pendaftaran_id', $biaya->id)
+            ->where('status', 'aktif')
+            ->exists();
+
+        if ($duplikat) {
+            return back()->with('error', 'Sudah ada rencana angsuran aktif untuk calon dan biaya ini.')->withInput();
+        }
+
+        $sisa = $total - $dp;
+
+        DB::transaction(function () use ($request, $validated, $biaya, $total, $dp, $n, $sisa) {
+            $induk = Pembayaran::create([
+                'calon_siswa_id' => $validated['calon_siswa_id'],
+                'biaya_pendaftaran_id' => $biaya->id,
+                'kode_pembayaran' => $this->generateKode(),
+                'jumlah' => $total,
+                'metode_pembayaran' => $validated['metode_pembayaran'],
+                'jenis_pembayaran' => 'penuh',
+                'tanggal_pembayaran' => $validated['tanggal_pembayaran'] ?? null,
+                'status' => 'menunggu',
+                'catatan' => $validated['catatan'] ?? null,
+                'keterangan_angsuran' => $validated['keterangan_angsuran'] ?? null,
+            ]);
+
+            if ($dp > 0) {
+                $bukti = $request->hasFile('bukti_pembayaran_path')
+                    ? $request->file('bukti_pembayaran_path')->store('bukti', 'public')
+                    : null;
+
+                Pembayaran::create([
+                    'calon_siswa_id' => $validated['calon_siswa_id'],
+                    'biaya_pendaftaran_id' => $biaya->id,
+                    'kode_pembayaran' => $this->generateKode(),
+                    'jumlah' => $dp,
+                    'metode_pembayaran' => $validated['metode_pembayaran'],
+                    'jenis_pembayaran' => 'dp_angsuran',
+                    'bukti_pembayaran_path' => $bukti,
+                    'tanggal_pembayaran' => $validated['tanggal_pembayaran'] ?? now()->toDateString(),
+                    'status' => 'berhasil',
+                    'keterangan_angsuran' => 'DP angsuran untuk '.$induk->kode_pembayaran,
+                ]);
+            }
+
+            $rencana = RencanaAngsuran::create([
+                'calon_siswa_id' => $validated['calon_siswa_id'],
+                'biaya_pendaftaran_id' => $biaya->id,
+                'pembayaran_id' => $induk->id,
+                'kode_angsuran' => $this->generateKodeAngsuran(),
+                'total_biaya' => $total,
+                'dp_dibayar' => $dp,
+                'sisa_hutang' => $sisa,
+                'jumlah_cicilan' => $n,
+                'nominal_per_cicilan' => $sisa / $n,
+                'tanggal_mulai' => $validated['tanggal_mulai'],
+                'tanggal_selesai' => Carbon::parse($validated['tanggal_mulai'])->addMonthsNoOverflow($n - 1)->toDateString(),
+                'status' => 'aktif',
+            ]);
+
+            $perCicilan = floor($sisa / $n);
+            $mulai = Carbon::parse($validated['tanggal_mulai']);
+
+            for ($i = 1; $i <= $n; $i++) {
+                $rencana->detailAngsuran()->create([
+                    'cicilan_ke' => $i,
+                    'nominal_cicilan' => $i === $n ? $sisa - ($perCicilan * ($n - 1)) : $perCicilan,
+                    'tanggal_jatuh_tempo' => $mulai->copy()->addMonthsNoOverflow($i - 1)->toDateString(),
+                    'denda' => 0,
+                    'status' => 'belum_bayar',
+                ]);
+            }
+        });
+
+        return $this->redirectAfterStore($request, "Tagihan + rencana angsuran {$n}x berhasil dibuat.");
+    }
+
+    /**
+     * Kembali ke show calon bila simpan via modal show,
+     * selain itu ke index pembayaran.
+     */
+    protected function redirectAfterStore(Request $request, string $message): RedirectResponse
+    {
+        $redirectTo = $request->input('redirect_to');
+
+        if ($redirectTo && Str::startsWith($redirectTo, url('/admin/calon-siswas/'))) {
+            return redirect($redirectTo)->with('success', $message);
+        }
+
+        return redirect()->route('admin.pembayarans.index')->with('success', $message);
     }
 
     public function show(Pembayaran $pembayaran): View
@@ -97,9 +226,21 @@ class PembayaranController extends Controller implements HasMiddleware
 
     public function edit(Pembayaran $pembayaran): View
     {
+        $calons = $this->calonBelumLunas();
+
+        // Calon pemilik tagihan ini tetap tampil walau sudah lunas
+        if (! $calons->contains('id', $pembayaran->calon_siswa_id)) {
+            $pemilik = CalonSiswa::with(['jalurPendaftaran', 'tahunAjaran.biayaPendaftaran', 'pembayaran'])
+                ->find($pembayaran->calon_siswa_id);
+
+            if ($pemilik) {
+                $calons->prepend($pemilik);
+            }
+        }
+
         return view('admin.pembayarans.edit', [
             'pembayaran' => $pembayaran,
-            'calons' => CalonSiswa::orderByDesc('created_at')->limit(100)->get(),
+            'calons' => $calons,
             'biayas' => BiayaPendaftaran::orderBy('jenis_biaya')->get(),
         ]);
     }
@@ -186,11 +327,40 @@ class PembayaranController extends Controller implements HasMiddleware
         });
     }
 
+    /**
+     * Calon dengan sisa tagihan (semua status, kecuali yang
+     * total berhasilnya sudah menutup semua biaya wajib).
+     */
+    protected function calonBelumLunas()
+    {
+        $calons = CalonSiswa::belumLunas()
+            ->with(['jalurPendaftaran', 'tahunAjaran.biayaPendaftaran', 'pembayaran'])
+            ->orderByDesc('created_at')
+            ->limit(100)
+            ->get();
+
+        $calons->each(function ($calon) {
+            $terbayar = $calon->pembayaran->where('status', 'berhasil')->sum('jumlah');
+            $wajib = $calon->tahunAjaran?->biayaPendaftaran->where('wajib_bayar', true)->sum('jumlah') ?? 0;
+            $calon->sisa_tagihan = max(0, $wajib - $terbayar);
+        });
+
+        return $calons;
+    }
+
     private function generateKode(): string
     {
         $year = date('Y');
         $count = Pembayaran::whereYear('created_at', $year)->count() + 1;
 
         return sprintf('PAY-%s-%04d', $year, $count);
+    }
+
+    private function generateKodeAngsuran(): string
+    {
+        $year = date('Y');
+        $count = RencanaAngsuran::whereYear('created_at', $year)->count() + 1;
+
+        return sprintf('ANG-%s-%04d', $year, $count);
     }
 }

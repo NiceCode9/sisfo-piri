@@ -5,17 +5,18 @@
         <select name="calon_siswa_id" id="calon_siswa_id" class="form-select @error('calon_siswa_id') is-invalid @enderror" required>
             <option value="">— Pilih Calon —</option>
             @foreach ($calons as $c)
-                <option value="{{ $c->id }}" @selected((string) old('calon_siswa_id', $pembayaran->calon_siswa_id ?? '') === (string) $c->id)>{{ $c->no_pendaftaran }} — {{ $c->nama_lengkap }} ({{ $c->jalurPendaftaran->nama_jalur ?? '' }})</option>
+                <option value="{{ $c->id }}" @selected((string) old('calon_siswa_id', $pembayaran->calon_siswa_id ?? '') === (string) $c->id)>{{ $c->no_pendaftaran }} — {{ $c->nama_lengkap }} ({{ $c->jalurPendaftaran->nama_jalur ?? '' }})@isset($c->sisa_tagihan) — Sisa Rp {{ number_format($c->sisa_tagihan, 0, ',', '.') }}@endisset</option>
             @endforeach
         </select>
         @error('calon_siswa_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+        <div class="form-text" style="font-size:11px;">Hanya calon dengan sisa tagihan yang ditampilkan.</div>
     </div>
     <div class="col-12 col-sm-6">
         <label class="form-label" for="biaya_pendaftaran_id">Biaya</label>
         <select name="biaya_pendaftaran_id" id="biaya_pendaftaran_id" class="form-select @error('biaya_pendaftaran_id') is-invalid @enderror">
             <option value="">— Pilih Biaya —</option>
             @foreach ($biayas as $b)
-                <option value="{{ $b->id }}" @selected((string) old('biaya_pendaftaran_id', $pembayaran->biaya_pendaftaran_id ?? '') === (string) $b->id)>{{ $b->jenis_biaya }} — Rp {{ number_format($b->jumlah,0,',','.') }}</option>
+                <option value="{{ $b->id }}" data-dapat-diangsur="{{ $b->dapat_diangsur ? 1 : 0 }}" data-max-cicilan="{{ $b->max_cicilan ?? '' }}" data-min-dp="{{ $b->min_dp ?? 0 }}" @selected((string) old('biaya_pendaftaran_id', $pembayaran->biaya_pendaftaran_id ?? '') === (string) $b->id)>{{ $b->jenis_biaya }} — Rp {{ number_format($b->jumlah,0,',','.') }}{{ $b->dapat_diangsur ? ' (dapat diangsur)' : '' }}</option>
             @endforeach
         </select>
         @error('biaya_pendaftaran_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
@@ -48,6 +49,72 @@
         @error('jenis_pembayaran')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
     </div>
 </div>
+
+<div class="row g-3 mb-3">
+    <div class="col-12">
+        <div class="form-check">
+            <input type="checkbox" name="buat_angsuran" value="1" id="buat_angsuran" class="form-check-input" @checked(old('buat_angsuran', false)) />
+            <label class="form-check-label" for="buat_angsuran">Buat sebagai angsuran <span style="font-size:11px;color:var(--text-muted);">(hanya untuk biaya yang dapat diangsur — tagihan + DP + jadwal cicilan dibuat sekaligus)</span></label>
+        </div>
+        @error('buat_angsuran')<div class="text-danger" style="font-size:12.5px;">{{ $message }}</div>@enderror
+    </div>
+</div>
+
+<div class="row g-3 mb-3 d-none" id="angsuran-fields">
+    <div class="col-12 col-sm-4">
+        <div class="form-floating">
+            <input type="number" step="0.01" name="dp_dibayar" value="{{ old('dp_dibayar') }}" class="form-control @error('dp_dibayar') is-invalid @enderror" id="dp_dibayar" placeholder="DP" min="0" />
+            <label for="dp_dibayar">DP Dibayar</label>
+            @error('dp_dibayar')<div class="invalid-feedback">{{ $message }}</div>@enderror
+        </div>
+    </div>
+    <div class="col-12 col-sm-4">
+        <div class="form-floating">
+            <input type="number" name="jumlah_cicilan" value="{{ old('jumlah_cicilan') }}" class="form-control @error('jumlah_cicilan') is-invalid @enderror" id="jumlah_cicilan" placeholder="Cicilan" min="1" max="60" />
+            <label for="jumlah_cicilan">Jumlah Cicilan</label>
+            @error('jumlah_cicilan')<div class="invalid-feedback">{{ $message }}</div>@enderror
+        </div>
+    </div>
+    <div class="col-12 col-sm-4">
+        <div class="form-floating">
+            <input type="date" name="tanggal_mulai" value="{{ old('tanggal_mulai') }}" class="form-control @error('tanggal_mulai') is-invalid @enderror" id="tanggal_mulai" />
+            <label for="tanggal_mulai">Tanggal Mulai Cicilan</label>
+            @error('tanggal_mulai')<div class="invalid-feedback">{{ $message }}</div>@enderror
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+(function () {
+    var check = document.getElementById('buat_angsuran');
+    var box = document.getElementById('angsuran-fields');
+    var biaya = document.getElementById('biaya_pendaftaran_id');
+    if (!check || !box || !biaya) return;
+
+    function refresh() {
+        var opt = biaya.selectedOptions[0];
+        var bisa = opt && opt.dataset.dapatDiangsur === '1';
+        check.disabled = !bisa;
+        if (!bisa) { check.checked = false; }
+        box.classList.toggle('d-none', !check.checked);
+        ['dp_dibayar', 'jumlah_cicilan', 'tanggal_mulai'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.required = check.checked;
+        });
+        var max = opt && opt.dataset.maxCicilan ? parseInt(opt.dataset.maxCicilan, 10) : null;
+        var cicilan = document.getElementById('jumlah_cicilan');
+        if (cicilan) {
+            if (max) { cicilan.max = max; } else { cicilan.removeAttribute('max'); }
+        }
+    }
+
+    check.addEventListener('change', refresh);
+    biaya.addEventListener('change', refresh);
+    refresh();
+})();
+</script>
+@endpush
 
 <div class="row g-3 mb-3">
     <div class="col-12 col-sm-6">

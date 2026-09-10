@@ -4,6 +4,7 @@ use App\Models\BiayaPendaftaran;
 use App\Models\CalonSiswa;
 use App\Models\JalurPendaftaran;
 use App\Models\Pembayaran;
+use App\Models\RencanaAngsuran;
 use App\Models\TahunAjaran;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
@@ -234,4 +235,101 @@ test('status diterima auto-create 4 tagihan wajib', function () {
             ->and($t->kode_pembayaran)->toStartWith('PAY-')
             ->and((float) $t->jumlah)->toBe((float) $t->biayaPendaftaran->jumlah);
     }
+});
+
+test('create hanya menampilkan calon belum lunas', function () {
+    $belum = buatCalon();
+    Pembayaran::create([
+        'calon_siswa_id' => $belum->id,
+        'kode_pembayaran' => 'PAY-2026-0101',
+        'jumlah' => 100000,
+        'metode_pembayaran' => 'tunai',
+        'jenis_pembayaran' => 'penuh',
+        'status' => 'menunggu',
+    ]);
+
+    $lunas = buatCalon();
+    $wajib = BiayaPendaftaran::where('tahun_ajaran_id', $lunas->tahun_ajaran_id)->where('wajib_bayar', true)->get();
+    foreach ($wajib as $i => $biaya) {
+        Pembayaran::create([
+            'calon_siswa_id' => $lunas->id,
+            'biaya_pendaftaran_id' => $biaya->id,
+            'kode_pembayaran' => sprintf('PAY-2026-02%02d', $i),
+            'jumlah' => $biaya->jumlah,
+            'metode_pembayaran' => 'tunai',
+            'jenis_pembayaran' => 'penuh',
+            'status' => 'berhasil',
+        ]);
+    }
+
+    $response = $this->actingAs(superAdmin())->get(route('admin.pembayarans.create'));
+
+    $response->assertOk();
+    $response->assertSee($belum->no_pendaftaran, false);
+    $response->assertDontSee($lunas->no_pendaftaran, false);
+});
+
+test('store satu langkah angsuran membuat DP + rencana + cicilan', function () {
+    $calon = buatCalon();
+    $biaya = BiayaPendaftaran::where('jenis_biaya', 'Uang Pangkal')->first();
+
+    $response = $this->actingAs(superAdmin())->post(route('admin.pembayarans.store'), [
+        'calon_siswa_id' => $calon->id,
+        'biaya_pendaftaran_id' => $biaya->id,
+        'jumlah' => $biaya->jumlah,
+        'metode_pembayaran' => 'transfer',
+        'buat_angsuran' => 1,
+        'dp_dibayar' => 500000,
+        'jumlah_cicilan' => 2,
+        'tanggal_mulai' => now()->toDateString(),
+    ]);
+
+    $response->assertRedirect(route('admin.pembayarans.index'));
+
+    $rencana = RencanaAngsuran::where('calon_siswa_id', $calon->id)
+        ->where('biaya_pendaftaran_id', $biaya->id)
+        ->where('status', 'aktif')
+        ->first();
+
+    expect($rencana)->not->toBeNull()
+        ->and($rencana->jumlah_cicilan)->toBe(2)
+        ->and($rencana->detailAngsuran()->count())->toBe(2);
+
+    $dp = Pembayaran::where('calon_siswa_id', $calon->id)
+        ->where('jenis_pembayaran', 'dp_angsuran')
+        ->first();
+
+    expect($dp)->not->toBeNull()->and($dp->status)->toBe('berhasil');
+});
+
+test('store via modal show kembali ke show calon', function () {
+    $calon = buatCalon();
+
+    $response = $this->actingAs(superAdmin())->post(route('admin.pembayarans.store'), [
+        'calon_siswa_id' => $calon->id,
+        'jumlah' => 100000,
+        'metode_pembayaran' => 'tunai',
+        'redirect_to' => route('admin.calon-siswas.show', $calon),
+    ]);
+
+    $response->assertRedirect(route('admin.calon-siswas.show', $calon));
+});
+
+test('store angsuran ditolak bila biaya tidak dapat diangsur', function () {
+    $calon = buatCalon();
+    $biaya = BiayaPendaftaran::where('jenis_biaya', 'Seragam')->first();
+
+    $response = $this->actingAs(superAdmin())->post(route('admin.pembayarans.store'), [
+        'calon_siswa_id' => $calon->id,
+        'biaya_pendaftaran_id' => $biaya->id,
+        'jumlah' => $biaya->jumlah,
+        'metode_pembayaran' => 'transfer',
+        'buat_angsuran' => 1,
+        'dp_dibayar' => 100000,
+        'jumlah_cicilan' => 2,
+        'tanggal_mulai' => now()->toDateString(),
+    ]);
+
+    $response->assertSessionHas('error');
+    expect(RencanaAngsuran::where('calon_siswa_id', $calon->id)->exists())->toBeFalse();
 });

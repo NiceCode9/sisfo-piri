@@ -29,6 +29,11 @@ class StorePembayaranRequest extends FormRequest
             'status' => ['nullable', 'string', 'in:menunggu,berhasil,gagal'],
             'catatan' => ['nullable', 'string', 'max:1000'],
             'keterangan_angsuran' => ['nullable', 'string', 'max:1000'],
+            'buat_angsuran' => ['nullable', 'boolean'],
+            'dp_dibayar' => ['required_if:buat_angsuran,1', 'nullable', 'numeric', 'min:0'],
+            'jumlah_cicilan' => ['required_if:buat_angsuran,1', 'nullable', 'integer', 'min:1', 'max:60'],
+            'tanggal_mulai' => ['required_if:buat_angsuran,1', 'nullable', 'date'],
+            'redirect_to' => ['nullable', 'string', 'max:500'],
         ];
     }
 }

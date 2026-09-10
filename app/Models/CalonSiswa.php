@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class CalonSiswa extends Model
@@ -78,5 +79,18 @@ class CalonSiswa extends Model
     public function rencanaAngsuran()
     {
         return $this->hasMany(RencanaAngsuran::class);
+    }
+
+    /**
+     * Calon dengan sisa tagihan: total pembayaran berhasil
+     * masih di bawah total biaya wajib tahun ajarannya.
+     * Semua status masuk; yang sudah lunas tersaring keluar.
+     */
+    public function scopeBelumLunas(Builder $query): Builder
+    {
+        return $query->whereRaw(
+            'COALESCE((SELECT SUM(jumlah) FROM pembayarans WHERE pembayarans.calon_siswa_id = calon_siswas.id AND pembayarans.status = ?), 0) < COALESCE((SELECT SUM(jumlah) FROM biaya_pendaftarans WHERE biaya_pendaftarans.tahun_ajaran_id = calon_siswas.tahun_ajaran_id AND biaya_pendaftarans.wajib_bayar = 1), 0)',
+            ['berhasil']
+        );
     }
 }
