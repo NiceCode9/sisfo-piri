@@ -81,7 +81,8 @@ class PembayaranController extends Controller implements HasMiddleware
         }
 
         $validated['kode_pembayaran'] = $this->generateKode();
-        $validated['status'] = $validated['status'] ?? ($request->hasFile('bukti_pembayaran_path') ? 'berhasil' : 'menunggu');
+        // Input admin selalu langsung berhasil (bukti wajib untuk transfer).
+        $validated['status'] = 'berhasil';
         $validated['jenis_pembayaran'] = $validated['jenis_pembayaran'] ?? 'penuh';
 
         if ($request->hasFile('bukti_pembayaran_path')) {
@@ -254,6 +255,8 @@ class PembayaranController extends Controller implements HasMiddleware
                 Storage::disk('public')->delete($pembayaran->bukti_pembayaran_path);
             }
             $validated['bukti_pembayaran_path'] = $request->file('bukti_pembayaran_path')->store('bukti', 'public');
+            // Upload bukti baru oleh admin berarti pembayaran terverifikasi.
+            $validated['status'] = 'berhasil';
         }
 
         $pembayaran->update($validated);

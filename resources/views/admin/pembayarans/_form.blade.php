@@ -112,6 +112,15 @@
     check.addEventListener('change', refresh);
     biaya.addEventListener('change', refresh);
     refresh();
+
+    // Bukti wajib bila metode transfer
+    var metode = document.getElementById('metode_pembayaran');
+    var bukti = document.getElementById('bukti_pembayaran_path');
+    if (metode && bukti) {
+        var syncBukti = function () { bukti.required = metode.value === 'transfer'; };
+        metode.addEventListener('change', syncBukti);
+        syncBukti();
+    }
 })();
 </script>
 @endpush
@@ -124,7 +133,7 @@
         @endif
         <input type="file" name="bukti_pembayaran_path" id="bukti_pembayaran_path" accept=".pdf,.jpg,.jpeg,.png" class="form-control @error('bukti_pembayaran_path') is-invalid @enderror" />
         @error('bukti_pembayaran_path')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-        <div class="form-text" style="font-size:11px;">PDF/JPG 5MB. Admin upload otomatis berhasil.</div>
+        <div class="form-text" style="font-size:11px;">PDF/JPG 5MB. <strong>Wajib</strong> bila metode transfer, opsional bila tunai.</div>
     </div>
     <div class="col-12 col-sm-3">
         <div class="form-floating">
@@ -134,13 +143,18 @@
         </div>
     </div>
     <div class="col-12 col-sm-3">
-        <label class="form-label" for="status">Status</label>
-        <select name="status" id="status" class="form-select @error('status') is-invalid @enderror">
-            <option value="menunggu" @selected(old('status', $pembayaran->status ?? 'menunggu')==='menunggu')>Menunggu</option>
-            <option value="berhasil" @selected(old('status', $pembayaran->status ?? '')==='berhasil')>Berhasil</option>
-            <option value="gagal" @selected(old('status', $pembayaran->status ?? '')==='gagal')>Gagal</option>
-        </select>
-        @error('status')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+        @if(!empty($pembayaran) && $pembayaran->exists)
+            <label class="form-label" for="status">Status</label>
+            <select name="status" id="status" class="form-select @error('status') is-invalid @enderror">
+                <option value="menunggu" @selected(old('status', $pembayaran->status ?? 'menunggu')==='menunggu')>Menunggu</option>
+                <option value="berhasil" @selected(old('status', $pembayaran->status ?? '')==='berhasil')>Berhasil</option>
+                <option value="gagal" @selected(old('status', $pembayaran->status ?? '')==='gagal')>Gagal</option>
+            </select>
+            @error('status')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+        @else
+            <input type="hidden" name="status" value="berhasil" />
+            <div class="alert alert-info mb-0 py-2" style="font-size:12px;">Input admin otomatis <strong>berhasil</strong>.</div>
+        @endif
     </div>
 </div>
 

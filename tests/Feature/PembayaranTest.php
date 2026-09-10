@@ -89,7 +89,7 @@ test('halaman show tagihan dapat ditampilkan', function () {
     }
 });
 
-test('store manual tanpa bukti berstatus menunggu dengan kode PAY', function () {
+test('store manual tunai tanpa bukti langsung berhasil dengan kode PAY', function () {
     $calon = buatCalon();
 
     $response = $this->actingAs(superAdmin())->post(route('admin.pembayarans.store'), [
@@ -102,7 +102,20 @@ test('store manual tanpa bukti berstatus menunggu dengan kode PAY', function () 
     $bayar = Pembayaran::where('calon_siswa_id', $calon->id)->first();
     expect($bayar)->not->toBeNull()
         ->and($bayar->kode_pembayaran)->toStartWith('PAY-')
-        ->and($bayar->status)->toBe('menunggu');
+        ->and($bayar->status)->toBe('berhasil');
+});
+
+test('store transfer tanpa bukti ditolak validasi', function () {
+    $calon = buatCalon();
+
+    $response = $this->actingAs(superAdmin())->post(route('admin.pembayarans.store'), [
+        'calon_siswa_id' => $calon->id,
+        'jumlah' => 100000,
+        'metode_pembayaran' => 'transfer',
+    ]);
+
+    $response->assertSessionHasErrors('bukti_pembayaran_path');
+    expect(Pembayaran::where('calon_siswa_id', $calon->id)->exists())->toBeFalse();
 });
 
 test('store dengan bukti otomatis berhasil dan tanggal hari ini', function () {
@@ -278,6 +291,7 @@ test('store satu langkah angsuran membuat DP + rencana + cicilan', function () {
         'biaya_pendaftaran_id' => $biaya->id,
         'jumlah' => $biaya->jumlah,
         'metode_pembayaran' => 'transfer',
+        'bukti_pembayaran_path' => UploadedFile::fake()->create('bukti.pdf', 100, 'application/pdf'),
         'buat_angsuran' => 1,
         'dp_dibayar' => 500000,
         'jumlah_cicilan' => 2,
@@ -324,6 +338,7 @@ test('store angsuran ditolak bila biaya tidak dapat diangsur', function () {
         'biaya_pendaftaran_id' => $biaya->id,
         'jumlah' => $biaya->jumlah,
         'metode_pembayaran' => 'transfer',
+        'bukti_pembayaran_path' => UploadedFile::fake()->create('bukti.pdf', 100, 'application/pdf'),
         'buat_angsuran' => 1,
         'dp_dibayar' => 100000,
         'jumlah_cicilan' => 2,

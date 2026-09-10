@@ -638,7 +638,20 @@
             border: none;
             border-radius: var(--border-radius);
             padding: 1.25rem 1.5rem;
+            padding-right: 3rem;
+            position: relative;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .alert-modern .btn-close {
+            width: 1em;
+            height: 1em;
+            padding: 0.25rem;
+            background-color: transparent;
+            font-size: 0.875rem;
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
         }
 
         .alert-content {
@@ -1030,27 +1043,27 @@
 
     <!-- Alert Messages -->
     @if (session('success'))
-        <div class="alert alert-success alert-modern" role="alert">
+        <div class="alert alert-success alert-modern alert-dismissible" role="alert">
             <div class="alert-content">
                 <i class="bi bi-check-circle-fill alert-icon"></i>
                 <div class="alert-text">{{ session('success') }}</div>
             </div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
 
     @if (session('error'))
-        <div class="alert alert-danger alert-modern" role="alert">
+        <div class="alert alert-danger alert-modern alert-dismissible" role="alert">
             <div class="alert-content">
                 <i class="bi bi-exclamation-triangle-fill alert-icon"></i>
                 <div class="alert-text">{{ session('error') }}</div>
             </div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
 
     @if ($errors->any())
-        <div class="alert alert-danger alert-modern" role="alert">
+        <div class="alert alert-danger alert-modern alert-dismissible" role="alert">
             <div class="alert-content">
                 <i class="bi bi-exclamation-triangle-fill alert-icon"></i>
                 <div class="alert-text">
@@ -1062,7 +1075,7 @@
                     </ul>
                 </div>
             </div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
 
@@ -1716,7 +1729,7 @@
                                             </label>
                                             <input type="file" class="form-control" id="bukti_pembayaran" name="bukti_pembayaran_path" accept=".pdf,.jpg,.jpeg,.png" />
                                             <div class="form-text">
-                                                <i class="bi bi-info-circle me-1"></i>Format: JPG, PNG, PDF. Maksimal: 5MB
+                                                <i class="bi bi-info-circle me-1"></i>Format: JPG, PNG, PDF. Maksimal: 5MB. <strong>Wajib</strong> bila transfer, opsional bila tunai.
                                             </div>
                                         </div>
                                         <div class="col-12">
@@ -1766,6 +1779,11 @@
 
         document.getElementById('modal_buat_angsuran')?.addEventListener('change', function () {
             document.getElementById('modal-angsuran-fields')?.classList.toggle('d-none', !this.checked);
+        });
+
+        // Bukti wajib bila metode transfer
+        document.getElementById('metode_pembayaran')?.addEventListener('change', function () {
+            document.getElementById('bukti_pembayaran').required = this.value === 'transfer';
         });
 
         document.addEventListener('DOMContentLoaded', function() {
