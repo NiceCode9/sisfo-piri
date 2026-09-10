@@ -19,6 +19,8 @@
     {{-- Alur Pendaftaran --}}
     @include('spmb.partials.alur-pendaftaran')
 
+    @include('spmb.partials.unduhan')
+
     {{-- Timeline Gelombang --}}
     @include('spmb.partials.gelombang')
 

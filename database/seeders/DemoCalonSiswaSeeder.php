@@ -49,18 +49,18 @@ class DemoCalonSiswaSeeder extends Seeder
                 ]
             );
 
-            foreach ($biayas as $j => $biaya) {
-                Pembayaran::firstOrCreate(
-                    ['calon_siswa_id' => $calon->id, 'biaya_pendaftaran_id' => $biaya->id],
-                    [
-                        'kode_pembayaran' => sprintf('PAY-2026-9%02d%01d', $n, $j),
-                        'jumlah' => $biaya->jumlah,
-                        'metode_pembayaran' => 'transfer',
-                        'jenis_pembayaran' => 'penuh',
-                        'status' => 'menunggu',
-                    ]
-                );
-            }
+            // foreach ($biayas as $j => $biaya) {
+            //     Pembayaran::firstOrCreate(
+            //         ['calon_siswa_id' => $calon->id, 'biaya_pendaftaran_id' => $biaya->id],
+            //         [
+            //             'kode_pembayaran' => sprintf('PAY-2026-9%02d%01d', $n, $j),
+            //             'jumlah' => $biaya->jumlah,
+            //             'metode_pembayaran' => 'transfer',
+            //             'jenis_pembayaran' => 'penuh',
+            //             'status' => 'menunggu',
+            //         ]
+            //     );
+            // }
 
             if ($calon->wasRecentlyCreated) {
                 KuotaPendaftaran::where('tahun_ajaran_id', $tahun->id)
