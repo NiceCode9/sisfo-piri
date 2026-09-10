@@ -17,30 +17,125 @@
 
 @include('layouts.partials.alert')
 
-<div class="card-nexus">
-    <div class="card-header-nexus"><h5 class="card-title">Detail Pembayaran</h5><span class="badge-nexus {{ $pembayaran->status==='berhasil'?'badge-info':($pembayaran->status==='gagal'?'badge-danger':'badge-neutral') }}">{{ $pembayaran->status }}</span></div>
-    <div class="card-body-nexus">
-        <div class="row g-3" style="font-size:13px;">
-            <div class="col-6"><strong>Calon:</strong> {{ $pembayaran->calonSiswa->nama_lengkap ?? '-' }} ({{ $pembayaran->calonSiswa->no_pendaftaran ?? '' }})</div>
-            <div class="col-6"><strong>Biaya:</strong> {{ $pembayaran->biayaPendaftaran->jenis_biaya ?? '-' }} — Rp {{ number_format($pembayaran->jumlah,0,',','.') }}</div>
-            <div class="col-4"><strong>Metode:</strong> {{ $pembayaran->metode_pembayaran }}</div>
-            <div class="col-4"><strong>Jenis:</strong> {{ $pembayaran->jenis_pembayaran }}</div>
-            <div class="col-4"><strong>Tanggal:</strong> {{ $pembayaran->tanggal_pembayaran ? \Carbon\Carbon::parse($pembayaran->tanggal_pembayaran)->format('d M Y') : '-' }}</div>
-            <div class="col-12"><strong>Bukti:</strong> @if($pembayaran->bukti_pembayaran_path) <a href="{{ Storage::disk('public')->url($pembayaran->bukti_pembayaran_path) }}" target="_blank" class="text-primary">Lihat bukti</a> @else — @endif</div>
-            @if($pembayaran->catatan)<div class="col-12"><strong>Catatan:</strong> {{ $pembayaran->catatan }}</div>@endif
-            @if($pembayaran->keterangan_angsuran)<div class="col-12"><strong>Keterangan Angsuran:</strong> {{ $pembayaran->keterangan_angsuran }}</div>@endif
+@if ($errors->any())
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <ul class="mb-0 ps-3">
+            @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+@endif
+
+@push('styles')
+<style>
+    .pay-show-summary {
+        background: linear-gradient(135deg, var(--accent-primary), #7c6cf0);
+        color: #fff;
+        border-radius: 14px;
+        padding: 18px 22px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 8px 24px rgba(79, 70, 229, 0.25);
+    }
+    .pay-show-summary .pay-code { font-size: 12px; opacity: 0.85; }
+    .pay-show-summary .pay-total { font-size: 26px; font-weight: 800; line-height: 1.1; }
+    .pay-show-summary .pay-meta { font-size: 12.5px; opacity: 0.9; }
+    .pay-show-summary .badge-nexus { background: rgba(255, 255, 255, 0.22); color: #fff; }
+    .pay-show-kv { display: grid; grid-template-columns: 130px 1fr; gap: 6px 12px; font-size: 13px; }
+    .pay-show-kv dt { color: var(--text-muted); font-weight: 600; }
+    .pay-show-kv dd { margin: 0; color: var(--text-primary); font-weight: 500; overflow-wrap: anywhere; }
+    .pay-show-bukti img { max-height: 220px; border-radius: 10px; border: 1px solid var(--border-color); }
+    .pay-show-progress { height: 8px; border-radius: 99px; background: var(--border-color); overflow: hidden; }
+    .pay-show-progress > div { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--accent-primary), #7c6cf0); }
+</style>
+@endpush
+
+{{-- Ringkasan ala kwitansi --}}
+<div class="pay-show-summary mb-3">
+    <div>
+        <div class="pay-code">{{ $pembayaran->kode_pembayaran }} • {{ ucfirst(str_replace('_', ' ', $pembayaran->jenis_pembayaran)) }} • {{ $pembayaran->metode_pembayaran }}</div>
+        <div class="pay-total">Rp {{ number_format($pembayaran->jumlah, 0, ',', '.') }}</div>
+        <div class="pay-meta">
+            {{ $pembayaran->calonSiswa->nama_lengkap ?? '-' }} ({{ $pembayaran->calonSiswa->no_pendaftaran ?? '-' }}) •
+            {{ $pembayaran->tanggal_pembayaran ? \Carbon\Carbon::parse($pembayaran->tanggal_pembayaran)->format('d M Y') : 'Tanggal belum diisi' }}
+        </div>
+    </div>
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+        <span class="badge-nexus {{ $pembayaran->status === 'berhasil' ? 'badge-info' : ($pembayaran->status === 'gagal' ? 'badge-danger' : 'badge-neutral') }}" style="font-size: 13px;">{{ $pembayaran->status }}</span>
+        @if($pembayaran->bukti_pembayaran_path)
+            <a href="{{ Storage::disk('public')->url($pembayaran->bukti_pembayaran_path) }}" target="_blank" class="btn btn-sm btn-light"><i class="fa-solid fa-receipt"></i> Lihat Bukti</a>
+        @endif
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-12 col-lg-8">
+        <div class="card-nexus mb-3">
+            <div class="card-header-nexus"><h5 class="card-title">Detail Pembayaran</h5></div>
+            <div class="card-body-nexus">
+                <dl class="pay-show-kv">
+                    <dt>Calon Siswa</dt>
+                    <dd>{{ $pembayaran->calonSiswa->nama_lengkap ?? '-' }} ({{ $pembayaran->calonSiswa->no_pendaftaran ?? '-' }})</dd>
+                    <dt>Biaya</dt>
+                    <dd>{{ $pembayaran->biayaPendaftaran->jenis_biaya ?? '-' }}</dd>
+                    <dt>Metode</dt>
+                    <dd><span class="badge-nexus badge-neutral">{{ $pembayaran->metode_pembayaran }}</span></dd>
+                    <dt>Jenis</dt>
+                    <dd>{{ ucfirst(str_replace('_', ' ', $pembayaran->jenis_pembayaran)) }}</dd>
+                    <dt>Tanggal</dt>
+                    <dd>{{ $pembayaran->tanggal_pembayaran ? \Carbon\Carbon::parse($pembayaran->tanggal_pembayaran)->format('d M Y') : '-' }}</dd>
+                    @if($pembayaran->catatan)
+                        <dt>Catatan</dt>
+                        <dd>{{ $pembayaran->catatan }}</dd>
+                    @endif
+                    @if($pembayaran->keterangan_angsuran)
+                        <dt>Ket. Angsuran</dt>
+                        <dd>{{ $pembayaran->keterangan_angsuran }}</dd>
+                    @endif
+                </dl>
+            </div>
         </div>
 
-        <hr class="my-3" />
-        <form method="POST" action="{{ route('admin.pembayarans.status', $pembayaran) }}" class="d-flex gap-2 flex-wrap">
-            @csrf @method('PATCH')
-            <select name="status" class="form-select form-select-sm" style="width:auto">
-                <option value="menunggu" @selected($pembayaran->status==='menunggu')>Menunggu</option>
-                <option value="berhasil" @selected($pembayaran->status==='berhasil')>Berhasil</option>
-                <option value="gagal" @selected($pembayaran->status==='gagal')>Gagal</option>
-            </select>
-            <button type="submit" class="btn btn-primary btn-sm">Ubah Status</button>
-        </form>
+        <div class="card-nexus mb-3">
+            <div class="card-header-nexus"><h5 class="card-title">Bukti Pembayaran</h5></div>
+            <div class="card-body-nexus pay-show-bukti">
+                @if($pembayaran->bukti_pembayaran_path)
+                    @php $ext = strtolower(pathinfo($pembayaran->bukti_pembayaran_path, PATHINFO_EXTENSION)); @endphp
+                    @if(in_array($ext, ['jpg', 'jpeg', 'png', 'webp']))
+                        <a href="{{ Storage::disk('public')->url($pembayaran->bukti_pembayaran_path) }}" target="_blank">
+                            <img src="{{ Storage::disk('public')->url($pembayaran->bukti_pembayaran_path) }}" alt="Bukti {{ $pembayaran->kode_pembayaran }}" class="img-fluid" />
+                        </a>
+                    @else
+                        <a href="{{ Storage::disk('public')->url($pembayaran->bukti_pembayaran_path) }}" target="_blank" class="btn btn-nexus-outline btn-sm"><i class="fa-solid fa-file-pdf"></i> Lihat Bukti ({{ strtoupper($ext) }})</a>
+                    @endif
+                @else
+                    <p class="mb-0" style="font-size:13px;color:var(--text-muted);">Belum ada bukti terlampir.</p>
+                @endif
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-4">
+        <div class="card-nexus mb-3">
+            <div class="card-header-nexus"><h5 class="card-title">Verifikasi</h5></div>
+            <div class="card-body-nexus">
+                <form method="POST" action="{{ route('admin.pembayarans.status', $pembayaran) }}" class="d-flex flex-column gap-2">
+                    @csrf @method('PATCH')
+                    <select name="status" class="form-select form-select-sm">
+                        <option value="menunggu" @selected($pembayaran->status==='menunggu')>Menunggu</option>
+                        <option value="berhasil" @selected($pembayaran->status==='berhasil')>Berhasil</option>
+                        <option value="gagal" @selected($pembayaran->status==='gagal')>Gagal</option>
+                    </select>
+                    <button type="submit" class="btn btn-primary btn-sm w-100">Ubah Status</button>
+                </form>
+                <div class="mt-2" style="font-size:11.5px;color:var(--text-muted);">Verifikasi cicilan yang berhasil otomatis menutup detail + rencana bila lunas.</div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -62,6 +157,15 @@
                         </form>
                     @endif
                 @endcan
+            </div>
+        </div>
+        <div class="card-body-nexus">
+            @php $terbayar = $rencana->total_biaya - $rencana->sisa_hutang; $persen = $rencana->total_biaya > 0 ? round($terbayar / $rencana->total_biaya * 100) : 0; @endphp
+            <div class="mb-3">
+                <div class="d-flex justify-content-between mb-1" style="font-size:12px;color:var(--text-muted);">
+                    <span>Terbayar Rp {{ number_format($terbayar,0,',','.') }}</span><span>{{ $persen }}%</span>
+                </div>
+                <div class="pay-show-progress"><div style="width: {{ min(100, $persen) }}%"></div></div>
             </div>
         </div>
         <div class="card-body-nexus p-0">
@@ -107,6 +211,7 @@
                                                 <input type="hidden" name="detail_angsuran_id" value="{{ $d->id }}" />
                                                 <input type="hidden" name="jenis_pembayaran" value="cicilan_angsuran" />
                                                 <input type="hidden" name="jumlah" value="{{ $d->nominal_cicilan + $d->denda }}" />
+                                                <input type="hidden" name="redirect_to" value="{{ route('admin.pembayarans.show', $pembayaran) }}" />
                                                 <div class="d-flex gap-1">
                                                     <select name="metode_pembayaran" class="form-select form-select-sm" required>
                                                         <option value="transfer">Transfer</option>

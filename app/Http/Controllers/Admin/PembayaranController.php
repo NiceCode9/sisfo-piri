@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\PembayaransExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StorePembayaranRequest;
 use App\Http\Requests\Admin\UpdatePembayaranRequest;
@@ -10,7 +11,9 @@ use App\Models\CalonSiswa;
 use App\Models\DetailAngsuran;
 use App\Models\Pembayaran;
 use App\Models\RencanaAngsuran;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -19,13 +22,16 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 class PembayaranController extends Controller implements HasMiddleware
 {
     public static function middleware(): array
     {
         return [
-            new Middleware('permission:pembayarans.view', only: ['index', 'show']),
+            new Middleware('permission:pembayarans.view', only: ['index', 'show', 'exportExcel', 'exportPdf']),
             new Middleware('permission:pembayarans.create', only: ['create', 'store']),
             new Middleware('permission:pembayarans.edit', only: ['edit', 'update', 'updateStatus']),
             new Middleware('permission:pembayarans.delete', only: ['destroy']),
@@ -34,15 +40,44 @@ class PembayaranController extends Controller implements HasMiddleware
 
     public function index(): View
     {
-        $pembayarans = Pembayaran::with(['calonSiswa', 'biayaPendaftaran'])
+        $pembayarans = $this->filteredQuery()->latest()->paginate(10)->withQueryString();
+
+        return view('admin.pembayarans.index', compact('pembayarans'));
+    }
+
+    /**
+     * Query daftar pembayaran mengikuti filter aktif
+     * (dipakai index + export agar konsisten).
+     */
+    protected function filteredQuery(): Builder
+    {
+        return Pembayaran::with(['calonSiswa', 'biayaPendaftaran'])
             ->when(request('search'), fn ($q, $s) => $q->where('kode_pembayaran', 'like', "%{$s}%")
                 ->orWhereHas('calonSiswa', fn ($qq) => $qq->where('nama_lengkap', 'like', "%{$s}%")))
             ->when(request('status'), fn ($q, $v) => $q->where('status', $v))
-            ->latest()
-            ->paginate(10)
-            ->withQueryString();
+            ->when(request('tanggal_mulai'), fn ($q, $v) => $q->whereDate('tanggal_pembayaran', '>=', $v))
+            ->when(request('tanggal_sampai'), fn ($q, $v) => $q->whereDate('tanggal_pembayaran', '<=', $v));
+    }
 
-        return view('admin.pembayarans.index', compact('pembayarans'));
+    public function exportExcel(): BinaryFileResponse
+    {
+        $pembayarans = $this->filteredQuery()->latest()->get();
+
+        return Excel::download(
+            new PembayaransExport($pembayarans),
+            'pembayaran-'.now()->format('Ymd-His').'.xlsx'
+        );
+    }
+
+    public function exportPdf(): Response
+    {
+        $pembayarans = $this->filteredQuery()->latest()->get();
+
+        return Pdf::loadView('admin.pembayarans.pdf', [
+            'pembayarans' => $pembayarans,
+            'total' => $pembayarans->sum('jumlah'),
+            'filters' => request()->only(['search', 'status', 'tanggal_mulai', 'tanggal_sampai']),
+        ])->download('pembayaran-'.now()->format('Ymd-His').'.pdf');
     }
 
     public function create(): View

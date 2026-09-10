@@ -10,6 +10,10 @@
         <p class="page-subtitle mb-0">Kelola pembayaran PPDB (auto-create saat diterima)</p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
+        @can('pembayarans.view')
+            <a href="{{ route('admin.pembayarans.export.excel', request()->query()) }}" class="btn btn-nexus-outline btn-sm"><i class="fa-solid fa-file-excel text-success"></i> Excel</a>
+            <a href="{{ route('admin.pembayarans.export.pdf', request()->query()) }}" class="btn btn-nexus-outline btn-sm"><i class="fa-solid fa-file-pdf text-danger"></i> PDF</a>
+        @endcan
         @can('pembayarans.create')
             <a href="{{ route('admin.pembayarans.create') }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Tambah Pembayaran</a>
         @endcan
@@ -35,7 +39,9 @@
                 <option value="berhasil" @selected(request('status')==='berhasil')>Berhasil</option>
                 <option value="gagal" @selected(request('status')==='gagal')>Gagal</option>
             </select>
-            @if(request('search') || request('status'))<a href="{{ route('admin.pembayarans.index') }}" class="btn btn-nexus-outline btn-sm">Reset</a>@endif
+            <input type="date" name="tanggal_mulai" value="{{ request('tanggal_mulai') }}" class="form-control form-control-sm" style="width:auto" title="Tanggal mulai" onchange="this.form.submit()" />
+            <input type="date" name="tanggal_sampai" value="{{ request('tanggal_sampai') }}" class="form-control form-control-sm" style="width:auto" title="Tanggal sampai" onchange="this.form.submit()" />
+            @if(request('search') || request('status') || request('tanggal_mulai') || request('tanggal_sampai'))<a href="{{ route('admin.pembayarans.index') }}" class="btn btn-nexus-outline btn-sm">Reset</a>@endif
         </form>
     </div>
     <div class="card-body-nexus p-0">

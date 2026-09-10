@@ -329,6 +329,85 @@ test('store via modal show kembali ke show calon', function () {
     $response->assertRedirect(route('admin.calon-siswas.show', $calon));
 });
 
+test('tamu tidak dapat export pembayaran', function () {
+    $this->get(route('admin.pembayarans.export.excel'))->assertRedirect(route('login'));
+    $this->get(route('admin.pembayarans.export.pdf'))->assertRedirect(route('login'));
+});
+
+test('user tanpa permission ditolak export pembayaran', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user)->get(route('admin.pembayarans.export.excel'))->assertForbidden();
+    $this->actingAs($user)->get(route('admin.pembayarans.export.pdf'))->assertForbidden();
+});
+
+test('export excel mengikuti filter dan mengunduh xlsx', function () {
+    $calon = buatCalon();
+    Pembayaran::create([
+        'calon_siswa_id' => $calon->id,
+        'kode_pembayaran' => 'PAY-2026-0201',
+        'jumlah' => 100000,
+        'metode_pembayaran' => 'tunai',
+        'jenis_pembayaran' => 'penuh',
+        'status' => 'berhasil',
+        'tanggal_pembayaran' => '2026-06-01',
+    ]);
+
+    $response = $this->actingAs(superAdmin())->get(route('admin.pembayarans.export.excel', ['status' => 'berhasil']));
+
+    $response->assertOk();
+    expect($response->headers->get('content-type'))->toContain('spreadsheetml');
+    expect($response->headers->get('content-disposition'))->toContain('.xlsx');
+});
+
+test('export pdf mengunduh dokumen PDF dengan total', function () {
+    $calon = buatCalon();
+    Pembayaran::create([
+        'calon_siswa_id' => $calon->id,
+        'kode_pembayaran' => 'PAY-2026-0202',
+        'jumlah' => 250000,
+        'metode_pembayaran' => 'transfer',
+        'jenis_pembayaran' => 'penuh',
+        'status' => 'berhasil',
+        'tanggal_pembayaran' => '2026-06-02',
+    ]);
+
+    $response = $this->actingAs(superAdmin())->get(route('admin.pembayarans.export.pdf'));
+
+    $response->assertOk();
+    expect($response->headers->get('content-type'))->toContain('application/pdf');
+});
+
+test('filter tanggal mulai sampai hanya kembalikan baris dalam rentang', function () {
+    $calon = buatCalon();
+    Pembayaran::create([
+        'calon_siswa_id' => $calon->id,
+        'kode_pembayaran' => 'PAY-2026-0301',
+        'jumlah' => 100000,
+        'metode_pembayaran' => 'tunai',
+        'jenis_pembayaran' => 'penuh',
+        'status' => 'berhasil',
+        'tanggal_pembayaran' => '2026-05-10',
+    ]);
+    Pembayaran::create([
+        'calon_siswa_id' => $calon->id,
+        'kode_pembayaran' => 'PAY-2026-0302',
+        'jumlah' => 100000,
+        'metode_pembayaran' => 'tunai',
+        'jenis_pembayaran' => 'penuh',
+        'status' => 'berhasil',
+        'tanggal_pembayaran' => '2026-07-20',
+    ]);
+
+    $response = $this->actingAs(superAdmin())->get(route('admin.pembayarans.index', [
+        'tanggal_mulai' => '2026-07-01',
+        'tanggal_sampai' => '2026-07-31',
+    ]));
+
+    $response->assertOk();
+    $response->assertSee('PAY-2026-0302', false);
+    $response->assertDontSee('PAY-2026-0301', false);
+});
+
 test('store angsuran ditolak bila biaya tidak dapat diangsur', function () {
     $calon = buatCalon();
     $biaya = BiayaPendaftaran::where('jenis_biaya', 'Seragam')->first();

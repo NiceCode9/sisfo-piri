@@ -52,6 +52,8 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::resource('jalur-pendaftarans', JalurPendaftaranController::class)->except(['show']);
     Route::resource('jadwal-ppdbs', JadwalPpdbController::class)->except(['show']);
     Route::resource('kuota-pendaftarans', KuotaPendaftaranController::class)->except(['show']);
+    Route::get('pembayarans/export/excel', [PembayaranController::class, 'exportExcel'])->name('pembayarans.export.excel');
+    Route::get('pembayarans/export/pdf', [PembayaranController::class, 'exportPdf'])->name('pembayarans.export.pdf');
     Route::resource('pembayarans', PembayaranController::class);
     Route::patch('pembayarans/{pembayaran}/status', [PembayaranController::class, 'updateStatus'])->name('pembayarans.status');
     Route::post('pembayarans/{pembayaran}/rencana', [RencanaAngsuranController::class, 'store'])->name('rencana.store');
