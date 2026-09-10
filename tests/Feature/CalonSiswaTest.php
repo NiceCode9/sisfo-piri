@@ -66,6 +66,32 @@ test('halaman show tampil gaya modern lengkap', function () {
     }
 });
 
+test('modal pembayaran show memuat dropdown seluruh biaya termasuk non-wajib', function () {
+    $calon = CalonSiswa::create([
+        'jalur_pendaftaran_id' => JalurPendaftaran::first()->id,
+        'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
+        'no_pendaftaran' => 'PPDB-2026-0002',
+        'nik' => '1234567890123457',
+        'nama_lengkap' => 'Show Biaya Test',
+        'jenis_kelamin' => 'P',
+        'tempat_lahir' => 'Test',
+        'tanggal_lahir' => '2010-02-02',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Test',
+        'status_pendaftaran' => 'menunggu',
+    ]);
+
+    $response = $this->actingAs(superAdmin())->get(route('admin.calon-siswas.show', $calon));
+
+    $response->assertOk();
+    $response->assertSee('name="biaya_pendaftaran_id"', false);
+    // non-wajib (Ekstrakurikuler) ikut tampil dengan label Opsional
+    $response->assertSee('Opsional', false);
+    foreach (['Uang Pangkal', 'Seragam', 'Ekstrakurikuler'] as $jenis) {
+        $response->assertSee($jenis, false);
+    }
+});
+
 test('super-admin dapat menambah calon siswa beserta berkas', function () {
     $jalur = JalurPendaftaran::first();
 

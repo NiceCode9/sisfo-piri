@@ -555,14 +555,17 @@
         .unpaid-fees {
             display: grid;
             gap: 1rem;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
         }
 
         .fee-item {
             background: #fff3cd;
             border: 2px solid #ffc107;
             border-radius: var(--border-radius);
-            padding: 1.5rem;
+            padding: 1.25rem;
             transition: var(--transition);
+            display: flex;
+            flex-direction: column;
         }
 
         .fee-item:hover {
@@ -572,6 +575,7 @@
 
         .fee-info {
             margin-bottom: 1rem;
+            flex: 1;
         }
 
         .fee-header {
@@ -1736,9 +1740,29 @@
                                 @csrf
                                 <input type="hidden" name="calon_siswa_id" value="{{ $calon->id }}" />
                                 <input type="hidden" name="jenis_pembayaran" value="penuh" />
-                                <input type="hidden" id="selected_biaya_id" name="biaya_pendaftaran_id" />
                                 <input type="hidden" name="redirect_to" value="{{ route('admin.calon-siswas.show', $calon) }}" />
                                 <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label for="selected_biaya_id" class="form-label">
+                                            <i class="bi bi-tag text-primary me-1"></i>Biaya <span class="text-danger">*</span>
+                                        </label>
+                                        @php $sisaMap = collect($biayaBelumLunas ?? [])->keyBy('id'); @endphp
+                                        <select class="form-select" id="selected_biaya_id" name="biaya_pendaftaran_id" required>
+                                            <option value="">— Pilih Biaya (wajib & non-wajib) —</option>
+                                            @foreach ($calon->tahunAjaran->biayaPendaftaran as $biayaOpt)
+                                                @php $sisaOpt = $sisaMap[$biayaOpt->id]['sisa'] ?? $biayaOpt->jumlah; @endphp
+                                                <option value="{{ $biayaOpt->id }}"
+                                                    data-dapat-diangsur="{{ $biayaOpt->dapat_diangsur ? 1 : 0 }}"
+                                                    data-sisa="{{ $sisaOpt }}"
+                                                    data-mata-uang="{{ $biayaOpt->mata_uang }}">
+                                                    {{ $biayaOpt->jenis_biaya }} — {{ $biayaOpt->wajib_bayar ? 'Wajib' : 'Opsional' }} — Sisa Rp {{ number_format($sisaOpt, 0, ',', '.') }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        <div class="form-text">
+                                            <i class="bi bi-info-circle me-1"></i>Pilih termasuk biaya non-wajib (mis. Ekstrakurikuler) untuk pembayaran susulan.
+                                        </div>
+                                    </div>
                                     <div class="form-check mb-3 d-none" id="angsuran-check-wrap">
                                         <input type="checkbox" name="buat_angsuran" value="1" id="modal_buat_angsuran" class="form-check-input" />
                                         <label class="form-check-label" for="modal_buat_angsuran">Buat sebagai angsuran <span class="text-muted" style="font-size:11px;">(tagihan + DP + jadwal cicilan sekaligus)</span></label>
@@ -1900,9 +1924,17 @@
     <script>
         // Set biaya ID for payment modal (bayar penuh per biaya, atau angsuran bila bisa)
         function setBiayaId(biayaId, jumlah, mataUang, dapatDiangsur) {
-            document.getElementById('selected_biaya_id').value = biayaId;
+            var select = document.getElementById('selected_biaya_id');
+            if (select) {
+                select.value = biayaId;
+                select.dispatchEvent(new Event('change'));
+            }
             document.getElementById('jumlah').value = jumlah;
             document.getElementById('mata-uang-addon').textContent = mataUang;
+            syncAngsuranToggle(dapatDiangsur);
+        }
+
+        function syncAngsuranToggle(dapatDiangsur) {
             var wrap = document.getElementById('angsuran-check-wrap');
             var check = document.getElementById('modal_buat_angsuran');
             var fields = document.getElementById('modal-angsuran-fields');
@@ -1915,6 +1947,14 @@
                 }
             }
         }
+
+        document.getElementById('selected_biaya_id')?.addEventListener('change', function () {
+            var opt = this.selectedOptions[0];
+            if (opt && opt.dataset.sisa) {
+                document.getElementById('jumlah').value = opt.dataset.sisa;
+            }
+            syncAngsuranToggle(opt ? opt.dataset.dapatDiangsur : '0');
+        });
 
         document.getElementById('modal_buat_angsuran')?.addEventListener('change', function () {
             document.getElementById('modal-angsuran-fields')?.classList.toggle('d-none', !this.checked);
