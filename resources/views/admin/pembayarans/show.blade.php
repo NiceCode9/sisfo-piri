@@ -11,6 +11,9 @@
     </div>
     <div class="d-flex gap-2 flex-wrap">
         <a href="{{ route('admin.pembayarans.index') }}" class="btn btn-nexus-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Kembali</a>
+        @if($pembayaran->status === 'berhasil')
+            <a href="{{ route('admin.pembayarans.kwitansi', $pembayaran) }}" class="btn btn-nexus-outline btn-sm"><i class="fa-solid fa-print"></i> Kwitansi</a>
+        @endif
         <a href="{{ route('admin.pembayarans.edit', $pembayaran) }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-pencil"></i> Ubah</a>
     </div>
 </div>

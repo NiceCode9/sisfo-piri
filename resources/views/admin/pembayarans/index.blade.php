@@ -74,6 +74,9 @@
                             <td>
                                 <div class="d-flex gap-1">
                                     <a href="{{ route('admin.pembayarans.show', $p) }}" class="btn-icon btn btn-nexus-outline btn-sm"><i class="fa-solid fa-eye"></i></a>
+                                    @if($p->status === 'berhasil')
+                                        <a href="{{ route('admin.pembayarans.kwitansi', $p) }}" class="btn-icon btn btn-nexus-outline btn-sm" title="Cetak kwitansi"><i class="fa-solid fa-print"></i></a>
+                                    @endif
                                     @can('pembayarans.edit')<a href="{{ route('admin.pembayarans.edit', $p) }}" class="btn-icon btn btn-nexus-outline btn-sm"><i class="fa-solid fa-pencil"></i></a>@endcan
                                     @can('pembayarans.delete')<form action="{{ route('admin.pembayarans.destroy', $p) }}" method="POST" class="d-inline">@csrf @method('DELETE')<button type="submit" class="btn-icon btn btn-nexus-outline btn-sm text-danger" data-confirm="Hapus {{ $p->kode_pembayaran }}?"><i class="fa-solid fa-trash"></i></button></form>@endcan
                                 </div>

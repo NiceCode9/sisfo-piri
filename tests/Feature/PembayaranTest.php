@@ -379,6 +379,51 @@ test('index menandai DP dan cicilan ke-N, penuh tanpa penanda', function () {
     $response->assertSee('Cicilan ke-1', false);
 });
 
+test('kwitansi hanya untuk pembayaran berhasil', function () {
+    $calon = buatCalon();
+
+    $berhasil = Pembayaran::create([
+        'calon_siswa_id' => $calon->id,
+        'kode_pembayaran' => 'PAY-2026-0501',
+        'jumlah' => 100000,
+        'metode_pembayaran' => 'tunai',
+        'jenis_pembayaran' => 'penuh',
+        'status' => 'berhasil',
+        'tanggal_pembayaran' => '2026-06-01',
+    ]);
+
+    $menunggu = Pembayaran::create([
+        'calon_siswa_id' => $calon->id,
+        'kode_pembayaran' => 'PAY-2026-0502',
+        'jumlah' => 100000,
+        'metode_pembayaran' => 'tunai',
+        'jenis_pembayaran' => 'penuh',
+        'status' => 'menunggu',
+    ]);
+
+    $response = $this->actingAs(superAdmin())->get(route('admin.pembayarans.kwitansi', $berhasil));
+
+    $response->assertOk();
+    expect($response->headers->get('content-type'))->toContain('application/pdf');
+
+    $this->actingAs(superAdmin())->get(route('admin.pembayarans.kwitansi', $menunggu))->assertNotFound();
+});
+
+test('tamu dan user tanpa permission ditolak kwitansi', function () {
+    $calon = buatCalon();
+    $bayar = Pembayaran::create([
+        'calon_siswa_id' => $calon->id,
+        'kode_pembayaran' => 'PAY-2026-0503',
+        'jumlah' => 100000,
+        'metode_pembayaran' => 'tunai',
+        'jenis_pembayaran' => 'penuh',
+        'status' => 'berhasil',
+    ]);
+
+    $this->get(route('admin.pembayarans.kwitansi', $bayar))->assertRedirect(route('login'));
+    $this->actingAs(User::factory()->create())->get(route('admin.pembayarans.kwitansi', $bayar))->assertForbidden();
+});
+
 test('store via modal show kembali ke show calon', function () {
     $calon = buatCalon();
 

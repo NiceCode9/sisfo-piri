@@ -55,6 +55,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::resource('kuota-pendaftarans', KuotaPendaftaranController::class)->except(['show']);
     Route::get('pembayarans/export/excel', [PembayaranController::class, 'exportExcel'])->name('pembayarans.export.excel');
     Route::get('pembayarans/export/pdf', [PembayaranController::class, 'exportPdf'])->name('pembayarans.export.pdf');
+    Route::get('pembayarans/{pembayaran}/kwitansi', [PembayaranController::class, 'kwitansi'])->name('pembayarans.kwitansi');
     Route::resource('pembayarans', PembayaranController::class);
     Route::patch('pembayarans/{pembayaran}/status', [PembayaranController::class, 'updateStatus'])->name('pembayarans.status');
     Route::get('pembayaran-lainnyas/export/excel', [PembayaranLainnyaController::class, 'exportExcel'])->name('pembayaran-lainnyas.export.excel');

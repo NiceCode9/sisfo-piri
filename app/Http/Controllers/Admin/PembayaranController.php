@@ -31,7 +31,7 @@ class PembayaranController extends Controller implements HasMiddleware
     public static function middleware(): array
     {
         return [
-            new Middleware('permission:pembayarans.view', only: ['index', 'show', 'exportExcel', 'exportPdf']),
+            new Middleware('permission:pembayarans.view', only: ['index', 'show', 'exportExcel', 'exportPdf', 'kwitansi']),
             new Middleware('permission:pembayarans.create', only: ['create', 'store']),
             new Middleware('permission:pembayarans.edit', only: ['edit', 'update', 'updateStatus']),
             new Middleware('permission:pembayarans.delete', only: ['destroy']),
@@ -78,6 +78,72 @@ class PembayaranController extends Controller implements HasMiddleware
             'total' => $pembayarans->sum('jumlah'),
             'filters' => request()->only(['search', 'status', 'tanggal_mulai', 'tanggal_sampai']),
         ])->download('pembayaran-'.now()->format('Ymd-His').'.pdf');
+    }
+
+    /**
+     * Cetak kwitansi satu pembayaran (hanya yang berhasil).
+     */
+    public function kwitansi(Pembayaran $pembayaran): Response
+    {
+        abort_unless($pembayaran->status === 'berhasil', 404);
+        $pembayaran->load(['calonSiswa.jalurPendaftaran', 'biayaPendaftaran', 'detailAngsuran']);
+
+        // TODO: ganti dengan profil sekolah dari DB bila sudah ada.
+        $sekolah = [
+            'nama' => 'SMK Negeri 1 Ngaglik',
+            'alamat' => 'Jl. Kaliurang Km. 13, Ngaglik, Sleman, Yogyakarta 55581',
+            'telp' => '(0274) 123456',
+        ];
+
+        return Pdf::loadView('admin.pembayarans.kwitansi', [
+            'pembayaran' => $pembayaran,
+            'sekolah' => $sekolah,
+            'terbilang' => $this->terbilang($pembayaran->jumlah).' rupiah',
+            'petugas' => auth()->user()->name,
+        ])->download('kwitansi-'.$pembayaran->kode_pembayaran.'.pdf');
+    }
+
+    /**
+     * Terbilang nominal dalam Bahasa Indonesia.
+     */
+    protected function terbilang(float $angka): string
+    {
+        $angka = (int) round($angka);
+        $kata = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
+
+        if ($angka < 12) {
+            return $kata[$angka];
+        }
+
+        if ($angka < 20) {
+            return $this->terbilang($angka - 10).' belas';
+        }
+
+        if ($angka < 100) {
+            return trim($this->terbilang((int) ($angka / 10)).' puluh '.$this->terbilang($angka % 10));
+        }
+
+        if ($angka < 200) {
+            return 'seratus '.trim($this->terbilang($angka - 100));
+        }
+
+        if ($angka < 1000) {
+            return trim($this->terbilang((int) ($angka / 100)).' ratus '.$this->terbilang($angka % 100));
+        }
+
+        if ($angka < 2000) {
+            return 'seribu '.trim($this->terbilang($angka - 1000));
+        }
+
+        if ($angka < 1000000) {
+            return trim($this->terbilang((int) ($angka / 1000)).' ribu '.$this->terbilang($angka % 1000));
+        }
+
+        if ($angka < 1000000000) {
+            return trim($this->terbilang((int) ($angka / 1000000)).' juta '.$this->terbilang($angka % 1000000));
+        }
+
+        return trim($this->terbilang((int) ($angka / 1000000000)).' miliar '.$this->terbilang($angka % 1000000000));
     }
 
     public function create(): View
