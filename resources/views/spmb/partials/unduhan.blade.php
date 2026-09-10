@@ -1,63 +1,122 @@
 @php
-    // TODO: taruh file PDF asli di /public/documents/, lalu sesuaikan path di bawah.
-    // Kalau dokumen bertambah banyak di kemudian hari, tinggal tambah item ke array ini.
+    // TODO: taruh gambar brosur/alur pendaftaran asli di /public/images/,
+    // lalu sesuaikan path di bawah. Format JPG/PNG (atau WebP), bukan PDF,
+    // karena harus bisa ditampilkan langsung sebagai gambar di halaman.
     $dokumenUnduhan = [
         [
-            'icon' => 'document',
             'title' => 'Brosur SPMB',
             'desc' => 'Info lengkap program, keunggulan, dan biaya pendidikan',
-            'file' => asset('0001.jpg'),
-            'size' => '2.4 MB',
+            'image' => asset('0001.jpg'),
         ],
         [
-            'icon' => 'route',
             'title' => 'Alur Pendaftaran',
             'desc' => 'Panduan langkah demi langkah proses pendaftaran',
-            'file' => asset('0002.jpg'),
-            'size' => '1.1 MB',
+            'image' => asset('0002.jpg'),
         ],
-    ];
-
-    $unduhanIcons = [
-        'document' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
-        'route' => 'M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7',
-        'download' => 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4',
     ];
 @endphp
 
-<section id="unduhan" class="py-16 bg-slate-50">
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="bg-white rounded-3xl shadow-xl border border-gray-100 p-6 md:p-10">
-            <div class="text-center mb-10">
-                <span class="inline-block px-4 py-1.5 bg-primary-100 text-primary-700 rounded-full text-sm font-semibold mb-4">Unduh</span>
-                <h2 class="text-2xl md:text-3xl font-extrabold text-gray-800 mb-2">Simpan Info Pendaftaran</h2>
-                <p class="text-gray-600 max-w-xl mx-auto">Unduh brosur dan alur pendaftaran untuk dibaca offline atau dibagikan ke keluarga</p>
-            </div>
+<section id="unduhan" class="py-20 bg-slate-50">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+            <span class="inline-block px-4 py-1.5 bg-primary-100 text-primary-700 rounded-full text-sm font-semibold mb-4">Unduh</span>
+            <h2 class="text-3xl md:text-4xl font-extrabold text-gray-800 mb-4">Brosur &amp; Alur Pendaftaran</h2>
+            <p class="text-lg text-gray-600 max-w-xl mx-auto">Lihat langsung isinya di sini, atau unduh untuk disimpan dan dibagikan</p>
+        </div>
 
-            <div class="grid sm:grid-cols-2 gap-6">
-                @foreach ($dokumenUnduhan as $dokumen)
-                    <a href="{{ $dokumen['file'] }}" target="_blank" rel="noopener" download
-                       class="group flex items-center gap-4 p-5 bg-slate-50 hover:bg-primary-50 rounded-2xl border border-gray-100 hover:border-primary-200 transition-all duration-300 card-hover">
-                        <div class="w-14 h-14 bg-gradient-primary rounded-2xl flex items-center justify-center text-white flex-shrink-0 shadow-md">
-                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $unduhanIcons[$dokumen['icon']] }}"/>
+        <div class="grid sm:grid-cols-2 gap-8">
+            @foreach ($dokumenUnduhan as $dokumen)
+                <div class="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden card-hover">
+                    {{-- Preview gambar — klik untuk perbesar --}}
+                    <button type="button"
+                            class="js-open-preview relative block w-full aspect-[3/4] bg-gray-100 group overflow-hidden"
+                            data-image="{{ $dokumen['image'] }}"
+                            data-title="{{ $dokumen['title'] }}"
+                            aria-label="Perbesar {{ $dokumen['title'] }}">
+                        <img src="{{ $dokumen['image'] }}" alt="{{ $dokumen['title'] }}"
+                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-300 flex items-center justify-center">
+                            <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 px-4 py-2 bg-white/90 backdrop-blur-sm rounded-full text-sm font-semibold text-gray-800">
+                                🔍 Lihat Penuh
+                            </span>
+                        </div>
+                    </button>
+
+                    <div class="p-5 flex items-center justify-between gap-4">
+                        <div class="min-w-0">
+                            <h3 class="font-bold text-gray-800">{{ $dokumen['title'] }}</h3>
+                            <p class="text-sm text-gray-500 truncate">{{ $dokumen['desc'] }}</p>
+                        </div>
+                        <a href="{{ $dokumen['image'] }}" download
+                           class="inline-flex items-center gap-2 px-4 py-2.5 bg-primary-600 text-white text-sm font-semibold rounded-xl hover:bg-primary-700 transition shadow-md hover:shadow-lg flex-shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                             </svg>
-                        </div>
+                            Unduh
+                        </a>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
 
-                        <div class="flex-1 min-w-0">
-                            <h3 class="font-bold text-gray-800 group-hover:text-primary-700 transition-colors">{{ $dokumen['title'] }}</h3>
-                            <p class="text-sm text-gray-500 mb-1 truncate">{{ $dokumen['desc'] }}</p>
-                            <span class="text-xs text-gray-400">PDF • {{ $dokumen['size'] }}</span>
-                        </div>
+    {{-- Lightbox --}}
+    <div id="preview-lightbox" class="hidden fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm items-center justify-center p-4">
+        <button type="button" id="preview-close" aria-label="Tutup"
+                class="absolute top-5 right-5 w-11 h-11 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
 
-                        <div class="w-9 h-9 bg-white rounded-full flex items-center justify-center flex-shrink-0 shadow-sm group-hover:bg-primary-600 transition-colors">
-                            <svg class="w-4 h-4 text-primary-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $unduhanIcons['download'] }}"/>
-                            </svg>
-                        </div>
-                    </a>
-                @endforeach
+        <div class="max-w-3xl w-full max-h-[85vh] flex flex-col items-center">
+            <img id="preview-image" src="" alt="" class="max-h-[75vh] w-auto rounded-xl shadow-2xl object-contain">
+            <div class="flex items-center gap-4 mt-4">
+                <span id="preview-title" class="text-white font-semibold"></span>
+                <a id="preview-download" href="" download
+                   class="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-800 text-sm font-semibold rounded-xl hover:bg-gray-100 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    Unduh
+                </a>
             </div>
         </div>
     </div>
 </section>
+
+<script>
+    (function () {
+        const lightbox = document.getElementById('preview-lightbox');
+        const previewImage = document.getElementById('preview-image');
+        const previewTitle = document.getElementById('preview-title');
+        const previewDownload = document.getElementById('preview-download');
+        const closeBtn = document.getElementById('preview-close');
+
+        document.querySelectorAll('.js-open-preview').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                previewImage.src = btn.dataset.image;
+                previewImage.alt = btn.dataset.title;
+                previewTitle.textContent = btn.dataset.title;
+                previewDownload.href = btn.dataset.image;
+                lightbox.classList.remove('hidden');
+                lightbox.classList.add('flex');
+                document.body.style.overflow = 'hidden';
+            });
+        });
+
+        function closePreview() {
+            lightbox.classList.add('hidden');
+            lightbox.classList.remove('flex');
+            document.body.style.overflow = '';
+        }
+
+        closeBtn.addEventListener('click', closePreview);
+        lightbox.addEventListener('click', (e) => {
+            if (e.target === lightbox) closePreview();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closePreview();
+        });
+    })();
+</script>
