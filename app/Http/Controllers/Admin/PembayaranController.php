@@ -397,13 +397,14 @@ class PembayaranController extends Controller implements HasMiddleware
     protected function calonBelumLunas()
     {
         $calons = CalonSiswa::belumLunas()
-            ->with(['jalurPendaftaran', 'tahunAjaran.biayaPendaftaran', 'pembayaran'])
+            ->with(['jalurPendaftaran', 'tahunAjaran.biayaPendaftaran', 'pembayaran', 'rencanaAngsuran.detailAngsuran'])
             ->orderByDesc('created_at')
             ->limit(100)
             ->get();
 
         $calons->each(function ($calon) {
-            $terbayar = $calon->pembayaran->where('status', 'berhasil')->sum('jumlah');
+            $lunasIndukIds = $calon->rencanaAngsuran->where('status', 'lunas')->pluck('pembayaran_id')->filter()->all();
+            $terbayar = $calon->pembayaran->where('status', 'berhasil')->whereNotIn('id', $lunasIndukIds)->sum('jumlah');
             $wajib = $calon->tahunAjaran?->biayaPendaftaran->where('wajib_bayar', true)->sum('jumlah') ?? 0;
             $calon->sisa_tagihan = max(0, $wajib - $terbayar);
         });

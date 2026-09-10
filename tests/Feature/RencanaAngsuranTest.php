@@ -356,6 +356,28 @@ test('bayar semua via store menutup rencana dan induk otomatis', function () {
         ->and($tagihan->fresh()->status)->toBe('berhasil');
 });
 
+test('ringkasan show tidak minus setelah angsuran lunas padahal biaya lain belum bayar', function () {
+    $tagihan = buatTagihanAngsuran();
+    $rencana = buatRencana($this, $tagihan, 2, 500000);
+
+    foreach ($rencana->detailAngsuran()->where('cicilan_ke', '>', 0)->orderBy('cicilan_ke')->get() as $detail) {
+        $this->actingAs(superAdmin())->post(route('admin.pembayarans.store'), [
+            'calon_siswa_id' => $tagihan->calon_siswa_id,
+            'biaya_pendaftaran_id' => $tagihan->biaya_pendaftaran_id,
+            'detail_angsuran_id' => $detail->id,
+            'jumlah' => (float) $detail->nominal_cicilan,
+            'metode_pembayaran' => 'tunai',
+        ])->assertRedirect(route('admin.pembayarans.index'));
+    }
+
+    // Uang Pangkal lunas via angsuran, 3 biaya wajib lain belum dibayar
+    $response = $this->actingAs(superAdmin())->get(route('admin.calon-siswas.show', $tagihan->calon_siswa_id));
+
+    $response->assertOk();
+    $response->assertSee('Sisa Pembayaran', false);
+    $response->assertDontSee('Rp -', false);
+});
+
 test('show calon sembunyikan bayar bila rencana aktif', function () {
     $tagihan = buatTagihanAngsuran();
     buatRencana($this, $tagihan, 3, 500000);

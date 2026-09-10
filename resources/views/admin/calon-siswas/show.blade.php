@@ -1492,10 +1492,24 @@
 
                         foreach ($calon->tahunAjaran->biayaPendaftaran as $biaya) {
                             $totalBiaya += $biaya->jumlah;
-                            $totalPembayaranBiaya = $calon->pembayaran
+                            // Bila ada rencana angsuran, hitung dari DP + cicilan yang dibayar
+                            // agar tagihan induk yang ikut berhasil saat lunas tidak terhitung ganda.
+                            $rencanaBiaya = $calon->rencanaAngsuran
                                 ->where('biaya_pendaftaran_id', $biaya->id)
-                                ->where('status', 'berhasil')
-                                ->sum('jumlah');
+                                ->sortByDesc('created_at')
+                                ->first();
+                            if ($rencanaBiaya) {
+                                $totalPembayaranBiaya = $rencanaBiaya->dp_dibayar
+                                    + $rencanaBiaya->detailAngsuran
+                                        ->where('cicilan_ke', '>', 0)
+                                        ->where('status', 'dibayar')
+                                        ->sum('total_bayar');
+                            } else {
+                                $totalPembayaranBiaya = $calon->pembayaran
+                                    ->where('biaya_pendaftaran_id', $biaya->id)
+                                    ->where('status', 'berhasil')
+                                    ->sum('jumlah');
+                            }
 
                             $totalBayar += $totalPembayaranBiaya;
 

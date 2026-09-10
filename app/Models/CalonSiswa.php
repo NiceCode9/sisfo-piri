@@ -88,9 +88,11 @@ class CalonSiswa extends Model
      */
     public function scopeBelumLunas(Builder $query): Builder
     {
+        // Tagihan induk yang ikut berhasil saat rencananya lunas dikecualikan
+        // (DP + cicilannya sudah tercatat sendiri) agar tidak terhitung ganda.
         return $query->whereRaw(
-            'COALESCE((SELECT SUM(jumlah) FROM pembayarans WHERE pembayarans.calon_siswa_id = calon_siswas.id AND pembayarans.status = ?), 0) < COALESCE((SELECT SUM(jumlah) FROM biaya_pendaftarans WHERE biaya_pendaftarans.tahun_ajaran_id = calon_siswas.tahun_ajaran_id AND biaya_pendaftarans.wajib_bayar = 1), 0)',
-            ['berhasil']
+            'COALESCE((SELECT SUM(jumlah) FROM pembayarans WHERE pembayarans.calon_siswa_id = calon_siswas.id AND pembayarans.status = ? AND NOT EXISTS (SELECT 1 FROM rencana_angsurans WHERE rencana_angsurans.pembayaran_id = pembayarans.id AND rencana_angsurans.status = ?)), 0) < COALESCE((SELECT SUM(jumlah) FROM biaya_pendaftarans WHERE biaya_pendaftarans.tahun_ajaran_id = calon_siswas.tahun_ajaran_id AND biaya_pendaftarans.wajib_bayar = 1), 0)',
+            ['berhasil', 'lunas']
         );
     }
 }
