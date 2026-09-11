@@ -30,9 +30,9 @@ class Guru extends Model
         return $this->hasMany(Pengampu::class);
     }
 
-    public function waliKelas()
+    public function waliRombels()
     {
-        return $this->hasMany(WaliKelas::class);
+        return $this->hasMany(Rombel::class, 'wali_guru_id');
     }
 
     public function scopeAktif($query)

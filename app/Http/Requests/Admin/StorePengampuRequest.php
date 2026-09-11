@@ -8,9 +8,6 @@ use Illuminate\Validation\Rule;
 
 class StorePengampuRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return true;
@@ -26,11 +23,10 @@ class StorePengampuRequest extends FormRequest
             'mata_pelajaran_id' => [
                 'required', 'integer', 'exists:mata_pelajarans,id',
                 Rule::unique('pengampus', 'mata_pelajaran_id')->where(
-                    fn ($query) => $query->where('kelas_id', $this->kelas_id)->where('tahun_ajaran_id', $this->tahun_ajaran_id)
+                    fn ($query) => $query->where('rombel_id', $this->rombel_id)
                 ),
             ],
-            'kelas_id' => ['required', 'integer', 'exists:kelas,id'],
-            'tahun_ajaran_id' => ['required', 'integer', 'exists:tahun_ajarans,id'],
+            'rombel_id' => ['required', 'integer', 'exists:rombels,id'],
         ];
     }
 }

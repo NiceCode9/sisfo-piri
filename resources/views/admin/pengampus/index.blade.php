@@ -11,7 +11,6 @@
     </div>
     <div class="d-flex gap-2 flex-wrap">
         @can('pengampus.create')
-            <a href="{{ route('admin.pengampus.salin') }}" class="btn btn-nexus-outline btn-sm"><i class="fa-solid fa-copy"></i> Salin Tahun</a>
             <a href="{{ route('admin.pengampus.create') }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Tambah Penugasan</a>
         @endcan
     </div>
@@ -30,28 +29,23 @@
                 <option value="">Semua Tahun</option>
                 @foreach($tahunAjarans as $t)<option value="{{ $t->id }}" @selected(request('tahun')==$t->id)>{{ $t->nama_tahun_ajaran }}</option>@endforeach
             </select>
-            <select name="kelas" class="form-select form-select-sm" style="width:auto" onchange="this.form.submit()">
-                <option value="">Semua Kelas</option>
-                @foreach($kelasList as $k)<option value="{{ $k->id }}" @selected(request('kelas')==$k->id)>{{ $k->nama_kelas }}</option>@endforeach
-            </select>
             <div class="position-relative">
                 <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;"></i>
                 <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-sm ps-5" placeholder="Cari guru..." style="width:180px" />
             </div>
-            @if(request('search')||request('tahun')||request('kelas'))<a href="{{ route('admin.pengampus.index') }}" class="btn btn-nexus-outline btn-sm">Reset</a>@endif
+            @if(request('search')||request('tahun'))<a href="{{ route('admin.pengampus.index') }}" class="btn btn-nexus-outline btn-sm">Reset</a>@endif
         </form>
     </div>
     <div class="card-body-nexus p-0">
         <div class="table-responsive">
             <table class="table-nexus w-100">
-                <thead><tr><th>Guru</th><th>Mapel</th><th>Kelas</th><th>Tahun Ajaran</th><th>Aksi</th></tr></thead>
+                <thead><tr><th>Guru</th><th>Mapel</th><th>Rombel</th><th>Aksi</th></tr></thead>
                 <tbody>
                     @forelse($pengampus as $p)
                         <tr>
                             <td style="font-weight:600;font-size:13px;">{{ $p->guru->nama ?? '-' }}</td>
                             <td><span class="badge-nexus badge-info">{{ $p->mataPelajaran->kode ?? '-' }}</span> <span style="font-size:12.5px;">{{ $p->mataPelajaran->nama ?? '' }}</span></td>
-                            <td style="font-size:13px;">{{ $p->kelas->nama_kelas ?? '-' }}</td>
-                            <td style="font-size:12.5px;">{{ $p->tahunAjaran->nama_tahun_ajaran ?? '-' }}</td>
+                            <td style="font-size:13px;">{{ $p->rombel->kelas->nama_kelas ?? '-' }} <span style="color:var(--text-muted);">• {{ $p->rombel->tahunAjaran->nama_tahun_ajaran ?? '-' }}</span></td>
                             <td>
                                 <div class="d-flex gap-1">
                                     @can('pengampus.edit')<a href="{{ route('admin.pengampus.edit', $p) }}" class="btn-icon btn btn-nexus-outline btn-sm"><i class="fa-solid fa-pencil"></i></a>@endcan
@@ -60,7 +54,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="5" class="text-center py-4" style="color:var(--text-muted);">Belum ada penugasan.</td></tr>
+                        <tr><td colspan="4" class="text-center py-4" style="color:var(--text-muted);">Belum ada penugasan.</td></tr>
                     @endforelse
                 </tbody>
             </table>

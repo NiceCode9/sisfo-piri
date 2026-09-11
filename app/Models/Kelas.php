@@ -12,14 +12,14 @@ class Kelas extends Model
         'deskripsi',
     ];
 
-    public function pengampus()
+    public function rombels()
     {
-        return $this->hasMany(Pengampu::class);
+        return $this->hasMany(Rombel::class);
     }
 
-    public function waliKelas()
+    public function pengampus()
     {
-        return $this->hasMany(WaliKelas::class);
+        return $this->hasManyThrough(Pengampu::class, Rombel::class, 'kelas_id', 'rombel_id');
     }
 
     public function riwayatKelas()

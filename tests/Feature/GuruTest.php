@@ -3,6 +3,7 @@
 use App\Models\Guru;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
+use App\Models\Rombel;
 use App\Models\TahunAjaran;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
@@ -98,10 +99,13 @@ test('super-admin dapat memperbarui guru tanpa mengubah password', function () {
 test('tidak dapat menghapus guru yang masih ditugaskan', function () {
     $user = User::factory()->create(['username' => 'guru03']);
     $guru = Guru::create(['user_id' => $user->id, 'nama' => 'Guru Tiga', 'jenis_kelamin' => 'L', 'is_aktif' => true]);
-    $guru->pengampus()->create([
-        'mata_pelajaran_id' => MataPelajaran::create(['kode' => 'TST', 'nama' => 'Test', 'kelompok' => 'A', 'kkm' => 75])->id,
+    $rombel = Rombel::create([
         'kelas_id' => Kelas::create(['nama_kelas' => '7Z', 'tingkat' => '7'])->id,
         'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
+    ]);
+    $guru->pengampus()->create([
+        'mata_pelajaran_id' => MataPelajaran::create(['kode' => 'TST', 'nama' => 'Test', 'kelompok' => 'A', 'kkm' => 75])->id,
+        'rombel_id' => $rombel->id,
     ]);
 
     $response = $this->actingAs(superAdmin())->delete(route('admin.gurus.destroy', $guru));

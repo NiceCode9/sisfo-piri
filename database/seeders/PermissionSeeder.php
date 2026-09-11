@@ -104,9 +104,10 @@ class PermissionSeeder extends Seeder
             'pengampus.edit',
             'pengampus.delete',
             'wali-kelas.view',
-            'wali-kelas.create',
-            'wali-kelas.edit',
-            'wali-kelas.delete',
+            'rombels.view',
+            'rombels.create',
+            'rombels.edit',
+            'rombels.delete',
             'kenaikan-kelas.view',
             'kenaikan-kelas.execute',
         ];
@@ -144,7 +145,8 @@ class PermissionSeeder extends Seeder
                 'mata-pelajarans.view', 'mata-pelajarans.create', 'mata-pelajarans.edit',
                 'kelas.view', 'kelas.create', 'kelas.edit',
                 'pengampus.view', 'pengampus.create', 'pengampus.edit',
-                'wali-kelas.view', 'wali-kelas.create', 'wali-kelas.edit',
+                'wali-kelas.view',
+                'rombels.view', 'rombels.create', 'rombels.edit',
                 'kenaikan-kelas.view', 'kenaikan-kelas.execute',
             ]);
 

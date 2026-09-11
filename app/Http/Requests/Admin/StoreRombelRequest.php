@@ -6,11 +6,8 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class StoreWaliKelasRequest extends FormRequest
+class StoreRombelRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return true;
@@ -22,14 +19,14 @@ class StoreWaliKelasRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'guru_id' => ['required', 'integer', 'exists:gurus,id'],
             'kelas_id' => [
                 'required', 'integer', 'exists:kelas,id',
-                Rule::unique('wali_kelas', 'kelas_id')->where(
+                Rule::unique('rombels', 'kelas_id')->where(
                     fn ($query) => $query->where('tahun_ajaran_id', $this->tahun_ajaran_id)
                 ),
             ],
             'tahun_ajaran_id' => ['required', 'integer', 'exists:tahun_ajarans,id'],
+            'wali_guru_id' => ['nullable', 'integer', 'exists:gurus,id'],
         ];
     }
 }

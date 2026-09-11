@@ -6,9 +6,9 @@ use App\Models\Guru;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use App\Models\Pengampu;
+use App\Models\Rombel;
 use App\Models\TahunAjaran;
 use App\Models\User;
-use App\Models\WaliKelas;
 use Illuminate\Database\Seeder;
 
 class AkademikSeeder extends Seeder
@@ -40,25 +40,22 @@ class AkademikSeeder extends Seeder
         $mtk = MataPelajaran::where('kode', 'MTK')->firstOrFail();
         $kelas = Kelas::whereIn('nama_kelas', ['7A', '7B', '7C', '7D'])->pluck('id', 'nama_kelas');
 
-        // Guru A: MTK 7A + 7B. Guru D: MTK 7C + 7D.
-        foreach (['7A' => $guruA, '7B' => $guruA, '7C' => $guruD, '7D' => $guruD] as $namaKelas => $guru) {
-            Pengampu::firstOrCreate([
-                'guru_id' => $guru->id,
-                'mata_pelajaran_id' => $mtk->id,
-                'kelas_id' => $kelas[$namaKelas],
-                'tahun_ajaran_id' => $tahun->id,
-            ]);
+        // Rombel per kelas + wali (7A: Guru A, 7C: Guru D).
+        $rombels = [];
+        foreach (['7A' => $guruA->id, '7B' => null, '7C' => $guruD->id, '7D' => null] as $namaKelas => $waliId) {
+            $rombels[$namaKelas] = Rombel::firstOrCreate(
+                ['kelas_id' => $kelas[$namaKelas], 'tahun_ajaran_id' => $tahun->id],
+                ['wali_guru_id' => $waliId]
+            );
         }
 
-        WaliKelas::firstOrCreate([
-            'kelas_id' => $kelas['7A'],
-            'tahun_ajaran_id' => $tahun->id,
-        ], ['guru_id' => $guruA->id]);
-
-        WaliKelas::firstOrCreate([
-            'kelas_id' => $kelas['7C'],
-            'tahun_ajaran_id' => $tahun->id,
-        ], ['guru_id' => $guruD->id]);
+        // Guru A: MTK 7A + 7B. Guru D: MTK 7C + 7D.
+        foreach (['7A' => $guruA, '7B' => $guruA, '7C' => $guruD, '7D' => $guruD] as $namaKelas => $guru) {
+            Pengampu::firstOrCreate(
+                ['mata_pelajaran_id' => $mtk->id, 'rombel_id' => $rombels[$namaKelas]->id],
+                ['guru_id' => $guru->id]
+            );
+        }
     }
 
     protected function buatGuru(string $nip, string $nama, string $jk, string $username): Guru

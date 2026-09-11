@@ -105,8 +105,8 @@ class GuruController extends Controller implements HasMiddleware
 
     public function destroy(Guru $guru): RedirectResponse
     {
-        if ($guru->pengampus()->exists() || $guru->waliKelas()->exists()) {
-            return back()->with('error', "Guru {$guru->nama} masih memiliki penugasan/wali kelas dan tidak dapat dihapus. Nonaktifkan saja.");
+        if ($guru->pengampus()->exists() || $guru->waliRombels()->exists()) {
+            return back()->with('error', "Guru {$guru->nama} masih memiliki penugasan/wali rombel dan tidak dapat dihapus. Nonaktifkan saja.");
         }
 
         DB::transaction(function () use ($guru) {

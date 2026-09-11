@@ -4,6 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * ARSIP read-only: wali kelas kini tercatat di rombels.wali_guru_id.
+ * Model dipertahankan agar riwayat lama tetap bisa dibaca.
+ * Dilarang menulis dari kode baru (tidak ada CRUD).
+ */
 class WaliKelas extends Model
 {
     protected $fillable = [

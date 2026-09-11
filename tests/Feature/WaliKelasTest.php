@@ -26,97 +26,28 @@ if (! function_exists('superAdmin')) {
     }
 }
 
-if (! function_exists('buatWaliDasar')) {
-    function buatWaliDasar(): array
-    {
-        $user = User::factory()->create(['username' => 'guru-wali']);
-        $guru = Guru::create(['user_id' => $user->id, 'nama' => 'Guru Wali', 'jenis_kelamin' => 'L', 'is_aktif' => true]);
-        $kelas = Kelas::create(['nama_kelas' => '7A', 'tingkat' => '7']);
-        $tahun = TahunAjaran::aktif()->first();
+/*
+ * ARSIP read-only pasca-cutover rombel: route CRUD wali-kelas dicabut,
+ * wali kini tercatat di rombels.wali_guru_id. File ini mengunci keputusan:
+ * route lama 404 dan model arsip tetap terbaca.
+ */
 
-        return compact('guru', 'kelas', 'tahun');
-    }
-}
-
-test('tamu tidak dapat membuka daftar wali kelas', function () {
-    $this->get(route('admin.wali-kelas.index'))->assertRedirect(route('login'));
+test('route wali-kelas sudah dicabut (cutover rombel)', function () {
+    $this->actingAs(superAdmin())->get('/admin/wali-kelas')->assertNotFound();
 });
 
-test('user tanpa permission ditolak membuka wali kelas', function () {
-    $user = User::factory()->create();
-    $this->actingAs($user)->get(route('admin.wali-kelas.index'))->assertForbidden();
-});
+test('model arsip wali kelas tetap terbaca', function () {
+    $user = User::factory()->create(['username' => 'guru-wali']);
+    $guru = Guru::create(['user_id' => $user->id, 'nama' => 'Guru Wali', 'jenis_kelamin' => 'L', 'is_aktif' => true]);
+    $kelas = Kelas::create(['nama_kelas' => '7A', 'tingkat' => '7']);
+    $tahun = TahunAjaran::aktif()->first();
 
-test('super-admin dapat membuka daftar wali kelas', function () {
-    $response = $this->actingAs(superAdmin())->get(route('admin.wali-kelas.index'));
-    $response->assertOk()->assertSee('Daftar Wali Kelas');
-});
-
-test('super-admin dapat menetapkan wali kelas', function () {
-    $d = buatWaliDasar();
-
-    $response = $this->actingAs(superAdmin())->post(route('admin.wali-kelas.store'), [
-        'guru_id' => $d['guru']->id,
-        'kelas_id' => $d['kelas']->id,
-        'tahun_ajaran_id' => $d['tahun']->id,
-    ]);
-
-    $response->assertRedirect(route('admin.wali-kelas.index'));
-    expect(WaliKelas::count())->toBe(1);
-});
-
-test('duplikat kelas-tahun ditolak', function () {
-    $d = buatWaliDasar();
-    WaliKelas::create([
-        'guru_id' => $d['guru']->id,
-        'kelas_id' => $d['kelas']->id,
-        'tahun_ajaran_id' => $d['tahun']->id,
-    ]);
-
-    $user2 = User::factory()->create(['username' => 'guru-wali-2']);
-    $guru2 = Guru::create(['user_id' => $user2->id, 'nama' => 'Guru Wali Dua', 'jenis_kelamin' => 'P', 'is_aktif' => true]);
-
-    $response = $this->actingAs(superAdmin())->post(route('admin.wali-kelas.store'), [
-        'guru_id' => $guru2->id,
-        'kelas_id' => $d['kelas']->id,
-        'tahun_ajaran_id' => $d['tahun']->id,
-    ]);
-
-    $response->assertSessionHasErrors('kelas_id');
-    expect(WaliKelas::count())->toBe(1);
-});
-
-test('kelas sama boleh beda tahun', function () {
-    $d = buatWaliDasar();
-    WaliKelas::create([
-        'guru_id' => $d['guru']->id,
-        'kelas_id' => $d['kelas']->id,
-        'tahun_ajaran_id' => $d['tahun']->id,
-    ]);
-
-    $tahunLalu = TahunAjaran::where('status_aktif', false)->first();
-
-    $response = $this->actingAs(superAdmin())->post(route('admin.wali-kelas.store'), [
-        'guru_id' => $d['guru']->id,
-        'kelas_id' => $d['kelas']->id,
-        'tahun_ajaran_id' => $tahunLalu->id,
-    ]);
-
-    $response->assertRedirect(route('admin.wali-kelas.index'));
-    expect(WaliKelas::count())->toBe(2);
-});
-
-test('admin tanpa permission delete tidak dapat menghapus wali', function () {
-    $admin = User::factory()->create();
-    $admin->assignRole('admin');
-
-    $d = buatWaliDasar();
     $wali = WaliKelas::create([
-        'guru_id' => $d['guru']->id,
-        'kelas_id' => $d['kelas']->id,
-        'tahun_ajaran_id' => $d['tahun']->id,
+        'guru_id' => $guru->id,
+        'kelas_id' => $kelas->id,
+        'tahun_ajaran_id' => $tahun->id,
     ]);
 
-    $this->actingAs($admin)->delete(route('admin.wali-kelas.destroy', $wali))->assertForbidden();
-    expect(WaliKelas::find($wali->id))->not->toBeNull();
+    expect(WaliKelas::find($wali->id))->not->toBeNull()
+        ->and($wali->guru->nama)->toBe('Guru Wali');
 });

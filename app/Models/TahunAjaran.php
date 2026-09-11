@@ -54,14 +54,14 @@ class TahunAjaran extends Model
         return $this->hasMany(RiwayatKelas::class);
     }
 
-    public function pengampus(): HasMany
+    public function rombels(): HasMany
     {
-        return $this->hasMany(Pengampu::class);
+        return $this->hasMany(Rombel::class);
     }
 
-    public function waliKelas(): HasMany
+    public function pengampus()
     {
-        return $this->hasMany(WaliKelas::class);
+        return $this->hasManyThrough(Pengampu::class, Rombel::class, 'tahun_ajaran_id', 'rombel_id');
     }
 
     public function scopeAktif($query)
