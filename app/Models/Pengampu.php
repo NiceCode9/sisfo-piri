@@ -16,6 +16,7 @@ class Pengampu extends Model
         'mata_pelajaran_id',
         'kelas_id',
         'tahun_ajaran_id',
+        'rombel_id',
     ];
 
     public function guru()
@@ -36,5 +37,14 @@ class Pengampu extends Model
     public function tahunAjaran()
     {
         return $this->belongsTo(TahunAjaran::class);
+    }
+
+    /**
+     * Jalur baru (spike rombel): jangkar kelas berjalan.
+     * Nullable selama masa transisi; jalur lama tetap berfungsi.
+     */
+    public function rombel()
+    {
+        return $this->belongsTo(Rombel::class);
     }
 }
