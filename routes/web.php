@@ -68,6 +68,8 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::resource('gurus', GuruController::class)->except(['show']);
     Route::resource('mata-pelajarans', MataPelajaranController::class)->except(['show']);
     Route::resource('kelas', KelasController::class)->except(['show'])->parameters(['kelas' => 'kelas']);
+    Route::get('pengampus/salin', [PengampuController::class, 'salin'])->name('pengampus.salin');
+    Route::post('pengampus/salin', [PengampuController::class, 'prosesSalin'])->name('pengampus.salin.proses');
     Route::resource('pengampus', PengampuController::class)->except(['show']);
     Route::resource('wali-kelas', WaliKelasController::class)->except(['show'])->parameters(['wali-kelas' => 'wali_kelas']);
     Route::get('pembayarans/export/excel', [PembayaranController::class, 'exportExcel'])->name('pembayarans.export.excel');

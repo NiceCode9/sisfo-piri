@@ -11,6 +11,7 @@
     </div>
     <div class="d-flex gap-2 flex-wrap">
         @can('pengampus.create')
+            <a href="{{ route('admin.pengampus.salin') }}" class="btn btn-nexus-outline btn-sm"><i class="fa-solid fa-copy"></i> Salin Tahun</a>
             <a href="{{ route('admin.pengampus.create') }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Tambah Penugasan</a>
         @endcan
     </div>

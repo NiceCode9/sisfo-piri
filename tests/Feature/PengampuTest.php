@@ -6,6 +6,7 @@ use App\Models\MataPelajaran;
 use App\Models\Pengampu;
 use App\Models\TahunAjaran;
 use App\Models\User;
+use App\Models\WaliKelas;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\PpdbSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -127,4 +128,71 @@ test('admin tanpa permission delete tidak dapat menghapus penugasan', function (
 
     $this->actingAs($admin)->delete(route('admin.pengampus.destroy', $pengampu))->assertForbidden();
     expect(Pengampu::find($pengampu->id))->not->toBeNull();
+});
+
+test('halaman salin dapat ditampilkan', function () {
+    $response = $this->actingAs(superAdmin())->get(route('admin.pengampus.salin'));
+    $response->assertOk()->assertSee('Salin Penugasan');
+});
+
+test('salin duplikasi penugasan dan wali ke tahun tujuan', function () {
+    $d = buatPengampuDasar();
+    $tahunBaru = TahunAjaran::create([
+        'nama_tahun_ajaran' => '2027/2028',
+        'tanggal_mulai' => '2026-07-01',
+        'tanggal_selesai' => '2027-06-30',
+        'status_aktif' => false,
+    ]);
+    Pengampu::create([
+        'guru_id' => $d['guru']->id,
+        'mata_pelajaran_id' => $d['mapel']->id,
+        'kelas_id' => $d['kelas']->id,
+        'tahun_ajaran_id' => $d['tahun']->id,
+    ]);
+    WaliKelas::create([
+        'guru_id' => $d['guru']->id,
+        'kelas_id' => $d['kelas']->id,
+        'tahun_ajaran_id' => $d['tahun']->id,
+    ]);
+
+    $response = $this->actingAs(superAdmin())->post(route('admin.pengampus.salin.proses'), [
+        'tahun_sumber_id' => $d['tahun']->id,
+        'tahun_tujuan_id' => $tahunBaru->id,
+    ]);
+
+    $response->assertRedirect();
+    $response->assertSessionHas('success');
+    expect(Pengampu::where('tahun_ajaran_id', $tahunBaru->id)->count())->toBe(1)
+        ->and(WaliKelas::where('tahun_ajaran_id', $tahunBaru->id)->count())->toBe(1);
+});
+
+test('salin idempoten, baris yang sudah ada dilewati', function () {
+    $d = buatPengampuDasar();
+    $tahunBaru = TahunAjaran::create([
+        'nama_tahun_ajaran' => '2027/2028',
+        'tanggal_mulai' => '2026-07-01',
+        'tanggal_selesai' => '2027-06-30',
+        'status_aktif' => false,
+    ]);
+    Pengampu::create([
+        'guru_id' => $d['guru']->id,
+        'mata_pelajaran_id' => $d['mapel']->id,
+        'kelas_id' => $d['kelas']->id,
+        'tahun_ajaran_id' => $d['tahun']->id,
+    ]);
+
+    $data = ['tahun_sumber_id' => $d['tahun']->id, 'tahun_tujuan_id' => $tahunBaru->id];
+    $this->actingAs(superAdmin())->post(route('admin.pengampus.salin.proses'), $data)->assertRedirect();
+    $this->actingAs(superAdmin())->post(route('admin.pengampus.salin.proses'), $data)->assertRedirect();
+
+    expect(Pengampu::where('tahun_ajaran_id', $tahunBaru->id)->count())->toBe(1);
+});
+
+test('salin menolak bila sumber sama dengan tujuan', function () {
+    $d = buatPengampuDasar();
+
+    $this->actingAs(superAdmin())->post(route('admin.pengampus.salin.proses'), [
+        'tahun_sumber_id' => $d['tahun']->id,
+        'tahun_tujuan_id' => $d['tahun']->id,
+    ])->assertSessionHasErrors('tahun_sumber_id');
 });
