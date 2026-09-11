@@ -19,6 +19,11 @@ class Siswa extends Model
         'kelas_id',
         'tanggal_diterima',
         'is_aktif',
+        'nama_ayah',
+        'pekerjaan_ayah',
+        'nama_ibu',
+        'pekerjaan_ibu',
+        'no_hp_orang_tua',
     ];
 
     protected $casts = [
