@@ -31,6 +31,7 @@ class DatabaseSeeder extends Seeder
             BrosurSeeder::class,
             GaleriSeeder::class,
             AkademikSeeder::class,
+            DemoSiswaSeeder::class,
         ]);
     }
 }
