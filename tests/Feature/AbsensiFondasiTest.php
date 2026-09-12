@@ -130,11 +130,11 @@ test('qr token unik antar siswa', function () {
     expect(fn () => $s2->update(['qr_token' => 'token-unik-123']))->toThrow(QueryException::class);
 });
 
-test('role guru-piket dan orang-tua memiliki permission absensi', function () {
+test('role guru-piket memiliki permission absensi, siswa dan ortu terkunci dari admin', function () {
     expect(Role::findByName('guru-piket')->hasPermissionTo('absensis.create'))->toBeTrue()
         ->and(Role::findByName('guru-piket')->hasPermissionTo('absensis.delete'))->toBeFalse()
-        ->and(Role::findByName('orang-tua')->hasPermissionTo('absensis.view'))->toBeTrue()
-        ->and(Role::findByName('orang-tua')->hasPermissionTo('absensis.create'))->toBeFalse();
+        ->and(Role::findByName('orang-tua')->permissions)->toHaveCount(0)
+        ->and(Role::findByName('siswa')->permissions)->toHaveCount(0);
 });
 
 test('pengaturan batas terlambat default 07:00', function () {

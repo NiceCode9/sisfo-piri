@@ -159,13 +159,13 @@ class PermissionSeeder extends Seeder
         Role::firstOrCreate(['name' => 'guru-piket', 'guard_name' => 'web'])
             ->syncPermissions(['absensis.view', 'absensis.create', 'absensis.edit']);
 
-        // Orang-tua: pantau kehadiran anak sendiri (scope ditegakkan di controller).
-        Role::firstOrCreate(['name' => 'orang-tua', 'guard_name' => 'web'])
-            ->syncPermissions(['absensis.view']);
-
-        // Pembayaran murni admin: siswa hanya boleh lihat status pendaftaran.
+        // Siswa dan orang-tua tidak membuka halaman admin.
+        // Akses mereka dilayani area khusus (siswa.* dan — menyusul A3 — ortu.*).
         Role::firstOrCreate(['name' => 'siswa', 'guard_name' => 'web'])
-            ->syncPermissions(['siswas.view']);
+            ->syncPermissions([]);
+
+        Role::firstOrCreate(['name' => 'orang-tua', 'guard_name' => 'web'])
+            ->syncPermissions([]);
 
         // ensure siswa still can view own payments even after permission cache
         app()[PermissionRegistrar::class]->forgetCachedPermissions();

@@ -16,6 +16,8 @@
 
 @include('layouts.partials.alert')
 
+@include('siswa._nav', ['tabAktif' => 'dashboard'])
+
 @if (!$calon)
     <div class="card-nexus">
         <div class="card-body-nexus text-center py-5">

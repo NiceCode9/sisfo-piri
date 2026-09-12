@@ -27,6 +27,8 @@ use App\Http\Controllers\Admin\TahunAjaranController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Siswa\DashboardController;
+use App\Http\Controllers\Siswa\ProfilController;
+use App\Http\Controllers\Siswa\RiwayatController;
 use App\Http\Controllers\SpmbController;
 use Illuminate\Support\Facades\Route;
 
@@ -46,10 +48,26 @@ Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')-
 
 Route::prefix('siswa')->name('siswa.')->middleware(['auth', 'role:siswa'])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::get('/profil', [ProfilController::class, 'show'])->name('profil');
+    Route::put('/profil', [ProfilController::class, 'update'])->name('profil.update');
+    Route::get('/kelas', [RiwayatController::class, 'kelas'])->name('kelas');
+    Route::get('/absensi', [RiwayatController::class, 'absensi'])->name('absensi');
 });
 
 Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
-    Route::get('/', fn () => view('admin.dashboard'))->name('dashboard');
+    Route::get('/', function () {
+        $user = auth()->user();
+
+        if ($user->hasRole('siswa')) {
+            return redirect()->route('siswa.dashboard');
+        }
+
+        if ($user->hasRole('orang-tua')) {
+            abort(403, 'Area orang-tua dalam penyiapan.');
+        }
+
+        return view('admin.dashboard');
+    })->name('dashboard');
     Route::resource('users', UserController::class)->except(['show']);
     Route::resource('roles', RoleController::class)->except(['show']);
     Route::resource('menus', MenuController::class)->except(['show']);

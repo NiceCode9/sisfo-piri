@@ -16,6 +16,7 @@ class Siswa extends Model
         'nis',
         'nisn',
         'qr_token',
+        'foto_path',
         'tahun_ajaran_id',
         'kelas_id',
         'tanggal_diterima',
