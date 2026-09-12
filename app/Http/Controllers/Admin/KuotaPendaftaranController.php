@@ -27,8 +27,12 @@ class KuotaPendaftaranController extends Controller implements HasMiddleware
 
     public function index(): View
     {
+        $tahunAktif = TahunAjaran::aktif()->first();
+        $tahunMode = request()->query('tahun', 'aktif');
+
         $kuotas = KuotaPendaftaran::with(['tahunAjaran', 'jalurPendaftaran'])
-            ->when(request('tahun'), fn ($q, $t) => $q->where('tahun_ajaran_id', $t))
+            ->when($tahunMode === 'aktif' && $tahunAktif, fn ($q) => $q->where('tahun_ajaran_id', $tahunAktif->id))
+            ->when(is_numeric($tahunMode), fn ($q) => $q->where('tahun_ajaran_id', $tahunMode))
             ->orderBy('tahun_ajaran_id')
             ->orderBy('jalur_pendaftaran_id')
             ->paginate(10)
@@ -37,6 +41,8 @@ class KuotaPendaftaranController extends Controller implements HasMiddleware
         return view('admin.kuota-pendaftarans.index', [
             'kuotas' => $kuotas,
             'tahunAjarans' => TahunAjaran::orderByDesc('tanggal_mulai')->get(),
+            'tahunAktif' => $tahunAktif,
+            'tahunMode' => $tahunMode,
         ]);
     }
 

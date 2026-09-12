@@ -29,9 +29,13 @@ class KenaikanKelasController extends Controller implements HasMiddleware
      */
     public function index(): View
     {
+        $tahunAktif = TahunAjaran::aktif()->first();
+        $tahunMode = request()->query('tahun', 'aktif');
+
         $siswas = Siswa::with(['kelas', 'tahunAjaran', 'user', 'calonSiswa'])
             ->where('is_aktif', true)
-            ->when(request('tahun'), fn ($q, $t) => $q->where('tahun_ajaran_id', $t))
+            ->when($tahunMode === 'aktif' && $tahunAktif, fn ($q) => $q->where('tahun_ajaran_id', $tahunAktif->id))
+            ->when(is_numeric($tahunMode), fn ($q) => $q->where('tahun_ajaran_id', $tahunMode))
             ->when(request('kelas'), fn ($q, $k) => $q->where('kelas_id', $k))
             ->orderBy('kelas_id')
             ->orderBy('id')
@@ -41,7 +45,8 @@ class KenaikanKelasController extends Controller implements HasMiddleware
         return view('admin.kenaikan-kelas.index', [
             'siswas' => $siswas,
             'tahunAjarans' => TahunAjaran::orderByDesc('tanggal_mulai')->get(),
-            'tahunAktif' => TahunAjaran::aktif()->first(),
+            'tahunAktif' => $tahunAktif,
+            'tahunMode' => $tahunMode,
             'kelasList' => Kelas::orderBy('tingkat')->orderBy('nama_kelas')->get(),
         ]);
     }

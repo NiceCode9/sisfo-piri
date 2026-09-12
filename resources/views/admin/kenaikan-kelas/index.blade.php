@@ -21,14 +21,15 @@
         </div>
         <form method="GET" action="{{ route('admin.kenaikan.index') }}" class="d-flex gap-2 flex-wrap">
             <select name="tahun" class="form-select form-select-sm" style="width:auto" onchange="this.form.submit()">
-                <option value="">Semua Tahun</option>
-                @foreach($tahunAjarans as $t)<option value="{{ $t->id }}" @selected(request('tahun')==$t->id)>{{ $t->nama_tahun_ajaran }}</option>@endforeach
+                <option value="aktif" @selected($tahunMode === 'aktif')>Tahun Aktif{{ $tahunAktif ? " ({$tahunAktif->nama_tahun_ajaran})" : '' }}</option>
+                <option value="semua" @selected($tahunMode === 'semua')>Semua Tahun</option>
+                @foreach($tahunAjarans as $t)<option value="{{ $t->id }}" @selected((string) $tahunMode === (string) $t->id)>{{ $t->nama_tahun_ajaran }}</option>@endforeach
             </select>
             <select name="kelas" class="form-select form-select-sm" style="width:auto" onchange="this.form.submit()">
                 <option value="">Semua Kelas</option>
                 @foreach($kelasList as $k)<option value="{{ $k->id }}" @selected(request('kelas')==$k->id)>{{ $k->nama_kelas }}</option>@endforeach
             </select>
-            @if(request('tahun')||request('kelas'))<a href="{{ route('admin.kenaikan.index') }}" class="btn btn-nexus-outline btn-sm">Reset</a>@endif
+            @if($tahunMode!=='aktif'||request('kelas'))<a href="{{ route('admin.kenaikan.index') }}" class="btn btn-nexus-outline btn-sm">Reset</a>@endif
         </form>
     </div>
     <div class="card-body-nexus p-0">

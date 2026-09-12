@@ -38,12 +38,13 @@
                 @endforeach
             </select>
             <select name="tahun" class="form-select form-select-sm" style="width:auto" onchange="this.form.submit()">
-                <option value="">Semua Tahun</option>
+                <option value="aktif" @selected($tahunMode === 'aktif')>Tahun Aktif{{ $tahunAktif ? " ({$tahunAktif->nama_tahun_ajaran})" : '' }}</option>
+                <option value="semua" @selected($tahunMode === 'semua')>Semua Tahun</option>
                 @foreach ($tahunAjarans as $ta)
-                    <option value="{{ $ta->id }}" @selected((string) request('tahun') === (string) $ta->id)>{{ $ta->nama_tahun_ajaran }}</option>
+                    <option value="{{ $ta->id }}" @selected((string) $tahunMode === (string) $ta->id)>{{ $ta->nama_tahun_ajaran }}</option>
                 @endforeach
             </select>
-            @if(request('search') || request('kelas') || request('tahun'))<a href="{{ route('admin.siswas.index') }}" class="btn btn-nexus-outline btn-sm">Reset</a>@endif
+            @if(request('search') || request('kelas') || $tahunMode !== 'aktif')<a href="{{ route('admin.siswas.index') }}" class="btn btn-nexus-outline btn-sm">Reset</a>@endif
         </form>
     </div>
     <div class="card-body-nexus p-0">

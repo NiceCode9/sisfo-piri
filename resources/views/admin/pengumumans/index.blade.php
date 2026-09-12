@@ -25,6 +25,11 @@
             <p class="card-subtitle">{{ $pengumumans->total() }} data</p>
         </div>
         <form method="GET" action="{{ route('admin.pengumumans.index') }}" class="d-flex gap-2 flex-wrap">
+            <select name="tahun" class="form-select form-select-sm" style="width:auto" onchange="this.form.submit()">
+                <option value="aktif" @selected($tahunMode === 'aktif')>Tahun Aktif{{ $tahunAktif ? " ({$tahunAktif->nama_tahun_ajaran})" : '' }}</option>
+                <option value="semua" @selected($tahunMode === 'semua')>Semua Tahun</option>
+                @foreach($tahunAjarans as $t)<option value="{{ $t->id }}" @selected((string) $tahunMode === (string) $t->id)>{{ $t->nama_tahun_ajaran }}</option>@endforeach
+            </select>
             <div class="position-relative">
                 <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;"></i>
                 <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-sm ps-5" placeholder="Cari judul..." style="width:200px" />
@@ -34,7 +39,7 @@
                 <option value="1" @selected(request('status')==='1')>Aktif</option>
                 <option value="0" @selected(request('status')==='0')>Nonaktif</option>
             </select>
-            @if(request('search') || request('status')!=='')<a href="{{ route('admin.pengumumans.index') }}" class="btn btn-nexus-outline btn-sm">Reset</a>@endif
+            @if(request('search') || request('status')!=='' || $tahunMode!=='aktif')<a href="{{ route('admin.pengumumans.index') }}" class="btn btn-nexus-outline btn-sm">Reset</a>@endif
         </form>
     </div>
     <div class="card-body-nexus p-0">

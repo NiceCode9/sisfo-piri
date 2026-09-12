@@ -26,13 +26,23 @@ class BiayaPendaftaranController extends Controller implements HasMiddleware
 
     public function index(): View
     {
+        $tahunAktif = TahunAjaran::aktif()->first();
+        $tahunMode = request()->query('tahun', 'aktif');
+
         $biayas = BiayaPendaftaran::with('tahunAjaran')
             ->when(request('search'), fn ($q, $s) => $q->where('jenis_biaya', 'like', "%{$s}%"))
+            ->when($tahunMode === 'aktif' && $tahunAktif, fn ($q) => $q->where('tahun_ajaran_id', $tahunAktif->id))
+            ->when(is_numeric($tahunMode), fn ($q) => $q->where('tahun_ajaran_id', $tahunMode))
             ->latest()
             ->paginate(10)
             ->withQueryString();
 
-        return view('admin.biaya-pendaftarans.index', compact('biayas'));
+        return view('admin.biaya-pendaftarans.index', [
+            'biayas' => $biayas,
+            'tahunAjarans' => TahunAjaran::orderByDesc('tanggal_mulai')->get(),
+            'tahunAktif' => $tahunAktif,
+            'tahunMode' => $tahunMode,
+        ]);
     }
 
     public function create(): View

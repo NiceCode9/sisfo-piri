@@ -37,6 +37,9 @@ class SiswaController extends Controller implements HasMiddleware
 
     public function index(): View
     {
+        $tahunAktif = TahunAjaran::aktif()->first();
+        $tahunMode = request()->query('tahun', 'aktif');
+
         $siswas = Siswa::with(['user', 'kelas', 'tahunAjaran'])
             ->when(request('search'), fn ($q, $s) => $q->where(fn ($qq) => $qq
                 ->where('nis', 'like', "%{$s}%")
@@ -44,7 +47,8 @@ class SiswaController extends Controller implements HasMiddleware
                 ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$s}%"))
             ))
             ->when(request('kelas'), fn ($q, $v) => $q->where('kelas_id', $v))
-            ->when(request('tahun'), fn ($q, $v) => $q->where('tahun_ajaran_id', $v))
+            ->when($tahunMode === 'aktif' && $tahunAktif, fn ($q) => $q->where('tahun_ajaran_id', $tahunAktif->id))
+            ->when(is_numeric($tahunMode), fn ($q) => $q->where('tahun_ajaran_id', $tahunMode))
             ->latest()
             ->paginate(10)
             ->withQueryString();
@@ -53,6 +57,8 @@ class SiswaController extends Controller implements HasMiddleware
             'siswas' => $siswas,
             'kelases' => Kelas::orderBy('tingkat')->orderBy('nama_kelas')->get(),
             'tahunAjarans' => TahunAjaran::orderByDesc('tanggal_mulai')->get(),
+            'tahunAktif' => $tahunAktif,
+            'tahunMode' => $tahunMode,
         ]);
     }
 

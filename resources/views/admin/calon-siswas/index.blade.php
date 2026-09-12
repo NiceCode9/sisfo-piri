@@ -27,6 +27,13 @@
             <p class="card-subtitle">{{ $calons->total() }} pendaftar</p>
         </div>
         <form method="GET" action="{{ route('admin.calon-siswas.index') }}" class="d-flex gap-2 flex-wrap">
+            <select name="tahun" class="form-select form-select-sm" style="width: auto" onchange="this.form.submit()">
+                <option value="aktif" @selected($tahunMode === 'aktif')>Tahun Aktif{{ $tahunAktif ? " ({$tahunAktif->nama_tahun_ajaran})" : '' }}</option>
+                <option value="semua" @selected($tahunMode === 'semua')>Semua Tahun</option>
+                @foreach ($tahunAjarans as $t)
+                    <option value="{{ $t->id }}" @selected((string) $tahunMode === (string) $t->id)>{{ $t->nama_tahun_ajaran }}</option>
+                @endforeach
+            </select>
             <div class="position-relative">
                 <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 13px;"></i>
                 <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-sm ps-5" placeholder="No/NIK/Nama..." style="width: 180px" />
@@ -44,7 +51,7 @@
                 <option value="ditolak" @selected(request('status')==='ditolak')>Ditolak</option>
                 <option value="daftar_ulang" @selected(request('status')==='daftar_ulang')>Daftar Ulang</option>
             </select>
-            @if (request('search') || request('jalur') || request('status'))
+            @if (request('search') || request('jalur') || request('status') || $tahunMode !== 'aktif')
                 <a href="{{ route('admin.calon-siswas.index') }}" class="btn btn-nexus-outline btn-sm">Reset</a>
             @endif
         </form>

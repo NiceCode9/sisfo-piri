@@ -26,14 +26,24 @@ class PengumumanController extends Controller implements HasMiddleware
 
     public function index(): View
     {
+        $tahunAktif = TahunAjaran::aktif()->first();
+        $tahunMode = request()->query('tahun', 'aktif');
+
         $pengumumans = Pengumuman::with('tahunAjaran')
             ->when(request('search'), fn ($q, $s) => $q->where('judul', 'like', "%{$s}%"))
             ->when(request('status') !== null && request('status') !== '', fn ($q) => $q->where('status_aktif', request('status') === '1'))
+            ->when($tahunMode === 'aktif' && $tahunAktif, fn ($q) => $q->where('tahun_ajaran_id', $tahunAktif->id))
+            ->when(is_numeric($tahunMode), fn ($q) => $q->where('tahun_ajaran_id', $tahunMode))
             ->latest()
             ->paginate(10)
             ->withQueryString();
 
-        return view('admin.pengumumans.index', compact('pengumumans'));
+        return view('admin.pengumumans.index', [
+            'pengumumans' => $pengumumans,
+            'tahunAjarans' => TahunAjaran::orderByDesc('tanggal_mulai')->get(),
+            'tahunAktif' => $tahunAktif,
+            'tahunMode' => $tahunMode,
+        ]);
     }
 
     public function create(): View

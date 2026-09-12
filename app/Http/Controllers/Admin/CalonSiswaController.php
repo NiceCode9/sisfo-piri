@@ -36,6 +36,9 @@ class CalonSiswaController extends Controller implements HasMiddleware
 
     public function index(): View
     {
+        $tahunAktif = TahunAjaran::aktif()->first();
+        $tahunMode = request()->query('tahun', 'aktif');
+
         $calons = CalonSiswa::with(['jalurPendaftaran', 'tahunAjaran', 'berkasCalonSiswa'])
             ->when(request('search'), fn ($q, $s) => $q->where(fn ($qq) => $qq
                 ->where('no_pendaftaran', 'like', "%{$s}%")
@@ -44,6 +47,8 @@ class CalonSiswaController extends Controller implements HasMiddleware
             ))
             ->when(request('jalur'), fn ($q, $v) => $q->where('jalur_pendaftaran_id', $v))
             ->when(request('status'), fn ($q, $v) => $q->where('status_pendaftaran', $v))
+            ->when($tahunMode === 'aktif' && $tahunAktif, fn ($q) => $q->where('tahun_ajaran_id', $tahunAktif->id))
+            ->when(is_numeric($tahunMode), fn ($q) => $q->where('tahun_ajaran_id', $tahunMode))
             ->latest()
             ->paginate(10)
             ->withQueryString();
@@ -51,6 +56,9 @@ class CalonSiswaController extends Controller implements HasMiddleware
         return view('admin.calon-siswas.index', [
             'calons' => $calons,
             'jalurs' => JalurPendaftaran::where('aktif', true)->orderBy('nama_jalur')->get(),
+            'tahunAjarans' => TahunAjaran::orderByDesc('tanggal_mulai')->get(),
+            'tahunAktif' => $tahunAktif,
+            'tahunMode' => $tahunMode,
         ]);
     }
 

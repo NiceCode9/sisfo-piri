@@ -29,8 +29,12 @@ class PengampuController extends Controller implements HasMiddleware
 
     public function index(): View
     {
+        $tahunAktif = TahunAjaran::aktif()->first();
+        $tahunMode = request()->query('tahun', 'aktif');
+
         $pengampus = Pengampu::with(['guru', 'mataPelajaran', 'rombel.kelas', 'rombel.tahunAjaran'])
-            ->when(request('tahun'), fn ($q, $t) => $q->whereHas('rombel', fn ($qq) => $qq->where('tahun_ajaran_id', $t)))
+            ->when($tahunMode === 'aktif' && $tahunAktif, fn ($q) => $q->whereHas('rombel', fn ($qq) => $qq->where('tahun_ajaran_id', $tahunAktif->id)))
+            ->when(is_numeric($tahunMode), fn ($q) => $q->whereHas('rombel', fn ($qq) => $qq->where('tahun_ajaran_id', $tahunMode)))
             ->when(request('search'), fn ($q, $s) => $q->whereHas('guru', fn ($qq) => $qq->where('nama', 'like', "%{$s}%")))
             ->orderByDesc('id')
             ->paginate(10)
@@ -39,6 +43,8 @@ class PengampuController extends Controller implements HasMiddleware
         return view('admin.pengampus.index', [
             'pengampus' => $pengampus,
             'tahunAjarans' => TahunAjaran::orderByDesc('tanggal_mulai')->get(),
+            'tahunAktif' => $tahunAktif,
+            'tahunMode' => $tahunMode,
         ]);
     }
 

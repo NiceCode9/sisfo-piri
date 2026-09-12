@@ -26,9 +26,13 @@ class JadwalPpdbController extends Controller implements HasMiddleware
 
     public function index(): View
     {
+        $tahunAktif = TahunAjaran::aktif()->first();
+        $tahunMode = request()->query('tahun', 'aktif');
+
         $jadwals = JadwalPpdb::with('tahunAjaran')
             ->when(request('search'), fn ($q, $s) => $q->where('nama_jadwal', 'like', "%{$s}%"))
-            ->when(request('tahun'), fn ($q, $t) => $q->where('tahun_ajaran_id', $t))
+            ->when($tahunMode === 'aktif' && $tahunAktif, fn ($q) => $q->where('tahun_ajaran_id', $tahunAktif->id))
+            ->when(is_numeric($tahunMode), fn ($q) => $q->where('tahun_ajaran_id', $tahunMode))
             ->orderBy('tanggal_mulai')
             ->paginate(10)
             ->withQueryString();
@@ -36,6 +40,8 @@ class JadwalPpdbController extends Controller implements HasMiddleware
         return view('admin.jadwal-ppdbs.index', [
             'jadwals' => $jadwals,
             'tahunAjarans' => TahunAjaran::orderByDesc('tanggal_mulai')->get(),
+            'tahunAktif' => $tahunAktif,
+            'tahunMode' => $tahunMode,
         ]);
     }
 

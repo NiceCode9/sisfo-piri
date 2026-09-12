@@ -26,13 +26,23 @@ class GelombangController extends Controller implements HasMiddleware
 
     public function index(): View
     {
+        $tahunAktif = TahunAjaran::aktif()->first();
+        $tahunMode = request()->query('tahun', 'aktif');
+
         $gelombangs = Gelombang::with('tahunAjaran')
             ->when(request('search'), fn ($q, $s) => $q->where('nama_gelombang', 'like', "%{$s}%"))
+            ->when($tahunMode === 'aktif' && $tahunAktif, fn ($q) => $q->where('tahun_ajaran_id', $tahunAktif->id))
+            ->when(is_numeric($tahunMode), fn ($q) => $q->where('tahun_ajaran_id', $tahunMode))
             ->orderBy('nomor_urut')
             ->paginate(10)
             ->withQueryString();
 
-        return view('admin.gelombangs.index', compact('gelombangs'));
+        return view('admin.gelombangs.index', [
+            'gelombangs' => $gelombangs,
+            'tahunAjarans' => TahunAjaran::orderByDesc('tanggal_mulai')->get(),
+            'tahunAktif' => $tahunAktif,
+            'tahunMode' => $tahunMode,
+        ]);
     }
 
     public function create(): View

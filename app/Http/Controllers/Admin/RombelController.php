@@ -31,9 +31,13 @@ class RombelController extends Controller implements HasMiddleware
 
     public function index(): View
     {
+        $tahunAktif = TahunAjaran::aktif()->first();
+        $tahunMode = request()->query('tahun', 'aktif');
+
         $rombels = Rombel::with(['kelas', 'tahunAjaran', 'waliGuru'])
             ->withCount('pengampus')
-            ->when(request('tahun'), fn ($q, $t) => $q->where('tahun_ajaran_id', $t))
+            ->when($tahunMode === 'aktif' && $tahunAktif, fn ($q) => $q->where('tahun_ajaran_id', $tahunAktif->id))
+            ->when(is_numeric($tahunMode), fn ($q) => $q->where('tahun_ajaran_id', $tahunMode))
             ->when(request('search'), fn ($q, $s) => $q->whereHas('kelas', fn ($qq) => $qq->where('nama_kelas', 'like', "%{$s}%")))
             ->orderByDesc('tahun_ajaran_id')
             ->orderBy('kelas_id')
@@ -43,6 +47,8 @@ class RombelController extends Controller implements HasMiddleware
         return view('admin.rombels.index', [
             'rombels' => $rombels,
             'tahunAjarans' => TahunAjaran::orderByDesc('tanggal_mulai')->get(),
+            'tahunAktif' => $tahunAktif,
+            'tahunMode' => $tahunMode,
         ]);
     }
 
