@@ -76,32 +76,42 @@ class RombelController extends Controller implements HasMiddleware
             'histori' => $histori,
             'gurus' => Guru::aktif()->orderBy('nama')->get(),
             'mapels' => MataPelajaran::aktif()->orderBy('kode')->get(),
-            'mapelTerisi' => $histori['penugasan']->pluck('mata_pelajaran_id')->all(),
+            'pengampuPerMapel' => $histori['penugasan']->keyBy('mata_pelajaran_id'),
         ]);
     }
 
     /**
-     * Tambah beberapa penugasan sekaligus dari halaman histori rombel.
-     * Atomik: semua baris masuk atau tidak sama sekali.
+     * Simpan penugasan se-rombel sekaligus dari section editor.
+     * Baris kosong diabaikan; baris terisi di-create atau di-update gurunya.
      */
     public function storePengampuBatch(StorePengampuBatchRequest $request, Rombel $rombel): RedirectResponse
     {
-        $baris = $request->validated()['baris'];
+        $hasil = DB::transaction(function () use ($request, $rombel) {
+            $ditambah = 0;
+            $diperbarui = 0;
 
-        DB::transaction(function () use ($baris, $rombel) {
-            foreach ($baris as $row) {
-                Pengampu::create([
-                    'guru_id' => $row['guru_id'],
-                    'mata_pelajaran_id' => $row['mata_pelajaran_id'],
-                    'rombel_id' => $rombel->id,
-                ]);
+            foreach ($request->validated()['guru'] as $mapelId => $guruId) {
+                if (! $guruId) {
+                    continue;
+                }
+
+                $tugas = Pengampu::updateOrCreate(
+                    ['rombel_id' => $rombel->id, 'mata_pelajaran_id' => $mapelId],
+                    ['guru_id' => $guruId]
+                );
+
+                if ($tugas->wasRecentlyCreated) {
+                    $ditambah++;
+                } elseif ($tugas->wasChanged()) {
+                    $diperbarui++;
+                }
             }
+
+            return compact('ditambah', 'diperbarui');
         });
 
-        $jumlah = count($baris);
-
         return redirect()->route('admin.rombels.show', $rombel)
-            ->with('success', "{$jumlah} penugasan berhasil ditambahkan ke rombel {$rombel->kelas->nama_kelas}.");
+            ->with('success', "Penugasan rombel {$rombel->kelas->nama_kelas} disimpan: {$hasil['ditambah']} ditambah, {$hasil['diperbarui']} diperbarui.");
     }
 
     public function edit(Rombel $rombel): View

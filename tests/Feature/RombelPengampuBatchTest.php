@@ -43,11 +43,19 @@ if (! function_exists('buatMapelBatch')) {
     }
 }
 
+if (! function_exists('buatGuruBatch')) {
+    function buatGuruBatch(string $username, string $nama): Guru
+    {
+        $user = User::factory()->create(['username' => $username]);
+
+        return Guru::create(['user_id' => $user->id, 'nama' => $nama, 'jenis_kelamin' => 'L', 'is_aktif' => true]);
+    }
+}
+
 if (! function_exists('buatRombelBatch')) {
     function buatRombelBatch(): array
     {
-        $user = User::factory()->create(['username' => 'guru-batch']);
-        $guru = Guru::create(['user_id' => $user->id, 'nama' => 'Guru Batch', 'jenis_kelamin' => 'L', 'is_aktif' => true]);
+        $guru = buatGuruBatch('guru-batch', 'Guru Batch');
         $mapel = buatMapelBatch('MTK', 'Matematika');
         $kelas = Kelas::create(['nama_kelas' => '7A', 'tingkat' => '7']);
         $tahun = TahunAjaran::aktif()->first();
@@ -57,64 +65,85 @@ if (! function_exists('buatRombelBatch')) {
     }
 }
 
-test('batch tiga baris tersimpan sekaligus dari show rombel', function () {
+test('editor menyimpan beberapa mapel sekaligus', function () {
     $d = buatRombelBatch();
     $ipa = buatMapelBatch('IPA', 'Ilmu Pengetahuan Alam');
     $bin = buatMapelBatch('BIN', 'Bahasa Indonesia');
 
     $response = $this->actingAs(superAdmin())->post(route('admin.rombels.pengampus.batch', $d['rombel']), [
-        'baris' => [
-            ['guru_id' => $d['guru']->id, 'mata_pelajaran_id' => $d['mapel']->id],
-            ['guru_id' => $d['guru']->id, 'mata_pelajaran_id' => $ipa->id],
-            ['guru_id' => $d['guru']->id, 'mata_pelajaran_id' => $bin->id],
+        'guru' => [
+            $d['mapel']->id => $d['guru']->id,
+            $ipa->id => $d['guru']->id,
+            $bin->id => '',
         ],
     ]);
 
     $response->assertRedirect(route('admin.rombels.show', $d['rombel']));
-    expect(Pengampu::where('rombel_id', $d['rombel']->id)->count())->toBe(3);
+    expect(Pengampu::where('rombel_id', $d['rombel']->id)->count())->toBe(2)
+        ->and(Pengampu::where('rombel_id', $d['rombel']->id)->where('mata_pelajaran_id', $bin->id)->exists())->toBeFalse();
 });
 
-test('mapel duplikat dalam batch ditolak dan modal dibuka kembali', function () {
+test('editor memperbarui guru mapel yang sudah terisi', function () {
     $d = buatRombelBatch();
-
-    $response = $this->actingAs(superAdmin())->post(route('admin.rombels.pengampus.batch', $d['rombel']), [
-        'baris' => [
-            ['guru_id' => $d['guru']->id, 'mata_pelajaran_id' => $d['mapel']->id],
-            ['guru_id' => $d['guru']->id, 'mata_pelajaran_id' => $d['mapel']->id],
-        ],
-    ]);
-
-    $response->assertSessionHasErrors('baris');
-    expect(session('bukaModalPengampu'))->toBeTrue()
-        ->and(Pengampu::count())->toBe(0);
-});
-
-test('duplikat terhadap penugasan existing ditolak atomik', function () {
-    $d = buatRombelBatch();
-    $ipa = buatMapelBatch('IPA', 'Ilmu Pengetahuan Alam');
+    $baru = buatGuruBatch('guru-baru', 'Guru Baru');
     Pengampu::create([
         'guru_id' => $d['guru']->id,
         'mata_pelajaran_id' => $d['mapel']->id,
         'rombel_id' => $d['rombel']->id,
     ]);
 
-    $response = $this->actingAs(superAdmin())->post(route('admin.rombels.pengampus.batch', $d['rombel']), [
-        'baris' => [
-            ['guru_id' => $d['guru']->id, 'mata_pelajaran_id' => $d['mapel']->id],
-            ['guru_id' => $d['guru']->id, 'mata_pelajaran_id' => $ipa->id],
-        ],
-    ]);
+    $this->actingAs(superAdmin())->post(route('admin.rombels.pengampus.batch', $d['rombel']), [
+        'guru' => [$d['mapel']->id => $baru->id],
+    ])->assertRedirect(route('admin.rombels.show', $d['rombel']));
 
-    $response->assertSessionHasErrors('baris.0.mata_pelajaran_id');
-    expect(Pengampu::count())->toBe(1);
+    expect(Pengampu::where('rombel_id', $d['rombel']->id)->count())->toBe(1)
+        ->and(Pengampu::first()->guru_id)->toBe($baru->id);
 });
 
-test('user tanpa permission create ditolak batch', function () {
+test('baris kosong diabaikan dan penugasan existing utuh', function () {
+    $d = buatRombelBatch();
+    $pengampu = Pengampu::create([
+        'guru_id' => $d['guru']->id,
+        'mata_pelajaran_id' => $d['mapel']->id,
+        'rombel_id' => $d['rombel']->id,
+    ]);
+
+    $this->actingAs(superAdmin())->post(route('admin.rombels.pengampus.batch', $d['rombel']), [
+        'guru' => [$d['mapel']->id => ''],
+    ])->assertRedirect(route('admin.rombels.show', $d['rombel']));
+
+    expect(Pengampu::find($pengampu->id))->not->toBeNull()
+        ->and(Pengampu::find($pengampu->id)->guru_id)->toBe($d['guru']->id);
+});
+
+test('guru tidak dikenal ditolak', function () {
+    $d = buatRombelBatch();
+
+    $response = $this->actingAs(superAdmin())->post(route('admin.rombels.pengampus.batch', $d['rombel']), [
+        'guru' => [$d['mapel']->id => 999999],
+    ]);
+
+    $response->assertSessionHasErrors('guru.'.$d['mapel']->id);
+    expect(Pengampu::count())->toBe(0);
+});
+
+test('mapel tidak dikenal ditolak', function () {
+    $d = buatRombelBatch();
+
+    $response = $this->actingAs(superAdmin())->post(route('admin.rombels.pengampus.batch', $d['rombel']), [
+        'guru' => [999999 => $d['guru']->id],
+    ]);
+
+    $response->assertSessionHasErrors('guru');
+    expect(Pengampu::count())->toBe(0);
+});
+
+test('user tanpa permission create ditolak editor', function () {
     $d = buatRombelBatch();
     $user = User::factory()->create();
 
     $this->actingAs($user)->post(route('admin.rombels.pengampus.batch', $d['rombel']), [
-        'baris' => [['guru_id' => $d['guru']->id, 'mata_pelajaran_id' => $d['mapel']->id]],
+        'guru' => [$d['mapel']->id => $d['guru']->id],
     ])->assertForbidden();
 
     expect(Pengampu::count())->toBe(0);
@@ -136,13 +165,19 @@ test('hapus penugasan dari show kembali ke show', function () {
     expect(Pengampu::find($pengampu->id))->toBeNull();
 });
 
-test('show rombel me-render modal batch dan opsi mapel aktif', function () {
+test('show me-render satu select per mapel dengan prefill guru', function () {
     $d = buatRombelBatch();
     buatMapelBatch('IPA', 'Ilmu Pengetahuan Alam');
+    Pengampu::create([
+        'guru_id' => $d['guru']->id,
+        'mata_pelajaran_id' => $d['mapel']->id,
+        'rombel_id' => $d['rombel']->id,
+    ]);
 
     $this->actingAs(superAdmin())->get(route('admin.rombels.show', $d['rombel']))
         ->assertOk()
-        ->assertSee('modalTambahPengampu', false)
-        ->assertSee('Tambah Baris')
-        ->assertSee('IPA — Ilmu Pengetahuan Alam');
+        ->assertSee('form-penugasan', false)
+        ->assertSee('name="guru['.$d['mapel']->id.']"', false)
+        ->assertSee('name="guru[', false)
+        ->assertSee('Guru Batch');
 });
