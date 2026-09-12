@@ -8,6 +8,7 @@ use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
 use Database\Seeders\AkademikSeeder;
+use Database\Seeders\MenuSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\PpdbSeeder;
 use Database\Seeders\RoleSeeder;
@@ -20,6 +21,7 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     $this->seed(RoleSeeder::class);
     $this->seed(PermissionSeeder::class);
+    $this->seed(MenuSeeder::class);
     $this->seed(PpdbSeeder::class);
     $this->seed(AkademikSeeder::class);
 });
@@ -102,6 +104,18 @@ test('siswa dapat membuka dashboard dan profil sendiri', function () {
     $this->actingAs($d['user'])->get(route('siswa.dashboard'))->assertOk();
     $this->actingAs($d['user'])->get(route('siswa.profil'))
         ->assertOk()->assertSee('Anak Area Satu')->assertSee('5001');
+});
+
+test('siswa tanpa menu tidak melihat header kategori sidebar', function () {
+    $d = buatAkunSiswaArea('Anak Area Satu', '5001');
+
+    $this->actingAs($d['user'])->get(route('siswa.dashboard'))
+        ->assertOk()->assertDontSee('sidebar-label', false);
+});
+
+test('superadmin tetap melihat header kategori sidebar', function () {
+    $this->actingAs(superAdmin())->get(route('admin.dashboard'))
+        ->assertOk()->assertSee('PPDB')->assertSee('Akademik')->assertSee('Sistem');
 });
 
 test('siswa tidak melihat data siswa lain', function () {

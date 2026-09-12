@@ -1,6 +1,11 @@
 {{-- Item navigasi sidebar; dipakai desktop & mobile. Variabel: $menus, $idPrefix (agar id collapse unik) --}}
-@foreach ($menus as $menu)
+@php $daftarMenu = $menus instanceof \Illuminate\Support\Collection ? $menus->values() : collect($menus)->values(); @endphp
+@foreach ($daftarMenu as $indeks => $menu)
     @if ($menu->is_header)
+        {{-- Header tanpa satupun item terlihat sesudahnya disembunyikan. --}}
+        @if($daftarMenu->slice($indeks + 1)->takeUntil(fn ($m) => $m->is_header)->reject(fn ($m) => $m->is_header)->isEmpty())
+            @continue
+        @endif
         <li><div class="sidebar-label">{{ $menu->name }}</div></li>
     @elseif ($menu->children->isNotEmpty())
         @php
