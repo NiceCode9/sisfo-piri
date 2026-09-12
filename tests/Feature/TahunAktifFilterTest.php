@@ -107,7 +107,7 @@ test('siswa default tahun aktif, semua tampil, spesifik tahun lampau', function 
         ->assertOk()->assertSee('9990001')->assertDontSee('8880001');
 });
 
-test('kenaikan kelas default tahun aktif, semua tampil', function () {
+test('kenaikan kelas default tahun aktif, asal lampau tampil', function () {
     $kelas = Kelas::where('nama_kelas', '7A')->firstOrFail();
     Siswa::create(['nis' => '8880002', 'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id, 'kelas_id' => $kelas->id, 'is_aktif' => true]);
     Siswa::create(['nis' => '9990002', 'tahun_ajaran_id' => tahunLampauFilter()->id, 'kelas_id' => $kelas->id, 'is_aktif' => true]);
@@ -115,8 +115,8 @@ test('kenaikan kelas default tahun aktif, semua tampil', function () {
     $this->actingAs(superAdmin())->get(route('admin.kenaikan.index'))
         ->assertOk()->assertSee('8880002')->assertDontSee('9990002');
 
-    $this->actingAs(superAdmin())->get(route('admin.kenaikan.index', ['tahun' => 'semua']))
-        ->assertOk()->assertSee('9990002');
+    $this->actingAs(superAdmin())->get(route('admin.kenaikan.index', ['tahun_asal_id' => tahunLampauFilter()->id, 'tahun_tujuan_id' => TahunAjaran::aktif()->first()->id]))
+        ->assertOk()->assertSee('9990002')->assertDontSee('8880002');
 });
 
 test('calon siswa default tahun aktif, semua tampil, spesifik tahun lampau', function () {

@@ -88,8 +88,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::get('profil-sekolah', [ProfilSekolahController::class, 'edit'])->name('profil-sekolah.edit');
     Route::put('profil-sekolah', [ProfilSekolahController::class, 'update'])->name('profil-sekolah.update');
     Route::get('kenaikan-kelas', [KenaikanKelasController::class, 'index'])->name('kenaikan.index');
-    Route::post('kenaikan-kelas/naikkan', [KenaikanKelasController::class, 'naikkan'])->name('kenaikan.naikkan');
-    Route::post('kenaikan-kelas/luluskan', [KenaikanKelasController::class, 'luluskan'])->name('kenaikan.luluskan');
+    Route::post('kenaikan-kelas/proses', [KenaikanKelasController::class, 'proses'])->name('kenaikan.proses');
     Route::get('siswas/template', [SiswaController::class, 'template'])->name('siswas.template');
     Route::post('siswas/import', [SiswaController::class, 'import'])->name('siswas.import');
     Route::get('siswas/{siswa}/kartu', [SiswaController::class, 'kartu'])->name('siswas.kartu');
