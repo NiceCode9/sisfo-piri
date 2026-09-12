@@ -44,6 +44,20 @@ class Rombel extends Model
     }
 
     /**
+     * ID siswa anggota rombel (diturunkan dari riwayat kelas+tahun).
+     *
+     * @return array<int>
+     */
+    public function anggotaIds(): array
+    {
+        return RiwayatKelas::where('kelas_id', $this->kelas_id)
+            ->where('tahun_ajaran_id', $this->tahun_ajaran_id)
+            ->pluck('siswa_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+    }
+
+    /**
      * Histori lengkap satu rombel: penugasan + wali + daftar siswa.
      *
      * @return array{penugasan: Collection, wali: ?Guru, siswa: Collection}

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AbsensiController;
 use App\Http\Controllers\Admin\BiayaPendaftaranController;
 use App\Http\Controllers\Admin\BrosurController;
 use App\Http\Controllers\Admin\CalonSiswaController;
@@ -92,5 +93,10 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::get('siswas/template', [SiswaController::class, 'template'])->name('siswas.template');
     Route::post('siswas/import', [SiswaController::class, 'import'])->name('siswas.import');
     Route::get('siswas/{siswa}/kartu', [SiswaController::class, 'kartu'])->name('siswas.kartu');
+    Route::post('siswas/{siswa}/qr', [SiswaController::class, 'regenerateQr'])->name('siswas.qr');
     Route::resource('siswas', SiswaController::class);
+    Route::get('absensis', [AbsensiController::class, 'index'])->name('absensis.index');
+    Route::post('absensis/batch', [AbsensiController::class, 'storeBatch'])->name('absensis.batch');
+    Route::get('absensis/scan', [AbsensiController::class, 'scan'])->name('absensis.scan');
+    Route::post('absensis/scan', [AbsensiController::class, 'storeScan'])->name('absensis.scan.store');
 });

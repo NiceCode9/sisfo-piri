@@ -19,6 +19,7 @@ use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -30,7 +31,7 @@ class SiswaController extends Controller implements HasMiddleware
         return [
             new Middleware('permission:siswas.view', only: ['index', 'show', 'kartu']),
             new Middleware('permission:siswas.create', only: ['create', 'store', 'template', 'import']),
-            new Middleware('permission:siswas.edit', only: ['edit', 'update']),
+            new Middleware('permission:siswas.edit', only: ['edit', 'update', 'regenerateQr']),
             new Middleware('permission:siswas.delete', only: ['destroy']),
         ];
     }
@@ -173,6 +174,10 @@ class SiswaController extends Controller implements HasMiddleware
     {
         $siswa->load(['user', 'calonSiswa.berkasCalonSiswa', 'kelas', 'tahunAjaran']);
 
+        if (! $siswa->qr_token) {
+            $siswa->update(['qr_token' => Str::random(32)]);
+        }
+
         $foto = $siswa->calonSiswa?->berkasCalonSiswa?->foto_path
             ? Storage::disk('public')->url($siswa->calonSiswa->berkasCalonSiswa->foto_path)
             : null;
@@ -180,6 +185,7 @@ class SiswaController extends Controller implements HasMiddleware
         $siswaList = collect([(object) [
             'nama' => $siswa->user?->name ?? $siswa->calonSiswa?->nama_lengkap ?? '-',
             'nisn' => $siswa->nisn ?? '-',
+            'qr_token' => $siswa->qr_token,
             'kelas' => $siswa->kelas?->nama_kelas ?? '-',
             'foto' => $foto,
         ]]);
@@ -221,6 +227,16 @@ class SiswaController extends Controller implements HasMiddleware
         }
 
         return redirect()->route('admin.siswas.index')->with('success', "Import selesai: {$import->imported} siswa berhasil ditambahkan.");
+    }
+
+    /**
+     * Generate ulang token QR absensi (token lama hangus).
+     */
+    public function regenerateQr(Siswa $siswa): RedirectResponse
+    {
+        $siswa->update(['qr_token' => Str::random(32)]);
+
+        return back()->with('success', 'QR absensi diperbarui. Cetak ulang kartu siswa.');
     }
 
     public function destroy(Siswa $siswa): RedirectResponse

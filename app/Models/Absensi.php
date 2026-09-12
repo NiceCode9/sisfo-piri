@@ -18,10 +18,6 @@ class Absensi extends Model
         'keterangan',
     ];
 
-    protected $casts = [
-        'tanggal' => 'date',
-    ];
-
     public function rombel(): BelongsTo
     {
         return $this->belongsTo(Rombel::class);

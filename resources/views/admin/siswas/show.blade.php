@@ -85,6 +85,19 @@
 
     <div class="col-12 col-lg-4">
         <div class="card-nexus mb-3">
+            <div class="card-header-nexus"><h5 class="card-title">QR Absensi</h5></div>
+            <div class="card-body-nexus text-center">
+                @if($siswa->qr_token && class_exists(\SimpleSoftwareIO\QrCode\Facades\QrCode::class))
+                    {!! \SimpleSoftwareIO\QrCode\Facades\QrCode::size(180)->generate($siswa->qr_token) !!}
+                @else
+                    <p style="font-size:13px;color:var(--text-muted);">Belum ada QR. Buka Kartu Siswa atau buat sekarang.</p>
+                @endif
+                @can('siswas.edit')
+                    <form action="{{ route('admin.siswas.qr', $siswa) }}" method="POST" class="mt-2">@csrf<button type="submit" class="btn btn-nexus-outline btn-sm w-100" data-confirm="Buat ulang QR? QR lama di kartu cetak tidak berlaku lagi."><i class="fa-solid fa-rotate"></i> {{ $siswa->qr_token ? 'Generate Ulang' : 'Buat QR' }}</button></form>
+                @endcan
+            </div>
+        </div>
+        <div class="card-nexus mb-3">
             <div class="card-header-nexus"><h5 class="card-title">Tagihan</h5></div>
             <div class="card-body-nexus">
                 @php $tagihan = $siswa->calonSiswa?->pembayaran ?? collect(); @endphp

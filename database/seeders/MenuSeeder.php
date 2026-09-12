@@ -36,6 +36,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Rombel', 'icon' => 'fa-solid fa-users', 'route' => 'admin.rombels.index', 'permission' => 'rombels.view', 'order' => 26],
             ['name' => 'Kenaikan Kelas', 'icon' => 'fa-solid fa-arrow-up-right-dots', 'route' => 'admin.kenaikan.index', 'permission' => 'kenaikan-kelas.view', 'order' => 27],
             ['name' => 'Siswa', 'icon' => 'fa-solid fa-graduation-cap', 'route' => 'admin.siswas.index', 'permission' => 'siswas.view', 'order' => 28],
+            ['name' => 'Absensi', 'icon' => 'fa-solid fa-clipboard-check', 'route' => 'admin.absensis.index', 'permission' => 'absensis.view', 'order' => 29],
 
             ['name' => 'Sistem', 'is_header' => true, 'order' => 30],
             ['name' => 'Role', 'icon' => 'fa-solid fa-user-tie', 'route' => 'admin.roles.index', 'permission' => 'roles.view', 'order' => 31],

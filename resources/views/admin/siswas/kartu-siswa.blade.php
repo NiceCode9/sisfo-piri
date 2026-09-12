@@ -288,7 +288,7 @@
                                     <div class="card-back-inner">
                                         <div class="qr-box">
                                             @if($qrTersedia)
-                                                {!! \SimpleSoftwareIO\QrCode\Facades\QrCode::size(150)->generate($siswa->nisn) !!}
+                                                {!! \SimpleSoftwareIO\QrCode\Facades\QrCode::size(150)->generate($siswa->qr_token ?? $siswa->nisn) !!}
                                             @else
                                                 <div class="d-flex align-items-center justify-content-center fw-bold" style="width:100px;height:100px;font-size:11px;color:var(--brand-primary-dark);">{{ $siswa->nisn }}</div>
                                             @endif

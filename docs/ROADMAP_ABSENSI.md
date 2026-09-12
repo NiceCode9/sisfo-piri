@@ -24,11 +24,12 @@
 - [x] Permission `absensis.*` + role `guru-piket` + hak `orang-tua` (menu menyusul Fase A2 bersama route)
 - [x] Package `simplesoftwareio/simple-qrcode`
 
-### Fase A2 — Input (belum dikerjakan)
-- [ ] Route + controller + menu Absensi
-- [ ] Grid manual per rombel (upsert sekaligus, filter rombel tahun aktif + tanggal default hari ini)
-- [ ] Scan QR kamera (CDN `html5-qrcode`, tanpa npm) + feedback instan
-- [ ] Aturan `terlambat` dari `pengaturans.batas_terlambat`
+### Fase A2 — Input [SELESAI]
+- [x] Route + controller + menu Absensi (`absensis`, `absensis/batch`, `absensis/scan`, `siswas/{siswa}/qr`)
+- [x] Grid manual per rombel (upsert sekaligus, filter rombel tahun aktif + tanggal default hari ini)
+- [x] Scan QR kamera (AJAX kontinu, CDN `html5-qrcode`, fallback token manual)
+- [x] Aturan `terlambat` dari `pengaturans.batas_terlambat`
+- [x] QR pakai `qr_token` acak (kartu + detail siswa + regenerate); NISN tidak lagi dipakai sebagai isi QR
 
 ### Fase A3 — Rekap + pantauan (belum dikerjakan)
 - [ ] Rekap mingguan/bulanan/semester per rombel + per siswa
