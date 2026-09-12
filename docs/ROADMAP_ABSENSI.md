@@ -31,10 +31,12 @@
 - [x] Aturan `terlambat` dari `pengaturans.batas_terlambat`
 - [x] QR pakai `qr_token` acak (kartu + detail siswa + regenerate); NISN tidak lagi dipakai sebagai isi QR
 
-### Fase A3 — Rekap + pantauan (belum dikerjakan)
-- [ ] Rekap mingguan/bulanan/semester per rombel + per siswa
-- [ ] Ekspor PDF/Excel (pakai ulang pola modul pembayaran)
-- [ ] Dashboard ortu (anak + status hari ini + rekap) + rekap wali + sekolah
+### Fase A3 — Rekap + pantauan [SELESAI]
+- [x] Helper `rentangPeriode()` (minggu/bulan/ganjil/genap/tahun; konvensi Jul–Des/Jan–Jun, siap migrasi ke entitas)
+- [x] Rekap admin (`absensis/rekap`): matriks harian ≤45 hari, ringkas di atasnya, total + % hadir
+- [x] Ekspor Excel + PDF (library existing, tanpa dependensi baru)
+- [x] Scope wali (terkunci ampuan) + permission `absensis.view` untuk role `guru`
+- [x] Dashboard ortu (`ortu.dashboard` + `ortu.anak`) + redirect admin root
 
 ### Fase A4 — Notifikasi WA parsial (belum dikerjakan)
 - [ ] Queue job + `notifikasi_logs` + event (alpa, belum hadir lewat jam X via scheduler command)

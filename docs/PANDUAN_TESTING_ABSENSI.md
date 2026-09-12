@@ -30,9 +30,13 @@ php artisan migrate:fresh --seed
 6. **Peran**: `guru-piket` bisa input; user tanpa permission → 403.
 7. **Suite**: `php artisan test --compact` → hijau (termasuk `AbsensiInputTest`).
 
-## Fase A3 — Rekap + pantauan (menyusul)
+## Fase A3 — Rekap + pantauan
 
-_Belum diimplementasi — diisi setelah A3 selesai._
+1. **Rekap admin**: Absensi → Rekap Absensi. Filter rombel + periode mingguan (matriks harian + total + %). Coba bulanan, ganjil (Jul–Des), genap (Jan–Jun), tahun penuh (ringkas tanpa matriks harian).
+2. **Ekspor**: tombol Excel → file `.xlsx` terunduh; PDF → terunduh dan terbaca.
+3. **Scope wali**: login guru yang menjadi wali 7A → dropdown rombel hanya ampuan; akses rombel lain via URL → 403.
+4. **Dashboard ortu**: login `ortu-{NISN}` → daftar anak + status hari ini; klik anak → rekap bulanan + riwayat. Coba buka detail anak keluarga lain via URL → 403. Menu admin tak terlihat; `/admin` redirect ke dashboard ortu.
+5. **Suite**: `php artisan test --compact` → hijau (termasuk `AbsensiRekapTest`).
 
 ## Fase A4 — Notifikasi WA (menyusul)
 

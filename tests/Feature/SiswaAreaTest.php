@@ -94,8 +94,8 @@ test('siswa di admin root diarahkan ke dashboard siswa', function () {
     $this->actingAs($d['user'])->get(route('admin.dashboard'))->assertRedirect(route('siswa.dashboard'));
 });
 
-test('ortu di admin root ditolak', function () {
-    $this->actingAs(buatOrtuArea())->get(route('admin.dashboard'))->assertForbidden();
+test('ortu di admin root diarahkan ke dashboard ortu', function () {
+    $this->actingAs(buatOrtuArea())->get(route('admin.dashboard'))->assertRedirect(route('ortu.dashboard'));
 });
 
 test('siswa dapat membuka dashboard dan profil sendiri', function () {

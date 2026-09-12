@@ -159,6 +159,10 @@ class PermissionSeeder extends Seeder
         Role::firstOrCreate(['name' => 'guru-piket', 'guard_name' => 'web'])
             ->syncPermissions(['absensis.view', 'absensis.create', 'absensis.edit']);
 
+        // Guru: lihat rekap (wali dikunci ke rombel ampuan di controller).
+        Role::firstOrCreate(['name' => 'guru', 'guard_name' => 'web'])
+            ->syncPermissions(['absensis.view']);
+
         // Siswa dan orang-tua tidak membuka halaman admin.
         // Akses mereka dilayani area khusus (siswa.* dan — menyusul A3 — ortu.*).
         Role::firstOrCreate(['name' => 'siswa', 'guard_name' => 'web'])

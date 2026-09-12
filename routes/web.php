@@ -26,6 +26,7 @@ use App\Http\Controllers\Admin\SiswaController;
 use App\Http\Controllers\Admin\TahunAjaranController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Ortu\DashboardController as OrtuDashboardController;
 use App\Http\Controllers\Siswa\DashboardController;
 use App\Http\Controllers\Siswa\ProfilController;
 use App\Http\Controllers\Siswa\RiwayatController;
@@ -54,6 +55,11 @@ Route::prefix('siswa')->name('siswa.')->middleware(['auth', 'role:siswa'])->grou
     Route::get('/absensi', [RiwayatController::class, 'absensi'])->name('absensi');
 });
 
+Route::prefix('ortu')->name('ortu.')->middleware(['auth', 'role:orang-tua'])->group(function () {
+    Route::get('/dashboard', [OrtuDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/anak/{waliMurid}', [OrtuDashboardController::class, 'show'])->name('anak');
+});
+
 Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::get('/', function () {
         $user = auth()->user();
@@ -63,7 +69,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
         }
 
         if ($user->hasRole('orang-tua')) {
-            abort(403, 'Area orang-tua dalam penyiapan.');
+            return redirect()->route('ortu.dashboard');
         }
 
         return view('admin.dashboard');
@@ -117,4 +123,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::post('absensis/batch', [AbsensiController::class, 'storeBatch'])->name('absensis.batch');
     Route::get('absensis/scan', [AbsensiController::class, 'scan'])->name('absensis.scan');
     Route::post('absensis/scan', [AbsensiController::class, 'storeScan'])->name('absensis.scan.store');
+    Route::get('absensis/rekap', [AbsensiController::class, 'rekap'])->name('absensis.rekap');
+    Route::get('absensis/rekap/excel', [AbsensiController::class, 'exportExcel'])->name('absensis.rekap.excel');
+    Route::get('absensis/rekap/pdf', [AbsensiController::class, 'exportPdf'])->name('absensis.rekap.pdf');
 });
