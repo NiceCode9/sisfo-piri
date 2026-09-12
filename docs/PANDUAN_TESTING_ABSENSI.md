@@ -38,6 +38,10 @@ php artisan migrate:fresh --seed
 4. **Dashboard ortu**: login `ortu-{NISN}` → daftar anak + status hari ini; klik anak → rekap bulanan + riwayat. Coba buka detail anak keluarga lain via URL → 403. Menu admin tak terlihat; `/admin` redirect ke dashboard ortu.
 5. **Suite**: `php artisan test --compact` → hijau (termasuk `AbsensiRekapTest`).
 
-## Fase A4 — Notifikasi WA (menyusul)
+## Fase A4 — Notifikasi WA (parsial)
 
-_Belum diimplementasi — diisi setelah A4 selesai._
+1. **Mode log-only (bawaan)**: catat 1 siswa alpa via grid → cek `notifikasi_logs`: 1 baris `antri` tujuan no WA ortu, pesan sesuai template, respons "gateway belum dikonfigurasi".
+2. **Mode gateway**: isi `services.whatsapp.url` di `.env` (atau mock service) → ulangi → log `terkirim` + respons body. Matikan service → log `gagal` + job retry (cek `failed_jobs` setelah 3x).
+3. **Command**: `php artisan absensi:cek-belum-hadir --tanggal=YYYY-MM-DD` → hanya siswa tanpa absensi yang dibuatkan log. Tanpa `--tanggal` di luar jam cek → skip ("Belum waktunya"); ubah `jam_cek_belum_hadir` via tinker/`Pengaturan` → jalan pada jam itu (sekali sehari).
+4. **Produksi**: pastikan cron `php artisan schedule:run` tiap menit + worker `php artisan queue:work` jalan.
+5. **Suite**: `php artisan test --compact` → hijau (termasuk `AbsensiNotifikasiTest`).

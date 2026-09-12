@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Exports\AbsensiRekapExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreAbsensiBatchRequest;
+use App\Jobs\KirimNotifikasiWhatsapp;
 use App\Models\Absensi;
 use App\Models\Guru;
+use App\Models\NotifikasiLog;
 use App\Models\Pengaturan;
 use App\Models\Rombel;
 use App\Models\Siswa;
@@ -77,6 +79,7 @@ class AbsensiController extends Controller implements HasMiddleware
 
     /**
      * Simpan grid manual sekaligus (upsert per siswa+tanggal).
+     * Baris alpa mengantrekan notifikasi WA ke orang-tua.
      */
     public function storeBatch(StoreAbsensiBatchRequest $request): RedirectResponse
     {
@@ -106,10 +109,48 @@ class AbsensiController extends Controller implements HasMiddleware
             return $count;
         });
 
+        $this->antrekanNotifikasiAlpa($validated['rombel_id'], $validated['tanggal'], array_keys(
+            array_filter($validated['status'], fn ($status) => $status === 'alpa')
+        ));
+
         return redirect()->route('admin.absensis.index', [
             'rombel_id' => $validated['rombel_id'],
             'tanggal' => $validated['tanggal'],
         ])->with('success', "{$jumlah} absensi tersimpan.");
+    }
+
+    /**
+     * Buat log + dispatch WA untuk siswa alpa (satu per no WA).
+     *
+     * @param  array<int>  $siswaIds
+     */
+    protected function antrekanNotifikasiAlpa(int $rombelId, string $tanggal, array $siswaIds): void
+    {
+        if ($siswaIds === []) {
+            return;
+        }
+
+        $rombel = Rombel::with('kelas')->find($rombelId);
+
+        $siswas = Siswa::with(['user', 'waliMurids'])
+            ->whereIn('id', $siswaIds)
+            ->get();
+
+        foreach ($siswas as $siswa) {
+            foreach ($siswa->waliMurids->pluck('no_whatsapp')->filter()->unique() as $nomor) {
+                $log = NotifikasiLog::create([
+                    'tipe' => 'whatsapp',
+                    'tujuan' => $nomor,
+                    'pesan' => KirimNotifikasiWhatsapp::pesanAlpa(
+                        $siswa->user?->name ?? '-',
+                        $rombel->kelas->nama_kelas ?? '-',
+                        $tanggal
+                    ),
+                ]);
+
+                KirimNotifikasiWhatsapp::dispatch($log->id);
+            }
+        }
     }
 
     /**

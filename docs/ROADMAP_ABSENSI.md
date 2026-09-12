@@ -38,9 +38,12 @@
 - [x] Scope wali (terkunci ampuan) + permission `absensis.view` untuk role `guru`
 - [x] Dashboard ortu (`ortu.dashboard` + `ortu.anak`) + redirect admin root
 
-### Fase A4 — Notifikasi WA parsial (belum dikerjakan)
-- [ ] Queue job + `notifikasi_logs` + event (alpa, belum hadir lewat jam X via scheduler command)
-- [ ] Konektor gateway menyusul (config webhook URL, mode log-only sementara)
+### Fase A4 — Notifikasi WA parsial [SELESAI]
+- [x] Job `KirimNotifikasiWhatsapp` (retry 3×, template disetujui, mode log-only tanpa URL gateway)
+- [x] Hook alpa di `storeBatch` (satu log per no WA, lewati tanpa nomor)
+- [x] Command `absensi:cek-belum-hadir` self-gating (jam admin + sekali sehari + `--tanggal` manual)
+- [x] Jadwal `everyFiveMinutes` + pengaturan `jam_cek_belum_hadir`, `cek_belum_hadir_terakhir`, `whatsapp_gateway_url`
+- [ ] Konektor gateway `whatsapp-web.js` (service terpisah — di luar repo ini)
 
 ## Catatan teknis
 
