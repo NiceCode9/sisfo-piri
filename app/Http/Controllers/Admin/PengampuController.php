@@ -76,7 +76,7 @@ class PengampuController extends Controller implements HasMiddleware
     {
         $pengampu->delete();
 
-        return redirect()->route('admin.pengampus.index')->with('success', 'Penugasan dihapus.');
+        return back()->with('success', 'Penugasan dihapus.');
     }
 
     /**

@@ -68,9 +68,8 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::resource('gurus', GuruController::class)->except(['show']);
     Route::resource('mata-pelajarans', MataPelajaranController::class)->except(['show']);
     Route::resource('kelas', KelasController::class)->except(['show'])->parameters(['kelas' => 'kelas']);
-    Route::get('pengampus/salin', [PengampuController::class, 'salin'])->name('pengampus.salin');
-    Route::post('pengampus/salin', [PengampuController::class, 'prosesSalin'])->name('pengampus.salin.proses');
     Route::resource('pengampus', PengampuController::class)->except(['show']);
+    Route::post('rombels/{rombel}/pengampus/batch', [RombelController::class, 'storePengampuBatch'])->name('rombels.pengampus.batch');
     Route::get('rombels/salin', [RombelController::class, 'salin'])->name('rombels.salin');
     Route::post('rombels/salin', [RombelController::class, 'prosesSalin'])->name('rombels.salin.proses');
     Route::resource('rombels', RombelController::class);

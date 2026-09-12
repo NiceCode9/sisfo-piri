@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StorePengampuBatchRequest;
 use App\Http\Requests\Admin\StoreRombelRequest;
 use App\Http\Requests\Admin\UpdateRombelRequest;
 use App\Models\Guru;
 use App\Models\Kelas;
+use App\Models\MataPelajaran;
 use App\Models\Pengampu;
 use App\Models\Rombel;
 use App\Models\TahunAjaran;
@@ -26,6 +28,7 @@ class RombelController extends Controller implements HasMiddleware
             new Middleware('permission:rombels.create', only: ['create', 'store', 'salin', 'prosesSalin']),
             new Middleware('permission:rombels.edit', only: ['edit', 'update']),
             new Middleware('permission:rombels.delete', only: ['destroy']),
+            new Middleware('permission:pengampus.create', only: ['storePengampuBatch']),
         ];
     }
 
@@ -71,7 +74,34 @@ class RombelController extends Controller implements HasMiddleware
         return view('admin.rombels.show', [
             'rombel' => $rombel->load(['kelas', 'tahunAjaran', 'waliGuru']),
             'histori' => $histori,
+            'gurus' => Guru::aktif()->orderBy('nama')->get(),
+            'mapels' => MataPelajaran::aktif()->orderBy('kode')->get(),
+            'mapelTerisi' => $histori['penugasan']->pluck('mata_pelajaran_id')->all(),
         ]);
+    }
+
+    /**
+     * Tambah beberapa penugasan sekaligus dari halaman histori rombel.
+     * Atomik: semua baris masuk atau tidak sama sekali.
+     */
+    public function storePengampuBatch(StorePengampuBatchRequest $request, Rombel $rombel): RedirectResponse
+    {
+        $baris = $request->validated()['baris'];
+
+        DB::transaction(function () use ($baris, $rombel) {
+            foreach ($baris as $row) {
+                Pengampu::create([
+                    'guru_id' => $row['guru_id'],
+                    'mata_pelajaran_id' => $row['mata_pelajaran_id'],
+                    'rombel_id' => $rombel->id,
+                ]);
+            }
+        });
+
+        $jumlah = count($baris);
+
+        return redirect()->route('admin.rombels.show', $rombel)
+            ->with('success', "{$jumlah} penugasan berhasil ditambahkan ke rombel {$rombel->kelas->nama_kelas}.");
     }
 
     public function edit(Rombel $rombel): View
