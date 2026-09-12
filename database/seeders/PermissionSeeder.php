@@ -110,6 +110,10 @@ class PermissionSeeder extends Seeder
             'rombels.delete',
             'kenaikan-kelas.view',
             'kenaikan-kelas.execute',
+            'absensis.view',
+            'absensis.create',
+            'absensis.edit',
+            'absensis.delete',
         ];
 
         foreach ($permissions as $name) {
@@ -148,7 +152,16 @@ class PermissionSeeder extends Seeder
                 'wali-kelas.view',
                 'rombels.view', 'rombels.create', 'rombels.edit',
                 'kenaikan-kelas.view', 'kenaikan-kelas.execute',
+                'absensis.view', 'absensis.create', 'absensis.edit',
             ]);
+
+        // Guru piket: input dan pantau absensi harian.
+        Role::firstOrCreate(['name' => 'guru-piket', 'guard_name' => 'web'])
+            ->syncPermissions(['absensis.view', 'absensis.create', 'absensis.edit']);
+
+        // Orang-tua: pantau kehadiran anak sendiri (scope ditegakkan di controller).
+        Role::firstOrCreate(['name' => 'orang-tua', 'guard_name' => 'web'])
+            ->syncPermissions(['absensis.view']);
 
         // Pembayaran murni admin: siswa hanya boleh lihat status pendaftaran.
         Role::firstOrCreate(['name' => 'siswa', 'guard_name' => 'web'])

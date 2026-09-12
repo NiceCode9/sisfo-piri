@@ -15,6 +15,7 @@ class Siswa extends Model
         'user_id',
         'nis',
         'nisn',
+        'qr_token',
         'tahun_ajaran_id',
         'kelas_id',
         'tanggal_diterima',
@@ -54,5 +55,15 @@ class Siswa extends Model
     public function riwayatKelas()
     {
         return $this->hasMany(RiwayatKelas::class);
+    }
+
+    public function waliMurids()
+    {
+        return $this->hasMany(WaliMurid::class);
+    }
+
+    public function absensis()
+    {
+        return $this->hasMany(Absensi::class);
     }
 }

@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\Menu;
 use App\Models\ProfilSekolah;
 use App\Models\Siswa;
+use App\Observers\SiswaObserver;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -24,6 +25,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Siswa::observe(SiswaObserver::class);
+
         View::composer('layouts.partials.sidebar', function ($view) {
             $user = auth()->user();
 
