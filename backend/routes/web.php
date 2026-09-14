@@ -63,6 +63,7 @@ Route::prefix('siswa')->name('siswa.')->middleware(['auth', 'role:siswa'])->grou
     Route::get('/materi', [SiswaMateriController::class, 'index'])->name('materi.index');
     Route::get('/materi/{materi}', [SiswaMateriController::class, 'show'])->name('materi.show');
     Route::get('/tugas', [SiswaTugasController::class, 'index'])->name('tugas.index');
+    Route::get('/tugas/rekap', [SiswaTugasController::class, 'rekap'])->name('tugas.rekap');
     Route::get('/tugas/{tugas}', [SiswaTugasController::class, 'show'])->name('tugas.show');
     Route::post('/tugas/{tugas}/kumpul', [SiswaTugasController::class, 'kumpul'])->name('tugas.kumpul');
 });
@@ -75,6 +76,7 @@ Route::prefix('ortu')->name('ortu.')->middleware(['auth', 'role:orang-tua'])->gr
     Route::get('/materi', [App\Http\Controllers\Ortu\MateriController::class, 'index'])->name('materi.index');
     Route::get('/materi/{materi}', [App\Http\Controllers\Ortu\MateriController::class, 'show'])->name('materi.show');
     Route::get('/tugas', [App\Http\Controllers\Ortu\TugasController::class, 'index'])->name('tugas.index');
+    Route::get('/tugas/rekap', [App\Http\Controllers\Ortu\TugasController::class, 'rekap'])->name('tugas.rekap');
     Route::get('/tugas/{tugas}', [App\Http\Controllers\Ortu\TugasController::class, 'show'])->name('tugas.show');
 });
 
@@ -117,6 +119,9 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::post('rombels/salin', [RombelController::class, 'prosesSalin'])->name('rombels.salin.proses');
     Route::resource('rombels', RombelController::class);
     Route::resource('materis', MateriController::class);
+    Route::get('tugas/rekap', [TugasController::class, 'rekap'])->name('tugas.rekap');
+    Route::get('tugas/rekap/excel', [TugasController::class, 'exportExcel'])->name('tugas.rekap.excel');
+    Route::get('tugas/rekap/pdf', [TugasController::class, 'exportPdf'])->name('tugas.rekap.pdf');
     Route::resource('tugas', TugasController::class);
     Route::get('tugas/{tuga}/nilai', [TugasController::class, 'nilai'])->name('tugas.nilai');
     Route::post('tugas/{tuga}/nilai', [TugasController::class, 'simpanNilai'])->name('tugas.nilai.simpan');

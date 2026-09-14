@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Ortu;
 
 use App\Http\Controllers\Controller;
+use App\Models\PengumpulanTugas;
 use App\Models\Rombel;
 use App\Models\Siswa;
 use App\Models\Tugas;
@@ -34,5 +35,18 @@ class TugasController extends Controller
         $tugas->load(['mataPelajaran', 'rombel.kelas', 'pengumpulans.siswa.user']);
 
         return view('ortu.tugas.show', compact('tugas'));
+    }
+
+    public function rekap(): View
+    {
+        $anakIds = WaliMurid::where('user_id', auth()->id())->pluck('siswa_id');
+        $anak = Siswa::with('user')->whereIn('id', $anakIds)->get();
+        $rekap = [];
+        foreach ($anak as $siswa) {
+            $pengumpulans = PengumpulanTugas::with('tugas')->where('siswa_id', $siswa->id)->get();
+            $rekap[$siswa->id] = ['siswa' => $siswa, 'rata' => $pengumpulans->whereNotNull('nilai')->avg('nilai'), 'jumlah' => $pengumpulans->count()];
+        }
+
+        return view('ortu.tugas.rekap', compact('rekap'));
     }
 }

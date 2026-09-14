@@ -40,6 +40,15 @@ class TugasController extends Controller
         return view('siswa.tugas.show', compact('tugas', 'pengumpulan'));
     }
 
+    public function rekap(): View
+    {
+        $siswa = auth()->user()->siswa;
+        $pengumpulans = $siswa ? PengumpulanTugas::with('tugas.mataPelajaran')->where('siswa_id', $siswa->id)->latest()->get() : collect();
+        $rata = $pengumpulans->whereNotNull('nilai')->avg('nilai');
+
+        return view('siswa.tugas.rekap', compact('pengumpulans', 'rata'));
+    }
+
     public function kumpul(Request $request, Tugas $tugas): RedirectResponse
     {
         $siswa = auth()->user()->siswa;

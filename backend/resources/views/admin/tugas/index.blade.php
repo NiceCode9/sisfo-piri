@@ -10,6 +10,7 @@
         <p class="page-subtitle mb-0">{{ $tugas->total() }} tugas</p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ route('admin.tugas.rekap') }}" class="btn btn-nexus-outline btn-sm"><i class="fa-solid fa-chart-column"></i> Rekap Nilai</a>
         @can('tugas.create')<a href="{{ route('admin.tugas.create') }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Tambah Tugas</a>@endcan
     </div>
 </div>
