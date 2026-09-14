@@ -30,7 +30,7 @@ export default function Finished() {
   const info = REASON_MESSAGES[reason] ?? REASON_MESSAGES.manual;
 
   const toneClass =
-    info.tone === 'ok' ? 'text-green-600' : info.tone === 'warn' ? 'text-yellow-600' : 'text-red-600';
+    info.tone === 'ok' ? 'text-tertiary' : info.tone === 'warn' ? 'text-secondary' : 'text-error';
 
   const handleBackToLogin = () => {
     localStorage.removeItem('cbt_auth_token');
@@ -39,13 +39,11 @@ export default function Finished() {
   };
 
   return (
-    <div className="flex h-screen flex-col items-center justify-center gap-3 text-center">
-      <h1 className={`text-2xl font-bold ${toneClass}`}>{info.title}</h1>
-      <p className="max-w-md text-gray-600">{info.desc}</p>
-      <p className="text-sm text-gray-400">
-        Nilai akan diumumkan oleh guru melalui sistem sekolah.
-      </p>
-      <button onClick={handleBackToLogin} className="mt-4 rounded bg-blue-600 px-6 py-2 text-white">
+    <div className="flex h-screen flex-col items-center justify-center gap-4 text-center bg-surface p-6">
+      <h1 className={`font-jakarta text-3xl font-bold ${toneClass}`}>{info.title}</h1>
+      <p className="max-w-md text-on-surface-variant">{info.desc}</p>
+      <p className="text-sm text-outline">Nilai akan diumumkan oleh guru melalui sistem sekolah.</p>
+      <button onClick={handleBackToLogin} className="mt-4 rounded-lg bg-primary px-6 py-3 text-on-primary font-semibold">
         Kembali ke Login
       </button>
     </div>

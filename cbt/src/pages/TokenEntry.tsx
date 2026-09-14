@@ -43,23 +43,26 @@ export default function TokenEntry() {
   };
 
   return (
-    <div className="flex h-screen flex-col items-center justify-center gap-4">
-      <h1 className="text-xl font-semibold">Masukkan Token Ujian</h1>
-      <input
-        value={token}
-        onChange={(e) => setToken(e.target.value.toUpperCase())}
-        className="rounded border px-4 py-2 text-center text-lg tracking-widest"
-        placeholder="TOKEN"
-        maxLength={20}
-      />
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <button
-        onClick={handleJoin}
-        disabled={loading || !token}
-        className="rounded bg-blue-600 px-6 py-2 text-white disabled:opacity-50"
-      >
-        {loading ? 'Memproses...' : 'Masuk Ujian'}
-      </button>
+    <div className="min-h-screen bg-surface flex flex-col items-center justify-center p-6">
+      <div className="card-surface w-full max-w-md p-8">
+        <h1 className="font-jakarta text-xl font-bold text-on-surface mb-1">Masukkan Token Ujian</h1>
+        <p className="text-sm text-on-surface-variant mb-6">Token 6–20 karakter dari pengawas, huruf kapital</p>
+        <input
+          value={token}
+          onChange={(e) => setToken(e.target.value.toUpperCase())}
+          className="rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 text-center text-lg tracking-[0.35em] font-mono focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+          placeholder="TOKEN"
+          maxLength={20}
+        />
+        {error && <p className="mt-3 text-sm text-error">{error}</p>}
+        <button
+          onClick={handleJoin}
+          disabled={loading || !token}
+          className="mt-4 w-full rounded-lg bg-primary px-6 py-3 text-on-primary font-semibold disabled:opacity-50 hover:bg-primary/90"
+        >
+          {loading ? 'Memverifikasi...' : 'Masuk Ujian'}
+        </button>
+      </div>
     </div>
   );
 }

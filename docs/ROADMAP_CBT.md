@@ -32,10 +32,10 @@
 - [x] Jobs `RecordHeartbeat` + `LogViolationDetail` (`ShouldQueue`), `QUEUE_CONNECTION=redis` (test `sync`, prod `redis` via `docker-compose.yml`)
 - [ ] VPS tuning `server-config/{php-fpm-pool.conf,mysql-tuning.cnf}` sesuaikan, `SUPERVISOR` queue:work (menyusul staging)
 
-### Fase CBT-2 — API React (timer aman) [SELESAI]
+### Fase CBT-2 — API React (timer aman) [BELUM]
 
-- [x] `cbt/` Vite React-TS (`npm create vite`, copy `frontend-react/src/{services,store,hooks,pages}`, `App.tsx` `RequireAuth` + `hasSession`, `vite.config.ts` proxy `5173→8000/api`, `tailwind.config.js` v3, `npm run build` OK)
-- [x] Kontrak tanpa kunci (`ExamQuestionResource`), `expected_end_at` server, `resolveOngoingSession` +5s, `lockForUpdate` join, `Cache::remember` 6h, throttle, proctoring `visibilitychange/blur/fullscreen_exit` → `POST /violation`
+- [ ] `cbt/` `npm create vite@latest -- --template react-ts` copy `frontend-react/src/{services/api,examApi,store/examStore,hooks/useExamGuard,useAutosaveAnswer,pages/Login,TokenEntry,ExamRoom,Finished}` + `App.tsx` guard `RequireAuth` + `hasSession`, `tailwind.config.js` v3, `VITE_API_BASE_URL`
+- [ ] Kontrak tanpa kunci, `expected_end_at` server, `resolveOngoingSession` +5s, `lockForUpdate` join, `Cache::remember` 6h, throttle, `visibilitychange/blur/fullscreen_exit` → `POST /violation` (sync increment + async log, auto `disqualified` at `max_violation_count`)
 
 ### Fase CBT-3 — Guru (paket + koreksi) [BELUM]
 

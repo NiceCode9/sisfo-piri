@@ -43,56 +43,75 @@ export default function ExamRoom() {
 
   if (!guard.isFullscreen) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <button onClick={guard.enterFullscreen} className="rounded bg-blue-600 px-6 py-3 text-white">
+      <div className="flex h-screen items-center justify-center bg-surface">
+        <button onClick={guard.enterFullscreen} className="rounded-xl bg-primary px-8 py-4 text-on-primary font-semibold shadow-lg">
           Lanjutkan Ujian (Mode Layar Penuh)
         </button>
       </div>
     );
   }
 
+  const timerClass =
+    guard.remainingSeconds < 120
+      ? 'bg-error text-on-error animate-pulse font-inter tabular-nums'
+      : guard.remainingSeconds < 600
+        ? 'bg-secondary-fixed text-on-secondary-fixed font-inter tabular-nums'
+        : 'bg-surface-container text-on-surface font-inter tabular-nums';
+
   return (
-    <div className="flex h-screen flex-col">
-      <header className="flex justify-between border-b p-4">
-        <span>{meta.examName}</span>
-        <span>
+    <div className="flex h-screen flex-col bg-surface">
+      <header className="flex items-center justify-between border-b border-outline-variant bg-surface-container-lowest px-6 py-3">
+        <span className="font-jakarta font-semibold text-on-surface">{meta.examName}</span>
+        <span className={`rounded-full px-4 py-1 text-sm font-bold ${timerClass}`}>
           {Math.floor(guard.remainingSeconds / 60)}:{String(guard.remainingSeconds % 60).padStart(2, '0')}
         </span>
-        <span>Pelanggaran: {guard.remainingViolations} tersisa</span>
+        <span className="text-sm text-on-surface-variant">Pelanggaran: {guard.remainingViolations} tersisa</span>
       </header>
 
-      <main className="flex-1 overflow-y-auto p-6">
-        <p className="mb-4 font-medium">
+      <main className="flex-1 overflow-y-auto p-6 max-w-[1680px] mx-auto w-full">
+        <p className="mb-4 font-inter text-sm text-on-surface-variant">
           Soal {currentIndex + 1} dari {questions.length}
         </p>
-        <p className="mb-4">{currentQuestion.question_text}</p>
+        <p className="mb-4 font-jakarta text-lg font-medium text-on-surface">{currentQuestion.question_text}</p>
 
-        {currentQuestion.options?.map((opt) => (
-          <label key={opt.key} className="mb-2 flex items-center gap-2">
-            <input
-              type={currentQuestion.type === 'multiple_choice' ? 'checkbox' : 'radio'}
-              checked={(answers[currentQuestion.id] ?? []).includes(opt.key)}
-              onChange={() => handleSelectOption(opt.key)}
-            />
-            {opt.text}
-          </label>
-        ))}
+        {currentQuestion.options?.map((opt) => {
+          const checked = (answers[currentQuestion.id] ?? []).includes(opt.key);
+          return (
+            <label
+              key={opt.key}
+              className={`mb-3 flex items-center gap-3 rounded-lg border p-3.5 cursor-pointer ${checked ? 'bg-primary-fixed/30 border-primary' : 'bg-surface-container-lowest border-outline-variant hover:bg-surface-container-low'}`}
+            >
+              <input
+                type={currentQuestion.type === 'multiple_choice' ? 'checkbox' : 'radio'}
+                checked={checked}
+                onChange={() => handleSelectOption(opt.key)}
+                className="accent-primary"
+              />
+              <span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${checked ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface-variant'}`}>{opt.key}</span>
+              {opt.text}
+            </label>
+          );
+        })}
 
-        <p className="mt-2 text-xs text-gray-500">
+        <p className="mt-2 text-xs text-on-surface-variant">
           {savingStatus[currentQuestion.id] === 'saving' && 'Menyimpan...'}
-          {savingStatus[currentQuestion.id] === 'saved' && 'Tersimpan'}
+          {savingStatus[currentQuestion.id] === 'saved' && 'Tersimpan ✓'}
           {savingStatus[currentQuestion.id] === 'error' && 'Gagal menyimpan, akan dicoba lagi'}
         </p>
       </main>
 
-      <footer className="flex justify-between border-t p-4">
-        <button disabled={currentIndex === 0} onClick={() => goToQuestion(currentIndex - 1)}>
+      <footer className="flex justify-between border-t border-outline-variant bg-surface-container-lowest p-4">
+        <button
+          disabled={currentIndex === 0}
+          onClick={() => goToQuestion(currentIndex - 1)}
+          className="rounded-lg border border-outline-variant px-4 py-2 text-sm disabled:opacity-50"
+        >
           Sebelumnya
         </button>
         {currentIndex < questions.length - 1 ? (
-          <button onClick={() => goToQuestion(currentIndex + 1)}>Selanjutnya</button>
+          <button onClick={() => goToQuestion(currentIndex + 1)} className="rounded-lg bg-primary px-4 py-2 text-sm text-on-primary">Selanjutnya</button>
         ) : (
-          <button onClick={handleManualFinish} className="rounded bg-green-600 px-4 py-2 text-white">
+          <button onClick={handleManualFinish} className="rounded-lg bg-tertiary px-4 py-2 text-sm font-semibold text-on-tertiary">
             Selesai Ujian
           </button>
         )}
