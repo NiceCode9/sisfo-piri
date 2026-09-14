@@ -67,6 +67,11 @@ class Rombel extends Model
      *
      * @return array{penugasan: Collection, wali: ?Guru, siswa: Collection}
      */
+    public function exams(): HasMany
+    {
+        return $this->hasMany(Exam::class);
+    }
+
     public function historiLengkap(): array
     {
         $this->loadMissing(['pengampus.guru', 'pengampus.mataPelajaran', 'waliGuru']);

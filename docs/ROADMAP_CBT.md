@@ -24,13 +24,13 @@
 
 ## Fase
 
-### Fase CBT-1 — Fondasi (kritis) [BELUM]
+### Fase CBT-1 — Fondasi (kritis) [SELESAI]
 
-- [ ] `docker-compose.yml` Redis 7 + `.env.example` `CACHE_STORE/QUEUE/SESSION=redis` + `REDIS_*` + `config/cache.php` Redis store
-- [ ] 7 migrasi `2025_01_01_000001..000007` + model `Exam*` (fillable/casts/relations `README-model-relationships.md`) + `ExamQuestionResource` (omit `correct_answer`, shuffle opsi)
-- [ ] `routes/api_cbt.php` (9 endpoint: `POST /login`, `auth:sanctum: POST /logout, GET /exam/active, POST /exam/join, GET /exam/questions, POST /exam/answer, POST /exam/heartbeat (throttle), POST /exam/violation, POST /exam/finish`) + `bootstrap/app.php` & `RateLimiter heartbeat`
-- [ ] Jobs `RecordHeartbeat` + `LogViolationDetail` (`ShouldQueue`), `QUEUE_CONNECTION=redis` worker `Supervisor 2 procs`
-- [ ] VPS tuning `server-config/{php-fpm-pool.conf,mysql-tuning.cnf}` sesuaikan, `SUPERVISOR` queue:work
+- [x] `docker-compose.yml` Redis 7 + `backend/.env.example` `CACHE_STORE/QUEUE=redis` + `REDIS_*` + `backend/bootstrap/app.php` `api/cbt` + `RateLimiter heartbeat`
+- [x] 7 migrasi `2026_09_15_000001..000007` (`exams`+`rombel_id`, `exam_questions`, `exam_tokens`, `exam_participants`, `exam_sessions`, `exam_answers`, `exam_violations`) + model `Exam*` + `ExamQuestionResource` (omit `correct_answer`, shuffle) + `HasApiTokens` di `User`
+- [x] `routes/api_cbt.php` (9 endpoint) + `backend/bootstrap/app.php` `api/cbt` + `RateLimiter heartbeat 6/min`
+- [x] Jobs `RecordHeartbeat` + `LogViolationDetail` (`ShouldQueue`), `QUEUE_CONNECTION=redis` (test `sync`, prod `redis` via `docker-compose.yml`)
+- [ ] VPS tuning `server-config/{php-fpm-pool.conf,mysql-tuning.cnf}` sesuaikan, `SUPERVISOR` queue:work (menyusul staging)
 
 ### Fase CBT-2 — API React (timer aman) [BELUM]
 
