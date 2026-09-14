@@ -44,7 +44,13 @@ class KirimNotifikasiWhatsapp implements ShouldQueue
         }
 
         try {
-            $response = Http::timeout(15)->post($url, [
+            $request = Http::timeout(15);
+
+            if (config('services.whatsapp.token')) {
+                $request = $request->withToken(config('services.whatsapp.token'));
+            }
+
+            $response = $request->post($url, [
                 'tujuan' => $log->tujuan,
                 'pesan' => $log->pesan,
             ]);
