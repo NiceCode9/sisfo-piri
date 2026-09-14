@@ -6,6 +6,7 @@
             'profil' => ['label' => 'Profil Saya', 'route' => 'siswa.profil', 'icon' => 'fa-solid fa-circle-user'],
             'kelas' => ['label' => 'Riwayat Kelas', 'route' => 'siswa.kelas', 'icon' => 'fa-solid fa-school-flag'],
             'absensi' => ['label' => 'Absensi Saya', 'route' => 'siswa.absensi', 'icon' => 'fa-solid fa-clipboard-check'],
+            'materi' => ['label' => 'Materi', 'route' => 'siswa.materi.index', 'icon' => 'fa-solid fa-book-open-reader'],
         ];
     @endphp
     @foreach($tabs as $key => $tab)

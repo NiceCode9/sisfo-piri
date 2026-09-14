@@ -118,6 +118,10 @@ class PermissionSeeder extends Seeder
             'pengaturans.edit',
             'whatsapp.view',
             'whatsapp.manage',
+            'materis.view',
+            'materis.create',
+            'materis.edit',
+            'materis.delete',
         ];
 
         foreach ($permissions as $name) {
@@ -155,10 +159,12 @@ class PermissionSeeder extends Seeder
                 'pengampus.view', 'pengampus.create', 'pengampus.edit',
                 'wali-kelas.view',
                 'rombels.view', 'rombels.create', 'rombels.edit',
+                'materis.view', 'materis.create', 'materis.edit', 'materis.delete',
                 'kenaikan-kelas.view', 'kenaikan-kelas.execute',
                 'absensis.view', 'absensis.create', 'absensis.edit',
                 'pengaturans.view', 'pengaturans.edit',
                 'whatsapp.view', 'whatsapp.manage',
+                'materis.view', 'materis.create', 'materis.edit', 'materis.delete',
             ]);
 
         // Guru piket: input dan pantau absensi harian.
@@ -167,7 +173,7 @@ class PermissionSeeder extends Seeder
 
         // Guru: lihat rekap (wali dikunci ke rombel ampuan di controller).
         Role::firstOrCreate(['name' => 'guru', 'guard_name' => 'web'])
-            ->syncPermissions(['absensis.view']);
+            ->syncPermissions(['absensis.view', 'materis.view', 'materis.create', 'materis.edit', 'materis.delete']);
 
         // Siswa dan orang-tua tidak membuka halaman admin.
         // Akses mereka dilayani area khusus (siswa.* dan — menyusul A3 — ortu.*).

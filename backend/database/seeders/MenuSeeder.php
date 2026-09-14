@@ -38,6 +38,8 @@ class MenuSeeder extends Seeder
             ['name' => 'Siswa', 'icon' => 'fa-solid fa-graduation-cap', 'route' => 'admin.siswas.index', 'permission' => 'siswas.view', 'order' => 28],
             ['name' => 'Absensi', 'icon' => 'fa-solid fa-clipboard-check', 'route' => 'admin.absensis.index', 'permission' => 'absensis.view', 'order' => 29],
             ['name' => 'Rekap Absensi', 'icon' => 'fa-solid fa-chart-column', 'route' => 'admin.absensis.rekap', 'permission' => 'absensis.view', 'order' => 30],
+            ['name' => 'E-Learning', 'is_header' => true, 'order' => 31],
+            ['name' => 'Materi', 'icon' => 'fa-solid fa-book-open-reader', 'route' => 'admin.materis.index', 'permission' => 'materis.view', 'order' => 32],
 
             ['name' => 'Sistem', 'is_header' => true, 'order' => 35],
             ['name' => 'Role', 'icon' => 'fa-solid fa-user-tie', 'route' => 'admin.roles.index', 'permission' => 'roles.view', 'order' => 36],

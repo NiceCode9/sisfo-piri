@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Guru extends Model
 {
@@ -15,6 +16,11 @@ class Guru extends Model
         'alamat',
         'is_aktif',
     ];
+
+    public function materis(): HasMany
+    {
+        return $this->hasMany(Materi::class);
+    }
 
     protected $casts = [
         'is_aktif' => 'boolean',

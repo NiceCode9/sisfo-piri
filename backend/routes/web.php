@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\KelasController;
 use App\Http\Controllers\Admin\KenaikanKelasController;
 use App\Http\Controllers\Admin\KuotaPendaftaranController;
 use App\Http\Controllers\Admin\MataPelajaranController;
+use App\Http\Controllers\Admin\MateriController;
 use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Admin\PembayaranController;
 use App\Http\Controllers\Admin\PembayaranLainnyaController;
@@ -31,6 +32,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Ortu\DashboardController as OrtuDashboardController;
 use App\Http\Controllers\Ortu\ProfilController as OrtuProfilController;
 use App\Http\Controllers\Siswa\DashboardController;
+use App\Http\Controllers\Siswa\MateriController as SiswaMateriController;
 use App\Http\Controllers\Siswa\ProfilController;
 use App\Http\Controllers\Siswa\RiwayatController;
 use App\Http\Controllers\SpmbController;
@@ -56,6 +58,8 @@ Route::prefix('siswa')->name('siswa.')->middleware(['auth', 'role:siswa'])->grou
     Route::put('/profil', [ProfilController::class, 'update'])->name('profil.update');
     Route::get('/kelas', [RiwayatController::class, 'kelas'])->name('kelas');
     Route::get('/absensi', [RiwayatController::class, 'absensi'])->name('absensi');
+    Route::get('/materi', [SiswaMateriController::class, 'index'])->name('materi.index');
+    Route::get('/materi/{materi}', [SiswaMateriController::class, 'show'])->name('materi.show');
 });
 
 Route::prefix('ortu')->name('ortu.')->middleware(['auth', 'role:orang-tua'])->group(function () {
@@ -63,6 +67,8 @@ Route::prefix('ortu')->name('ortu.')->middleware(['auth', 'role:orang-tua'])->gr
     Route::get('/profil', [OrtuProfilController::class, 'show'])->name('profil');
     Route::put('/profil', [OrtuProfilController::class, 'update'])->name('profil.update');
     Route::get('/anak/{waliMurid}', [OrtuDashboardController::class, 'show'])->name('anak');
+    Route::get('/materi', [App\Http\Controllers\Ortu\MateriController::class, 'index'])->name('materi.index');
+    Route::get('/materi/{materi}', [App\Http\Controllers\Ortu\MateriController::class, 'show'])->name('materi.show');
 });
 
 Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
@@ -103,6 +109,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::get('rombels/salin', [RombelController::class, 'salin'])->name('rombels.salin');
     Route::post('rombels/salin', [RombelController::class, 'prosesSalin'])->name('rombels.salin.proses');
     Route::resource('rombels', RombelController::class);
+    Route::resource('materis', MateriController::class);
     Route::get('pembayarans/export/excel', [PembayaranController::class, 'exportExcel'])->name('pembayarans.export.excel');
     Route::get('pembayarans/export/pdf', [PembayaranController::class, 'exportPdf'])->name('pembayarans.export.pdf');
     Route::get('pembayarans/{pembayaran}/kwitansi', [PembayaranController::class, 'kwitansi'])->name('pembayarans.kwitansi');

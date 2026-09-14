@@ -43,6 +43,11 @@ class Rombel extends Model
         return $this->hasMany(Pengampu::class);
     }
 
+    public function materis(): HasMany
+    {
+        return $this->hasMany(Materi::class);
+    }
+
     /**
      * ID siswa anggota rombel (diturunkan dari riwayat kelas+tahun).
      *
