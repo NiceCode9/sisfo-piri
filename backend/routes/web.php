@@ -27,6 +27,7 @@ use App\Http\Controllers\Admin\TahunAjaranController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Ortu\DashboardController as OrtuDashboardController;
+use App\Http\Controllers\Ortu\ProfilController as OrtuProfilController;
 use App\Http\Controllers\Siswa\DashboardController;
 use App\Http\Controllers\Siswa\ProfilController;
 use App\Http\Controllers\Siswa\RiwayatController;
@@ -57,6 +58,8 @@ Route::prefix('siswa')->name('siswa.')->middleware(['auth', 'role:siswa'])->grou
 
 Route::prefix('ortu')->name('ortu.')->middleware(['auth', 'role:orang-tua'])->group(function () {
     Route::get('/dashboard', [OrtuDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/profil', [OrtuProfilController::class, 'show'])->name('profil');
+    Route::put('/profil', [OrtuProfilController::class, 'update'])->name('profil.update');
     Route::get('/anak/{waliMurid}', [OrtuDashboardController::class, 'show'])->name('anak');
 });
 

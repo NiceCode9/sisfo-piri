@@ -10,6 +10,7 @@
         <p class="page-subtitle mb-0">Halo, {{ auth()->user()->name }} — kehadiran hari ini ({{ $hari }})</p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ route('ortu.profil') }}" class="btn btn-nexus-outline btn-sm"><i class="fa-solid fa-key"></i> Ganti Password</a>
         <a href="{{ route('login') }}" class="btn btn-nexus-outline btn-sm" onclick="event.preventDefault(); document.getElementById('logout-form').submit();"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
     </div>
 </div>
@@ -23,14 +24,16 @@
                 <div class="card-header-nexus">
                     <div>
                         <h5 class="card-title">{{ $a->siswa->user->name ?? '-' }}</h5>
-                        <p class="card-subtitle mb-0">{{ $a->siswa->nis ?? $a->siswa->nisn ?? '-' }} • {{ $a->siswa->kelas->nama_kelas ?? '-' }}</p>
+                        <p class="card-subtitle mb-0">{{ $a->siswa->nis ?? $a->siswa->nisn ?? '-' }} • {{ $a->siswa->kelas->nama_kelas ?? '-' }} • Wali: {{ $waliPerSiswa[$a->siswa_id] ?? '—' }}</p>
                     </div>
                     @php $st = $statusHariIni->get($a->siswa_id)?->status; @endphp
                     @if($st)<span class="badge-nexus badge-info">{{ ucfirst($st) }}</span>
                     @else<span class="badge-nexus">Belum absen</span>@endif
                 </div>
                 <div class="card-body-nexus">
-                    <a href="{{ route('ortu.anak', $a) }}" class="btn btn-nexus-outline btn-sm w-100">Lihat Rekap Bulanan</a>
+                    @php $persen = $persenPerSiswa[$a->siswa_id] ?? null; @endphp
+                    <p class="mb-2" style="font-size:13px;">Kehadiran bulan ini: <strong>{{ $persen === null ? '—' : $persen.'%' }}</strong></p>
+                    <a href="{{ route('ortu.anak', $a) }}" class="btn btn-nexus-outline btn-sm w-100">Lihat Rekap</a>
                 </div>
             </div>
         </div>
