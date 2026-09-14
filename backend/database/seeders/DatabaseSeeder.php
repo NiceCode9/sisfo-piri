@@ -32,6 +32,7 @@ class DatabaseSeeder extends Seeder
             DemoSiswaSeeder::class,
             DemoKenaikanSeeder::class,
             RombelSeeder::class,
+            DemoElearningSeeder::class,
         ]);
     }
 }
