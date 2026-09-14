@@ -42,21 +42,35 @@
     </div>
 
     <div class="card-nexus mb-3">
-        <div class="card-header-nexus"><h5 class="card-title">WhatsApp</h5></div>
+        <div class="card-header-nexus"><h5 class="card-title">Semester</h5></div>
         <div class="card-body-nexus">
             <div class="row g-3">
-                <div class="col-12">
+                <div class="col-12 col-sm-6">
                     <div class="form-floating">
-                        <input type="url" name="whatsapp_gateway_url" value="{{ old('whatsapp_gateway_url', $pengaturan['whatsapp_gateway_url'] ?? '') }}" class="form-control @error('whatsapp_gateway_url') is-invalid @enderror" id="whatsapp_gateway_url" placeholder="https://..." />
-                        <label for="whatsapp_gateway_url">Gateway URL (kosong = log-only)</label>
-                        @error('whatsapp_gateway_url')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <input type="text" name="semester_ganjil_mulai" value="{{ old('semester_ganjil_mulai', $pengaturan['semester_ganjil_mulai'] ?? '07-01') }}" placeholder="MM-DD" class="form-control @error('semester_ganjil_mulai') is-invalid @enderror" id="semester_ganjil_mulai" required />
+                        <label for="semester_ganjil_mulai">Ganjil Mulai (MM-DD)</label>
+                        @error('semester_ganjil_mulai')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                 </div>
                 <div class="col-12 col-sm-6">
-                    <div class="form-check form-switch">
-                        <input type="hidden" name="notifikasi_ortu_aktif" value="0" />
-                        <input type="checkbox" name="notifikasi_ortu_aktif" value="1" class="form-check-input" id="notifikasi_ortu_aktif" @checked(old('notifikasi_ortu_aktif', $pengaturan['notifikasi_ortu_aktif'] ?? '1')==='1') />
-                        <label class="form-check-label" for="notifikasi_ortu_aktif">Notifikasi Ortu Aktif</label>
+                    <div class="form-floating">
+                        <input type="text" name="semester_ganjil_selesai" value="{{ old('semester_ganjil_selesai', $pengaturan['semester_ganjil_selesai'] ?? '12-31') }}" placeholder="MM-DD" class="form-control @error('semester_ganjil_selesai') is-invalid @enderror" id="semester_ganjil_selesai" required />
+                        <label for="semester_ganjil_selesai">Ganjil Selesai (MM-DD)</label>
+                        @error('semester_ganjil_selesai')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6">
+                    <div class="form-floating">
+                        <input type="text" name="semester_genap_mulai" value="{{ old('semester_genap_mulai', $pengaturan['semester_genap_mulai'] ?? '01-01') }}" placeholder="MM-DD" class="form-control @error('semester_genap_mulai') is-invalid @enderror" id="semester_genap_mulai" required />
+                        <label for="semester_genap_mulai">Genap Mulai (MM-DD)</label>
+                        @error('semester_genap_mulai')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6">
+                    <div class="form-floating">
+                        <input type="text" name="semester_genap_selesai" value="{{ old('semester_genap_selesai', $pengaturan['semester_genap_selesai'] ?? '06-30') }}" placeholder="MM-DD" class="form-control @error('semester_genap_selesai') is-invalid @enderror" id="semester_genap_selesai" required />
+                        <label for="semester_genap_selesai">Genap Selesai (MM-DD)</label>
+                        @error('semester_genap_selesai')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                 </div>
             </div>
@@ -67,32 +81,6 @@
         <div class="card-header-nexus"><h5 class="card-title">Sistem</h5></div>
         <div class="card-body-nexus">
             <div class="row g-3">
-                <div class="col-12 col-sm-6">
-                    <div class="form-floating">
-                        <select name="semester_aktif" class="form-select @error('semester_aktif') is-invalid @enderror" id="semester_aktif">
-                            <option value="ganjil" @selected(old('semester_aktif', $pengaturan['semester_aktif'] ?? 'ganjil')==='ganjil')>Ganjil</option>
-                            <option value="genap" @selected(old('semester_aktif', $pengaturan['semester_aktif'] ?? 'ganjil')==='genap')>Genap</option>
-                        </select>
-                        <label for="semester_aktif">Semester Aktif</label>
-                        @error('semester_aktif')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    </div>
-                </div>
-                <div class="col-12 col-sm-6">
-                    <div class="form-floating">
-                        <input type="number" name="batas_upload_mb" value="{{ old('batas_upload_mb', $pengaturan['batas_upload_mb'] ?? '2') }}" min="1" max="50" class="form-control @error('batas_upload_mb') is-invalid @enderror" id="batas_upload_mb" required />
-                        <label for="batas_upload_mb">Batas Upload (MB)</label>
-                        @error('batas_upload_mb')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    </div>
-                </div>
-                <div class="col-12 col-sm-6">
-                    <div class="form-floating">
-                        <select name="rekap_default_periode" class="form-select @error('rekap_default_periode') is-invalid @enderror" id="rekap_default_periode">
-                            @foreach(['minggu','bulan','ganjil','genap','tahun'] as $p)<option value="{{ $p }}" @selected(old('rekap_default_periode', $pengaturan['rekap_default_periode'] ?? 'bulan')===$p)>{{ ucfirst($p) }}</option>@endforeach
-                        </select>
-                        <label for="rekap_default_periode">Rekap Default Periode</label>
-                        @error('rekap_default_periode')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    </div>
-                </div>
                 <div class="col-12 col-sm-6">
                     <div class="form-check form-switch mt-2">
                         <input type="hidden" name="maintenance_mode" value="0" />

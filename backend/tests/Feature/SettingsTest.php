@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AbsensiController;
 use App\Models\Pengaturan;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
@@ -39,20 +40,21 @@ test('super-admin dapat membuka dan menyimpan pengaturan', function () {
 
     $this->actingAs(superAdmin())->put(route('admin.pengaturans.update'), [
         'batas_terlambat' => '07:30',
-        'semester_aktif' => 'genap',
-        'batas_upload_mb' => 5,
+        'semester_ganjil_mulai' => '07-15',
+        'semester_ganjil_selesai' => '12-20',
+        'maintenance_mode' => 0,
     ])->assertRedirect(route('admin.pengaturans.index'));
 
     expect(Pengaturan::nilai('batas_terlambat'))->toBe('07:30')
-        ->and(Pengaturan::nilai('semester_aktif'))->toBe('genap');
+        ->and(Pengaturan::nilai('semester_ganjil_mulai'))->toBe('07-15');
 });
 
 test('validasi menolak format salah', function () {
     $this->actingAs(superAdmin())->put(route('admin.pengaturans.update'), [
         'batas_terlambat' => 'xxx',
-        'whatsapp_gateway_url' => 'bukan-url',
-        'batas_upload_mb' => 999,
-    ])->assertSessionHasErrors(['batas_terlambat', 'whatsapp_gateway_url', 'batas_upload_mb']);
+        'semester_ganjil_mulai' => '13-40',
+        'maintenance_mode' => 'xxx',
+    ])->assertSessionHasErrors(['batas_terlambat', 'semester_ganjil_mulai', 'maintenance_mode']);
 });
 
 test('re-trigger mengosongkan penanda harian', function () {
@@ -62,6 +64,15 @@ test('re-trigger mengosongkan penanda harian', function () {
         ->assertRedirect(route('admin.pengaturans.index'));
 
     expect(Pengaturan::nilai('cek_belum_hadir_terakhir'))->toBeNull();
+});
+
+test('semester helper mengikuti pengaturan', function () {
+    Pengaturan::updateOrCreate(['kunci' => 'semester_ganjil_mulai'], ['nilai' => '08-01']);
+    Pengaturan::updateOrCreate(['kunci' => 'semester_ganjil_selesai'], ['nilai' => '12-15']);
+
+    $rentang = AbsensiController::rentangPeriode('ganjil', '2026-09-01', null);
+
+    expect($rentang['mulai'])->toBe('2026-08-01')->and($rentang['selesai'])->toBe('2026-12-15');
 });
 
 test('maintenance blokir non-super-admin', function () {

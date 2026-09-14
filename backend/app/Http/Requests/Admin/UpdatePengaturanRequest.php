@@ -20,13 +20,12 @@ class UpdatePengaturanRequest extends FormRequest
         return [
             'batas_terlambat' => ['sometimes', 'required', 'date_format:H:i'],
             'jam_cek_belum_hadir' => ['sometimes', 'required', 'date_format:H:i'],
-            'whatsapp_gateway_url' => ['sometimes', 'nullable', 'url', 'max:255'],
-            'semester_aktif' => ['sometimes', 'required', 'in:ganjil,genap'],
-            'batas_upload_mb' => ['sometimes', 'required', 'integer', 'min:1', 'max:50'],
+            'semester_ganjil_mulai' => ['sometimes', 'required', 'date_format:m-d'],
+            'semester_ganjil_selesai' => ['sometimes', 'required', 'date_format:m-d'],
+            'semester_genap_mulai' => ['sometimes', 'required', 'date_format:m-d'],
+            'semester_genap_selesai' => ['sometimes', 'required', 'date_format:m-d'],
             'maintenance_mode' => ['sometimes', 'required', 'boolean'],
             'maintenance_pesan' => ['sometimes', 'nullable', 'string', 'max:500'],
-            'rekap_default_periode' => ['sometimes', 'required', 'in:minggu,bulan,ganjil,genap,tahun'],
-            'notifikasi_ortu_aktif' => ['sometimes', 'required', 'boolean'],
         ];
     }
 }

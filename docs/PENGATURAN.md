@@ -6,16 +6,20 @@
 
 | Kunci | Tipe | Default | Pengaruh ke | Cara Tentukan |
 |---|---|---|---|---|
-| `batas_terlambat` | `HH:MM` | `07:00` | `AbsensiController@storeBatch` & `storeScan`: lewat jam → `terlambat` | Jam masuk sekolah |
+| `batas_terlambat` | `HH:MM` | `07:00` | `AbsensiController@storeScan`: lewat jam → `terlambat` | Jam masuk sekolah |
 | `jam_cek_belum_hadir` | `HH:MM` | `08:00` | `CekBelumHadir` self-gating tiap 5 menit | Jam setelah absensi dianggap perlu ingatkan ortu |
-| `whatsapp_gateway_url` | URL | kosong | `KirimNotifikasiWhatsapp` (kosong=log-only) | `http://127.0.0.1:3001/kirim` di VPS |
 | `cek_belum_hadir_terakhir` | `Y-m-d` | null | Anti ganda harian | Read-only; **Re-trigger** = kosongkan via tombol |
-| `semester_aktif` | `ganjil/genap` | `ganjil` | Filter default rekap & ortu | Kalender akademik berjalan |
-| `batas_upload_mb` | int 1–50 | `2` | Validasi `foto`, materi, tugas | Kapasitas server |
+| `semester_ganjil_mulai` | `MM-DD` | `07-01` | `rentangPeriode('ganjil')` | Awal semester ganjil kalender sekolah |
+| `semester_ganjil_selesai` | `MM-DD` | `12-31` |  | Akhir ganjil |
+| `semester_genap_mulai` | `MM-DD` | `01-01` | `rentangPeriode('genap')` | Awal genap |
+| `semester_genap_selesai` | `MM-DD` | `06-30` |  | Akhir genap |
 | `maintenance_mode` | bool | `0` | `CheckMaintenance` blokir semua kecuali super-admin (503) | ON saat deploy/maintenance |
 | `maintenance_pesan` | text | null | Tampil di `errors.maintenance` bila ON | Informasi untuk user |
-| `rekap_default_periode` | enum | `bulan` | Default filter rekap | Preferensi sekolah |
-| `notifikasi_ortu_aktif` | bool | `1` | Global on/off WA ortu (cek sebelum dispatch) | Kebijakan notifikasi |
+
+## Hapus (sebelumnya ada, kini via env/hardcode)
+
+- `whatsapp_gateway_url` → `.env:WHATSAPP_URL`
+- `notifikasi_ortu_aktif`, `batas_upload_mb`, `rekap_default_periode`, `semester_aktif` → hardcode/hapus
 
 ## Re-trigger
 

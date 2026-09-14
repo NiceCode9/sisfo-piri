@@ -23,9 +23,9 @@ class PengaturanController extends Controller implements HasMiddleware
     public function index(): View
     {
         $kunciList = [
-            'batas_terlambat', 'jam_cek_belum_hadir', 'whatsapp_gateway_url', 'cek_belum_hadir_terakhir',
-            'semester_aktif', 'batas_upload_mb', 'maintenance_mode', 'maintenance_pesan',
-            'rekap_default_periode', 'notifikasi_ortu_aktif',
+            'batas_terlambat', 'jam_cek_belum_hadir', 'cek_belum_hadir_terakhir',
+            'semester_ganjil_mulai', 'semester_ganjil_selesai', 'semester_genap_mulai', 'semester_genap_selesai',
+            'maintenance_mode', 'maintenance_pesan',
         ];
 
         $pengaturan = Pengaturan::whereIn('kunci', $kunciList)->pluck('nilai', 'kunci');

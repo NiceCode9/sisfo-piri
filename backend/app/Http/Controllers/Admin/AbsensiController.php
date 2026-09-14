@@ -239,12 +239,12 @@ class AbsensiController extends Controller implements HasMiddleware
                 'selesai' => Carbon::parse(substr($acuan, 0, 7).'-01')->endOfMonth()->toDateString(),
             ],
             'ganjil' => [
-                'mulai' => $tahun ? substr($tahun->tanggal_mulai, 0, 4).'-07-01' : substr($acuan, 0, 4).'-07-01',
-                'selesai' => $tahun ? substr($tahun->tanggal_mulai, 0, 4).'-12-31' : substr($acuan, 0, 4).'-12-31',
+                'mulai' => $tahun ? substr($tahun->tanggal_mulai, 0, 4).'-'.Pengaturan::nilai('semester_ganjil_mulai', '07-01') : substr($acuan, 0, 4).'-'.Pengaturan::nilai('semester_ganjil_mulai', '07-01'),
+                'selesai' => $tahun ? substr($tahun->tanggal_mulai, 0, 4).'-'.Pengaturan::nilai('semester_ganjil_selesai', '12-31') : substr($acuan, 0, 4).'-'.Pengaturan::nilai('semester_ganjil_selesai', '12-31'),
             ],
             'genap' => [
-                'mulai' => $tahun ? substr($tahun->tanggal_selesai, 0, 4).'-01-01' : substr($acuan, 0, 4).'-01-01',
-                'selesai' => $tahun ? substr($tahun->tanggal_selesai, 0, 4).'-06-30' : substr($acuan, 0, 4).'-06-30',
+                'mulai' => $tahun ? substr($tahun->tanggal_selesai, 0, 4).'-'.Pengaturan::nilai('semester_genap_mulai', '01-01') : substr($acuan, 0, 4).'-'.Pengaturan::nilai('semester_genap_mulai', '01-01'),
+                'selesai' => $tahun ? substr($tahun->tanggal_selesai, 0, 4).'-'.Pengaturan::nilai('semester_genap_selesai', '06-30') : substr($acuan, 0, 4).'-'.Pengaturan::nilai('semester_genap_selesai', '06-30'),
             ],
             default => [
                 'mulai' => $tahun ? (string) $tahun->tanggal_mulai : substr($acuan, 0, 4).'-07-01',
