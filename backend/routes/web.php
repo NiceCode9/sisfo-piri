@@ -26,6 +26,7 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\RombelController;
 use App\Http\Controllers\Admin\SiswaController;
 use App\Http\Controllers\Admin\TahunAjaranController;
+use App\Http\Controllers\Admin\TugasController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\WhatsappController;
 use App\Http\Controllers\Auth\LoginController;
@@ -35,6 +36,7 @@ use App\Http\Controllers\Siswa\DashboardController;
 use App\Http\Controllers\Siswa\MateriController as SiswaMateriController;
 use App\Http\Controllers\Siswa\ProfilController;
 use App\Http\Controllers\Siswa\RiwayatController;
+use App\Http\Controllers\Siswa\TugasController as SiswaTugasController;
 use App\Http\Controllers\SpmbController;
 use Illuminate\Support\Facades\Route;
 
@@ -60,6 +62,9 @@ Route::prefix('siswa')->name('siswa.')->middleware(['auth', 'role:siswa'])->grou
     Route::get('/absensi', [RiwayatController::class, 'absensi'])->name('absensi');
     Route::get('/materi', [SiswaMateriController::class, 'index'])->name('materi.index');
     Route::get('/materi/{materi}', [SiswaMateriController::class, 'show'])->name('materi.show');
+    Route::get('/tugas', [SiswaTugasController::class, 'index'])->name('tugas.index');
+    Route::get('/tugas/{tugas}', [SiswaTugasController::class, 'show'])->name('tugas.show');
+    Route::post('/tugas/{tugas}/kumpul', [SiswaTugasController::class, 'kumpul'])->name('tugas.kumpul');
 });
 
 Route::prefix('ortu')->name('ortu.')->middleware(['auth', 'role:orang-tua'])->group(function () {
@@ -69,6 +74,8 @@ Route::prefix('ortu')->name('ortu.')->middleware(['auth', 'role:orang-tua'])->gr
     Route::get('/anak/{waliMurid}', [OrtuDashboardController::class, 'show'])->name('anak');
     Route::get('/materi', [App\Http\Controllers\Ortu\MateriController::class, 'index'])->name('materi.index');
     Route::get('/materi/{materi}', [App\Http\Controllers\Ortu\MateriController::class, 'show'])->name('materi.show');
+    Route::get('/tugas', [App\Http\Controllers\Ortu\TugasController::class, 'index'])->name('tugas.index');
+    Route::get('/tugas/{tugas}', [App\Http\Controllers\Ortu\TugasController::class, 'show'])->name('tugas.show');
 });
 
 Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
@@ -110,6 +117,9 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::post('rombels/salin', [RombelController::class, 'prosesSalin'])->name('rombels.salin.proses');
     Route::resource('rombels', RombelController::class);
     Route::resource('materis', MateriController::class);
+    Route::resource('tugas', TugasController::class);
+    Route::get('tugas/{tuga}/nilai', [TugasController::class, 'nilai'])->name('tugas.nilai');
+    Route::post('tugas/{tuga}/nilai', [TugasController::class, 'simpanNilai'])->name('tugas.nilai.simpan');
     Route::get('pembayarans/export/excel', [PembayaranController::class, 'exportExcel'])->name('pembayarans.export.excel');
     Route::get('pembayarans/export/pdf', [PembayaranController::class, 'exportPdf'])->name('pembayarans.export.pdf');
     Route::get('pembayarans/{pembayaran}/kwitansi', [PembayaranController::class, 'kwitansi'])->name('pembayarans.kwitansi');
