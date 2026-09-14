@@ -15,12 +15,14 @@ app.use(cors());
 app.use(express.json());
 
 // Bearer check bila token diset (VPS). Kosong = LAN only tanpa auth (dev).
+// GET /, /status, /qr publik (scan via browser tanpa header); hanya POST /kirim yang wajib token.
+const PUBLIC_GET = ['/', '/status', '/qr'];
 app.use((req, res, next) => {
     if (!TOKEN) {
         return next();
     }
 
-    if (req.path === '/status' && req.method === 'GET') {
+    if (req.method === 'GET' && PUBLIC_GET.includes(req.path)) {
         return next();
     }
 

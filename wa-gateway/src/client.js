@@ -1,5 +1,4 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
 
 let qrTerakhir = null;
 let siap = false;
@@ -18,8 +17,10 @@ function buatClient() {
     client.on('qr', (qr) => {
         qrTerakhir = qr;
         siap = false;
-        console.log('[WA] Scan QR di terminal atau buka GET /qr');
-        qrcode.generate(qr, { small: true });
+        console.log('[WA] Scan QR: buka http://127.0.0.1:3001/qr (set SHOW_QR_TERMINAL=1 untuk tampil di terminal)');
+        if (process.env.SHOW_QR_TERMINAL === '1') {
+            require('qrcode-terminal').generate(qr, { small: true });
+        }
     });
 
     client.on('ready', () => {

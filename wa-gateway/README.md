@@ -12,14 +12,17 @@ npm install
 npm run dev
 ```
 
-Buka `http://127.0.0.1:3001/qr` (PNG) atau lihat terminal — scan dengan WA HP sekolah. `GET /status` → `{"siap":true}` bila terhubung.
+Buka `http://127.0.0.1:3001/qr` (PNG, tanpa token — `GET /qr` & `/status` publik) atau set `SHOW_QR_TERMINAL=1` untuk tampil di terminal. `GET /status` → `{"siap":true}` bila terhubung.
 
 ## Test tanpa WA
 
 ```powershell
+# POST /kirim wajib Bearer bila GATEWAY_TOKEN terisi:
 curl -H "Authorization: Bearer isi-token" -H "Content-Type: application/json" -d "{\"tujuan\":\"081200000001\",\"pesan\":\"Tes gateway\"}" http://127.0.0.1:3001/kirim
-# tanpa token (bila GATEWAY_TOKEN kosong, LAN only):
+# Bila GATEWAY_TOKEN kosong (LAN only) tanpa header juga bisa:
 curl -H "Content-Type: application/json" -d "{\"tujuan\":\"0812...\",\"pesan\":\"...\"}" http://127.0.0.1:3001/kirim
+# GET /qr tanpa token (baru):
+curl http://127.0.0.1:3001/qr -o qr.png
 ```
 
 ## Produksi (VPS Ubuntu)
