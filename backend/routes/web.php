@@ -26,6 +26,7 @@ use App\Http\Controllers\Admin\RombelController;
 use App\Http\Controllers\Admin\SiswaController;
 use App\Http\Controllers\Admin\TahunAjaranController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\WhatsappController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Ortu\DashboardController as OrtuDashboardController;
 use App\Http\Controllers\Ortu\ProfilController as OrtuProfilController;
@@ -132,5 +133,9 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::get('absensis/rekap/pdf', [AbsensiController::class, 'exportPdf'])->name('absensis.rekap.pdf');
     Route::get('pengaturans', [PengaturanController::class, 'index'])->name('pengaturans.index');
     Route::put('pengaturans', [PengaturanController::class, 'update'])->name('pengaturans.update');
+    Route::get('whatsapp', [WhatsappController::class, 'index'])->name('whatsapp.index');
+    Route::get('whatsapp/qr', [WhatsappController::class, 'qr'])->name('whatsapp.qr');
+    Route::get('whatsapp/status', [WhatsappController::class, 'status'])->name('whatsapp.status');
+    Route::post('whatsapp/disconnect', [WhatsappController::class, 'disconnect'])->name('whatsapp.disconnect');
     Route::post('pengaturans/reset', [PengaturanController::class, 'reset'])->name('pengaturans.reset');
 });

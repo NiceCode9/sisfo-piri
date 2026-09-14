@@ -37,7 +37,8 @@ app.use((req, res, next) => {
 
 app.get('/status', (req, res) => {
     const s = getStatus();
-    res.json({ ok: true, siap: s.siap, qrTersedia: s.qrTersedia });
+    const client = getStatus().siap ? (() => { try { return getClient().info?.wid?._serialized || null; } catch { return null; } })() : null;
+    res.json({ ok: true, siap: s.siap, qrTersedia: s.qrTersedia, nomor: client });
 });
 
 app.get('/qr', async (req, res) => {
@@ -50,6 +51,16 @@ app.get('/qr', async (req, res) => {
     try {
         const png = await QRCode.toBuffer(s.qr, { width: 320 });
         res.type('png').send(png);
+    } catch (e) {
+        res.status(500).json({ ok: false, error: e.message });
+    }
+});
+
+app.post('/logout', async (req, res) => {
+    try {
+        const c = getClient();
+        await c.logout();
+        res.json({ ok: true });
     } catch (e) {
         res.status(500).json({ ok: false, error: e.message });
     }
@@ -71,7 +82,7 @@ app.post('/kirim', async (req, res) => {
 });
 
 app.get('/', (req, res) => {
-    res.json({ ok: true, service: 'wa-gateway', status: getStatus().siap ? 'siap' : 'menunggu-qr', docs: 'GET /status, GET /qr, POST /kirim' });
+    res.json({ ok: true, service: 'wa-gateway', status: getStatus().siap ? 'siap' : 'menunggu-qr', docs: 'GET /status, GET /qr, POST /kirim, POST /logout' });
 });
 
 getClient();

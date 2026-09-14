@@ -80,6 +80,8 @@ if (! function_exists('rombelNotifikasiUji')) {
 }
 
 test('batch alpa mengantrekan notifikasi log-only', function () {
+    config()->set('services.whatsapp.url', null);
+    Http::fake();
     $rombel = rombelNotifikasiUji();
     $siswa = siswaNotifikasiUji('7001', 'Anak Notif Satu');
 
@@ -98,6 +100,8 @@ test('batch alpa mengantrekan notifikasi log-only', function () {
 });
 
 test('batch tanpa alpa tidak membuat log', function () {
+    config()->set('services.whatsapp.url', null);
+    Http::fake();
     $rombel = rombelNotifikasiUji();
     $siswa = siswaNotifikasiUji('7001', 'Anak Notif Satu');
 
@@ -111,6 +115,8 @@ test('batch tanpa alpa tidak membuat log', function () {
 });
 
 test('siswa tanpa no WA dilewati notifikasi', function () {
+    config()->set('services.whatsapp.url', null);
+    Http::fake();
     $rombel = rombelNotifikasiUji();
     $siswa = siswaNotifikasiUji('7001', 'Anak Notif Satu', null);
 
@@ -151,6 +157,8 @@ test('job menandai gagal saat gateway error', function () {
 });
 
 test('command manual hanya mengingatkan yang belum absen', function () {
+    config()->set('services.whatsapp.url', null);
+    Http::fake();
     $rombel = rombelNotifikasiUji();
     $hadir = siswaNotifikasiUji('7001', 'Anak Notif Satu');
     $belum = siswaNotifikasiUji('7002', 'Anak Notif Dua');
@@ -173,6 +181,8 @@ test('command manual hanya mengingatkan yang belum absen', function () {
 });
 
 test('command terjadwal self-gating sekali sehari', function () {
+    config()->set('services.whatsapp.url', null);
+    Http::fake();
     $rombel = rombelNotifikasiUji();
     siswaNotifikasiUji('7001', 'Anak Notif Satu');
     Pengaturan::updateOrCreate(['kunci' => 'cek_belum_hadir_terakhir'], ['nilai' => now()->toDateString()]);
