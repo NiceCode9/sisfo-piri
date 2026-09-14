@@ -44,6 +44,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Menu', 'icon' => 'fa-solid fa-bars', 'route' => 'admin.menus.index', 'permission' => 'menus.view', 'order' => 37],
             ['name' => 'Pengguna & Role', 'icon' => 'fa-solid fa-users-gear', 'route' => 'admin.users.index', 'permission' => 'users.view', 'order' => 38],
             ['name' => 'Profil Sekolah', 'icon' => 'fa-solid fa-school', 'route' => 'admin.profil-sekolah.edit', 'permission' => 'profil-sekolahs.view', 'order' => 39],
+            ['name' => 'Pengaturan', 'icon' => 'fa-solid fa-gear', 'route' => 'admin.pengaturans.index', 'permission' => 'pengaturans.view', 'order' => 40],
         ];
 
         foreach ($menus as $menu) {

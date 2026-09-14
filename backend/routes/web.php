@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Admin\PembayaranController;
 use App\Http\Controllers\Admin\PembayaranLainnyaController;
 use App\Http\Controllers\Admin\PengampuController;
+use App\Http\Controllers\Admin\PengaturanController;
 use App\Http\Controllers\Admin\PengumumanController;
 use App\Http\Controllers\Admin\ProfilSekolahController;
 use App\Http\Controllers\Admin\RencanaAngsuranController;
@@ -129,4 +130,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::get('absensis/rekap', [AbsensiController::class, 'rekap'])->name('absensis.rekap');
     Route::get('absensis/rekap/excel', [AbsensiController::class, 'exportExcel'])->name('absensis.rekap.excel');
     Route::get('absensis/rekap/pdf', [AbsensiController::class, 'exportPdf'])->name('absensis.rekap.pdf');
+    Route::get('pengaturans', [PengaturanController::class, 'index'])->name('pengaturans.index');
+    Route::put('pengaturans', [PengaturanController::class, 'update'])->name('pengaturans.update');
+    Route::post('pengaturans/reset', [PengaturanController::class, 'reset'])->name('pengaturans.reset');
 });

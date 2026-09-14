@@ -114,6 +114,8 @@ class PermissionSeeder extends Seeder
             'absensis.create',
             'absensis.edit',
             'absensis.delete',
+            'pengaturans.view',
+            'pengaturans.edit',
         ];
 
         foreach ($permissions as $name) {
@@ -153,6 +155,7 @@ class PermissionSeeder extends Seeder
                 'rombels.view', 'rombels.create', 'rombels.edit',
                 'kenaikan-kelas.view', 'kenaikan-kelas.execute',
                 'absensis.view', 'absensis.create', 'absensis.edit',
+                'pengaturans.view', 'pengaturans.edit',
             ]);
 
         // Guru piket: input dan pantau absensi harian.
