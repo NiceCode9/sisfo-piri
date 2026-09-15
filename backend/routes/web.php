@@ -4,6 +4,11 @@ use App\Http\Controllers\Admin\AbsensiController;
 use App\Http\Controllers\Admin\BiayaPendaftaranController;
 use App\Http\Controllers\Admin\BrosurController;
 use App\Http\Controllers\Admin\CalonSiswaController;
+use App\Http\Controllers\Admin\Cbt\ExamAnswerController;
+use App\Http\Controllers\Admin\Cbt\ExamController as CbtExamController;
+use App\Http\Controllers\Admin\Cbt\ExamMonitoringController as CbtMonitoringController;
+use App\Http\Controllers\Admin\Cbt\ExamQuestionController as CbtQuestionController;
+use App\Http\Controllers\Admin\Cbt\ExamTokenController as CbtTokenController;
 use App\Http\Controllers\Admin\GaleriController;
 use App\Http\Controllers\Admin\GelombangController;
 use App\Http\Controllers\Admin\GuruController;
@@ -160,4 +165,17 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::get('whatsapp/status', [WhatsappController::class, 'status'])->name('whatsapp.status');
     Route::post('whatsapp/disconnect', [WhatsappController::class, 'disconnect'])->name('whatsapp.disconnect');
     Route::post('pengaturans/reset', [PengaturanController::class, 'reset'])->name('pengaturans.reset');
+
+    Route::prefix('cbt')->name('cbt.')->group(function () {
+        Route::resource('exams', CbtExamController::class);
+        Route::post('exams/{exam}/tokens', [CbtTokenController::class, 'store'])->name('exams.tokens.store');
+        Route::delete('tokens/{token}', [CbtTokenController::class, 'destroy'])->name('tokens.destroy');
+        Route::post('exams/{exam}/questions', [CbtQuestionController::class, 'store'])->name('exams.questions.store');
+        Route::delete('questions/{question}', [CbtQuestionController::class, 'destroy'])->name('questions.destroy');
+        Route::get('exams/{exam}/monitoring', [CbtMonitoringController::class, 'index'])->name('monitoring.index');
+        Route::get('exams/{exam}/monitoring/data', [CbtMonitoringController::class, 'data'])->name('monitoring.data');
+        Route::post('exams/{exam}/sessions/{session}/force', [CbtMonitoringController::class, 'force'])->name('sessions.force');
+        Route::get('exams/{exam}/violations.csv', [CbtMonitoringController::class, 'violationsCsv'])->name('violations.csv');
+        Route::post('answers/{answer}/nilai', [ExamAnswerController::class, 'update'])->name('answers.nilai');
+    });
 });

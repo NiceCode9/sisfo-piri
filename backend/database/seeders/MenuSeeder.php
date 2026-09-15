@@ -41,6 +41,8 @@ class MenuSeeder extends Seeder
             ['name' => 'E-Learning', 'is_header' => true, 'order' => 31],
             ['name' => 'Materi', 'icon' => 'fa-solid fa-book-open-reader', 'route' => 'admin.materis.index', 'permission' => 'materis.view', 'order' => 32],
             ['name' => 'Tugas', 'icon' => 'fa-solid fa-clipboard-question', 'route' => 'admin.tugas.index', 'permission' => 'tugas.view', 'order' => 33],
+            ['name' => 'CBT', 'is_header' => true, 'order' => 34],
+            ['name' => 'Ujian', 'icon' => 'fa-solid fa-laptop', 'route' => 'admin.cbt.exams.index', 'permission' => 'cbt.view', 'order' => 35],
 
             ['name' => 'Sistem', 'is_header' => true, 'order' => 35],
             ['name' => 'Role', 'icon' => 'fa-solid fa-user-tie', 'route' => 'admin.roles.index', 'permission' => 'roles.view', 'order' => 36],

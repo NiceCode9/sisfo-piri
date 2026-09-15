@@ -127,6 +127,8 @@ class PermissionSeeder extends Seeder
             'tugas.edit',
             'tugas.delete',
             'tugas.nilai',
+            'cbt.view',
+            'cbt.manage',
         ];
 
         foreach ($permissions as $name) {
@@ -164,13 +166,13 @@ class PermissionSeeder extends Seeder
                 'pengampus.view', 'pengampus.create', 'pengampus.edit',
                 'wali-kelas.view',
                 'rombels.view', 'rombels.create', 'rombels.edit',
+                'cbt.view', 'cbt.manage',
                 'materis.view', 'materis.create', 'materis.edit', 'materis.delete',
                 'tugas.view', 'tugas.create', 'tugas.edit', 'tugas.delete', 'tugas.nilai',
                 'kenaikan-kelas.view', 'kenaikan-kelas.execute',
                 'absensis.view', 'absensis.create', 'absensis.edit',
                 'pengaturans.view', 'pengaturans.edit',
                 'whatsapp.view', 'whatsapp.manage',
-                'materis.view', 'materis.create', 'materis.edit', 'materis.delete',
             ]);
 
         // Guru piket: input dan pantau absensi harian.
