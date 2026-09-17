@@ -9,6 +9,8 @@ use App\Http\Controllers\Admin\Cbt\ExamController as CbtExamController;
 use App\Http\Controllers\Admin\Cbt\ExamMonitoringController as CbtMonitoringController;
 use App\Http\Controllers\Admin\Cbt\ExamQuestionController as CbtQuestionController;
 use App\Http\Controllers\Admin\Cbt\ExamTokenController as CbtTokenController;
+use App\Http\Controllers\Admin\Cbt\QuestionBankController;
+use App\Http\Controllers\Admin\Cbt\QuestionBankQuestionController;
 use App\Http\Controllers\Admin\GaleriController;
 use App\Http\Controllers\Admin\GelombangController;
 use App\Http\Controllers\Admin\GuruController;
@@ -167,6 +169,10 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::post('pengaturans/reset', [PengaturanController::class, 'reset'])->name('pengaturans.reset');
 
     Route::prefix('cbt')->name('cbt.')->group(function () {
+        Route::resource('banks', QuestionBankController::class);
+        Route::post('banks/{bank}/questions', [QuestionBankQuestionController::class, 'store'])->name('banks.questions.store');
+        Route::delete('banks/questions/{question}', [QuestionBankQuestionController::class, 'destroy'])->name('banks.questions.destroy');
+        Route::post('exams/{exam}/banks/{bank}/import', [CbtExamController::class, 'importFromBank'])->name('exams.banks.import');
         Route::resource('exams', CbtExamController::class);
         Route::post('exams/{exam}/tokens', [CbtTokenController::class, 'store'])->name('exams.tokens.store');
         Route::delete('tokens/{token}', [CbtTokenController::class, 'destroy'])->name('tokens.destroy');

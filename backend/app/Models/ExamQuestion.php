@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ExamQuestion extends Model
 {
     protected $fillable = [
-        'exam_id', 'question_text', 'question_image', 'type', 'options', 'correct_answer', 'score', 'order',
+        'exam_id', 'question_bank_id', 'source_question_id', 'question_text', 'question_image', 'type', 'options', 'correct_answer', 'score', 'order',
     ];
 
     protected $casts = [
@@ -19,5 +19,15 @@ class ExamQuestion extends Model
     public function exam(): BelongsTo
     {
         return $this->belongsTo(Exam::class);
+    }
+
+    public function bank(): BelongsTo
+    {
+        return $this->belongsTo(QuestionBank::class, 'question_bank_id');
+    }
+
+    public function sourceQuestion(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'source_question_id');
     }
 }

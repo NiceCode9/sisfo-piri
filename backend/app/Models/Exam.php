@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Exam extends Model
 {
     protected $fillable = [
-        'rombel_id', 'name', 'description', 'duration_minutes', 'available_from', 'available_until',
+        'rombel_id', 'mata_pelajaran_id', 'name', 'description', 'duration_minutes', 'available_from', 'available_until',
         'max_violation_count', 'shuffle_questions', 'shuffle_options', 'status', 'created_by',
     ];
 
@@ -23,6 +23,11 @@ class Exam extends Model
     public function rombel(): BelongsTo
     {
         return $this->belongsTo(Rombel::class);
+    }
+
+    public function mataPelajaran(): BelongsTo
+    {
+        return $this->belongsTo(MataPelajaran::class);
     }
 
     public function questions(): HasMany

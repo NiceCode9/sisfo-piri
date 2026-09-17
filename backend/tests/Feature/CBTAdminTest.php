@@ -6,6 +6,7 @@ use App\Models\ExamQuestion;
 use App\Models\ExamSession;
 use App\Models\ExamToken;
 use App\Models\Kelas;
+use App\Models\MataPelajaran;
 use App\Models\Rombel;
 use App\Models\TahunAjaran;
 use App\Models\User;
@@ -42,14 +43,23 @@ if (! function_exists('buatRombelCbt')) {
     }
 }
 
+if (! function_exists('buatMapelCbt')) {
+    function buatMapelCbt(): MataPelajaran
+    {
+        return MataPelajaran::create(['kode' => 'MP'.Str::upper(Str::random(4)), 'nama' => 'Mapel '.Str::random(4), 'kelompok' => 'A']);
+    }
+}
+
 if (! function_exists('buatExamCbt')) {
     function buatExamCbt(array $overrides = []): Exam
     {
         $rombel = $overrides['rombel_id'] ?? buatRombelCbt()->id;
+        $mapel = $overrides['mata_pelajaran_id'] ?? buatMapelCbt()->id;
         $admin = $overrides['created_by'] ?? superAdmin()->id;
 
         return Exam::create(array_merge([
             'rombel_id' => is_object($rombel) ? $rombel->id : $rombel,
+            'mata_pelajaran_id' => is_object($mapel) ? $mapel->id : $mapel,
             'name' => 'Ujian CBT Test '.Str::random(4),
             'duration_minutes' => 60,
             'max_violation_count' => 3,
@@ -61,8 +71,10 @@ if (! function_exists('buatExamCbt')) {
 
 test('super-admin dapat membuat ujian', function () {
     $rombel = buatRombelCbt();
+    $mapel = buatMapelCbt();
     $response = $this->actingAs(superAdmin())->post(route('admin.cbt.exams.store'), [
         'rombel_id' => $rombel->id,
+        'mata_pelajaran_id' => $mapel->id,
         'name' => 'Ujian CBT Test',
         'duration_minutes' => 60,
         'max_violation_count' => 3,
@@ -77,6 +89,7 @@ test('update soal menghapus cache', function () {
     Cache::put("exam:{$exam->id}:questions", collect([1, 2, 3]), 3600);
     $this->actingAs(superAdmin())->put(route('admin.cbt.exams.update', $exam), [
         'rombel_id' => $exam->rombel_id,
+        'mata_pelajaran_id' => $exam->mata_pelajaran_id,
         'name' => $exam->name,
         'duration_minutes' => $exam->duration_minutes,
         'max_violation_count' => $exam->max_violation_count,

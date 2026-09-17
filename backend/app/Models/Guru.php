@@ -22,6 +22,11 @@ class Guru extends Model
         return $this->hasMany(Materi::class);
     }
 
+    public function questionBanks(): HasMany
+    {
+        return $this->hasMany(QuestionBank::class);
+    }
+
     protected $casts = [
         'is_aktif' => 'boolean',
     ];
