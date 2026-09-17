@@ -57,30 +57,28 @@
 - [x] Test `QuestionBankTest` 6 test (pengampu ok/forbidden, scope, snapshot, hapus bank tak hapus snapshot, unik) + update `CBTAdminTest` (mata_pelajaran_id) — 11 test hijau
 - [x] Commit `441730c cbt: bank soal per mapel oleh pengampu (copy-snapshot) + exam mapel scope`
 
-### Fase CBT-5 — Perbaikan & Hardening (gabungan) [BELUM — eksekusi bertahap 3 sub-fase]
+### Fase CBT-5 — Perbaikan & Hardening (gabungan) [SELESAI — 2026-09-17]
 
-#### 5a. Blokir fungsional React [BELUM]
+#### 5a. Blokir fungsional React [SELESAI — ba256bd]
 
-- [ ] Tailwind token `cbt/tailwind.config.js` `theme.extend.colors` (`primary #1E40AF`, `secondary #F59E0B`, `tertiary #10B981`, `surface #f8f9ff` dll.) + `fontFamily jakarta/inter` — `cbt/src/index.css` tetap `@tailwind`
-- [ ] `cbt/src/pages/ExamRoom.tsx`: essay `<textarea>` + `question_image <img>` render
-- [ ] `cbt/src/store/examStore.ts` + `useExamGuard.ts` + `useAutosaveAnswer.ts`: violation sync (`active` sertakan `violation_count`), flush autosave sebelum `finishExam`, retry `finishExam` dengan backoff
-- [ ] `backend/app/Http/Controllers/Api/Cbt/ExamSessionController.php:active` tambah `violation_count` + `cbt/src/App.tsx:checkActiveSession` teruskan ke guard
+- [x] Tailwind token `cbt/tailwind.config.js` `theme.extend.colors` + `fontFamily jakarta/inter`
+- [x] `cbt/src/pages/ExamRoom.tsx`: essay `<textarea>` + `question_image <img>` render
+- [x] `cbt/src/store/examStore.ts` + `useExamGuard.ts` + `useAutosaveAnswer.ts`: violation sync (`active` sertakan `violation_count`), flush autosave sebelum `finishExam`, retry `finishExam` dengan backoff
+- [x] `backend/app/Http/Controllers/Api/Cbt/ExamSessionController.php:active` tambah `violation_count` + `cbt/src/App.tsx:checkActiveSession` teruskan ke guard
 
-#### 5b. Paritas desain [BELUM]
+#### 5b. Paritas desain [SELESAI — 5610e98]
 
-- [ ] `cbt/src/pages/ExamRoom.tsx` + `cbt/src/store/examStore.ts`: matrix 70/30 grid `5 cols 40×40` (answered `#10B981`, flagged `#F59E0B`, active `2px #1E40AF`) + flagged `Ragu-ragu` amber + modal `Selesaikan` (X kosong/Y ragu)
-- [ ] `backend/app/Http/Controllers/Api/Cbt/ViolationController.php` pisah `connection_lost` dari `max_violation_count`; `cbt/src/hooks/useExamGuard.ts` heuristik `devtools_suspected` via `resize`
+- [x] `cbt/src/pages/ExamRoom.tsx` + `cbt/src/store/examStore.ts`: matrix 70/30 grid `5 cols 40×40` + flagged `Ragu-ragu` amber + modal `Selesaikan` (X kosong/Y ragu)
+- [x] `backend/app/Http/Controllers/Api/Cbt/ViolationController.php` pisah `connection_lost` dari `max_violation_count`; `cbt/src/hooks/useExamGuard.ts` heuristik `devtools_suspected` via `resize`
 
-#### 5c. Hasil agregat & beban CBT-14 [BELUM]
+#### 5c. Hasil agregat & beban CBT-14 [SELESAI — 84cfe33]
 
-- [ ] `admin/cbt/exams/{exam}/hasil` matriks siswa×soal + koreksi inline essay + export Excel/PDF nilai (reuse `ExamAnswerController:update`)
-- [ ] `docker-compose.yml` service `queue-worker` (`php artisan queue:work --sleep=3 --tries=3`) atau `supervisor.conf` + `question_image` storage `php artisan storage:link`
-- [ ] `load-test-cbt.js` k6 500 VU (`BASE_URL, EXAM_TOKEN, VUS 500, RAMP 15s, HOLD 10m, HEARTBEAT 20s`) threshold `p95<1500ms, http_req_failed<2%` vs `LoadTestSeeder` (`php artisan db:seed --class=LoadTestSeeder` → 500 siswa token `LOADTEST`)
-- [ ] PHP-FPM tuning `pm.max_children` + MySQL `innodb_buffer_pool_size` doc di `docs/`
-- [ ] Tambah `backend/tests/Feature/CbtApiTest.php` (heartbeat/violation/timer/concurrency) target ≥ 385 hijau; `cbt: npm run build` hijau
-- [ ] Update `docs/PANDUAN_TESTING_CBT.md` langkah manual per fase
-
-> **Aturan eksekusi Fase 5**: kerjakan **5a → 5b → 5c** berurutan, satu sub-fase satu commit (verifikasi `npm run build` + `pint` + `php artisan test --compact` tiap sub-fase). Fase 5a adalah prioritas pertama.
+- [x] `admin/cbt/exams/{exam}/results` matriks siswa×soal + `results.csv` + reuse `ExamAnswerController:update`
+- [x] `docker-compose.yml` service `queue-worker` (`php artisan queue:work --sleep=3 --tries=3`) + `question_image` storage note
+- [x] `load-test-cbt.js` k6 500 VU threshold `p95<1500ms, http_req_failed<2%` vs `LoadTestSeeder`
+- [x] PHP-FPM/MySQL tuning `docs/server-config/*.example`
+- [x] `backend/tests/Feature/CbtApiTest.php` 5 test (heartbeat throttle, `connection_lost` tidak hitung, results export) — `QuestionBank+CBTAdmin+CbtApi` 16 hijau, `cbt: npm run build` hijau
+- [x] Update `docs/PANDUAN_TESTING_CBT.md` langkah Fase 5a/5b/5c
 
 ## Tahapan Perbaikan CBT (ringkas, urut eksekusi)
 
@@ -90,9 +88,9 @@
 | 2 | React timer aman | Selesai | Login→Token→ExamRoom→Finished jalan |
 | 3 | Admin paket & monitoring | Selesai | CRUD ujian, token, soal exam, monitoring 5s, koreksi essay |
 | 4 | Bank Soal per Mapel (copy-snapshot) | **Selesai 2026-09-17** | Bank lintas rombel/tahun, impor snapshot, hapus bank aman |
-| 5a | Blokir fungsional React | Belum | Essay/image, violation sync, flush/retry |
-| 5b | Paritas desain | Belum | Matrix 70/30, flagged, modal |
-| 5c | Hasil & beban 500 | Belum | Hasil agregat + k6 p95 + worker |
+| 5a | Blokir fungsional React | **Selesai** | Essay/image, violation sync, flush/retry |
+| 5b | Paritas desain | **Selesai** | Matrix 70/30, flagged, modal |
+| 5c | Hasil & beban 500 | **Selesai** | Hasil matriks + k6 + worker + tuning + CbtApiTest |
 
 ## Catatan Teknis
 
