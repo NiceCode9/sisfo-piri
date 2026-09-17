@@ -40,12 +40,15 @@ export function useExamGuard({
   const finishedRef = useRef(false); // guard supaya finishExam tidak double-call
 
   // --- Helper: catat pelanggaran, naikkan counter, cek batas ---
+  // connection_lost tidak hitung batas curang (server juga kecualikan)
   const recordViolation = useCallback(
     async (type: Parameters<typeof reportViolation>[1]) => {
       if (finishedRef.current) return;
 
+      const isCheatingViolation = type !== 'connection_lost';
+
       setState((prev) => {
-        const nextCount = prev.violationCount + 1;
+        const nextCount = isCheatingViolation ? prev.violationCount + 1 : prev.violationCount;
         return {
           ...prev,
           violationCount: nextCount,
@@ -134,13 +137,13 @@ export function useExamGuard({
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);
 
-  // --- 5. Disable klik kanan & shortcut umum (deterrent, bukan security utama) ---
+  // --- 5. Disable klik kanan & shortcut umum + heuristik devtools ---
   useEffect(() => {
     const blockContextMenu = (e: MouseEvent) => e.preventDefault();
     const blockShortcuts = (e: KeyboardEvent) => {
       const blocked =
         e.key === 'F12' ||
-        (e.ctrlKey && e.shiftKey && ['I', 'J', 'C'].includes(e.key)) ||
+        (e.ctrlKey && e.shiftKey && ['I', 'J', 'C', 'K'].includes(e.key)) ||
         (e.ctrlKey && ['c', 'v', 'u', 'p'].includes(e.key.toLowerCase()));
       if (blocked) {
         e.preventDefault();
@@ -154,6 +157,19 @@ export function useExamGuard({
       document.removeEventListener('contextmenu', blockContextMenu);
       document.removeEventListener('keydown', blockShortcuts);
     };
+  }, [recordViolation]);
+
+  // Heuristik devtools: selisih outer/inner lebar tinggi indikasi docked devtools
+  useEffect(() => {
+    const checkDevtools = () => {
+      const threshold = 160;
+      const opened = window.outerWidth - window.innerWidth > threshold || window.outerHeight - window.innerHeight > threshold;
+      if (opened && !finishedRef.current) {
+        recordViolation('devtools_suspected');
+      }
+    };
+    window.addEventListener('resize', checkDevtools);
+    return () => window.removeEventListener('resize', checkDevtools);
   }, [recordViolation]);
 
   // --- 6. Timer — hitung mundur di client, tapi TIDAK jadi sumber kebenaran ---

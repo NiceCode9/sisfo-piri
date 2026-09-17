@@ -25,11 +25,13 @@ interface ExamStore {
   answers: Record<number, string[]>; // question_id -> jawaban
   savingStatus: Record<number, 'idle' | 'saving' | 'saved' | 'error'>;
   currentIndex: number;
+  flagged: Record<number, boolean>;
 
   setExamData: (meta: ExamMeta, questions: Question[], savedAnswers: Record<number, string[]>) => void;
   setAnswer: (questionId: number, answer: string[]) => void;
   setSavingStatus: (questionId: number, status: 'idle' | 'saving' | 'saved' | 'error') => void;
   goToQuestion: (index: number) => void;
+  toggleFlag: (questionId: number) => void;
   reset: () => void;
 }
 
@@ -39,9 +41,10 @@ export const useExamStore = create<ExamStore>((set) => ({
   answers: {},
   savingStatus: {},
   currentIndex: 0,
+  flagged: {},
 
   setExamData: (meta, questions, savedAnswers) =>
-    set({ meta, questions, answers: savedAnswers, currentIndex: 0 }),
+    set({ meta, questions, answers: savedAnswers, currentIndex: 0, flagged: {} }),
 
   setAnswer: (questionId, answer) =>
     set((state) => ({ answers: { ...state.answers, [questionId]: answer } })),
@@ -51,5 +54,8 @@ export const useExamStore = create<ExamStore>((set) => ({
 
   goToQuestion: (index) => set({ currentIndex: index }),
 
-  reset: () => set({ meta: null, questions: [], answers: {}, savingStatus: {}, currentIndex: 0 }),
+  toggleFlag: (questionId) =>
+    set((state) => ({ flagged: { ...state.flagged, [questionId]: !state.flagged[questionId] } })),
+
+  reset: () => set({ meta: null, questions: [], answers: {}, savingStatus: {}, currentIndex: 0, flagged: {} }),
 }));

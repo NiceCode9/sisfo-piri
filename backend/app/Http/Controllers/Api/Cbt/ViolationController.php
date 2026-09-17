@@ -18,14 +18,17 @@ class ViolationController extends Controller
 
         $session = ExamSessionController::resolveOngoingSession($request, $data['exam_session_id']);
 
-        // Increment + cek threshold tetap SYNCHRONOUS karena ini keputusan real-time
-        // (disqualify atau tidak). Yang di-queue hanya pencatatan detail/audit-nya.
-        $session->increment('violation_count');
-        $session->refresh();
+        // connection_lost murni jaringan — catat audit tapi jangan hitung batas curang
+        $isCheatingViolation = $data['type'] !== 'connection_lost';
+
+        if ($isCheatingViolation) {
+            $session->increment('violation_count');
+            $session->refresh();
+        }
 
         LogViolationDetail::dispatch($session->id, $data['type'], $data['meta'] ?? null);
 
-        $shouldDisqualify = $session->violation_count >= $session->exam->max_violation_count;
+        $shouldDisqualify = $isCheatingViolation && $session->violation_count >= $session->exam->max_violation_count;
         if ($shouldDisqualify) {
             app(ExamSessionController::class)->finalizeSession($session, 'violation_limit');
         }
