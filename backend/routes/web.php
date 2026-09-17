@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\Cbt\ExamAnswerController;
 use App\Http\Controllers\Admin\Cbt\ExamController as CbtExamController;
 use App\Http\Controllers\Admin\Cbt\ExamMonitoringController as CbtMonitoringController;
 use App\Http\Controllers\Admin\Cbt\ExamQuestionController as CbtQuestionController;
+use App\Http\Controllers\Admin\Cbt\ExamResultController;
 use App\Http\Controllers\Admin\Cbt\ExamTokenController as CbtTokenController;
 use App\Http\Controllers\Admin\Cbt\QuestionBankController;
 use App\Http\Controllers\Admin\Cbt\QuestionBankQuestionController;
@@ -182,6 +183,8 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
         Route::get('exams/{exam}/monitoring/data', [CbtMonitoringController::class, 'data'])->name('monitoring.data');
         Route::post('exams/{exam}/sessions/{session}/force', [CbtMonitoringController::class, 'force'])->name('sessions.force');
         Route::get('exams/{exam}/violations.csv', [CbtMonitoringController::class, 'violationsCsv'])->name('violations.csv');
+        Route::get('exams/{exam}/results', [ExamResultController::class, 'index'])->name('results.index');
+        Route::get('exams/{exam}/results.csv', [ExamResultController::class, 'export'])->name('results.export');
         Route::post('answers/{answer}/nilai', [ExamAnswerController::class, 'update'])->name('answers.nilai');
     });
 });

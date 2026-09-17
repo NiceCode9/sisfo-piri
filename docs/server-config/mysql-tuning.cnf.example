@@ -1,0 +1,10 @@
+# MySQL tuning untuk 500 VU CBT (4GB RAM contoh)
+# Letakkan di /etc/mysql/conf.d/cbt-tuning.cnf lalu restart mysql
+
+[mysqld]
+innodb_buffer_pool_size = 1G
+innodb_log_file_size = 256M
+max_connections = 300
+wait_timeout = 60
+interactive_timeout = 60
+# queue & session di Redis, jadi MySQL fokus ke exam_sessions/answers

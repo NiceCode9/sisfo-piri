@@ -1,0 +1,14 @@
+; PHP-FPM tuning untuk 500 VU CBT — sesuaikan RAM VPS (contoh 4GB)
+; Letakkan di /etc/php/8.3/fpm/pool.d/www.conf (staging)
+
+[www]
+pm = dynamic
+pm.max_children = 50
+pm.start_servers = 10
+pm.min_spare_servers = 10
+pm.max_spare_servers = 20
+pm.max_requests = 500
+; timeout & log
+request_terminate_timeout = 60s
+slowlog = /var/log/php-fpm-slow.log
+request_slowlog_timeout = 10s

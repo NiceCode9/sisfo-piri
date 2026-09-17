@@ -7,5 +7,18 @@ services:
       - redis_data:/data
     restart: unless-stopped
 
+  queue-worker:
+    image: php:8.3-cli
+    working_dir: /var/www/backend
+    volumes:
+      - ./backend:/var/www/backend
+    command: ["php", "artisan", "queue:work", "--sleep=3", "--tries=3", "--max-time=3600"]
+    depends_on:
+      - redis
+    restart: unless-stopped
+    environment:
+      QUEUE_CONNECTION: redis
+      REDIS_HOST: redis
+
 volumes:
   redis_data:
