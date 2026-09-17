@@ -41,6 +41,7 @@ function AppRoutes() {
               maxViolationCount: res.data.exam.max_violation_count,
               startedAt: '',
               expectedEndAt: res.data.expected_end_at,
+              violationCount: res.data.violation_count ?? 0,
             },
             questionsRes.data.questions,
             questionsRes.data.saved_answers ?? {}

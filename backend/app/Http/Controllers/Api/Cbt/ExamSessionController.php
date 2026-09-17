@@ -35,6 +35,7 @@ class ExamSessionController extends Controller
                 'max_violation_count' => $session->exam->max_violation_count,
             ],
             'expected_end_at' => $session->expected_end_at->toIso8601String(),
+            'violation_count' => $session->violation_count,
         ]);
     }
 

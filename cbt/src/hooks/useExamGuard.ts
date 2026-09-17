@@ -7,6 +7,7 @@ interface UseExamGuardOptions {
   expectedEndAt: string; // ISO string dari server, JANGAN dihitung sendiri di client
   onForceFinish: (reason: 'time_up' | 'violation_limit') => void;
   heartbeatIntervalMs?: number; // default 20000
+  initialViolationCount?: number; // dari server GET /exam/active, agar refresh tidak reset
 }
 
 interface ExamGuardState {
@@ -23,10 +24,11 @@ export function useExamGuard({
   expectedEndAt,
   onForceFinish,
   heartbeatIntervalMs = 20000,
+  initialViolationCount = 0,
 }: UseExamGuardOptions) {
   const [state, setState] = useState<ExamGuardState>({
     isFullscreen: false,
-    violationCount: 0,
+    violationCount: initialViolationCount,
     remainingSeconds: Math.max(
       0,
       Math.floor((new Date(expectedEndAt).getTime() - Date.now()) / 1000)

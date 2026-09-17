@@ -9,13 +9,14 @@ export default function ExamRoom() {
   const { meta, questions, answers, savingStatus, currentIndex, setAnswer, goToQuestion, reset } =
     useExamStore();
 
-  if (!meta) return null; // dijaga oleh route guard di App.tsx
+  if (!meta) return null;
 
-  const { saveAnswer } = useAutosaveAnswer(meta.examSessionId);
+  const { saveAnswer, flush } = useAutosaveAnswer(meta.examSessionId);
   const guard = useExamGuard({
     examSessionId: meta.examSessionId,
     maxViolationCount: meta.maxViolationCount,
     expectedEndAt: meta.expectedEndAt,
+    initialViolationCount: meta.violationCount ?? 0,
     onForceFinish: (reason) => {
       reset();
       navigate(`/finished?reason=${reason}`);
@@ -29,14 +30,24 @@ export default function ExamRoom() {
       currentQuestion.type === 'multiple_choice'
         ? toggleMultiple(answers[currentQuestion.id] ?? [], optionKey)
         : [optionKey];
+    setAnswer(currentQuestion.id, newAnswer);
+    saveAnswer(currentQuestion.id, newAnswer);
+  };
 
+  const handleEssayChange = (text: string) => {
+    const newAnswer = [text];
     setAnswer(currentQuestion.id, newAnswer);
     saveAnswer(currentQuestion.id, newAnswer);
   };
 
   const handleManualFinish = async () => {
     if (!confirm('Yakin selesaikan ujian sekarang? Jawaban tidak bisa diubah lagi.')) return;
-    await finishExam(meta.examSessionId, 'manual');
+    await flush();
+    try {
+      await finishExam(meta.examSessionId, 'manual');
+    } catch {
+      // retry di examApi sudah 2x; bila masih gagal, server akan finalisasi via grace period
+    }
     reset();
     navigate('/finished?reason=manual');
   };
@@ -73,25 +84,38 @@ export default function ExamRoom() {
           Soal {currentIndex + 1} dari {questions.length}
         </p>
         <p className="mb-4 font-jakarta text-lg font-medium text-on-surface">{currentQuestion.question_text}</p>
+        {currentQuestion.question_image && (
+          <img src={currentQuestion.question_image} alt="Gambar soal" className="mb-4 max-h-72 rounded-lg border border-outline-variant" />
+        )}
 
-        {currentQuestion.options?.map((opt) => {
-          const checked = (answers[currentQuestion.id] ?? []).includes(opt.key);
-          return (
-            <label
-              key={opt.key}
-              className={`mb-3 flex items-center gap-3 rounded-lg border p-3.5 cursor-pointer ${checked ? 'bg-primary-fixed/30 border-primary' : 'bg-surface-container-lowest border-outline-variant hover:bg-surface-container-low'}`}
-            >
-              <input
-                type={currentQuestion.type === 'multiple_choice' ? 'checkbox' : 'radio'}
-                checked={checked}
-                onChange={() => handleSelectOption(opt.key)}
-                className="accent-primary"
-              />
-              <span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${checked ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface-variant'}`}>{opt.key}</span>
-              {opt.text}
-            </label>
-          );
-        })}
+        {currentQuestion.type === 'essay' ? (
+          <textarea
+            value={(answers[currentQuestion.id] ?? [''])[0] ?? ''}
+            onChange={(e) => handleEssayChange(e.target.value)}
+            rows={6}
+            placeholder="Tulis jawaban uraian di sini..."
+            className="w-full rounded-lg border border-outline-variant bg-surface-container-lowest p-3 font-inter text-sm focus:border-primary focus:outline-none"
+          />
+        ) : (
+          currentQuestion.options?.map((opt) => {
+            const checked = (answers[currentQuestion.id] ?? []).includes(opt.key);
+            return (
+              <label
+                key={opt.key}
+                className={`mb-3 flex items-center gap-3 rounded-lg border p-3.5 cursor-pointer ${checked ? 'bg-primary-fixed/30 border-primary' : 'bg-surface-container-lowest border-outline-variant hover:bg-surface-container-low'}`}
+              >
+                <input
+                  type={currentQuestion.type === 'multiple_choice' ? 'checkbox' : 'radio'}
+                  checked={checked}
+                  onChange={() => handleSelectOption(opt.key)}
+                  className="accent-primary"
+                />
+                <span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${checked ? 'bg-primary text-on-primary' : 'bg-surface-container text-on-surface-variant'}`}>{opt.key}</span>
+                {opt.text}
+              </label>
+            );
+          })
+        )}
 
         <p className="mt-2 text-xs text-on-surface-variant">
           {savingStatus[currentQuestion.id] === 'saving' && 'Menyimpan...'}

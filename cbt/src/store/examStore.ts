@@ -16,6 +16,7 @@ interface ExamMeta {
   maxViolationCount: number;
   startedAt: string;
   expectedEndAt: string;
+  violationCount?: number;
 }
 
 interface ExamStore {
