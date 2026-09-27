@@ -96,7 +96,16 @@
             <form method="POST" action="{{ route('admin.siswas.import') }}" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-body">
-                    <p style="font-size:13px;color:var(--text-secondary);">Upload file Excel sesuai template. Akun login dibuat otomatis (password = NISN) + riwayat kelas aktif.</p>
+                    <p style="font-size:13px;color:var(--text-secondary);">
+                        Upload file Excel sesuai template. Dua mode dalam satu file:
+                        <strong>penempatan</strong> (NISN sudah ada karena sudah diterima PPDB — cukup diisi kolom
+                        <code>nis</code> + <code>kelas</code>, akun &amp; password tidak berubah)
+                        dan <strong>pembuatan baru</strong> (NISN belum ada — akun dibuat dengan password = NISN).
+                    </p>
+                    <p style="font-size:12px;color:var(--text-muted);">
+                        Untuk menempatkan siswa yang diterima PPDB, ambil berkasnya dari
+                        <strong>Calon Siswa &rarr; Export Diterima (Penempatan)</strong>.
+                    </p>
                     <div class="mb-3">
                         <a href="{{ route('admin.siswas.template') }}" class="btn btn-nexus-outline btn-sm"><i class="fa-solid fa-download"></i> Unduh Template Excel</a>
                     </div>

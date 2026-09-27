@@ -105,6 +105,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::resource('users', UserController::class)->except(['show']);
     Route::resource('roles', RoleController::class)->except(['show']);
     Route::resource('menus', MenuController::class)->except(['show']);
+    Route::get('calon-siswas/export-diterima', [CalonSiswaController::class, 'exportDiterima'])->name('calon-siswas.export-diterima');
     Route::resource('calon-siswas', CalonSiswaController::class);
     Route::patch('calon-siswas/{calon_siswa}/status', [CalonSiswaController::class, 'updateStatus'])->name('calon-siswas.status');
     Route::patch('calon-siswas/{calon_siswa}/berkas', [CalonSiswaController::class, 'verifyBerkas'])->name('calon-siswas.berkas');

@@ -10,6 +10,11 @@
         <p class="page-subtitle mb-0">Kelola data pendaftar PPDB</p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
+        @can('calon-siswas.view')
+            <a href="{{ route('admin.calon-siswas.export-diterima') }}" class="btn btn-nexus-outline btn-sm" title="Export calon siswa yang sudah DITERIMA untuk diisi kolom nis + kelas, lalu di-import ke Master Siswa">
+                <i class="fa-solid fa-file-excel"></i> Export Diterima (Penempatan)
+            </a>
+        @endcan
         @can('calon-siswas.create')
             <a href="{{ route('admin.calon-siswas.create') }}" class="btn btn-primary btn-sm">
                 <i class="fa-solid fa-plus"></i> Tambah Calon

@@ -206,8 +206,12 @@ class SiswaController extends Controller implements HasMiddleware
     }
 
     /**
-     * Import data siswa dari Excel (di luar PPDB).
-     * Akun login dibuat otomatis (password = NISN) + riwayat kelas aktif.
+     * Import data siswa dari Excel.
+     *
+     * Dua mode dalam satu file:
+     * - NISN sudah ada di `siswas` (hasil terima PPDB) → mode PENEMPATAN: isi
+     *   nis/kelas/tahun/ortu, buat RiwayatKelas, password tidak diubah.
+     * - NISN baru → mode PEMBUATAN: buat User (password = NISN) + Siswa + RiwayatKelas.
      */
     public function import(Request $request): RedirectResponse
     {
@@ -219,14 +223,20 @@ class SiswaController extends Controller implements HasMiddleware
         Excel::import($import, $request->file('file'));
 
         $gagal = $import->failures();
+        $ringkas = "dibuat {$import->imported}, diperbarui {$import->updated}";
+        $jumlahGagal = $gagal->count() + count($import->customFailures);
 
-        if ($gagal->isNotEmpty()) {
-            $daftar = $gagal->take(10)->map(fn ($f) => 'Baris '.$f->row().': '.implode(', ', $f->errors()))->implode(' | ');
+        if ($jumlahGagal > 0) {
+            $daftar = $gagal->take(10)
+                ->map(fn ($f) => 'Baris '.$f->row().': '.implode(', ', $f->errors()))
+                ->merge($import->customFailures)
+                ->take(10)
+                ->implode(' | ');
 
-            return back()->with('error', "Import selesai: {$import->imported} berhasil, {$gagal->count()} gagal. {$daftar}");
+            return back()->with('error', "Import selesai: {$ringkas}, {$jumlahGagal} gagal. {$daftar}");
         }
 
-        return redirect()->route('admin.siswas.index')->with('success', "Import selesai: {$import->imported} siswa berhasil ditambahkan.");
+        return redirect()->route('admin.siswas.index')->with('success', "Import selesai: {$ringkas}.");
     }
 
     /**

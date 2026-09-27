@@ -2,14 +2,22 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Http\Requests\Concerns\BersihkanSertifikatKosong;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateCalonSiswaRequest extends FormRequest
 {
+    use BersihkanSertifikatKosong;
+
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->bersihkanSertifikat();
     }
 
     /**

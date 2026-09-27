@@ -14,7 +14,7 @@ php artisan migrate:fresh --seed
 1. **Migrasi**: pastikan 5 tabel terbentuk (`absensis`, `siswas.qr_token`, `wali_murids`, `pengaturans`, `notifikasi_logs`) tanpa error.
 2. **Default pengaturan**: tinker `Pengaturan::nilai('batas_terlambat')` → ekspektasi `07:00`.
 3. **Role & permission**: tinker — role `guru-piket` punya `absensis.create` (tanpa `delete`); role `orang-tua` dan `siswa` nol permission.
-4. **Tambah siswa via admin** (isi NISN, nama, no HP ortu, kelas + tahun aktif) → cek user `ortu-{NISN}` ada + role `orang-tua` + 1 baris `wali_murids` dengan no WA sesuai. Login sebagai ortu/password = NISN → bisa login.
+4. **Tambah siswa via admin** (isi NISN, nama, no HP ortu, kelas + tahun aktif) → cek user dengan **username = no HP ortu** (hanya digit) ada + role `orang-tua` + 1 baris `wali_murids` dengan no WA sesuai. Login memakai username no HP + password = NISN → bisa login.
 5. **Kakak-beradik**: tambah siswa kedua dengan no HP ortu sama → hanya 1 user ortu untuk 2 baris `wali_murids`.
 6. **Backfill**: hapus 1 user ortu + baris `wali_murids`-nya → `php artisan siswa:generate-orangtua` → "N akun dibuat"; run ulang → "0 akun" (idempoten).
 7. **Import siswa** (bila dipakai): akun ortu ikut terbentuk.
@@ -35,7 +35,7 @@ php artisan migrate:fresh --seed
 1. **Rekap admin**: Absensi → Rekap Absensi. Filter rombel + periode mingguan (matriks harian + total + %). Coba bulanan, ganjil (Jul–Des), genap (Jan–Jun), tahun penuh (ringkas tanpa matriks harian).
 2. **Ekspor**: tombol Excel → file `.xlsx` terunduh; PDF → terunduh dan terbaca.
 3. **Scope wali**: login guru yang menjadi wali 7A → dropdown rombel hanya ampuan; akses rombel lain via URL → 403.
-4. **Dashboard ortu**: login `ortu-{NISN}` → daftar anak + status hari ini; klik anak → rekap bulanan + riwayat. Coba buka detail anak keluarga lain via URL → 403. Menu admin tak terlihat; `/admin` redirect ke dashboard ortu.
+4. **Dashboard ortu**: login memakai username no HP wali → daftar anak + status hari ini; klik anak → rekap bulanan + riwayat. Coba buka detail anak keluarga lain via URL → 403. Menu admin tak terlihat; `/admin` redirect ke dashboard ortu.
 5. **Suite**: `php artisan test --compact` → hijau (termasuk `AbsensiRekapTest`).
 
 ## Fase A4 — Notifikasi WA (parsial)

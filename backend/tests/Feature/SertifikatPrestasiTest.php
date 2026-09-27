@@ -96,6 +96,47 @@ test('jalur reguler tanpa sertifikat tetap lolos', function () {
         ->and($calon->sertifikatPrestasis)->toHaveCount(0);
 });
 
+test('jalur reguler dengan baris sertifikat kosong dari browser tetap lolos', function () {
+    // Browser mengirim `sertifikat[0][nama]=""` walau seksi sertifikat
+    // disembunyikan (jalur tidak mewajibkan). Baris kosong itu tidak boleh
+    // memicu error validasi.
+    $jalur = JalurPendaftaran::where('nama_jalur', 'Jalur Reguler')->first();
+
+    $response = $this->post(route('spmb.store'), payloadPendaftaran($jalur->id, '06', [
+        'sertifikat' => [['nama' => '']],
+    ]));
+
+    $response->assertSessionHasNoErrors();
+    $response->assertRedirect(route('spmb.pendaftaran'));
+    expect(CalonSiswa::where('nik', '9900000000000006')->exists())->toBeTrue();
+});
+
+test('jalur reguler tetap bisa mengirim sertifikat bila diisi', function () {
+    $jalur = JalurPendaftaran::where('nama_jalur', 'Jalur Reguler')->first();
+
+    $response = $this->post(route('spmb.store'), payloadPendaftaran($jalur->id, '07', [
+        'sertifikat' => [
+            ['nama' => 'Juara 3 MTK', 'file' => UploadedFile::fake()->create('s.pdf', 100, 'application/pdf')],
+        ],
+    ]));
+
+    $response->assertRedirect(route('spmb.pendaftaran'));
+    $calon = CalonSiswa::where('nik', '9900000000000007')->first();
+    expect($calon)->not->toBeNull()
+        ->and($calon->sertifikatPrestasis)->toHaveCount(1);
+});
+
+test('baris sertifikat kosong pada jalur wajib tetap ditolak', function () {
+    $jalur = JalurPendaftaran::where('nama_jalur', 'Jalur Prestasi Olahraga')->first();
+
+    $response = $this->post(route('spmb.store'), payloadPendaftaran($jalur->id, '08', [
+        'sertifikat' => [['nama' => '']],
+    ]));
+
+    $response->assertSessionHasErrors('sertifikat');
+    expect(CalonSiswa::where('nik', '9900000000000008')->exists())->toBeFalse();
+});
+
 test('lebih dari 5 sertifikat ditolak', function () {
     $jalur = JalurPendaftaran::where('nama_jalur', 'Jalur Prestasi Olahraga')->first();
     $banyak = [];

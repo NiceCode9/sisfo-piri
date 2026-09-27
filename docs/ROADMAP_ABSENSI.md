@@ -10,7 +10,7 @@
 | 1 | Absensi **harian per rombel**, bukan per mapel/jam |
 | 2 | Status: `hadir, sakit, izin, alpa, terlambat` (+ `jam_datang`) |
 | 3 | Scan QR via **device sekolah** (petugas memindai); input manual tanpa scan adalah jalur utama guru piket |
-| 4 | Akun ortu: role `orang-tua` (sudah ada), username `ortu-{NISN}`, password awal = NISN anak, auto-generate via observer (CRUD, import, seeder) |
+| 4 | Akun ortu: role `orang-tua` (sudah ada), **username = nomor HP wali** (hanya digit; cadangan `ortu-{NISN}` bila nomor belum terisi), password awal = NISN anak, auto-generate via observer (CRUD, import, seeder) |
 | 5 | WA: bangun queue + log di Laravel sekarang, konektor gateway `whatsapp-web.js` menyusul |
 | 6 | Batas terlambat default **07:00** via tabel `pengaturans` (bisa diubah admin) |
 | 7 | Eksekusi per fase, clustering: Absensi → E-Learning → CBT |

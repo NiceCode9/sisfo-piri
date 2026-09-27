@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\CalonDiterimaExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreCalonSiswaRequest;
 use App\Http\Requests\Admin\UpdateCalonSiswaRequest;
@@ -21,13 +22,15 @@ use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class CalonSiswaController extends Controller implements HasMiddleware
 {
     public static function middleware(): array
     {
         return [
-            new Middleware('permission:calon-siswas.view', only: ['index', 'show']),
+            new Middleware('permission:calon-siswas.view', only: ['index', 'show', 'exportDiterima']),
             new Middleware('permission:calon-siswas.create', only: ['create', 'store']),
             new Middleware('permission:calon-siswas.edit', only: ['edit', 'update', 'updateStatus', 'verifyBerkas', 'destroySertifikat']),
             new Middleware('permission:calon-siswas.delete', only: ['destroy']),
@@ -197,6 +200,11 @@ class CalonSiswaController extends Controller implements HasMiddleware
         return redirect()->route('admin.calon-siswas.show', $calonSiswa)->with('success', 'Data calon siswa diperbarui.');
     }
 
+    public function exportDiterima(): BinaryFileResponse
+    {
+        return Excel::download(new CalonDiterimaExport, 'penempatan-calon-diterima.xlsx');
+    }
+
     public function updateStatus(Request $request, CalonSiswa $calonSiswa): RedirectResponse
     {
         $request->validate([
@@ -241,6 +249,8 @@ class CalonSiswaController extends Controller implements HasMiddleware
                 ]);
 
                 if ($oldStatus !== 'diterima' && $newStatus === 'diterima' && $calonSiswa->user_id) {
+                    // Data ortu ikut dicopy agar akun WaliMurid formeduk lengkap (tidak degraded).
+                    // Penempatan kelas/rombel menyusul lewat export+import penempatan (SiswaImport upsert).
                     Siswa::firstOrCreate(
                         ['calon_siswa_id' => $calonSiswa->id],
                         [
@@ -249,6 +259,11 @@ class CalonSiswaController extends Controller implements HasMiddleware
                             'tahun_ajaran_id' => $calonSiswa->tahun_ajaran_id,
                             'tanggal_diterima' => now()->toDateString(),
                             'is_aktif' => true,
+                            'nama_ayah' => $calonSiswa->nama_ayah,
+                            'pekerjaan_ayah' => $calonSiswa->pekerjaan_ayah,
+                            'nama_ibu' => $calonSiswa->nama_ibu,
+                            'pekerjaan_ibu' => $calonSiswa->pekerjaan_ibu,
+                            'no_hp_orang_tua' => $calonSiswa->no_hp_orang_tua,
                         ]
                     );
 

@@ -129,6 +129,35 @@ test('super-admin dapat menambah calon siswa beserta berkas', function () {
     expect($calon->logStatusPendaftaran()->count())->toBe(1);
 });
 
+test('baris sertifikat kosong dari form admin tidak menggagalkan jalur non-wajib', function () {
+    $jalur = JalurPendaftaran::where('nama_jalur', 'Jalur Reguler')->first() ?? JalurPendaftaran::first();
+
+    $response = $this->actingAs(superAdmin())->post(route('admin.calon-siswas.store'), [
+        'jalur_pendaftaran_id' => $jalur->id,
+        'nik' => '1234567890123999',
+        'nisn' => '1234567899',
+        'nama_lengkap' => 'Sari Kosong',
+        'jenis_kelamin' => 'P',
+        'tempat_lahir' => 'Ngaglik',
+        'tanggal_lahir' => '2010-02-02',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Kosong 1',
+        'no_hp' => '081234567899',
+        'email' => 'sari@example.com',
+        'nama_ayah' => 'Ayah Sari',
+        'pekerjaan_ayah' => 'Petani',
+        'nama_ibu' => 'Ibu Sari',
+        'pekerjaan_ibu' => 'IRT',
+        'no_hp_orang_tua' => '081234567898',
+        // Simulasi browser: baris kosong tetap terkirim walau seksi disembunyikan.
+        'sertifikat' => [['nama' => '']],
+    ]);
+
+    $response->assertSessionHasNoErrors();
+    $response->assertRedirect(route('admin.calon-siswas.index'));
+    expect(CalonSiswa::where('nik', '1234567890123999')->exists())->toBeTrue();
+});
+
 test('nik duplikat ditolak saat tambah calon', function () {
     $jalur = JalurPendaftaran::first();
     CalonSiswa::create([

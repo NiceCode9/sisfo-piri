@@ -829,7 +829,14 @@
                 const wajib = sertifikatWajib();
                 sertSection.classList.toggle('hidden', !wajib);
                 sertRows.querySelectorAll('.sertifikat-row').forEach((row) => {
-                    row.querySelectorAll('input').forEach((inp) => { inp.required = wajib; });
+                    row.querySelectorAll('input').forEach((inp) => {
+                        inp.required = wajib;
+                        // Input yang dinonaktifkan tidak ikut terkirim ke server.
+                        // Tanpa ini browser tetap mengirim baris kosong dan
+                        // validasi sertifikat tetap gagal walau jalur tidak mewajibkannya.
+                        inp.disabled = !wajib;
+                        if (!wajib) inp.value = '';
+                    });
                 });
             }
 

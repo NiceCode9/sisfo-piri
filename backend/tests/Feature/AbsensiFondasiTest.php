@@ -15,6 +15,7 @@ use Database\Seeders\PpdbSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 
 uses(RefreshDatabase::class);
@@ -67,9 +68,11 @@ if (! function_exists('buatRombelAbsensi')) {
 test('siswa baru otomatis mendapat akun orang-tua', function () {
     $siswa = buatSiswaAbsensi();
 
-    $ortu = User::where('username', 'ortu-'.$siswa->nisn)->first();
+    // Username akun wali = nomor telepon (hanya digit), password = NISN.
+    $ortu = User::where('username', $siswa->no_hp_orang_tua)->first();
     expect($ortu)->not->toBeNull()
-        ->and($ortu->hasRole('orang-tua'))->toBeTrue();
+        ->and($ortu->hasRole('orang-tua'))->toBeTrue()
+        ->and(Hash::check($siswa->nisn, $ortu->password))->toBeTrue();
 
     $tautan = WaliMurid::where('siswa_id', $siswa->id)->first();
     expect($tautan)->not->toBeNull()
@@ -83,13 +86,27 @@ test('kakak-beradik dengan no WA sama memakai satu akun ortu', function () {
 
     expect(WaliMurid::where('siswa_id', $s1->id)->first()->user_id)
         ->toBe(WaliMurid::where('siswa_id', $s2->id)->first()->user_id)
-        ->and(User::where('username', 'like', 'ortu-%')->count())->toBe(1);
+        ->and(User::where('username', '081299999999')->count())->toBe(1);
+});
+
+test('nomor wali terisi belakanganTapi akun ortu sudah ada sebelumnya', function () {
+    // Siswa tanpa nomor: akun ortu dulu dibuat dengan username cadangan.
+    $siswa = buatSiswaAbsensi(['no_hp_orang_tua' => null]);
+    $ortu = WaliMurid::where('siswa_id', $siswa->id)->firstOrFail()->user;
+    expect($ortu->username)->toBe('ortu-'.$siswa->nisn);
+
+    // Import penempatan mengisi nomor → username ikut jadi nomor.
+    $siswa->update(['no_hp_orang_tua' => '081277776666']);
+
+    $ortu->refresh();
+    expect($ortu->username)->toBe('081277776666')
+        ->and(WaliMurid::where('siswa_id', $siswa->id)->first()->no_whatsapp)->toBe('081277776666');
 });
 
 test('backfill membuat akun ortu yang belum ada', function () {
     $siswa = buatSiswaAbsensi();
     $siswa->waliMurids()->delete();
-    User::where('username', 'ortu-'.$siswa->nisn)->delete();
+    User::where('username', $siswa->no_hp_orang_tua)->delete();
 
     $this->artisan('siswa:generate-orangtua')
         ->expectsOutputToContain('akun orang-tua dibuat')

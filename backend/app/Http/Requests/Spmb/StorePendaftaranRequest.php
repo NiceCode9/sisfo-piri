@@ -2,15 +2,23 @@
 
 namespace App\Http\Requests\Spmb;
 
+use App\Http\Requests\Concerns\BersihkanSertifikatKosong;
 use App\Models\JalurPendaftaran;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StorePendaftaranRequest extends FormRequest
 {
+    use BersihkanSertifikatKosong;
+
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->bersihkanSertifikat();
     }
 
     /**

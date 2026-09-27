@@ -13,7 +13,7 @@
         <select name="jalur_pendaftaran_id" id="jalur_pendaftaran_id" class="form-select @error('jalur_pendaftaran_id') is-invalid @enderror" required>
             <option value="">— Pilih Jalur —</option>
             @foreach ($jalurs as $j)
-                <option value="{{ $j->id }}" @selected((string) old('jalur_pendaftaran_id', $calon->jalur_pendaftaran_id ?? '') === (string) $j->id)>{{ $j->nama_jalur }}</option>
+                <option value="{{ $j->id }}" data-wajib-sertifikat="{{ $j->wajib_sertifikat ? 1 : 0 }}" @selected((string) old('jalur_pendaftaran_id', $calon->jalur_pendaftaran_id ?? '') === (string) $j->id)>{{ $j->nama_jalur }}</option>
             @endforeach
         </select>
         @error('jalur_pendaftaran_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
@@ -278,28 +278,32 @@
     </div>
 @endif
 
-<div id="sertifikat-rows" class="d-flex flex-column gap-2">
-    <div class="sertifikat-row row g-2">
-        <div class="col-12 col-md-6">
-            <input type="text" name="sertifikat[0][nama]" class="form-control" placeholder="Nama kejuaraan (cth: Juara 1 Pencak Silat Provinsi 2025)" />
-        </div>
-        <div class="col-12 col-md-5">
-            <input type="file" name="sertifikat[0][file]" accept=".pdf,.jpg,.jpeg,.png" class="form-control" />
-        </div>
-        <div class="col-12 col-md-1">
-            <button type="button" class="sertifikat-remove btn btn-nexus-outline btn-sm w-100" title="Hapus baris"><i class="fa-solid fa-xmark"></i></button>
+<div id="sertifikat-section">
+    <div id="sertifikat-rows" class="d-flex flex-column gap-2">
+        <div class="sertifikat-row row g-2">
+            <div class="col-12 col-md-6">
+                <input type="text" name="sertifikat[0][nama]" class="form-control" placeholder="Nama kejuaraan (cth: Juara 1 Pencak Silat Provinsi 2025)" />
+            </div>
+            <div class="col-12 col-md-5">
+                <input type="file" name="sertifikat[0][file]" accept=".pdf,.jpg,.jpeg,.png" class="form-control" />
+            </div>
+            <div class="col-12 col-md-1">
+                <button type="button" class="sertifikat-remove btn btn-nexus-outline btn-sm w-100" title="Hapus baris"><i class="fa-solid fa-xmark"></i></button>
+            </div>
         </div>
     </div>
+    <button type="button" id="sertifikat-add" class="btn btn-nexus-outline btn-sm mt-2"><i class="fa-solid fa-plus"></i> Tambah Sertifikat (maks 5)</button>
+    @error('sertifikat')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
 </div>
-<button type="button" id="sertifikat-add" class="btn btn-nexus-outline btn-sm mt-2"><i class="fa-solid fa-plus"></i> Tambah Sertifikat (maks 5)</button>
-@error('sertifikat')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
 
 @push('scripts')
 <script>
 (function () {
     const rows = document.getElementById('sertifikat-rows');
     const addBtn = document.getElementById('sertifikat-add');
-    if (!rows || !addBtn) return;
+    const section = document.getElementById('sertifikat-section');
+    const jalurSelect = document.getElementById('jalur_pendaftaran_id');
+    if (!rows || !addBtn || !section) return;
     let idx = rows.querySelectorAll('.sertifikat-row').length;
 
     function refresh() {
@@ -308,6 +312,23 @@
             btn.style.display = count > 1 ? '' : 'none';
         });
         addBtn.disabled = count >= 5;
+    }
+
+    function toggleSertifikat() {
+        const opt = jalurSelect && jalurSelect.selectedOptions[0];
+        // Jalur belum dipilih → tampilkan (kandidat certificates), lalu sembunyikan
+        // bila jalur yang dipilih tidak mewajibkan sertifikat.
+        const wajib = !opt || !opt.value || opt.dataset.wajibSertifikat === '1';
+        section.classList.toggle('d-none', !wajib);
+        rows.querySelectorAll('.sertifikat-row').forEach((row) => {
+            row.querySelectorAll('input').forEach((inp) => {
+                inp.required = wajib;
+                // Nonaktifkan agar baris kosong tidak terkirim ke server.
+                inp.disabled = !wajib;
+                if (!wajib) inp.value = '';
+            });
+        });
+        addBtn.disabled = !wajib || rows.querySelectorAll('.sertifikat-row').length >= 5;
     }
 
     addBtn.addEventListener('click', () => {
@@ -321,6 +342,7 @@
             `<div class="col-12 col-md-1"><button type="button" class="sertifikat-remove btn btn-nexus-outline btn-sm w-100" title="Hapus baris"><i class="fa-solid fa-xmark"></i></button></div>`;
         rows.appendChild(div);
         refresh();
+        toggleSertifikat();
     });
 
     rows.addEventListener('click', (e) => {
@@ -330,7 +352,10 @@
         refresh();
     });
 
+    if (jalurSelect) jalurSelect.addEventListener('change', toggleSertifikat);
+
     refresh();
+    toggleSertifikat();
 })();
 document.querySelectorAll('input[type="file"][name$="_path"]').forEach(input => {
     input.addEventListener('change', function() {
