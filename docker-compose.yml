@@ -1,24 +1,131 @@
-services:
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    restart: unless-stopped
+# Compose BASIS — dipakai KEDUA varian deploy Docker:
+#   Varian A (CBT beda server, di server sekolah):
+#     docker compose up -d --build
+#   Varian B (CBT satu server):
+#     docker compose -f docker-compose.yml -f docker-compose.cbt.yml up -d --build
+#
+# Prasyarat: salin `.env.docker.example` menjadi `backend/.env` lalu sesuaikan
+# (APP_URL, DB_PASSWORD, WHATSAPP_TOKEN, dsb.) sebelum `up`.
+# Catatan host: DB_HOST=mysql, REDIS_HOST=redis, WA=http://wa-gateway:3001/kirim
+# (nama service, bukan 127.0.0.1 — lihat `environment` tiap service).
 
-  queue-worker:
-    image: php:8.3-cli
-    working_dir: /var/www/backend
-    volumes:
-      - ./backend:/var/www/backend
-    command: ["php", "artisan", "queue:work", "--sleep=3", "--tries=3", "--max-time=3600"]
-    depends_on:
-      - redis
+services:
+  mysql:
+    image: mysql:8
     restart: unless-stopped
     environment:
-      QUEUE_CONNECTION: redis
+      MYSQL_DATABASE: sisfo_piri
+      MYSQL_USER: sisfo
+      MYSQL_PASSWORD: ${DB_PASSWORD:-changeme}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-changeme-root}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${DB_ROOT_PASSWORD:-changeme-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    # Port TIDAK dipublish — hanya service internal yang boleh akses.
+    # (Buka 6379 hanya untuk debug: odkomentari `ports` di bawah.)
+    # ports:
+    #   - "127.0.0.1:6379:6379"
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      DB_HOST: mysql
       REDIS_HOST: redis
+      WHATSAPP_URL: http://wa-gateway:3001/kirim
+    volumes:
+      - backend_storage:/var/www/backend/storage
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/admin.ncode.my.id.conf:/etc/nginx/conf.d/admin.conf:ro
+      - ./backend/public:/var/www/backend/public:ro
+      - backend_storage:/var/www/backend/storage:ro
+    depends_on:
+      - backend
+
+  queue-worker:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    restart: unless-stopped
+    command: ["php", "artisan", "queue:work", "redis", "--sleep=3", "--tries=3", "--max-time=3600", "--queue=default"]
+    env_file:
+      - ./backend/.env
+    environment:
+      DB_HOST: mysql
+      REDIS_HOST: redis
+    volumes:
+      - backend_storage:/var/www/backend/storage
+    depends_on:
+      - backend
+      - redis
+      - mysql
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    restart: unless-stopped
+    # Pengganti cron host: jalankan schedule:run tiap 60 detik di dalam container.
+    # Memicu `absensi:cek-belum-hadir` (everyFiveMinutes + self-gating jam 08:00).
+    command: ["sh", "-c", "while true; do php artisan schedule:run; sleep 60; done"]
+    env_file:
+      - ./backend/.env
+    environment:
+      DB_HOST: mysql
+      REDIS_HOST: redis
+    volumes:
+      - backend_storage:/var/www/backend/storage
+    depends_on:
+      - backend
+      - redis
+      - mysql
+
+  wa-gateway:
+    build:
+      context: ./wa-gateway
+      dockerfile: ../docker/wa-gateway/Dockerfile
+    restart: unless-stopped
+    # Port TIDAK dipublish — hanya backend yang boleh akses via
+    # WHATSAPP_URL=http://wa-gateway:3001/kirim + Bearer GATEWAY_TOKEN.
+    # Untuk scan QR awal, jalankan sementara:
+    #   docker compose run --rm -p 127.0.0.1:3001:3001 wa-gateway
+    # lalu buka http://127.0.0.1:3001/qr di browser (via SSH tunnel bila remote).
+    env_file:
+      - ./wa-gateway/.env
+    environment:
+      HOST: 0.0.0.0
+    volumes:
+      # Persistensi sesi WhatsApp — JANGAN hapus volume ini (QR tidak perlu scan ulang).
+      - wa_auth:/app/.wwebjs_auth
 
 volumes:
+  mysql_data:
   redis_data:
+  backend_storage:
+  wa_auth:

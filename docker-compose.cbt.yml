@@ -1,0 +1,16 @@
+# Varian B — CBT SATU server (override, bukan standalone).
+# Cara pakai:
+#   docker compose -f docker-compose.yml -f docker-compose.cbt.yml up -d --build
+#
+# Hanya menambah 2 mount ke service `nginx` yang sudah ada:
+#   1. vhost cbt.ncode.my.id (server block React)
+#   2. hasil build Vite (`cbt/dist`, read-only)
+# Prasyarat: di server jalankan dulu (atau di CI sebelum kirim dist/):
+#   cd cbt && VITE_API_BASE_URL=https://admin.ncode.my.id/api/cbt npm run build
+# Varian A (CBT beda server, di server sekolah) TIDAK memakai file ini.
+
+services:
+  nginx:
+    volumes:
+      - ./docker/nginx/cbt.ncode.my.id.conf:/etc/nginx/conf.d/cbt.conf:ro
+      - ./cbt/dist:/var/www/cbt/dist:ro
