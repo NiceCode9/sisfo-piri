@@ -45,6 +45,13 @@ class AppServiceProvider extends ServiceProvider
             $profil = $adaProfil ? ProfilSekolah::aktif() : null;
 
             $view->with('profileSekolah', $profil);
+            // Nama sekolah jadi satu sumber untuk navbar, footer, dan halaman
+            // tentang. Sebelumnya tiap view punya fallback sendiri yang
+            // berbeda-beda ("SMP Harapan Bangsa" vs "SMK Negeri 1 Ngaglik"), jadi
+            // nama yang tampil berbeda antar halaman. Fallback sengaja netral:
+            // lebih baik tampil "Sekolah" daripada menyalin nama sekolah yang
+            // salah ke halaman publik.
+            $view->with('namaSekolah', trim((string) $profil?->nama_sekolah) ?: 'Sekolah');
             $view->with('jumlahSiswaAktif', Schema::hasTable('siswas') ? Siswa::where('is_aktif', true)->count() : 0);
             $view->with('jumlahGuruAktif', Schema::hasTable('gurus') ? Guru::where('is_aktif', true)->count() : 0);
 

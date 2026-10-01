@@ -2,7 +2,7 @@
     // $profileSekolah dishare otomatis via View composer (spmb.*).
     // Pakai accessor `*Bersih` supaya placeholder "GANTI: ..." dan data dummy
     // lama tidak ikut tampil di footer.
-    $schoolName = $profileSekolah?->nama_sekolah ?: 'Sekolah';
+    $schoolName = $namaSekolah ?? 'Sekolah';
     $schoolLogo = ! empty($profileSekolah?->logo_path)
         ? Storage::disk('public')->url($profileSekolah->logo_path)
         : null;

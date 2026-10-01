@@ -5,6 +5,7 @@ use App\Models\CalonSiswa;
 use App\Models\DetailAngsuran;
 use App\Models\JalurPendaftaran;
 use App\Models\Pembayaran;
+use App\Models\ProfilSekolah;
 use App\Models\RencanaAngsuran;
 use App\Models\TahunAjaran;
 use App\Models\User;
@@ -493,6 +494,46 @@ test('kwitansi hanya untuk pembayaran berhasil', function () {
     expect($response->headers->get('content-type'))->toContain('application/pdf');
 
     $this->actingAs(superAdmin())->get(route('admin.pembayarans.kwitansi', $menunggu))->assertNotFound();
+});
+
+test('kwitansi memakai identitas sekolah dari profil, bukan data karangan', function () {
+    $calon = buatCalon();
+
+    $bayar = Pembayaran::create([
+        'calon_siswa_id' => $calon->id,
+        'kode_pembayaran' => 'PAY-2026-0503',
+        'jumlah' => 100000,
+        'metode_pembayaran' => 'tunai',
+        'jenis_pembayaran' => 'penuh',
+        'status' => 'berhasil',
+        'tanggal_pembayaran' => '2026-06-01',
+    ]);
+
+    ProfilSekolah::create([
+        'nama_sekolah' => 'SMP PIRI NGAGLIK',
+        'alamat' => 'Jl. Contoh No. 1, Ngaglik',
+        'telp' => '(0274) 111222',
+    ]);
+
+    $this->actingAs(superAdmin())
+        ->get(route('admin.pembayarans.kwitansi', $bayar))
+        ->assertOk();
+
+    // Render view kwitansi dengan data yang sama seperti controller.
+    $html = view('admin.pembayarans.kwitansi', [
+        'pembayaran' => $bayar->fresh()->load(['calonSiswa.jalurPendaftaran', 'biayaPendaftaran', 'detailAngsuran']),
+        'sekolah' => [
+            'nama' => 'SMP PIRI NGAGLIK',
+            'alamat' => 'Jl. Contoh No. 1, Ngaglik',
+            'telp' => '(0274) 111222',
+        ],
+        'terbilang' => 'Seratus ribu rupiah',
+        'petugas' => 'Petugas',
+    ])->render();
+
+    expect($html)->toContain('SMP PIRI NGAGLIK')
+        ->and($html)->not->toContain('SMK Negeri 1 Ngaglik')
+        ->and($html)->not->toContain('Kaliurang');
 });
 
 test('tamu dan user tanpa permission ditolak kwitansi', function () {

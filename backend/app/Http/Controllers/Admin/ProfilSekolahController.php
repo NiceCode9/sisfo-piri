@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateProfilSekolahRequest;
 use App\Models\ProfilSekolah;
+use Database\Seeders\ProfilSekolahSeeder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -26,7 +27,15 @@ class ProfilSekolahController extends Controller implements HasMiddleware
      */
     public function edit(): View
     {
-        $profil = ProfilSekolah::firstOrCreate(['nama_sekolah' => 'SMKN Ngaglik']);
+        // Kunci pencarian sengaja TIDAK memakai nama sekolah. Versi lama memakai
+        // `firstOrCreate(['nama_sekolah' => 'SMKN Ngaglik'])`, jadi begitu admin
+        // mengganti nama sekolah, baris itu tidak lagi cocok dan
+        // `firstOrCreate` membuat baris kedua. Akibatnya form mengedit baris
+        // yang berbeda dari yang ditulis `update()` (yang memakai
+        // `firstOrFail`) - profil jadi ganda dan perubahan tidak muncul.
+        $profil = ProfilSekolah::firstOrCreate([], [
+            'nama_sekolah' => ProfilSekolahSeeder::NAMA_SEKOLAH,
+        ]);
 
         return view('admin.profil-sekolah.edit', compact('profil'));
     }

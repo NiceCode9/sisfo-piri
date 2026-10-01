@@ -1,6 +1,6 @@
 @php
     // $profileSekolah dishare otomatis via View composer (spmb.*); fallback bila baris profil belum ada.
-    $schoolName = $profileSekolah->nama_sekolah ?? 'SMP Harapan Bangsa';
+    $schoolName = $namaSekolah ?? 'Sekolah';
     $schoolLogo = ! empty($profileSekolah->logo_path)
         ? Storage::disk('public')->url($profileSekolah->logo_path)
         : 'https://via.placeholder.com/120x120?text=Logo';

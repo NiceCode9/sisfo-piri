@@ -24,7 +24,19 @@
 <body>
     <div class="kop">
         <div class="nama">{{ $sekolah['nama'] }}</div>
-        <div class="alamat">{{ $sekolah['alamat'] }} • Telp {{ $sekolah['telp'] }}</div>
+        @if ($sekolah['alamat'] || $sekolah['telp'])
+            <div class="alamat">
+                @if ($sekolah['alamat'])
+                    <span>{{ $sekolah['alamat'] }}</span>
+                @endif
+                @if ($sekolah['alamat'] && $sekolah['telp'])
+                    <span> &bull; </span>
+                @endif
+                @if ($sekolah['telp'])
+                    <span>Telp {{ $sekolah['telp'] }}</span>
+                @endif
+            </div>
+        @endif
     </div>
     <hr class="ganda" />
 

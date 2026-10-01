@@ -1,6 +1,6 @@
 @extends('layouts.spmb')
 
-@section('title', 'Tentang Sekolah - '.($profileSekolah?->nama_sekolah ?: 'SPMB'))
+@section('title', 'Tentang Sekolah - '.($namaSekolah ?? 'SPMB'))
 
 @php
     // $profileSekolah dishare otomatis via View composer (spmb.*). Tidak ada
@@ -102,7 +102,7 @@
 
             <h1 class="text-4xl md:text-6xl font-extrabold text-white mb-6 leading-tight">
                 Mengenal Lebih Dekat<br/>
-                <span class="text-secondary-300">{{ $profileSekolah?->nama_sekolah }}</span>
+                <span class="text-secondary-300">{{ $namaSekolah }}</span>
             </h1>
 
             <p class="text-lg md:text-xl text-white/90 max-w-2xl mx-auto mb-10 leading-relaxed">
@@ -128,7 +128,7 @@
                 <div class="relative">
                     @if ($fotoGedung)
                         <img src="{{ $fotoGedung }}"
-                             alt="Gedung {{ $profileSekolah?->nama_sekolah }}"
+                             alt="Gedung {{ $namaSekolah }}"
                              class="rounded-3xl shadow-2xl w-full h-auto object-cover">
                     @endif
                     @if ($profileSekolah?->tahun_berdiri)
@@ -146,7 +146,7 @@
                     </h2>
                     {{-- TODO: ganti dengan narasi sejarah asli sekolah --}}
                     <p class="text-gray-600 leading-relaxed">
-                        {{ $profileSekolah?->nama_sekolah }} didirikan pada tahun {{ $profileSekolah?->tahun_berdiri ?? '-' }} dengan visi menghadirkan pendidikan yang berkualitas dan terjangkau bagi masyarakat sekitar.
+                        {{ $namaSekolah }} didirikan pada tahun {{ $profileSekolah?->tahun_berdiri ?? '-' }} dengan visi menghadirkan pendidikan yang berkualitas dan terjangkau bagi masyarakat sekitar.
                     </p>
                     <p class="text-gray-600 leading-relaxed">
                         Selama {{ $tahunBerjalan }} tahun perjalanan, kami terus berkembang — dari fasilitas, kurikulum, hingga kualitas tenaga pendidik — untuk memastikan setiap siswa mendapatkan pengalaman belajar terbaik dan siap melangkah ke jenjang pendidikan berikutnya.

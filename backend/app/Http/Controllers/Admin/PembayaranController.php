@@ -10,6 +10,7 @@ use App\Models\BiayaPendaftaran;
 use App\Models\CalonSiswa;
 use App\Models\DetailAngsuran;
 use App\Models\Pembayaran;
+use App\Models\ProfilSekolah;
 use App\Models\RencanaAngsuran;
 use App\Support\Berkas;
 use App\Support\Penomor;
@@ -90,11 +91,15 @@ class PembayaranController extends Controller implements HasMiddleware
         abort_unless($pembayaran->status === 'berhasil', 404);
         $pembayaran->load(['calonSiswa.jalurPendaftaran', 'biayaPendaftaran', 'detailAngsuran']);
 
-        // TODO: ganti dengan profil sekolah dari DB bila sudah ada.
+        // Identitas sekolah diambil dari ProfilSekolah, bukan ditulis manual.
+        // Kwitansi adalah dokumen resmi: versi lama mencetak
+        // "SMK Negeri 1 Ngaglik" lengkap dengan alamat dan telepon karangan
+        // yang tidak pernah diisi admin.
+        $profil = ProfilSekolah::aktif();
         $sekolah = [
-            'nama' => 'SMK Negeri 1 Ngaglik',
-            'alamat' => 'Jl. Kaliurang Km. 13, Ngaglik, Sleman, Yogyakarta 55581',
-            'telp' => '(0274) 123456',
+            'nama' => trim((string) $profil?->nama_sekolah) ?: 'Sekolah',
+            'alamat' => $profil?->alamat_bersih,
+            'telp' => $profil?->telp_bersih,
         ];
 
         return Pdf::loadView('admin.pembayarans.kwitansi', [

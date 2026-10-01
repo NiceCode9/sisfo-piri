@@ -11,6 +11,7 @@ use App\Models\TahunAjaran;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\PpdbSeeder;
+use Database\Seeders\ProfilSekolahSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -868,4 +869,66 @@ test('visi misi dan sambutan profil yang sudah terisi tetap tampil', function ()
         ->and($html)->toContain('Misi resmi kedua')
         ->and($html)->toContain('Budi Santoso, S.Pd.')
         ->and($html)->toContain('Sambutan resmi kepala sekolah.');
+});
+
+test('nama sekolah konsisten di semua halaman publik', function () {
+    ProfilSekolah::create(['nama_sekolah' => 'SMP PIRI NGAGLIK']);
+
+    foreach (['spmb.home', 'spmb.about', 'spmb.pendaftaran'] as $route) {
+        $html = $this->get(route($route))->assertOk()->getContent();
+
+        expect($html)->toContain('SMP PIRI NGAGLIK')
+            // Nama sekolah lama tidak boleh muncul di mana pun.
+            ->and($html)->not->toContain('SMKN Ngaglik')
+            ->and($html)->not->toContain('SMP Harapan Bangsa')
+            ->and($html)->not->toContain('SMK Negeri 1 Ngaglik');
+    }
+});
+
+test('halaman publik tidak mencantumkan nama sekolah yang belum diisi', function () {
+    // Tanpa baris profil sama sekali.
+    expect(ProfilSekolah::count())->toBe(0);
+
+    foreach (['spmb.home', 'spmb.about', 'spmb.pendaftaran'] as $route) {
+        $html = $this->get(route($route))->assertOk()->getContent();
+
+        expect($html)->not->toContain('SMKN')
+            ->and($html)->not->toContain('Harapan Bangsa');
+    }
+});
+
+test('seeder profil memakai nama resmi sekolah dan tidak mengarang email', function () {
+    $this->seed(ProfilSekolahSeeder::class);
+
+    $profil = ProfilSekolah::aktif();
+
+    expect($profil)->not->toBeNull()
+        ->and($profil->nama_sekolah)->toBe('SMP PIRI NGAGLIK')
+        // Domain sekolah tidak ada di repo; menebaknya bisa membuat alamat
+        // email yang mengarah ke pihak lain.
+        ->and($profil->email)->toBeNull()
+        ->and($profil->alamat_bersih)->toBeNull()
+        ->and($profil->telp_bersih)->toBeNull();
+});
+
+test('halaman edit profil tidak membuat baris profil kedua setelah nama diganti', function () {
+    $admin = User::factory()->create();
+    // Permission sudah dibuat PermissionSeeder di beforeEach. GET butuh
+    // permission .view, PUT butuh .edit.
+    $admin->givePermissionTo(['profil-sekolahs.view', 'profil-sekolahs.edit']);
+
+    // Baris pertama sudah punya nama lain (mis. hasil seed lama).
+    ProfilSekolah::create(['nama_sekolah' => 'SMKN Ngaglik']);
+
+    $this->actingAs($admin)->get(route('admin.profil-sekolah.edit'))->assertOk();
+
+    expect(ProfilSekolah::count())->toBe(1);
+
+    // Admin mengganti nama sekolah, lalu form dibuka lagi. Versi lama memakai
+    // nama sekolah sebagai kunci firstOrCreate sehingga muncul baris kedua.
+    ProfilSekolah::aktif()->update(['nama_sekolah' => 'SMP PIRI NGAGLIK']);
+
+    $this->actingAs($admin)->get(route('admin.profil-sekolah.edit'))->assertOk();
+
+    expect(ProfilSekolah::count())->toBe(1);
 });

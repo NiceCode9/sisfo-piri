@@ -223,7 +223,7 @@
 <body>
 
     @php
-        $schoolName = $sekolah->nama_sekolah ?? 'SMK Negeri 1 Ngaglik';
+        $schoolName = trim((string) $sekolah?->nama_sekolah) ?: 'Sekolah';
         $schoolLogo = $sekolah?->logo_path ? Storage::disk('public')->url($sekolah->logo_path) : null;
         $tahunAjaran = $tahunAjaran ?? date('Y').'/'.(date('Y') + 1);
         $siswaList = $siswaList ?? collect();
