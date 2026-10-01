@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\Cbt\ExamResultController;
 use App\Http\Controllers\Admin\Cbt\ExamTokenController as CbtTokenController;
 use App\Http\Controllers\Admin\Cbt\QuestionBankController;
 use App\Http\Controllers\Admin\Cbt\QuestionBankQuestionController;
+use App\Http\Controllers\Admin\EkstrakurikulerController;
 use App\Http\Controllers\Admin\GaleriController;
 use App\Http\Controllers\Admin\GelombangController;
 use App\Http\Controllers\Admin\GuruController;
@@ -121,6 +122,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::resource('kuota-pendaftarans', KuotaPendaftaranController::class)->except(['show']);
     Route::resource('gurus', GuruController::class)->except(['show']);
     Route::resource('mata-pelajarans', MataPelajaranController::class)->except(['show']);
+    Route::resource('ekstrakurikulers', EkstrakurikulerController::class)->except(['show']);
     Route::resource('kelas', KelasController::class)->except(['show'])->parameters(['kelas' => 'kelas']);
     Route::resource('pengampus', PengampuController::class)->except(['show']);
     Route::post('rombels/{rombel}/pengampus/batch', [RombelController::class, 'storePengampuBatch'])->name('rombels.pengampus.batch');

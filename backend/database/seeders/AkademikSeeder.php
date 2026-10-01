@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Ekstrakurikuler;
 use App\Models\Guru;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
@@ -55,6 +56,16 @@ class AkademikSeeder extends Seeder
                 ['mata_pelajaran_id' => $mtk->id, 'rombel_id' => $rombels[$namaKelas]->id],
                 ['guru_id' => $guru->id]
             );
+        }
+
+        foreach ([
+            ['kode' => 'PRAMUKA', 'nama' => 'Pramuka', 'pembina' => 'Guru A', 'jadwal' => 'Sabtu 08:00-10:00', 'deskripsi' => 'Gerakan Pramuka gugus depan sekolah.'],
+            ['kode' => 'PASKIBRA', 'nama' => 'Paskibra', 'pembina' => 'Guru D', 'jadwal' => 'Jumat 15:00-17:00', 'deskripsi' => 'Pasukan pengibar bendera sekolah.'],
+            ['kode' => 'FUTSAL', 'nama' => 'Futsal', 'pembina' => null, 'jadwal' => 'Rabu 15:00-17:00', 'deskripsi' => 'Tim futsal sekolah.'],
+            ['kode' => 'PMR', 'nama' => 'Palang Merah Remaja', 'pembina' => null, 'jadwal' => 'Kamis 15:00-16:30', 'deskripsi' => null],
+            ['kode' => 'ROHIS', 'nama' => 'Rohani Islam', 'pembina' => null, 'jadwal' => 'Jumat 13:00-14:00', 'deskripsi' => null],
+        ] as $ekskul) {
+            Ekstrakurikuler::firstOrCreate(['kode' => $ekskul['kode']], $ekskul);
         }
     }
 

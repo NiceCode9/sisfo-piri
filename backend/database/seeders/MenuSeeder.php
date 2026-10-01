@@ -31,6 +31,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Akademik', 'is_header' => true, 'order' => 21],
             ['name' => 'Guru', 'icon' => 'fa-solid fa-chalkboard-user', 'route' => 'admin.gurus.index', 'permission' => 'gurus.view', 'order' => 22],
             ['name' => 'Mata Pelajaran', 'icon' => 'fa-solid fa-book-open', 'route' => 'admin.mata-pelajarans.index', 'permission' => 'mata-pelajarans.view', 'order' => 23],
+            ['name' => 'Ekstrakurikuler', 'icon' => 'fa-solid fa-futbol', 'route' => 'admin.ekstrakurikulers.index', 'permission' => 'ekstrakurikulers.view', 'order' => 24],
             ['name' => 'Kelas', 'icon' => 'fa-solid fa-school-flag', 'route' => 'admin.kelas.index', 'permission' => 'kelas.view', 'order' => 24],
             ['name' => 'Pengampu', 'icon' => 'fa-solid fa-clipboard-user', 'route' => 'admin.pengampus.index', 'permission' => 'pengampus.view', 'order' => 25],
             ['name' => 'Rombel', 'icon' => 'fa-solid fa-users', 'route' => 'admin.rombels.index', 'permission' => 'rombels.view', 'order' => 26],

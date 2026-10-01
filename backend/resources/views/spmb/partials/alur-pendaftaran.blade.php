@@ -9,7 +9,7 @@
                 Alur <span class="text-primary-600">Pendaftaran</span>
             </h2>
             <p class="text-lg text-gray-600">
-                Ikuti 6 langkah mudah untuk menjadi bagian dari keluarga besar kami
+                Ikuti 4 langkah mudah untuk menjadi bagian dari keluarga besar kami
             </p>
         </div>
 
@@ -19,7 +19,7 @@
                 {{-- Connection Line --}}
                 <div class="absolute top-16 left-0 right-0 h-1 bg-gradient-to-r from-primary-200 via-secondary-200 to-accent-200"></div>
                 
-                <div class="grid grid-cols-6 gap-4 relative">
+                <div class="grid grid-cols-4 gap-4 relative">
                     
                     {{-- Step 1 --}}
                     <div class="text-center">
@@ -65,37 +65,9 @@
 
                     {{-- Step 4 --}}
                     <div class="text-center">
-                        <div class="relative inline-flex items-center justify-center w-32 h-32 bg-purple-600 rounded-3xl shadow-xl mb-4 transform hover:scale-110 transition">
-                            <div class="text-center">
-                                <div class="text-4xl font-extrabold text-white mb-1">4</div>
-                                <svg class="w-10 h-10 text-white mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
-                                </svg>
-                            </div>
-                        </div>
-                        <h3 class="text-lg font-bold text-gray-800 mb-2">Bayar Biaya</h3>
-                        <p class="text-sm text-gray-600">Transfer biaya pendaftaran</p>
-                    </div>
-
-                    {{-- Step 5 --}}
-                    <div class="text-center">
-                        <div class="relative inline-flex items-center justify-center w-32 h-32 bg-pink-600 rounded-3xl shadow-xl mb-4 transform hover:scale-110 transition">
-                            <div class="text-center">
-                                <div class="text-4xl font-extrabold text-white mb-1">5</div>
-                                <svg class="w-10 h-10 text-white mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                </svg>
-                            </div>
-                        </div>
-                        <h3 class="text-lg font-bold text-gray-800 mb-2">Tes Seleksi</h3>
-                        <p class="text-sm text-gray-600">Ikuti ujian dan wawancara</p>
-                    </div>
-
-                    {{-- Step 6 --}}
-                    <div class="text-center">
                         <div class="relative inline-flex items-center justify-center w-32 h-32 bg-gradient-to-br from-primary-600 to-accent-600 rounded-3xl shadow-xl mb-4 transform hover:scale-110 transition">
                             <div class="text-center">
-                                <div class="text-4xl font-extrabold text-white mb-1">6</div>
+                                <div class="text-4xl font-extrabold text-white mb-1">4</div>
                                 <svg class="w-10 h-10 text-white mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                 </svg>
@@ -168,45 +140,9 @@
 
             {{-- Step 4 --}}
             <div class="flex items-start space-x-4">
-                <div class="flex-shrink-0 w-20 h-20 bg-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <div class="text-center">
-                        <div class="text-2xl font-extrabold text-white">4</div>
-                    </div>
-                </div>
-                <div class="flex-1 bg-purple-50 rounded-2xl p-5 border-l-4 border-purple-600">
-                    <h3 class="text-lg font-bold text-gray-800 mb-2 flex items-center">
-                        <svg class="w-5 h-5 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
-                        </svg>
-                        Bayar Biaya Pendaftaran
-                    </h3>
-                    <p class="text-sm text-gray-700">Transfer biaya pendaftaran dan upload bukti pembayaran</p>
-                </div>
-            </div>
-
-            {{-- Step 5 --}}
-            <div class="flex items-start space-x-4">
-                <div class="flex-shrink-0 w-20 h-20 bg-pink-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <div class="text-center">
-                        <div class="text-2xl font-extrabold text-white">5</div>
-                    </div>
-                </div>
-                <div class="flex-1 bg-pink-50 rounded-2xl p-5 border-l-4 border-pink-600">
-                    <h3 class="text-lg font-bold text-gray-800 mb-2 flex items-center">
-                        <svg class="w-5 h-5 text-pink-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
-                        Tes Seleksi
-                    </h3>
-                    <p class="text-sm text-gray-700">Ikuti ujian tulis, tes psikologi, dan wawancara sesuai jadwal</p>
-                </div>
-            </div>
-
-            {{-- Step 6 --}}
-            <div class="flex items-start space-x-4">
                 <div class="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-primary-600 to-accent-600 rounded-2xl flex items-center justify-center shadow-lg">
                     <div class="text-center">
-                        <div class="text-2xl font-extrabold text-white">6</div>
+                        <div class="text-2xl font-extrabold text-white">4</div>
                     </div>
                 </div>
                 <div class="flex-1 bg-gradient-to-br from-primary-50 to-accent-50 rounded-2xl p-5 border-l-4 border-primary-600">
