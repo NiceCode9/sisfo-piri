@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Nexus Admin Ã¢â‚¬â€ Detail Calon Siswa')
+@section('title', 'Nexus Admin ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Detail Calon Siswa')
 @section('breadcrumb', 'Detail Calon Siswa')
 
 @push('styles')
@@ -1022,7 +1022,7 @@
                     <h1 class="page-title">
                         <i class="bi bi-person-badge me-3"></i>Detail Pendaftaran
                     </h1>
-                    <p class="page-subtitle">{{ $calon->nama_lengkap }} Ã¢â‚¬Â¢ {{ $calon->no_pendaftaran }}</p>
+                    <p class="page-subtitle">{{ $calon->nama_lengkap }} ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ {{ $calon->no_pendaftaran }}</p>
                 </div>
                 <div class="header-actions d-flex align-items-center gap-2 flex-wrap">
                     <span class="status-badge status-{{ $calon->status_pendaftaran }}">
@@ -1275,11 +1275,33 @@
                                     </label>
                                     <select class="form-select" id="status_pendaftaran" name="status" required>
                                         <option value="">Pilih keputusan...</option>
-                                        <option value="menunggu" @selected($calon->status_pendaftaran === 'menunggu')>Ã¢ÂÂ³ Menunggu</option>
-                                        <option value="diterima" @selected($calon->status_pendaftaran === 'diterima')>Ã¢Å“â€¦ Diterima</option>
-                                        <option value="ditolak" @selected($calon->status_pendaftaran === 'ditolak')>Ã¢ÂÅ’ Ditolak</option>
-                                        <option value="daftar_ulang" @selected($calon->status_pendaftaran === 'daftar_ulang')>Ã°Å¸â€œÂ Daftar Ulang</option>
+                                        <option value="menunggu" @selected($calon->status_pendaftaran === 'menunggu')>ÃƒÂ¢Ã‚ÂÃ‚Â³ Menunggu</option>
+                                        <option value="diterima" @selected($calon->status_pendaftaran === 'diterima')>ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Diterima</option>
+                                        <option value="ditolak" @selected($calon->status_pendaftaran === 'ditolak')>ÃƒÂ¢Ã‚ÂÃ…â€™ Ditolak</option>
+                                        <option value="daftar_ulang" @selected($calon->status_pendaftaran === 'daftar_ulang')>ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‚Â Daftar Ulang</option>
                                     </select>
+                                {{-- Server menolak `diterima` bila berkas belum diverifikasi
+                                     atau masih ada yang perlu perbaikan (lihat
+                                     CalonSiswaController::berkasBelumSiap()). --}}
+                                @php $berkasSiap = $calon->berkasCalonSiswa; @endphp
+                                @if ($calon->status_pendaftaran !== 'diterima' && $berkasSiap)
+                                    @if ($berkasSiap->perluPerbaikan())
+                                        <div class="alert alert-warning d-flex align-items-start gap-2 mb-0" role="alert">
+                                            <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+                                            <div>
+                                                <strong>Belum bisa diterima.</strong>
+                                                Masih ada berkas yang perlu perbaikan:
+                                                {{ implode(', ', $berkasSiap->labelYangPerluPerbaikan()) }}.
+                                                Verifikasi berkas terlebih dahulu.
+                                            </div>
+                                        </div>
+                                    @elseif (! $berkasSiap->status_verifikasi)
+                                        <div class="alert alert-info d-flex align-items-start gap-2 mb-0" role="alert">
+                                            <i class="bi bi-info-circle-fill mt-1"></i>
+                                            <div><strong>Berkas belum diverifikasi.</strong> Verifikasi berkas terlebih dahulu sebelum menerima calon.</div>
+                                        </div>
+                                    @endif
+                                @endif
                                 </div>
                                 <div class="col-12">
                                     <label for="catatan_status" class="form-label">
@@ -1302,8 +1324,8 @@
                     <div class="d-flex flex-column gap-2">
                         @forelse ($calon->logStatusPendaftaran->sortByDesc('created_at') as $log)
                             <div style="font-size: 12px; border-left: 3px solid #667eea; padding-left: 10px;">
-                                <div><strong>{{ $log->status_sebelumnya ?? 'Ã¢â‚¬â€' }} Ã¢â€ â€™ {{ $log->status_baru }}</strong> Ã¢â‚¬Â¢ {{ $log->created_at->format('d M Y H:i') }}</div>
-                                <div style="color: #6c757d;">oleh {{ $log->user->name ?? 'sistem' }} @if ($log->catatan) Ã¢â‚¬â€ {{ $log->catatan }} @endif</div>
+                                <div><strong>{{ $log->status_sebelumnya ?? 'ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â' }} ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ {{ $log->status_baru }}</strong> ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ {{ $log->created_at->format('d M Y H:i') }}</div>
+                                <div style="color: #6c757d;">oleh {{ $log->user->name ?? 'sistem' }} @if ($log->catatan) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â {{ $log->catatan }} @endif</div>
                             </div>
                         @empty
                             <span style="font-size: 12px; color: #6c757d;">Belum ada log.</span>
@@ -1358,7 +1380,7 @@
                         </div>
                         <div class="px-4 py-3" style="font-size: 12px; color: #6c757d; border-top: 1px solid #e9ecef;">
                             Verifikasi: {{ $b->status_verifikasi ? 'Terverifikasi' : 'Belum' }}
-                            @if ($b->alasan_penolakan) Ã¢â‚¬Â¢ Alasan: {{ $b->alasan_penolakan }} @endif
+                            @if ($b->alasan_penolakan) ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ Alasan: {{ $b->alasan_penolakan }} @endif
                         </div>
                     @else
                         <div class="empty-state">
@@ -1526,7 +1548,7 @@
                                 </div>
                                 <div class="summary-amount">Rp {{ number_format($totalBelumBayar, 0, ',', '.') }}</div>
                                 <div class="summary-detail">
-                                    Total biaya wajib: Rp {{ number_format($totalWajib, 0, ',', '.') }} â€¢
+                                    Total biaya wajib: Rp {{ number_format($totalWajib, 0, ',', '.') }} Ã¢â‚¬Â¢
                                     Terbayar: Rp {{ number_format($terbayarWajib, 0, ',', '.') }}
                                 </div>
                             </div>
@@ -1596,7 +1618,7 @@
                                                 @if (auth()->user()?->can('pembayarans.create') && $bolehDitagih)
                                                     @if ($angsuran->status !== 'dibayar' && $rencana->status === 'aktif')
                                                         <button type="button" class="btn btn-sm btn-primary"
-                                                            onclick="setCicilan('{{ $angsuran->id }}', '{{ $rencana->biaya_pendaftaran_id }}', '{{ $angsuran->nominal_cicilan + $angsuran->denda }}', 'Cicilan ke-{{ $angsuran->cicilan_ke }} Ã¢â‚¬â€ Rp {{ number_format($angsuran->nominal_cicilan + $angsuran->denda, 0, ',', '.') }}')"
+                                                            onclick="setCicilan('{{ $angsuran->id }}', '{{ $rencana->biaya_pendaftaran_id }}', '{{ $angsuran->nominal_cicilan + $angsuran->denda }}', 'Cicilan ke-{{ $angsuran->cicilan_ke }} ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Rp {{ number_format($angsuran->nominal_cicilan + $angsuran->denda, 0, ',', '.') }}')"
                                                             data-bs-toggle="modal" data-bs-target="#modalBayarCicilan">
                                                             Bayar
                                                         </button>
@@ -1703,7 +1725,7 @@
                                             <td>
                                                 @if($lain->bukti_pembayaran_path)
                                                     <a href="{{ route('dokumen.pembayaran-lainnya', $lain) }}" target="_blank" class="text-primary">Lihat</a>
-                                                @else Ã¢â‚¬â€ @endif
+                                                @else ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â @endif
                                             </td>
                                             <td>
                                                 <div class="d-flex gap-1">
@@ -1750,13 +1772,13 @@
                                             <i class="bi bi-tag text-primary me-1"></i>Biaya <span class="text-danger">*</span>
                                         </label>
                                         <select class="form-select" id="selected_biaya_id" name="biaya_pendaftaran_id" required>
-                                            <option value="">Ã¢â‚¬â€ Pilih Biaya (wajib & non-wajib) Ã¢â‚¬â€</option>
+                                            <option value="">ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Pilih Biaya (wajib & non-wajib) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â</option>
                                             @foreach ($tagihan->rincian() as $biayaOpt)
                                                 <option value="{{ $biayaOpt['id'] }}"
                                                     data-dapat-diangsur="{{ $biayaOpt['dapat_diangsur'] ? 1 : 0 }}"
                                                     data-sisa="{{ $biayaOpt['sisa'] }}"
                                                     data-mata-uang="{{ $biayaOpt['mata_uang'] }}">
-                                                    {{ $biayaOpt['jenis'] }} Ã¢â‚¬â€ {{ $biayaOpt['wajib'] ? 'Wajib' : 'Opsional' }} Ã¢â‚¬â€ Sisa Rp {{ number_format($biayaOpt['sisa'], 0, ',', '.') }}
+                                                    {{ $biayaOpt['jenis'] }} ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â {{ $biayaOpt['wajib'] ? 'Wajib' : 'Opsional' }} ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Sisa Rp {{ number_format($biayaOpt['sisa'], 0, ',', '.') }}
                                                 </option>
                                             @endforeach
                                         </select>
@@ -2063,7 +2085,7 @@
                 statusForm.addEventListener('submit', function(e) {
                     e.preventDefault();
                     const status = document.getElementById('status_pendaftaran').value;
-                    const studentName = document.querySelector('.page-subtitle').textContent.split(' Ã¢â‚¬Â¢ ')[0];
+                    const studentName = document.querySelector('.page-subtitle').textContent.split(' ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ ')[0];
                     const confirmMessage = status === 'diterima'
                         ? `Apakah Anda yakin ingin MENERIMA ${studentName}?`
                         : `Apakah Anda yakin ingin mengubah status ${studentName} menjadi ${status}?`;

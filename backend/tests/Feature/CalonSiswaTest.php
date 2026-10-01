@@ -616,6 +616,135 @@ test('admin tetap boleh memilih jalur non-aktif untuk mencatat pendaftar terlamb
         ->assertSee('(non-aktif)');
 });
 
+test('calon dengan berkas belum diverifikasi tidak dapat diterima', function () {
+    $calon = CalonSiswa::create([
+        'jalur_pendaftaran_id' => JalurPendaftaran::first()->id,
+        'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
+        'no_pendaftaran' => 'PPDB-2026-2200',
+        'nik' => '0001234567802200',
+        'nama_lengkap' => 'Belum Diverifikasi',
+        'jenis_kelamin' => 'L',
+        'tempat_lahir' => 'Ngaglik',
+        'tanggal_lahir' => '2010-01-01',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Belum Verifikasi',
+        'status_pendaftaran' => 'menunggu',
+    ]);
+    $calon->berkasCalonSiswa()->create(['status_verifikasi' => false]);
+
+    $this->actingAs(superAdmin())
+        ->patch(route('admin.calon-siswas.status', $calon), ['status' => 'diterima'])
+        ->assertSessionHas('error');
+
+    expect($calon->fresh()->status_pendaftaran)->toBe('menunggu')
+        ->and(Siswa::where('calon_siswa_id', $calon->id)->exists())->toBeFalse();
+});
+
+test('calon dengan berkas perlu perbaikan ditolak dengan menyebut nama berkasnya', function () {
+    $calon = CalonSiswa::create([
+        'jalur_pendaftaran_id' => JalurPendaftaran::first()->id,
+        'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
+        'no_pendaftaran' => 'PPDB-2026-2300',
+        'nik' => '0001234567802300',
+        'nama_lengkap' => 'Perlu Perbaikan',
+        'jenis_kelamin' => 'P',
+        'tempat_lahir' => 'Ngaglik',
+        'tanggal_lahir' => '2010-01-01',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Perbaikan',
+        'status_pendaftaran' => 'menunggu',
+    ]);
+    $calon->berkasCalonSiswa()->create([
+        'status_verifikasi' => false,
+        'berkas_perlu_perbaikan' => ['ijazah_path', 'kk_path'],
+    ]);
+
+    $this->actingAs(superAdmin())
+        ->patch(route('admin.calon-siswas.status', $calon), ['status' => 'diterima'])
+        ->assertSessionHas('error');
+
+    $pesan = session('error');
+    // Pesan memakai label ramah, bukan nama kolom mentah.
+    expect($pesan)->toContain('Ijazah')
+        ->and($pesan)->toContain('Kartu Keluarga')
+        ->and($pesan)->not->toContain('ijazah_path')
+        ->and($calon->fresh()->status_pendaftaran)->toBe('menunggu');
+});
+
+test('calon dengan berkas terverifikasi boleh diterima', function () {
+    $calon = CalonSiswa::create([
+        'jalur_pendaftaran_id' => JalurPendaftaran::first()->id,
+        'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
+        'no_pendaftaran' => 'PPDB-2026-2400',
+        'nik' => '0001234567802400',
+        'nama_lengkap' => 'Sudah Terverifikasi',
+        'jenis_kelamin' => 'L',
+        'tempat_lahir' => 'Ngaglik',
+        'tanggal_lahir' => '2010-01-01',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Terverifikasi',
+        'status_pendaftaran' => 'menunggu',
+    ]);
+    $calon->berkasCalonSiswa()->create(['status_verifikasi' => true]);
+
+    $this->actingAs(superAdmin())
+        ->patch(route('admin.calon-siswas.status', $calon), ['status' => 'diterima'])
+        ->assertSessionHasNoErrors();
+
+    expect($calon->fresh()->status_pendaftaran)->toBe('diterima');
+});
+
+test('calon tanpa baris berkas tetap boleh diterima', function () {
+    // Tidak ada berkas yang perlu diverifikasi, jadi gate tidak berlaku.
+    $calon = CalonSiswa::create([
+        'jalur_pendaftaran_id' => JalurPendaftaran::first()->id,
+        'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
+        'no_pendaftaran' => 'PPDB-2026-2500',
+        'nik' => '0001234567802500',
+        'nama_lengkap' => 'Tanpa Berkas',
+        'jenis_kelamin' => 'L',
+        'tempat_lahir' => 'Ngaglik',
+        'tanggal_lahir' => '2010-01-01',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Tanpa Berkas',
+        'status_pendaftaran' => 'menunggu',
+    ]);
+
+    expect($calon->berkasCalonSiswa)->toBeNull();
+
+    $this->actingAs(superAdmin())
+        ->patch(route('admin.calon-siswas.status', $calon), ['status' => 'diterima'])
+        ->assertSessionHasNoErrors();
+
+    expect($calon->fresh()->status_pendaftaran)->toBe('diterima');
+});
+
+test('halaman status memberi tahu berkas yang belum siap diterima', function () {
+    $calon = CalonSiswa::create([
+        'jalur_pendaftaran_id' => JalurPendaftaran::first()->id,
+        'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
+        'no_pendaftaran' => 'PPDB-2026-2600',
+        'nik' => '0001234567802600',
+        'nama_lengkap' => 'Peringatan Berkas',
+        'jenis_kelamin' => 'L',
+        'tempat_lahir' => 'Ngaglik',
+        'tanggal_lahir' => '2010-01-01',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Peringatan',
+        'status_pendaftaran' => 'menunggu',
+    ]);
+    $calon->berkasCalonSiswa()->create([
+        'status_verifikasi' => false,
+        'berkas_perlu_perbaikan' => ['akta_path'],
+    ]);
+
+    $this->actingAs(superAdmin())
+        ->get(route('admin.calon-siswas.show', $calon))
+        ->assertOk()
+        ->assertSee('Belum bisa diterima')
+        ->assertSee('Akta Kelahiran');
+});
+
 test('label berkas memakai nama ramah, bukan nama kolom mentah', function () {
     $calon = CalonSiswa::create([
         'jalur_pendaftaran_id' => JalurPendaftaran::first()->id,

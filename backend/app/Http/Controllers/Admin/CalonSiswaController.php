@@ -240,6 +240,15 @@ class CalonSiswaController extends Controller implements HasMiddleware
             return back()->with('error', 'Status tidak berubah.');
         }
 
+        // Berkas yang ditolak tidak boleh naik status diam-diam.
+        if ($oldStatus !== 'diterima' && $newStatus === 'diterima') {
+            $berkasMasalah = $this->berkasBelumSiap($calonSiswa);
+
+            if ($berkasMasalah !== null) {
+                return back()->with('error', $berkasMasalah)->withInput();
+            }
+        }
+
         try {
             DB::transaction(function () use ($calonSiswa, $oldStatus, $newStatus, $request) {
                 // Lock kuota row for this jalur/tahun
@@ -320,6 +329,39 @@ class CalonSiswaController extends Controller implements HasMiddleware
         }
 
         return back()->with('success', "Status diubah {$oldStatus} → {$newStatus}.");
+    }
+
+    /**
+     * Pesan penolakan bila berkas belum layak untuk diterima, atau null bila
+     * aman.
+     *
+     * `status_verifikasi` dan `berkas_perlu_perbaikan` dulu hanya dibaca panel
+     * verifikasi — `updateStatus()` sama sekali tidak mengeceknya, sehingga
+     * berkas yang sudah ditolak bisa langsung naik ke `diterima`.
+     *
+     * Calon tanpa baris berkas sama sekali tetap boleh diterima: tidak ada
+     * berkas yang perlu diverifikasi (mis. diinput admin tanpa upload).
+     */
+    private function berkasBelumSiap(CalonSiswa $calonSiswa): ?string
+    {
+        $berkas = $calonSiswa->berkasCalonSiswa;
+
+        if (! $berkas) {
+            return null;
+        }
+
+        $perluPerbaikan = $berkas->labelYangPerluPerbaikan();
+
+        if ($perluPerbaikan !== []) {
+            return 'Masih ada berkas yang perlu perbaikan: '.implode(', ', $perluPerbaikan)
+                .'. Verifikasi berkas terlebih dahulu sebelum menerima calon.';
+        }
+
+        if (! $berkas->status_verifikasi) {
+            return 'Berkas belum diverifikasi. Verifikasi berkas terlebih dahulu sebelum menerima calon.';
+        }
+
+        return null;
     }
 
     /**
