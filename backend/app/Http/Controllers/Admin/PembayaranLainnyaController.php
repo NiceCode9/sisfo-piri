@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\StorePembayaranLainnyaRequest;
 use App\Http\Requests\Admin\UpdatePembayaranLainnyaRequest;
 use App\Models\CalonSiswa;
 use App\Models\PembayaranLainnya;
+use App\Support\Berkas;
 use App\Support\Penomor;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,12 +16,12 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 class PembayaranLainnyaController extends Controller implements HasMiddleware
 {
@@ -126,17 +127,26 @@ class PembayaranLainnyaController extends Controller implements HasMiddleware
     public function update(UpdatePembayaranLainnyaRequest $request, PembayaranLainnya $pembayaranLainnya): RedirectResponse
     {
         $validated = $request->validated();
+        $berkas = new Berkas;
 
         if ($request->hasFile('bukti_pembayaran_path')) {
-            if ($pembayaranLainnya->bukti_pembayaran_path) {
-                Storage::disk('berkas')->delete($pembayaranLainnya->bukti_pembayaran_path);
-            }
-            $validated['bukti_pembayaran_path'] = $request->file('bukti_pembayaran_path')->store('bukti', 'berkas');
+            $pathBaru = $request->file('bukti_pembayaran_path')->store('bukti', 'berkas');
+            // Bukti lama baru dihapus setelah update berhasil.
+            $berkas->ganti($pathBaru, $pembayaranLainnya->bukti_pembayaran_path);
+            $validated['bukti_pembayaran_path'] = $pathBaru;
             // Upload bukti baru oleh admin berarti terverifikasi.
             $validated['status'] = 'berhasil';
         }
 
-        $pembayaranLainnya->update($validated);
+        try {
+            $pembayaranLainnya->update($validated);
+        } catch (Throwable $e) {
+            $berkas->buangYangBaru();
+
+            throw $e;
+        }
+
+        $berkas->hapusYangSudahTidakDipakai();
 
         return redirect()->route('admin.pembayaran-lainnyas.index')->with('success', "Pembayaran lainnya {$pembayaranLainnya->kode_pembayaran} diperbarui.");
     }
@@ -151,10 +161,13 @@ class PembayaranLainnyaController extends Controller implements HasMiddleware
 
     public function destroy(PembayaranLainnya $pembayaranLainnya): RedirectResponse
     {
-        if ($pembayaranLainnya->bukti_pembayaran_path) {
-            Storage::disk('berkas')->delete($pembayaranLainnya->bukti_pembayaran_path);
-        }
+        // File dihapus setelah baris benar-benar terhapus.
+        $berkas = new Berkas;
+        $berkas->hapus($pembayaranLainnya->bukti_pembayaran_path);
+
         $pembayaranLainnya->delete();
+
+        $berkas->hapusYangSudahTidakDipakai();
 
         return redirect()->route('admin.pembayaran-lainnyas.index')->with('success', 'Pembayaran lainnya dihapus.');
     }

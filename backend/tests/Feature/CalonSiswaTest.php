@@ -470,6 +470,64 @@ test('halaman show menonaktifkan penagihan untuk calon ditolak', function () {
         ->and($html)->not->toContain('data-bs-target="#modalPembayaran"');
 });
 
+test('hapus calon juga menghapus bukti pembayaran induk yang sebelumnya tertinggal', function () {
+    $calon = CalonSiswa::create([
+        'jalur_pendaftaran_id' => JalurPendaftaran::first()->id,
+        'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
+        'no_pendaftaran' => 'PPDB-2026-1700',
+        'nik' => '0001234567801700',
+        'nama_lengkap' => 'Pemilik Bukti',
+        'jenis_kelamin' => 'L',
+        'tempat_lahir' => 'Ngaglik',
+        'tanggal_lahir' => '2010-01-01',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Bukti',
+        'status_pendaftaran' => 'menunggu',
+    ]);
+
+    $biaya = BiayaPendaftaran::where('tahun_ajaran_id', $calon->tahun_ajaran_id)->firstOrFail();
+
+    $berkasPath = UploadedFile::fake()->create('ijazah.pdf', 10, 'application/pdf')->store('berkas', 'berkas');
+    $calon->berkasCalonSiswa()->create(['ijazah_path' => $berkasPath]);
+
+    $buktiInduk = UploadedFile::fake()->create('bukti-induk.png', 10, 'image/png')->store('bukti', 'berkas');
+    $pembayaran = Pembayaran::create([
+        'calon_siswa_id' => $calon->id,
+        'biaya_pendaftaran_id' => $biaya->id,
+        'kode_pembayaran' => 'PAY-2026-1700',
+        'jumlah' => 100000,
+        'metode_pembayaran' => 'transfer',
+        'jenis_pembayaran' => 'penuh',
+        'status' => 'berhasil',
+        'bukti_pembayaran_path' => $buktiInduk,
+    ]);
+
+    $buktiLain = UploadedFile::fake()->create('bukti-lain.png', 10, 'image/png')->store('bukti', 'berkas');
+    $lain = PembayaranLainnya::create([
+        'calon_siswa_id' => $calon->id,
+        'kode_pembayaran' => 'LNN-2026-1700',
+        'nama_biaya' => 'Seragam',
+        'jumlah' => 150000,
+        'metode_pembayaran' => 'tunai',
+        'status' => 'berhasil',
+        'bukti_pembayaran_path' => $buktiLain,
+    ]);
+
+    $this->actingAs(superAdmin())
+        ->delete(route('admin.calon-siswas.destroy', $calon))
+        ->assertRedirect(route('admin.calon-siswas.index'));
+
+    // Semua berkas & bukti ikut bersih, tidak ada file yatim di disk.
+    Storage::disk('berkas')->assertMissing($berkasPath);
+    Storage::disk('berkas')->assertMissing($buktiInduk);
+    Storage::disk('berkas')->assertMissing($buktiLain);
+    expect(Storage::disk('berkas')->allFiles())->toBe([]);
+
+    expect(CalonSiswa::where('id', $calon->id)->exists())->toBeFalse()
+        ->and(Pembayaran::where('id', $pembayaran->id)->exists())->toBeFalse()
+        ->and(PembayaranLainnya::where('id', $lain->id)->exists())->toBeFalse();
+});
+
 test('calon yang sudah jadi siswa tidak dapat dihapus dari halaman PPDB', function () {
     $jalur = JalurPendaftaran::first();
     $user = User::factory()->create();

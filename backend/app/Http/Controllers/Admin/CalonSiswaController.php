@@ -16,16 +16,17 @@ use App\Models\SertifikatPrestasi;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\WaliMurid;
+use App\Support\Berkas;
 use App\Support\Penomor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Throwable;
 
 class CalonSiswaController extends Controller implements HasMiddleware
 {
@@ -183,27 +184,39 @@ class CalonSiswaController extends Controller implements HasMiddleware
         $berkasUploads = collect($validated)->only($berkasFields)->filter()->toArray();
         $sertifikatUploads = $request->file('sertifikat', []);
 
-        DB::transaction(function () use ($calonSiswa, $calonData, $berkasUploads, $sertifikatUploads, $request) {
-            $calonSiswa->update($calonData);
+        $berkasFiles = new Berkas;
 
-            if (! empty($berkasUploads)) {
-                $berkas = $calonSiswa->berkasCalonSiswa()->firstOrCreate([]);
-                foreach ($berkasUploads as $field => $file) {
-                    if ($berkas->$field) {
-                        Storage::disk('berkas')->delete($berkas->$field);
+        try {
+            DB::transaction(function () use ($calonSiswa, $calonData, $berkasUploads, $sertifikatUploads, $request, $berkasFiles) {
+                $calonSiswa->update($calonData);
+
+                if (! empty($berkasUploads)) {
+                    $berkas = $calonSiswa->berkasCalonSiswa()->firstOrCreate([]);
+                    foreach ($berkasUploads as $field => $file) {
+                        // File lama dicatat dulu, baru disimpan. Penghapusan
+                        // baru dijalankan setelah commit supaya baris tidak
+                        // pernah menunjuk file yang sudah hilang.
+                        $pathBaru = $file->store('berkas', 'berkas');
+                        $berkasFiles->ganti($pathBaru, $berkas->$field);
+                        $berkas->$field = $pathBaru;
                     }
-                    $berkas->$field = $file->store('berkas', 'berkas');
+                    $berkas->save();
                 }
-                $berkas->save();
-            }
 
-            foreach ($sertifikatUploads as $i => $item) {
-                $calonSiswa->sertifikatPrestasis()->create([
-                    'nama_sertifikat' => $request->input("sertifikat.{$i}.nama", 'Sertifikat Prestasi'),
-                    'file_path' => $item['file']->store('berkas/sertifikat', 'berkas'),
-                ]);
-            }
-        });
+                foreach ($sertifikatUploads as $i => $item) {
+                    $calonSiswa->sertifikatPrestasis()->create([
+                        'nama_sertifikat' => $request->input("sertifikat.{$i}.nama", 'Sertifikat Prestasi'),
+                        'file_path' => $item['file']->store('berkas/sertifikat', 'berkas'),
+                    ]);
+                }
+            });
+        } catch (Throwable $e) {
+            $berkasFiles->buangYangBaru();
+
+            throw $e;
+        }
+
+        $berkasFiles->hapusYangSudahTidakDipakai();
 
         return redirect()->route('admin.calon-siswas.show', $calonSiswa)->with('success', 'Data calon siswa diperbarui.');
     }
@@ -377,25 +390,40 @@ class CalonSiswaController extends Controller implements HasMiddleware
             'catatan_berkas' => $request->input('catatan_berkas'),
         ];
 
+        $berkasFiles = new Berkas;
+
         foreach (['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path', 'krm_path', 'kip_path'] as $field) {
             if ($request->hasFile($field)) {
-                if ($berkas->$field) {
-                    Storage::disk('berkas')->delete($berkas->$field);
-                }
-                $data[$field] = $request->file($field)->store('berkas', 'berkas');
+                // File lama baru dihapus setelah commit supaya baris tidak
+                // pernah menunjuk file yang sudah hilang.
+                $pathBaru = $request->file($field)->store('berkas', 'berkas');
+                $berkasFiles->ganti($pathBaru, $berkas->$field);
+                $data[$field] = $pathBaru;
             }
         }
 
-        $berkas->update($data);
+        try {
+            $berkas->update($data);
+        } catch (Throwable $e) {
+            $berkasFiles->buangYangBaru();
+
+            throw $e;
+        }
+
+        $berkasFiles->hapusYangSudahTidakDipakai();
 
         return back()->with('success', 'Verifikasi berkas diperbarui.');
     }
 
     public function destroySertifikat(SertifikatPrestasi $sertifikat): RedirectResponse
     {
-        Storage::disk('berkas')->delete($sertifikat->file_path);
+        // File dihapus setelah baris benar-benar terhapus.
+        $berkas = new Berkas;
+        $berkas->hapus($sertifikat->file_path);
         $nama = $sertifikat->nama_sertifikat;
         $sertifikat->delete();
+
+        $berkas->hapusYangSudahTidakDipakai();
 
         return back()->with('success', "Sertifikat {$nama} dihapus.");
     }
@@ -412,6 +440,21 @@ class CalonSiswaController extends Controller implements HasMiddleware
             );
         }
 
+        // Kumpulkan path dulu, hapus file SETELAH baris benar-benar terhapus.
+        // Kalau transaksi di-rollback, baris tetap utuh dan file tidak hilang.
+        $berkasFiles = new Berkas;
+
+        if ($calonSiswa->berkasCalonSiswa) {
+            foreach (['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path', 'krm_path', 'kip_path'] as $field) {
+                $berkasFiles->hapus($calonSiswa->berkasCalonSiswa->$field);
+            }
+        }
+
+        $calonSiswa->sertifikatPrestasis->each(fn ($sertifikat) => $berkasFiles->hapus($sertifikat->file_path));
+        // Bukti pembayaran induk sempat terlewat: ikut terhapus bersama kandidat.
+        $calonSiswa->pembayaran->each(fn ($pembayaran) => $berkasFiles->hapus($pembayaran->bukti_pembayaran_path));
+        $calonSiswa->pembayaranLainnya->each(fn ($lain) => $berkasFiles->hapus($lain->bukti_pembayaran_path));
+
         DB::transaction(function () use ($calonSiswa) {
             if ($calonSiswa->status_pendaftaran === 'diterima') {
                 $kuota = KuotaPendaftaran::where('tahun_ajaran_id', $calonSiswa->tahun_ajaran_id)
@@ -422,23 +465,11 @@ class CalonSiswaController extends Controller implements HasMiddleware
                     $kuota->decrement('terisi');
                 }
             }
-            if ($calonSiswa->berkasCalonSiswa) {
-                foreach (['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path', 'krm_path', 'kip_path'] as $field) {
-                    if ($calonSiswa->berkasCalonSiswa->$field) {
-                        Storage::disk('berkas')->delete($calonSiswa->berkasCalonSiswa->$field);
-                    }
-                }
-            }
-            foreach ($calonSiswa->sertifikatPrestasis as $sertifikat) {
-                Storage::disk('berkas')->delete($sertifikat->file_path);
-            }
-            foreach ($calonSiswa->pembayaranLainnya as $lain) {
-                if ($lain->bukti_pembayaran_path) {
-                    Storage::disk('berkas')->delete($lain->bukti_pembayaran_path);
-                }
-            }
+
             $calonSiswa->delete();
         });
+
+        $berkasFiles->hapusYangSudahTidakDipakai();
 
         return redirect()->route('admin.calon-siswas.index')->with('success', 'Calon siswa dihapus.');
     }

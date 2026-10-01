@@ -4,10 +4,12 @@ use App\Models\CalonSiswa;
 use App\Models\JalurPendaftaran;
 use App\Models\TahunAjaran;
 use App\Models\User;
+use App\Support\Berkas;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\PpdbSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
@@ -98,6 +100,55 @@ test('super-admin dapat ganti file berkas dan old file terhapus', function () {
     $fresh = $calon->fresh()->berkasCalonSiswa;
     expect($fresh->ijazah_path)->not->toBe($oldPath);
     Storage::disk('berkas')->assertExists($fresh->ijazah_path);
+});
+
+test('gagal sebelum commit: file lama utuh dan file baru tidak menggantung', function () {
+    $calon = createCalonWithBerkas();
+    $oldPath = $calon->berkasCalonSiswa->ijazah_path;
+    $berkas = $calon->berkasCalonSiswa;
+    $files = new Berkas;
+    $pathBaru = null;
+
+    try {
+        DB::transaction(function () use ($files, $berkas, &$pathBaru) {
+            $pathBaru = UploadedFile::fake()->create('baru.pdf', 100, 'application/pdf')->store('berkas', 'berkas');
+            $files->ganti($pathBaru, $berkas->ijazah_path);
+            $berkas->ijazah_path = $pathBaru;
+            $berkas->save();
+
+            throw new RuntimeException('simulasi kegagalan commit');
+        });
+    } catch (RuntimeException) {
+        $files->buangYangBaru();
+    }
+
+    // Baris kembali ke path lama, file lama masih ada, file baru sudah dibuang.
+    expect($calon->fresh()->berkasCalonSiswa->ijazah_path)->toBe($oldPath);
+    Storage::disk('berkas')->assertExists($oldPath);
+    Storage::disk('berkas')->assertMissing($pathBaru);
+    expect(Storage::disk('berkas')->allFiles())->toBe([$oldPath]);
+});
+
+test('sukses: file lama baru dihapus setelah baris ter-commit', function () {
+    $calon = createCalonWithBerkas();
+    $oldPath = $calon->berkasCalonSiswa->ijazah_path;
+    $berkas = $calon->berkasCalonSiswa;
+    $files = new Berkas;
+
+    DB::transaction(function () use ($files, $berkas) {
+        $pathBaru = UploadedFile::fake()->create('baru.pdf', 100, 'application/pdf')->store('berkas', 'berkas');
+        $files->ganti($pathBaru, $berkas->ijazah_path);
+        $berkas->ijazah_path = $pathBaru;
+        $berkas->save();
+    });
+
+    // Baris sudah commit, baru sekarang aman menghapus file lama.
+    $files->hapusYangSudahTidakDipakai();
+
+    $newPath = $calon->fresh()->berkasCalonSiswa->ijazah_path;
+    expect($newPath)->not->toBe($oldPath);
+    Storage::disk('berkas')->assertExists($newPath);
+    Storage::disk('berkas')->assertMissing($oldPath);
 });
 
 test('validasi foto mimes ditolak', function () {
