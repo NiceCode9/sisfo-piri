@@ -2,11 +2,14 @@
 
 use App\Models\CalonSiswa;
 use App\Models\JalurPendaftaran;
+use App\Models\Kelas;
 use App\Models\KuotaPendaftaran;
 use App\Models\LogStatusPendaftaran;
+use App\Models\RiwayatKelas;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
+use Database\Seeders\AkademikSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\PpdbSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -18,6 +21,7 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     $this->seed(PermissionSeeder::class);
     $this->seed(PpdbSeeder::class);
+    $this->seed(AkademikSeeder::class);
     Storage::fake('public');
 });
 
@@ -219,6 +223,73 @@ test('tambah calon selalu berstatus menunggu meski admin kirim accepted', functi
     expect($calon)->not->toBeNull()
         ->and($calon->status_pendaftaran)->toBe('menunggu')
         ->and(Siswa::where('calon_siswa_id', $calon->id)->exists())->toBeFalse();
+});
+
+test('calon yang sudah jadi siswa tidak dapat dihapus dari halaman PPDB', function () {
+    $jalur = JalurPendaftaran::first();
+    $user = User::factory()->create();
+    $calon = CalonSiswa::create([
+        'jalur_pendaftaran_id' => $jalur->id,
+        'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
+        'user_id' => $user->id,
+        'no_pendaftaran' => 'PPDB-2026-0700',
+        'nik' => '1234567800700',
+        'nama_lengkap' => 'Sudah Jadi Siswa',
+        'jenis_kelamin' => 'L',
+        'tempat_lahir' => 'Ngaglik',
+        'tanggal_lahir' => '2010-01-01',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Terlindungi',
+        'status_pendaftaran' => 'menunggu',
+    ]);
+
+    $this->actingAs(superAdmin())
+        ->patch(route('admin.calon-siswas.status', $calon), ['status' => 'diterima'])
+        ->assertSessionHasNoErrors();
+
+    $siswa = Siswa::where('calon_siswa_id', $calon->id)->first();
+    expect($siswa)->not->toBeNull();
+
+    // Beri riwayat agar cascade-delete benar-benar berbahaya bila tidak diguard.
+    $tahunId = $calon->tahun_ajaran_id;
+    RiwayatKelas::create([
+        'siswa_id' => $siswa->id,
+        'kelas_id' => $siswa->kelas_id ?? Kelas::firstOrFail()->id,
+        'tahun_ajaran_id' => $tahunId,
+        'status' => 'aktif',
+    ]);
+
+    $this->actingAs(superAdmin())
+        ->delete(route('admin.calon-siswas.destroy', $calon))
+        ->assertSessionHas('error');
+
+    // Semua data harus utuh.
+    expect($calon->fresh())->not->toBeNull()
+        ->and(Siswa::where('calon_siswa_id', $calon->id)->exists())->toBeTrue()
+        ->and(RiwayatKelas::where('siswa_id', $siswa->id)->exists())->toBeTrue();
+});
+
+test('calon biasa (belum jadi siswa) tetap bisa dihapus', function () {
+    $jalur = JalurPendaftaran::first();
+    $calon = CalonSiswa::create([
+        'jalur_pendaftaran_id' => $jalur->id,
+        'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
+        'no_pendaftaran' => 'PPDB-2026-0800',
+        'nik' => '1234567800800',
+        'nama_lengkap' => 'Belum Diterima',
+        'jenis_kelamin' => 'P',
+        'tempat_lahir' => 'Ngaglik',
+        'tanggal_lahir' => '2010-01-01',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Hapus',
+        'status_pendaftaran' => 'menunggu',
+    ]);
+
+    $this->actingAs(superAdmin())
+        ->delete(route('admin.calon-siswas.destroy', $calon))
+        ->assertRedirect(route('admin.calon-siswas.index'));
+
+    expect(CalonSiswa::where('id', $calon->id)->exists())->toBeFalse();
 });
 
 test('penomoran pendaftaran tetap unik meski ada nomor yang terhapus', function () {

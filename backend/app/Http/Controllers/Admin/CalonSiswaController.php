@@ -362,6 +362,16 @@ class CalonSiswaController extends Controller implements HasMiddleware
 
     public function destroy(CalonSiswa $calonSiswa): RedirectResponse
     {
+        // Calon yang sudah jadi siswa punya riwayat kelas/absensi/tugas yang
+        // ikut cascade terhapus. Arahkan admin ke Master Siswa (nonaktifkan).
+        if ($calonSiswa->siswa()->exists()) {
+            return back()->with(
+                'error',
+                'Calon ini sudah menjadi siswa aktif beserta riwayat kelas dan absensinya. '
+                .'Gunakan Master Siswa → nonaktifkan bila perlu dihapus dari dort.'
+            );
+        }
+
         DB::transaction(function () use ($calonSiswa) {
             if ($calonSiswa->status_pendaftaran === 'diterima') {
                 $kuota = KuotaPendaftaran::where('tahun_ajaran_id', $calonSiswa->tahun_ajaran_id)
