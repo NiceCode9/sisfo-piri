@@ -26,7 +26,7 @@ Legend verifikasi:
 
 # Status Perbaikan
 
-Kelima temuan Critical sudah diperbaiki pada `main` (suites penuh hijau, 426 test):
+Kelima temuan Critical dan seluruh 8 temuan High sudah diperbaiki pada `main`:
 
 | ID | Commit | Perbaikan inti |
 |---|---|---|
@@ -40,7 +40,28 @@ Catatan penting C1: file lama tidak lagi terekspos lewat symlink `public/storage
 
 Catatan penting C4: enum `status` pada `pembayarans` **dan** `pembayaran_lainnyas` diberi nilai `batal` lewat migrasi `2026_10_01_090000`. Invoice yang sudah `berhasil` sengaja dibiarkan utuh.
 
-Sisa temuan **High / Medium / Low** belum dikerjakan.
+### Tahap 2 — 8 temuan High
+
+Seluruh temuan **High** juga sudah diperbaiki (suites penuh hijau, 453 test / 1402 assertions):
+
+| ID | Commit | Perbaikan inti |
+|---|---|---|
+| H6 | `5c391da` | ID jalur/tahun dinormalisasi ke `int` sebelum dibandingkan; edit calon `diterima` tanpa ganti jalur tidak lagi terblokir |
+| H2 | `9fea23f` | `unique:users,email` + `unique:users,username`; `catch (UniqueConstraintViolationException)` & `QueryException` agar SQL mentah tidak bocor ke pengunjung |
+| H3 | `6264bb9` | View membaca `$jadwalPpdbs` (cocok dengan controller); fallback tanggal hardcoded dihapus, diganti pesan "jadwal belum dipublikasikan" |
+| H4 | `52c491c` | 2 tombol CTA ke `route('login')` / `route('spmb.pendaftaran')`; handler smooth-scroll mengabaikan tautan tanpa target; kartu & ikon media sosial disembunyikan sampai ada URL resmi |
+| H5 | `54c330d` | Calon `ditolak` tidak bisa ditagih (4 jalur: manual, angsuran, rencana, pembayaran lainnya) + tombol penagihan disembunyikan |
+| H8 | `7258e81` | `App\Support\Berkas` menunda penghapusan file sampai setelah commit (dengan pembuangan file baru saat rollback); `destroy()` kini ikut menghapus bukti `pembayarans` yang tertinggal |
+| H1 | `a749301` | Kuota dipecah: `kuota_pendaftaran`/`terisi_pendaftaran` (batas pendaftar) vs `kuota`/`terisi` (batas penerimaan). Migrasi `2026_10_01_100000` |
+| H7 | `3ec2670` | Kolom `tipe` pada `jadwal_ppdbs` + gate server di `create()`/`store()`. Migrasi `2026_10_01_110000` |
+
+**Koreksi terhadap audit awal — H2 bukan HTTP 500.** `QueryException extends PDOException extends RuntimeException`, sehingga tetap tertangkap `catch (\RuntimeException)`. Bug aslinya adalah **SQL mentah bocor ke pengunjung publik** (karena pesan error memakai `$e->getMessage()`), bukan error 500. Perbaikannya tetap sama: rule unique lintas tabel + pesan ramah.
+
+**Catatan H1:** `kuota_pendaftaran` di-*backfill* `NULL` (= tidak dibatasi), jadi tidak ada perubahan perilaku sampai admin mengisinya lewat Master Kuota. `lockForUpdate()` kini benar-benar berguna karena baris kuota benar-benar ditulis.
+
+**Catatan H7:** bila admin belum menandai satu pun baris bertipe `pendaftaran`, pendaftaran **tetap dibuka** (sengaja permissive agar selisih tanggal tidak mengunci sekolah tanpa sengaja). Gate hanya aktif setelah ada baris `tipe = 'pendaftaran'`.
+
+Sisa temuan **Medium / Low** belum dikerjakan.
 
 ---
 
