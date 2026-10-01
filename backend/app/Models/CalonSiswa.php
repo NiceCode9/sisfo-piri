@@ -23,6 +23,7 @@ class CalonSiswa extends Model
 
     protected $fillable = [
         'jalur_pendaftaran_id',
+        'gelombang_id',
         'user_id',
         'no_pendaftaran',
         'nik',
@@ -58,6 +59,11 @@ class CalonSiswa extends Model
     public function jalurPendaftaran()
     {
         return $this->belongsTo(JalurPendaftaran::class);
+    }
+
+    public function gelombang()
+    {
+        return $this->belongsTo(Gelombang::class);
     }
 
     public function berkasCalonSiswa()

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\GelombangTidakTersedia;
 use App\Http\Requests\Spmb\StorePendaftaranRequest;
 use App\Models\BerkasCalonSiswa;
 use App\Models\BiayaPendaftaran;
@@ -37,9 +38,11 @@ class SpmbController extends Controller
             ? BiayaPendaftaran::where('tahun_ajaran_id', $tahunAjaranAktif->id)->orderBy('jenis_biaya')->get()
             : collect();
         $pengumumans = Pengumuman::where('status_aktif', true)->orderByDesc('tanggal_pengumuman')->limit(3)->get();
-        $gelombangs = $tahunAjaranAktif
-            ? Gelombang::where('tahun_ajaran_id', $tahunAjaranAktif->id)->where('is_aktif', true)->orderBy('nomor_urut')->get()
-            : Gelombang::where('is_aktif', true)->orderBy('nomor_urut')->get();
+        // Landing page hanya menampilkan gelombang yang masih bisa dipilih supaya
+        // tidak ada tanggal atau kuota di halaman publik yang sudah kedaluwarsa.
+        $gelombangs = Gelombang::terbuka($tahunAjaranAktif)->filter(
+            fn (Gelombang $g) => ! $g->kuotaPenuh()
+        );
         $brosurs = Brosur::aktif()->orderBy('order')->orderByDesc('created_at')->get();
         $galeriFotos = Galeri::aktif()->foto()->whereNotNull('image_path')->orderBy('order')->orderByDesc('created_at')->take(8)->get();
         $prestasis = Galeri::aktif()->prestasi()->orderByDesc('tanggal')->orderBy('order')->take(3)->get();
@@ -123,6 +126,10 @@ class SpmbController extends Controller
             'jalurPendaftarans' => $jalurPendaftarans,
             'jadwalPpdbs' => $jadwalPpdbs,
             'kuotaMap' => $kuotaMap,
+            // Hanya gelombang yang jendelanya benar-benar terbuka yang
+            // ditawarkan. Gelombang yang lewat tanggal atau sudah penuh tidak
+            // bisa dipilih walau is_aktif masih true.
+            'gelombangs' => Gelombang::terbuka($tahunAjaranAktif),
             'jendelaPendaftaran' => $jendela = JadwalPpdb::jendelaPendaftaran($tahunAjaranAktif),
             'pendaftaranDibuka' => $tahunAjaranAktif !== null && ($jendela === null || $jendela->sedangBerlangsung()),
         ]);
@@ -165,6 +172,19 @@ class SpmbController extends Controller
                     throw new \RuntimeException('Kuota pendaftaran untuk jalur ini sudah penuh.');
                 }
 
+                // Gelombang dikunci baris di sini supaya pengecekan kuota
+                // gelombang tetap berlaku walau ada dua pendaftar bersamaan
+                // pada detik yang sama.
+                $gelombang = isset($validated['gelombang_id'])
+                    ? Gelombang::kunci((int) $validated['gelombang_id'])
+                    : null;
+
+                if ($gelombang && ! $gelombang->bisaMasuk()) {
+                    throw new GelombangTidakTersedia($gelombang->kuotaPenuh()
+                        ? 'Kuota gelombang '.$gelombang->nama_gelombang.' sudah penuh.'
+                        : 'Gelombang '.$gelombang->nama_gelombang.' tidak sedang dibuka.');
+                }
+
                 $passwordPlain = Str::random(8);
 
                 $newUser = User::create([
@@ -177,6 +197,7 @@ class SpmbController extends Controller
 
                 $calon = CalonSiswa::create([
                     'jalur_pendaftaran_id' => $validated['jalur_pendaftaran_id'],
+                    'gelombang_id' => $gelombang?->id,
                     'tahun_ajaran_id' => $tahunAjaranAktif->id,
                     'user_id' => $newUser->id,
                     'no_pendaftaran' => Penomor::placeholder('PPDB'),
@@ -228,6 +249,7 @@ class SpmbController extends Controller
                 // Pendaftar sah masuk, jadi kuotanya bertambah. Baris sudah dikunci
                 // di atas sehingga langkah ini aman dari pendaftaran bersamaan.
                 $kuota?->increment('terisi_pendaftaran');
+                $gelombang?->increment('terisi');
 
                 return $calon;
             });
@@ -247,6 +269,10 @@ class SpmbController extends Controller
             return back()->withErrors([
                 'email' => 'Pendaftaran gagal diproses. Silakan coba beberapa saat lagi.',
             ])->withInput();
+        } catch (GelombangTidakTersedia $e) {
+            // Pesan gelombang harus menempel di field gelombang, bukan di
+            // jalur pendaftaran yang kebetulan memakai blok catch yang sama.
+            return back()->withErrors(['gelombang_id' => $e->getMessage()])->withInput();
         } catch (\RuntimeException $e) {
             return back()->withErrors(['jalur_pendaftaran_id' => $e->getMessage()])->withInput();
         }

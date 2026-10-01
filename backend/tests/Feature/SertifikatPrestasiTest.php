@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\CalonSiswa;
+use App\Models\Gelombang;
 use App\Models\JalurPendaftaran;
 use App\Models\TahunAjaran;
 use App\Models\User;
@@ -34,6 +35,10 @@ if (! function_exists('payloadPendaftaran')) {
     {
         return array_merge([
             'jalur_pendaftaran_id' => $jalurId,
+            // Gelombang wajib dipilih selama ada gelombang yang jendelanya
+            // terbuka. Diambil dari database karena seeder membuat tanggalnya
+            // relatif terhadap hari ini.
+            'gelombang_id' => Gelombang::terbuka(TahunAjaran::aktif()->first())->first()?->id,
             'nama_lengkap' => 'Siswa Sertifikat',
             'jenis_kelamin' => 'L',
             'nik' => '99000000000000'.$suffix,

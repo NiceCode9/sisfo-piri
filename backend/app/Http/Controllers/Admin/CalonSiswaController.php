@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\UpdateCalonSiswaRequest;
 use App\Models\BerkasCalonSiswa;
 use App\Models\BiayaPendaftaran;
 use App\Models\CalonSiswa;
+use App\Models\Gelombang;
 use App\Models\JalurPendaftaran;
 use App\Models\KuotaPendaftaran;
 use App\Models\LogStatusPendaftaran;
@@ -32,6 +33,14 @@ use Throwable;
 
 class CalonSiswaController extends Controller implements HasMiddleware
 {
+    /**
+     * `jenis_biaya` yang dikenai diskon gelombang.
+     *
+     * Diskon gelombang hanya memotong biaya pendaftaran, bukan seluruh biaya
+     * wajib. Nilai ini mengikuti yang dipakai seeder.
+     */
+    private const JENIS_BIAYA_PENDAFTARAN = 'Biaya Pendaftaran';
+
     public static function middleware(): array
     {
         return [
@@ -146,7 +155,7 @@ class CalonSiswaController extends Controller implements HasMiddleware
 
     public function show(CalonSiswa $calonSiswa): View
     {
-        $calonSiswa->load(['jalurPendaftaran', 'tahunAjaran', 'tahunAjaran.biayaPendaftaran', 'berkasCalonSiswa', 'sertifikatPrestasis', 'logStatusPendaftaran.user', 'pembayaran.biayaPendaftaran', 'pembayaranLainnya', 'rencanaAngsuran.detailAngsuran']);
+        $calonSiswa->load(['jalurPendaftaran', 'gelombang', 'tahunAjaran', 'tahunAjaran.biayaPendaftaran', 'berkasCalonSiswa', 'sertifikatPrestasis', 'logStatusPendaftaran.user', 'pembayaran.biayaPendaftaran', 'pembayaranLainnya', 'rencanaAngsuran.detailAngsuran']);
 
         return view('admin.calon-siswas.show', [
             'calon' => $calonSiswa,
@@ -300,6 +309,24 @@ class CalonSiswaController extends Controller implements HasMiddleware
                         ->get();
 
                     foreach ($biayasWajib as $biaya) {
+                        // Diskon gelombang (`diskon_persen`) selama ini tidak
+                        // pernah dipakai. Terapkan ke biaya pendaftaran saja -
+                        // diskon Opsional-kinduk bukan berarti seluruh biaya
+                        // wajib jadi gratis.
+                        $diskon = strcasecmp((string) $biaya->jenis_biaya, self::JENIS_BIAYA_PENDAFTARAN) === 0
+                            ? ($calonSiswa->gelombang?->diskon_efektif ?? 0)
+                            : 0;
+
+                        $jumlah = $biaya->jumlah;
+
+                        if ($diskon > 0) {
+                            // Bulatkan ke bawah ke ribuan terdekat supaya tagihan
+                            // tidak pernah lebih besar dari harga normal
+                            // akibat pembulatan ke atas.
+                            $potongan = (int) (floor($jumlah * $diskon / 100 / 1000) * 1000);
+                            $jumlah -= $potongan;
+                        }
+
                         $pembayaran = Pembayaran::firstOrCreate(
                             [
                                 'calon_siswa_id' => $calonSiswa->id,
@@ -307,7 +334,7 @@ class CalonSiswaController extends Controller implements HasMiddleware
                             ],
                             [
                                 'kode_pembayaran' => Penomor::placeholder('PAY'),
-                                'jumlah' => $biaya->jumlah,
+                                'jumlah' => $jumlah,
                                 'metode_pembayaran' => 'transfer',
                                 'jenis_pembayaran' => 'penuh',
                                 'status' => 'menunggu',
@@ -500,6 +527,16 @@ class CalonSiswaController extends Controller implements HasMiddleware
             // Pendaftar dihapus => tidak lagi dihitung pada kuota pendaftaran.
             if ($kuota && $kuota->terisi_pendaftaran > 0) {
                 $kuota->decrement('terisi_pendaftaran');
+            }
+
+            // Sama juga untuk counter gelombang, supaya kursi yang dibebaskan
+            // benar-benar bisa dipakai pendaftar berikutnya.
+            if ($calonSiswa->gelombang_id) {
+                $gelombang = Gelombang::kunci((int) $calonSiswa->gelombang_id);
+
+                if ($gelombang && $gelombang->terisi > 0) {
+                    $gelombang->decrement('terisi');
+                }
             }
 
             // Kuota penerimaan hanya berkurang bila ia memang pernah diterima.

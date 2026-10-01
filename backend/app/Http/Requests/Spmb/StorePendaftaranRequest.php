@@ -4,6 +4,7 @@ namespace App\Http\Requests\Spmb;
 
 use App\Http\Requests\Concerns\BersihkanSertifikatKosong;
 use App\Models\CalonSiswa;
+use App\Rules\GelombangTerbuka;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -35,6 +36,21 @@ class StorePendaftaranRequest extends FormRequest
                 'required',
                 'integer',
                 Rule::exists('jalur_pendaftarans', 'id')->where('aktif', true),
+            ],
+            // Gelombang opsional supaya sekolah yang belum mengatur gelombang
+            // tetap bisa menerima pendaftaran. Kalau ada gelombang terbuka,
+            // aturan GelombangTerbuka mewajibkan pilihan dan menolak POST
+            // langsung ke gelombang yang sudah penuh / lewat tanggal.
+            //
+            // Pengecekan ini memakai rule class, BUKAN method `withValidator()`:
+            // trait BersihkanSertifikatKosong sudah memakai `withValidator()`
+            // untuk menegakkan `wajib_sertifikat`, dan method kelas akan
+            // menimpa method trait sehingga kewajiban sertifikat ikut hilang.
+            'gelombang_id' => [
+                'nullable',
+                'integer',
+                'exists:gelombangs,id',
+                new GelombangTerbuka,
             ],
             'nama_lengkap' => ['required', 'string', 'max:255'],
             'jenis_kelamin' => ['required', 'in:L,P'],
@@ -72,6 +88,7 @@ class StorePendaftaranRequest extends FormRequest
     {
         return [
             'jalur_pendaftaran_id.exists' => 'Jalur pendaftaran yang dipilih sudah tidak dibuka. Silakan pilih jalur lain.',
+            'gelombang_id.exists' => 'Gelombang pendaftaran tidak ditemukan.',
         ];
     }
 }

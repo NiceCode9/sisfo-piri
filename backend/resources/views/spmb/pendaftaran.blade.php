@@ -494,6 +494,34 @@
                             @error('jalur_pendaftaran_id')
                                 <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                             @enderror
+
+                            {{-- Gelombang pendaftaran. Hanya dirender kalau ada
+                                 gelombang yang jendelanya benar-benar terbuka,
+                                 supaya sekolah yang belum memakai gelombang
+                                 tidak pernah melihat field yang tak berguna.
+                                 Sisa kursi berasal dari database, bukan
+                                 ketik manual. --}}
+                            @if (($gelombangs ?? collect())->isNotEmpty())
+                                <div class="mt-6 pt-6 border-t border-primary-100">
+                                    <label for="gelombang_id" class="block text-sm font-semibold text-gray-700 mb-2">
+                                        Gelombang Pendaftaran <span class="text-red-500">*</span>
+                                    </label>
+                                    <select id="gelombang_id" name="gelombang_id" required
+                                            class="w-full px-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white shadow-sm transition-all duration-200 @error('gelombang_id') border-red-500 ring-2 ring-red-200 @enderror">
+                                        <option value="">Pilih Gelombang</option>
+                                        @foreach ($gelombangs as $gelombang)
+                                            <option value="{{ $gelombang->id }}"
+                                                    data-sisa="{{ $gelombang->sisa_kursi ?? '' }}"
+                                                    @selected(old('gelombang_id') == $gelombang->id)>
+                                                {{ $gelombang->nama_gelombang }}@if ($gelombang->sisa_kursi !== null) — sisa {{ $gelombang->sisa_kursi }} kursi @endif
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('gelombang_id')
+                                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            @endif
                         </div>
 
                         <div class="flex justify-end">

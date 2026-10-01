@@ -24,7 +24,8 @@
                         default => 'from-primary-600 to-primary-800',
                     };
                     $borderClass = 'border-'.$border;
-                    $persen = $g->kuota > 0 ? round($g->terisi / $g->kuota * 100) : 0;
+                    $persen = $g->persentase;
+                    $sisa = $g->sisa_kursi;
                     $barColor = $border === 'accent-600' ? 'bg-amber-500' : 'bg-accent-500';
                     $badgeBg = $border === 'accent-600' ? 'bg-amber-100 text-amber-700' : 'bg-accent-100 text-accent-700';
                 @endphp
@@ -74,10 +75,10 @@
                                 Keuntungan
                             </h4>
                             <ul class="space-y-2 text-xs text-gray-700">
-                                @if($g->diskon_persen)
+                                @if($g->diskon_efektif)
                                     <li class="flex items-start">
                                         <svg class="w-4 h-4 text-accent-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                                        <span>Diskon <strong>{{ $g->diskon_persen }}% biaya pendaftaran</strong></span>
+                                        <span>Diskon <strong>{{ $g->diskon_efektif }}% biaya pendaftaran</strong></span>
                                     </li>
                                 @endif
                                 @forelse (($g->keuntungan ?? []) as $untung)
@@ -86,7 +87,7 @@
                                         <span>{{ $untung }}</span>
                                     </li>
                                 @empty
-                                    @if(!$g->diskon_persen)
+                                    @if(!$g->diskon_efektif)
                                         <li class="text-gray-500">Tidak ada keuntungan khusus.</li>
                                     @endif
                                 @endforelse
@@ -96,12 +97,16 @@
                         <div class="pt-4">
                             <div class="flex items-center justify-between mb-2">
                                 <span class="text-xs font-medium text-gray-600">Kuota Tersedia</span>
-                                <span class="px-3 py-1 {{ $badgeBg }} text-xs font-bold rounded-full">{{ $g->kuota }} kursi</span>
+                                <span class="px-3 py-1 {{ $badgeBg }} text-xs font-bold rounded-full">
+                                    {{ $sisa !== null ? $sisa.' kursi tersisa' : 'Tanpa batas' }}
+                                </span>
                             </div>
-                            <div class="w-full bg-gray-200 rounded-full h-2">
-                                <div class="{{ $barColor }} h-2 rounded-full" style="width: {{ min(100, $persen) }}%"></div>
-                            </div>
-                            <p class="text-xs text-gray-500 mt-1">{{ $persen }}% terisi ({{ $g->terisi }}/{{ $g->kuota }})</p>
+                            @if ($sisa !== null)
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="{{ $barColor }} h-2 rounded-full" style="width: {{ min(100, $persen) }}%"></div>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">{{ $persen }}% terisi ({{ $g->terisi }}/{{ $g->kuota }})</p>
+                            @endif
                         </div>
                     </div>
                 </div>

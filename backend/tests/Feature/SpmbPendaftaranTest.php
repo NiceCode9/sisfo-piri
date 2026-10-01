@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\CalonSiswa;
+use App\Models\Gelombang;
 use App\Models\Guru;
 use App\Models\JadwalPpdb;
 use App\Models\JalurPendaftaran;
@@ -26,6 +27,17 @@ beforeEach(function () {
 });
 
 /**
+ * Gelombang yang jendelanya benar-benar terbuka, untuk disisipkan ke payload.
+ *
+ * Seeder membuat gelombang relatif terhadap hari ini, jadi test mengambil dari
+ * database alih-alih menebak id.
+ */
+function gelombangTerbukaId(): ?int
+{
+    return Gelombang::terbuka(TahunAjaran::aktif()->first())->first()?->id;
+}
+
+/**
  * Payload pendaftaran publik yang valid; test cukup menimpa field yang relevan.
  *
  * @param  array<string, mixed>  $ubah
@@ -35,6 +47,7 @@ function payloadSpmb(array $ubah = []): array
 {
     return array_merge([
         'jalur_pendaftaran_id' => JalurPendaftaran::first()->id,
+        'gelombang_id' => gelombangTerbukaId(),
         'nama_lengkap' => 'Siswa Uji Gate',
         'jenis_kelamin' => 'L',
         'nik' => '1234567890123456',
@@ -69,6 +82,7 @@ test('pendaftaran publik sukses dengan 5 berkas', function () {
 
     $response = $this->post(route('spmb.store'), [
         'jalur_pendaftaran_id' => $jalur->id,
+        'gelombang_id' => gelombangTerbukaId(),
         'nama_lengkap' => 'Siswa Publik',
         'jenis_kelamin' => 'P',
         'nik' => '1234567890123456',
@@ -127,6 +141,7 @@ test('pendaftaran publik menambah kuota pendaftaran, bukan kuota penerimaan', fu
 
     $this->post(route('spmb.store'), [
         'jalur_pendaftaran_id' => $jalur->id,
+        'gelombang_id' => gelombangTerbukaId(),
         'nama_lengkap' => 'Penghitung Kuota',
         'jenis_kelamin' => 'L',
         'nik' => '1234567890123500',
@@ -165,6 +180,7 @@ test('pendaftaran tetap boleh masuk saat kuota penerimaan penuh tapi kuota penda
 
     $this->post(route('spmb.store'), [
         'jalur_pendaftaran_id' => $jalur->id,
+        'gelombang_id' => gelombangTerbukaId(),
         'nama_lengkap' => 'Penerimaan Penuh',
         'jenis_kelamin' => 'P',
         'nik' => '1234567890123600',
@@ -199,6 +215,7 @@ test('kuota pendaftaran kosong berarti pendaftaran tidak dibatasi', function () 
 
     $this->post(route('spmb.store'), [
         'jalur_pendaftaran_id' => $jalur->id,
+        'gelombang_id' => gelombangTerbukaId(),
         'nama_lengkap' => 'Tanpa Batas',
         'jenis_kelamin' => 'L',
         'nik' => '1234567890123700',
@@ -580,6 +597,7 @@ test('kuota penuh ditolak di pendaftaran publik', function () {
 
     $response = $this->post(route('spmb.store'), [
         'jalur_pendaftaran_id' => $jalur->id,
+        'gelombang_id' => gelombangTerbukaId(),
         'nama_lengkap' => 'Kuota Penuh',
         'jenis_kelamin' => 'L',
         'nik' => '1234567890123456',
