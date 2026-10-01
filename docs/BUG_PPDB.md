@@ -20,6 +20,27 @@ Temuan paling Struktural: **dokumen identitas anak terekspos lewat URL publik ta
 Legend verifikasi:
 - ✅ **Diverifikasi manual** — dibaca ulang langsung oleh penulis audit.
 - 🔍 **Temuan audit** — hasil pembacaan kode menyeluruh, belum diuji ulang manual.
+- 🛠️ **Sudah diperbaiki** — sudah ada di `main`, lihat bagian "Status Perbaikan".
+
+---
+
+# Status Perbaikan
+
+Kelima temuan Critical sudah diperbaiki pada `main` (suites penuh hijau, 426 test):
+
+| ID | Commit | Perbaikan inti |
+|---|---|---|
+| C2 | `c038f27` | `status_pendaftaran` dikeluarkan dari `update()` + dihapus dari `$fillable`/FormRequest; calon baru selalu `menunggu` |
+| C5 | `0fd831c` | `App\Support\Penomor` — placeholder unik saat insert lalu nomor final berbasis ID (PPDB/PAY/ANG/LNN) |
+| C3 | `1903ce7` | `destroy()` menolak calon yang sudah punya record `Siswa` |
+| C1 | `bae09a0` | Dokumen pindah ke disk privat `berkas`; seluruh akses lewat `DokumenController` terotorisasi |
+| C4 | `692ac7d` | Penolakan membatalkan invoice `menunggu`, rencana `aktif`, menonaktifkan `Siswa`, melepas tautan `WaliMurid` |
+
+Catatan penting C1: file lama tidak lagi terekspos lewat symlink `public/storage`, dan `storage/app/public/berkas` + `bukti` sudah dipindahkan ke `storage/app/private/berkas`. Folder-folder tersebut **tidak** ikut ter-*commit* (di-*ignore* di dalam `storage/app/private/`), jadi saat deploy ulang di server, dokumen yang sudah ada perlu dimuat ulang.
+
+Catatan penting C4: enum `status` pada `pembayarans` **dan** `pembayaran_lainnyas` diberi nilai `batal` lewat migrasi `2026_10_01_090000`. Invoice yang sudah `berhasil` sengaja dibiarkan utuh.
+
+Sisa temuan **High / Medium / Low** belum dikerjakan.
 
 ---
 
