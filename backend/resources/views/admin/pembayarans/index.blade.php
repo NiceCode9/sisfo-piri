@@ -38,6 +38,7 @@
                 <option value="menunggu" @selected(request('status')==='menunggu')>Menunggu</option>
                 <option value="berhasil" @selected(request('status')==='berhasil')>Berhasil</option>
                 <option value="gagal" @selected(request('status')==='gagal')>Gagal</option>
+<option value="batal" @selected(request('status')==='batal')>Batal</option>
             </select>
             <input type="date" name="tanggal_mulai" value="{{ request('tanggal_mulai') }}" class="form-control form-control-sm" style="width:auto" title="Tanggal mulai" onchange="this.form.submit()" />
             <input type="date" name="tanggal_sampai" value="{{ request('tanggal_sampai') }}" class="form-control form-control-sm" style="width:auto" title="Tanggal sampai" onchange="this.form.submit()" />

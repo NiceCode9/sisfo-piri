@@ -1,14 +1,19 @@
 <?php
 
+use App\Models\BiayaPendaftaran;
 use App\Models\CalonSiswa;
 use App\Models\JalurPendaftaran;
 use App\Models\Kelas;
 use App\Models\KuotaPendaftaran;
 use App\Models\LogStatusPendaftaran;
+use App\Models\Pembayaran;
+use App\Models\PembayaranLainnya;
+use App\Models\RencanaAngsuran;
 use App\Models\RiwayatKelas;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
+use App\Models\WaliMurid;
 use Database\Seeders\AkademikSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\PpdbSeeder;
@@ -224,6 +229,112 @@ test('tambah calon selalu berstatus menunggu meski admin kirim accepted', functi
     expect($calon)->not->toBeNull()
         ->and($calon->status_pendaftaran)->toBe('menunggu')
         ->and(Siswa::where('calon_siswa_id', $calon->id)->exists())->toBeFalse();
+});
+
+test('penolakan membatalkan tagihan menunggu, rencana aktif, dan akses wali', function () {
+    $jalur = JalurPendaftaran::first();
+    $calon = CalonSiswa::create([
+        'jalur_pendaftaran_id' => $jalur->id,
+        'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
+        'user_id' => User::factory()->create()->id,
+        'no_pendaftaran' => 'PPDB-2026-1100',
+        'nik' => '1234567801100',
+        'nama_lengkap' => 'Ditolak',
+        'jenis_kelamin' => 'P',
+        'tempat_lahir' => 'Ngaglik',
+        'tanggal_lahir' => '2010-01-01',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Ditolak',
+        'status_pendaftaran' => 'menunggu',
+    ]);
+
+    $this->actingAs(superAdmin())
+        ->patch(route('admin.calon-siswas.status', $calon), ['status' => 'diterima'])
+        ->assertSessionHasNoErrors();
+
+    $biaya = BiayaPendaftaran::where('tahun_ajaran_id', $calon->tahun_ajaran_id)->firstOrFail();
+    $menunggu = Pembayaran::create([
+        'calon_siswa_id' => $calon->id,
+        'biaya_pendaftaran_id' => $biaya->id,
+        'kode_pembayaran' => 'PAY-2026-1100',
+        'jumlah' => 100000,
+        'metode_pembayaran' => 'transfer',
+        'jenis_pembayaran' => 'penuh',
+        'status' => 'menunggu',
+    ]);
+    $sudahBayar = Pembayaran::create([
+        'calon_siswa_id' => $calon->id,
+        'biaya_pendaftaran_id' => $biaya->id,
+        'kode_pembayaran' => 'PAY-2026-1101',
+        'jumlah' => 50000,
+        'metode_pembayaran' => 'transfer',
+        'jenis_pembayaran' => 'penuh',
+        'status' => 'berhasil',
+    ]);
+    $rencana = RencanaAngsuran::create([
+        'calon_siswa_id' => $calon->id,
+        'biaya_pendaftaran_id' => $biaya->id,
+        'kode_angsuran' => 'ANG-2026-1100',
+        'total_biaya' => 300000,
+        'sisa_hutang' => 300000,
+        'nominal_per_cicilan' => 100000,
+        'jumlah_cicilan' => 3,
+        'tanggal_mulai' => now()->toDateString(),
+        'tanggal_selesai' => now()->addMonths(2)->toDateString(),
+        'status' => 'aktif',
+    ]);
+    $lain = PembayaranLainnya::create([
+        'calon_siswa_id' => $calon->id,
+        'kode_pembayaran' => 'LNN-2026-1100',
+        'nama_biaya' => 'Seragam',
+        'jumlah' => 150000,
+        'metode_pembayaran' => 'tunai',
+        'status' => 'menunggu',
+    ]);
+
+    $siswa = Siswa::where('calon_siswa_id', $calon->id)->firstOrFail();
+    $wali = WaliMurid::create([
+        'user_id' => User::factory()->create()->id,
+        'siswa_id' => $siswa->id,
+        'hubungan' => 'Ibu',
+    ]);
+
+    $this->actingAs(superAdmin())
+        ->patch(route('admin.calon-siswas.status', $calon), ['status' => 'ditolak'])
+        ->assertSessionHasNoErrors();
+
+    // Invoice yang masih menunggu dan rencana aktif dibatalkan.
+    expect($menunggu->fresh()->status)->toBe('batal')
+        ->and($lain->fresh()->status)->toBe('batal')
+        ->and($rencana->fresh()->status)->toBe('batal')
+        // Uang yang sudah masuk tidak dihapus/diubah.
+        ->and($sudahBayar->fresh()->status)->toBe('berhasil')
+        // Siswa dinonaktifkan dan wali loses access.
+        ->and($siswa->fresh()->is_aktif)->toBeFalse()
+        ->and(WaliMurid::where('id', $wali->id)->exists())->toBeFalse();
+});
+
+test('calon ditolak tanpa tagihan tidak error', function () {
+    $jalur = JalurPendaftaran::first();
+    $calon = CalonSiswa::create([
+        'jalur_pendaftaran_id' => $jalur->id,
+        'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
+        'no_pendaftaran' => 'PPDB-2026-1200',
+        'nik' => '1234567801200',
+        'nama_lengkap' => 'Ditolak Kosong',
+        'jenis_kelamin' => 'L',
+        'tempat_lahir' => 'Ngaglik',
+        'tanggal_lahir' => '2010-01-01',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Kosong',
+        'status_pendaftaran' => 'menunggu',
+    ]);
+
+    $this->actingAs(superAdmin())
+        ->patch(route('admin.calon-siswas.status', $calon), ['status' => 'ditolak'])
+        ->assertSessionHasNoErrors();
+
+    expect($calon->fresh()->status_pendaftaran)->toBe('ditolak');
 });
 
 test('calon yang sudah jadi siswa tidak dapat dihapus dari halaman PPDB', function () {

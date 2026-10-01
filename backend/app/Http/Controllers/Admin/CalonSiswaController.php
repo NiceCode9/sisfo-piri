@@ -15,6 +15,7 @@ use App\Models\Pembayaran;
 use App\Models\SertifikatPrestasi;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
+use App\Models\WaliMurid;
 use App\Support\Penomor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -297,12 +298,49 @@ class CalonSiswaController extends Controller implements HasMiddleware
                         }
                     }
                 }
+
+                if ($newStatus === 'ditolak') {
+                    $this->batalkanTagihan($calonSiswa);
+                }
             });
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }
 
         return back()->with('success', "Status diubah {$oldStatus} → {$newStatus}.");
+    }
+
+    /**
+     * Callee saat status berubah menjadi ditolak.
+     *
+     * Menolak calon tidak boleh meninggalkan sisa tagihan aktif: invoice yang
+     * masih `menunggu` dan rencana angsuran `aktif` akan terus muncul sebagai
+     * tunggakan. Invoice yang sudah `berhasil` dibiarkan karena uangnya sudah
+     * masuk (biaya yang sudah terlanjur dibayar tetap tercatat).
+     *
+     * Siswa hasil penerimaan dinonaktifkan dan tautan walinya dilepas supaya
+     * dashboard orang tua tidak lagi menampilkan anak yang sudah ditolak.
+     */
+    private function batalkanTagihan(CalonSiswa $calonSiswa): void
+    {
+        $calonSiswa->pembayaran()
+            ->where('status', 'menunggu')
+            ->update(['status' => 'batal']);
+
+        $calonSiswa->pembayaranLainnya()
+            ->where('status', 'menunggu')
+            ->update(['status' => 'batal']);
+
+        $calonSiswa->rencanaAngsuran()
+            ->where('status', 'aktif')
+            ->update(['status' => 'batal']);
+
+        $siswa = $calonSiswa->siswa;
+
+        if ($siswa) {
+            $siswa->update(['is_aktif' => false]);
+            WaliMurid::where('siswa_id', $siswa->id)->delete();
+        }
     }
 
     public function verifyBerkas(Request $request, CalonSiswa $calonSiswa): RedirectResponse
