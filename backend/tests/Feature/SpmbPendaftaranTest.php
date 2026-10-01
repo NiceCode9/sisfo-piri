@@ -274,6 +274,25 @@ test('halaman pendaftaran menampilkan peringatan ketika ditutup', function () {
         ->assertSee('Pendaftaran Belum Dibuka');
 });
 
+test('pendaftaran ke jalur non-aktif ditolak walau POST langsung', function () {
+    $jalur = JalurPendaftaran::firstOrFail();
+    $jalur->update(['aktif' => false]);
+
+    $this->post(route('spmb.store'), payloadSpmb([
+        'jalur_pendaftaran_id' => $jalur->id,
+        'nik' => '1234567890124200',
+        'nisn' => '1234567420',
+        'email' => 'jalur-nonaktif@example.com',
+    ]))->assertSessionHasErrors('jalur_pendaftaran_id');
+
+    expect(CalonSiswa::where('nik', '1234567890124200')->exists())->toBeFalse();
+
+    // Jalur non-aktif tidak boleh muncul sebagai pilihan di wizard.
+    $this->get(route('spmb.pendaftaran'))
+        ->assertOk()
+        ->assertDontSee('>'.$jalur->id.'" data-wajib-sertifikat', escape: false);
+});
+
 test('agama pada form publik memakai pilihan baku yang sama dengan admin', function () {
     $html = $this->get(route('spmb.pendaftaran'))->assertOk()->getContent();
 

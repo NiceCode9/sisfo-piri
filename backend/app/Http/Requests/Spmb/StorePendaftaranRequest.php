@@ -28,7 +28,14 @@ class StorePendaftaranRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'jalur_pendaftaran_id' => ['required', 'integer', 'exists:jalur_pendaftarans,id'],
+            // Jalur non-aktif hanya disembunyikan di dropdown. Tanpa syarat
+            // `aktif` di sini, POST langsung tetap bisa mendaftarkan pendaftar
+            // ke jalur yang sudah ditutup.
+            'jalur_pendaftaran_id' => [
+                'required',
+                'integer',
+                Rule::exists('jalur_pendaftarans', 'id')->where('aktif', true),
+            ],
             'nama_lengkap' => ['required', 'string', 'max:255'],
             'jenis_kelamin' => ['required', 'in:L,P'],
             'nik' => ['required', 'string', 'size:16', 'regex:/^[0-9]+$/', 'unique:calon_siswas,nik'],
@@ -55,6 +62,16 @@ class StorePendaftaranRequest extends FormRequest
             'sertifikat' => ['nullable', 'array', 'max:5'],
             'sertifikat.*.nama' => ['required_with:sertifikat', 'string', 'max:255'],
             'sertifikat.*.file' => ['required_with:sertifikat', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'jalur_pendaftaran_id.exists' => 'Jalur pendaftaran yang dipilih sudah tidak dibuka. Silakan pilih jalur lain.',
         ];
     }
 }

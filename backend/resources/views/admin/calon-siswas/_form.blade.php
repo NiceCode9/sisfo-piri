@@ -13,7 +13,10 @@
         <select name="jalur_pendaftaran_id" id="jalur_pendaftaran_id" class="form-select @error('jalur_pendaftaran_id') is-invalid @enderror" required>
             <option value="">— Pilih Jalur —</option>
             @foreach ($jalurs as $j)
-                <option value="{{ $j->id }}" data-wajib-sertifikat="{{ $j->wajib_sertifikat ? 1 : 0 }}" @selected((string) old('jalur_pendaftaran_id', $calon->jalur_pendaftaran_id ?? '') === (string) $j->id)>{{ $j->nama_jalur }}</option>
+                {{-- Jalur non-aktif masih boleh dipilih admin (mis. pendaftar terlambat), tapi diberi label agar tidak salah pilih. --}}
+                <option value="{{ $j->id }}" data-wajib-sertifikat="{{ $j->wajib_sertifikat ? 1 : 0 }}" @selected((string) old('jalur_pendaftaran_id', $calon->jalur_pendaftaran_id ?? '') === (string) $j->id)>
+                    {{ $j->nama_jalur }}{{ $j->aktif ? '' : ' (non-aktif)' }}
+                </option>
             @endforeach
         </select>
         @error('jalur_pendaftaran_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror

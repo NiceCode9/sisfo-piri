@@ -63,7 +63,7 @@ class CalonSiswaController extends Controller implements HasMiddleware
 
         return view('admin.calon-siswas.index', [
             'calons' => $calons,
-            'jalurs' => JalurPendaftaran::where('aktif', true)->orderBy('nama_jalur')->get(),
+            'jalurs' => JalurPendaftaran::orderBy('nama_jalur')->get(),
             'tahunAjarans' => TahunAjaran::orderByDesc('tanggal_mulai')->get(),
             'tahunAktif' => $tahunAktif,
             'tahunMode' => $tahunMode,
@@ -73,7 +73,7 @@ class CalonSiswaController extends Controller implements HasMiddleware
     public function create(): View
     {
         return view('admin.calon-siswas.create', [
-            'jalurs' => JalurPendaftaran::where('aktif', true)->orderBy('nama_jalur')->get(),
+            'jalurs' => JalurPendaftaran::orderBy('nama_jalur')->get(),
             'tahunAjarans' => TahunAjaran::orderByDesc('tanggal_mulai')->get(),
             'tahunAktif' => TahunAjaran::aktif()->first(),
         ]);
@@ -157,7 +157,7 @@ class CalonSiswaController extends Controller implements HasMiddleware
     {
         return view('admin.calon-siswas.edit', [
             'calon' => $calonSiswa,
-            'jalurs' => JalurPendaftaran::where('aktif', true)->orderBy('nama_jalur')->get(),
+            'jalurs' => JalurPendaftaran::orderBy('nama_jalur')->get(),
             'tahunAjarans' => TahunAjaran::orderByDesc('tanggal_mulai')->get(),
         ]);
     }

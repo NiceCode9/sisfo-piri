@@ -590,6 +590,32 @@ test('hapus calon diterima menurunkan kedua kuota', function () {
         ->and((int) $after->terisi)->toBe(1);
 });
 
+test('admin tetap boleh memilih jalur non-aktif untuk mencatat pendaftar terlambat', function () {
+    $jalur = JalurPendaftaran::firstOrFail();
+    $jalur->update(['aktif' => false]);
+
+    $this->actingAs(superAdmin())->post(route('admin.calon-siswas.store'), [
+        'jalur_pendaftaran_id' => $jalur->id,
+        'nik' => '0001234567802100',
+        'nama_lengkap' => 'Walkin Late',
+        'jenis_kelamin' => 'L',
+        'tempat_lahir' => 'Ngaglik',
+        'tanggal_lahir' => '2010-01-01',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Walkin',
+    ])->assertSessionHasNoErrors();
+
+    $calon = CalonSiswa::where('nik', '0001234567802100')->first();
+
+    expect($calon)->not->toBeNull()
+        ->and($calon->jalur_pendaftaran_id)->toBe($jalur->id);
+
+    // Dropdown admin menandai jalur non-aktif supaya tidak salah pilih.
+    $this->actingAs(superAdmin())->get(route('admin.calon-siswas.edit', $calon))
+        ->assertOk()
+        ->assertSee('(non-aktif)');
+});
+
 test('label berkas memakai nama ramah, bukan nama kolom mentah', function () {
     $calon = CalonSiswa::create([
         'jalur_pendaftaran_id' => JalurPendaftaran::first()->id,
