@@ -7,6 +7,20 @@ use Illuminate\Database\Eloquent\Model;
 
 class CalonSiswa extends Model
 {
+    /**
+     * Daftar agama baku. Satu-satunya sumber nilai ini dipakai form publik,
+     * form admin, dan aturan validasi — supaya nilai yang masuk lewat form
+     * publik selalu cocok dengan pilihan di form admin.
+     */
+    public const AGAMA = [
+        'Islam',
+        'Kristen',
+        'Katolik',
+        'Hindu',
+        'Buddha',
+        'Khonghucu',
+    ];
+
     protected $fillable = [
         'jalur_pendaftaran_id',
         'user_id',

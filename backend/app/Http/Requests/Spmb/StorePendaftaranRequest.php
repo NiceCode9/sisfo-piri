@@ -3,9 +3,11 @@
 namespace App\Http\Requests\Spmb;
 
 use App\Http\Requests\Concerns\BersihkanSertifikatKosong;
+use App\Models\CalonSiswa;
 use App\Models\JalurPendaftaran;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StorePendaftaranRequest extends FormRequest
 {
@@ -34,7 +36,7 @@ class StorePendaftaranRequest extends FormRequest
             'nisn' => ['required', 'string', 'size:10', 'regex:/^[0-9]+$/', 'unique:calon_siswas,nisn', 'unique:users,username'],
             'tempat_lahir' => ['required', 'string', 'max:100'],
             'tanggal_lahir' => ['required', 'date', 'before:today'],
-            'agama' => ['required', 'string', 'max:50'],
+            'agama' => ['required', 'string', Rule::in(CalonSiswa::AGAMA)],
             'asal_sekolah' => ['required', 'string', 'max:255'],
             'alamat' => ['required', 'string', 'max:1000'],
             'no_hp' => ['required', 'string', 'max:20'],

@@ -3,8 +3,10 @@
 namespace App\Http\Requests\Admin;
 
 use App\Http\Requests\Concerns\BersihkanSertifikatKosong;
+use App\Models\CalonSiswa;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateCalonSiswaRequest extends FormRequest
 {
@@ -36,7 +38,7 @@ class UpdateCalonSiswaRequest extends FormRequest
             'jenis_kelamin' => ['required', 'in:L,P'],
             'tempat_lahir' => ['required', 'string', 'max:100'],
             'tanggal_lahir' => ['required', 'date', 'before:today'],
-            'agama' => ['required', 'string', 'in:Islam,Kristen,Katolik,Hindu,Buddha,Khonghucu'],
+            'agama' => ['required', 'string', Rule::in(CalonSiswa::AGAMA)],
             'alamat' => ['required', 'string', 'max:1000'],
             'no_hp' => ['nullable', 'string', 'max:20'],
             'email' => ['nullable', 'email', 'max:255', 'unique:calon_siswas,email,'.$id],

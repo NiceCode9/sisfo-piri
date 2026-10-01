@@ -274,6 +274,26 @@ test('halaman pendaftaran menampilkan peringatan ketika ditutup', function () {
         ->assertSee('Pendaftaran Belum Dibuka');
 });
 
+test('agama pada form publik memakai pilihan baku yang sama dengan admin', function () {
+    $html = $this->get(route('spmb.pendaftaran'))->assertOk()->getContent();
+
+    // Form publik harus menawarkan select, bukan free-text: nilai seperti
+    // "islam" kecil pernah gagal cocok saat admin mengedit kandidat.
+    foreach (CalonSiswa::AGAMA as $agama) {
+        expect($html)->toContain('>'.$agama.'</option>');
+    }
+
+    // Nilai di luar daftar baku ditolak, bukan disimpan bebas.
+    $this->post(route('spmb.store'), payloadSpmb([
+        'nik' => '1234567890124100',
+        'nisn' => '1234567410',
+        'email' => 'agama-free@example.com',
+        'agama' => 'islam',
+    ]))->assertSessionHasErrors('agama');
+
+    expect(CalonSiswa::where('nik', '1234567890124100')->exists())->toBeFalse();
+});
+
 test('halaman publik tidak lagi menjanjikan pembuatan akun terpisah', function () {
     $html = $this->get(route('spmb.home'))->assertOk()->getContent();
 

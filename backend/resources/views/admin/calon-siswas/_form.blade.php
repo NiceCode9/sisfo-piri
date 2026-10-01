@@ -96,7 +96,7 @@
         <label class="form-label" for="agama">Agama <span class="text-danger">*</span></label>
         <select name="agama" id="agama" class="form-select @error('agama') is-invalid @enderror" required>
             <option value="">— Pilih Agama —</option>
-            @foreach (['Islam','Kristen','Katolik','Hindu','Buddha','Khonghucu'] as $ag)
+            @foreach (\App\Models\CalonSiswa::AGAMA as $ag)
                 <option value="{{ $ag }}" @selected(old('agama', $calon->agama ?? '') === $ag)>{{ $ag }}</option>
             @endforeach
         </select>

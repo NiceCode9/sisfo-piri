@@ -103,7 +103,7 @@
         ['id' => 'nisn', 'label' => 'NISN', 'icon' => 'graduation-cap', 'type' => 'text', 'placeholder' => '10 digit NISN', 'maxlength' => 10],
         ['id' => 'tempat_lahir', 'label' => 'Tempat Lahir', 'icon' => 'location', 'type' => 'text', 'placeholder' => 'Kota tempat lahir'],
         ['id' => 'tanggal_lahir', 'label' => 'Tanggal Lahir', 'icon' => 'calendar', 'type' => 'date'],
-        ['id' => 'agama', 'label' => 'Agama', 'icon' => 'book-open', 'type' => 'text', 'placeholder' => 'Agama yang dianut'],
+        ['id' => 'agama', 'label' => 'Agama', 'icon' => 'book-open', 'type' => 'select', 'options' => array_combine(\App\Models\CalonSiswa::AGAMA, \App\Models\CalonSiswa::AGAMA), 'placeholder' => 'Pilih agama'],
         ['id' => 'asal_sekolah', 'label' => 'Asal Sekolah', 'icon' => 'graduation-cap', 'type' => 'text', 'placeholder' => 'Nama sekolah asal'],
         ['id' => 'alamat', 'label' => 'Alamat', 'icon' => 'home', 'type' => 'textarea', 'placeholder' => 'Alamat lengkap tempat tinggal', 'span' => 'md:col-span-2'],
         ['id' => 'no_hp', 'label' => 'No. HP Siswa', 'icon' => 'mobile', 'type' => 'tel', 'placeholder' => '08xxxxxxxxxx'],
