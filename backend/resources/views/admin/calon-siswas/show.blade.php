@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Nexus Admin — Detail Calon Siswa')
+@section('title', 'Nexus Admin Ã¢â‚¬â€ Detail Calon Siswa')
 @section('breadcrumb', 'Detail Calon Siswa')
 
 @push('styles')
@@ -1022,7 +1022,7 @@
                     <h1 class="page-title">
                         <i class="bi bi-person-badge me-3"></i>Detail Pendaftaran
                     </h1>
-                    <p class="page-subtitle">{{ $calon->nama_lengkap }} • {{ $calon->no_pendaftaran }}</p>
+                    <p class="page-subtitle">{{ $calon->nama_lengkap }} Ã¢â‚¬Â¢ {{ $calon->no_pendaftaran }}</p>
                 </div>
                 <div class="header-actions d-flex align-items-center gap-2 flex-wrap">
                     <span class="status-badge status-{{ $calon->status_pendaftaran }}">
@@ -1275,10 +1275,10 @@
                                     </label>
                                     <select class="form-select" id="status_pendaftaran" name="status" required>
                                         <option value="">Pilih keputusan...</option>
-                                        <option value="menunggu" @selected($calon->status_pendaftaran === 'menunggu')>⏳ Menunggu</option>
-                                        <option value="diterima" @selected($calon->status_pendaftaran === 'diterima')>✅ Diterima</option>
-                                        <option value="ditolak" @selected($calon->status_pendaftaran === 'ditolak')>❌ Ditolak</option>
-                                        <option value="daftar_ulang" @selected($calon->status_pendaftaran === 'daftar_ulang')>📝 Daftar Ulang</option>
+                                        <option value="menunggu" @selected($calon->status_pendaftaran === 'menunggu')>Ã¢ÂÂ³ Menunggu</option>
+                                        <option value="diterima" @selected($calon->status_pendaftaran === 'diterima')>Ã¢Å“â€¦ Diterima</option>
+                                        <option value="ditolak" @selected($calon->status_pendaftaran === 'ditolak')>Ã¢ÂÅ’ Ditolak</option>
+                                        <option value="daftar_ulang" @selected($calon->status_pendaftaran === 'daftar_ulang')>Ã°Å¸â€œÂ Daftar Ulang</option>
                                     </select>
                                 </div>
                                 <div class="col-12">
@@ -1302,8 +1302,8 @@
                     <div class="d-flex flex-column gap-2">
                         @forelse ($calon->logStatusPendaftaran->sortByDesc('created_at') as $log)
                             <div style="font-size: 12px; border-left: 3px solid #667eea; padding-left: 10px;">
-                                <div><strong>{{ $log->status_sebelumnya ?? '—' }} → {{ $log->status_baru }}</strong> • {{ $log->created_at->format('d M Y H:i') }}</div>
-                                <div style="color: #6c757d;">oleh {{ $log->user->name ?? 'sistem' }} @if ($log->catatan) — {{ $log->catatan }} @endif</div>
+                                <div><strong>{{ $log->status_sebelumnya ?? 'Ã¢â‚¬â€' }} Ã¢â€ â€™ {{ $log->status_baru }}</strong> Ã¢â‚¬Â¢ {{ $log->created_at->format('d M Y H:i') }}</div>
+                                <div style="color: #6c757d;">oleh {{ $log->user->name ?? 'sistem' }} @if ($log->catatan) Ã¢â‚¬â€ {{ $log->catatan }} @endif</div>
                             </div>
                         @empty
                             <span style="font-size: 12px; color: #6c757d;">Belum ada log.</span>
@@ -1358,7 +1358,7 @@
                         </div>
                         <div class="px-4 py-3" style="font-size: 12px; color: #6c757d; border-top: 1px solid #e9ecef;">
                             Verifikasi: {{ $b->status_verifikasi ? 'Terverifikasi' : 'Belum' }}
-                            @if ($b->alasan_penolakan) • Alasan: {{ $b->alasan_penolakan }} @endif
+                            @if ($b->alasan_penolakan) Ã¢â‚¬Â¢ Alasan: {{ $b->alasan_penolakan }} @endif
                         </div>
                     @else
                         <div class="empty-state">
@@ -1470,6 +1470,21 @@
                 </div>
             </div>
 
+            {{-- Calon yang sudah ditolak tidak boleh ditagih: seluruh aksi tambah
+                 pembayaran (dan pembayaran lainnya) disembunyikan. Controller juga
+                 menolak aksi ini bila request dikirim langsung. --}}
+            @php $bolehDitagih = $calon->status_pendaftaran !== 'ditolak'; @endphp
+
+            @unless ($bolehDitagih)
+                <div class="alert alert-warning d-flex align-items-center gap-2" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <div>
+                        <strong>Calon ditolak.</strong> Penagihan dinonaktifkan untuk calon ini.
+                        Tagihan yang masih <em>menunggu</em> otomatis dibatalkan saat status ditolak.
+                    </div>
+                </div>
+            @endunless
+
             <!-- Fee Details Card -->
             <div class="card modern-card">
                 <div class="card-header card-header-dark">
@@ -1477,11 +1492,11 @@
                         <h5 class="card-title">
                             <i class="bi bi-currency-dollar me-2"></i>Rincian Biaya
                         </h5>
-                        @can('pembayarans.create')
+                        @if (auth()->user()?->can('pembayarans.create') && $bolehDitagih)
                             <button type="button" class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#modalPembayaran">
                                 <i class="bi bi-plus-circle me-1"></i>Tambah
                             </button>
-                        @endcan
+                        @endif
                     </div>
                 </div>
                 <div class="card-body">
@@ -1551,16 +1566,16 @@
                                 </div>
                                 <div class="summary-amount">Rp {{ number_format($totalBelumBayar, 0, ',', '.') }}</div>
                                 <div class="summary-detail">
-                                    Total: Rp {{ number_format($totalBiaya, 0, ',', '.') }} •
+                                    Total: Rp {{ number_format($totalBiaya, 0, ',', '.') }} Ã¢â‚¬Â¢
                                     Terbayar: Rp {{ number_format($totalBayar, 0, ',', '.') }}
                                 </div>
                             </div>
                             @if ($totalBelumBayar > 0)
-                                @can('pembayarans.create')
+                                @if (auth()->user()?->can('pembayarans.create') && $bolehDitagih)
                                     <button type="button" class="btn btn-warning btn-lg" data-bs-toggle="modal" data-bs-target="#modalPembayaran">
                                         <i class="bi bi-credit-card me-2"></i>Bayar
                                     </button>
-                                @endcan
+                                @endif
                             @endif
                         </div>
                     </div>
@@ -1618,15 +1633,15 @@
                                                 </span>
                                             </div>
                                             <div class="installment-action">
-                                                @can('pembayarans.create')
+                                                @if (auth()->user()?->can('pembayarans.create') && $bolehDitagih)
                                                     @if ($angsuran->status !== 'dibayar' && $rencana->status === 'aktif')
                                                         <button type="button" class="btn btn-sm btn-primary"
-                                                            onclick="setCicilan('{{ $angsuran->id }}', '{{ $rencana->biaya_pendaftaran_id }}', '{{ $angsuran->nominal_cicilan + $angsuran->denda }}', 'Cicilan ke-{{ $angsuran->cicilan_ke }} — Rp {{ number_format($angsuran->nominal_cicilan + $angsuran->denda, 0, ',', '.') }}')"
+                                                            onclick="setCicilan('{{ $angsuran->id }}', '{{ $rencana->biaya_pendaftaran_id }}', '{{ $angsuran->nominal_cicilan + $angsuran->denda }}', 'Cicilan ke-{{ $angsuran->cicilan_ke }} Ã¢â‚¬â€ Rp {{ number_format($angsuran->nominal_cicilan + $angsuran->denda, 0, ',', '.') }}')"
                                                             data-bs-toggle="modal" data-bs-target="#modalBayarCicilan">
                                                             Bayar
                                                         </button>
                                                     @endif
-                                                @endcan
+                                                @endif
                                             </div>
                                         </div>
                                     @endforeach
@@ -1663,7 +1678,7 @@
                                         @endif
                                     </div>
                                     <div class="fee-action">
-                                        @can('pembayarans.create')
+                                        @if (auth()->user()?->can('pembayarans.create') && $bolehDitagih)
                                             @if (empty($biaya['rencana_aktif']))
                                                 <button type="button" class="btn btn-primary"
                                                     onclick="setBiayaId('{{ $biaya['id'] }}', '{{ $biaya['sisa'] }}', '{{ $biaya['mata_uang'] }}', '{{ $biaya['dapat_diangsur'] ? 1 : 0 }}')"
@@ -1678,7 +1693,7 @@
                                                     <i class="bi bi-calendar-range me-1"></i>Angsuran
                                                 </a>
                                             @endif
-                                        @endcan
+                                        @endif
                                     </div>
                                 </div>
                             @endforeach
@@ -1703,11 +1718,11 @@
                         <a href="{{ route('admin.pembayaran-lainnyas.index', ['search' => $calon->no_pendaftaran]) }}" class="btn btn-outline-light btn-sm">
                             <i class="bi bi-list-ul me-1"></i>Lihat Semua
                         </a>
-                        @can('pembayaran-lainnyas.create')
+                        @if (auth()->user()?->can('pembayaran-lainnyas.create') && $bolehDitagih)
                             <button type="button" class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#modalPembayaranLainnya">
                                 <i class="bi bi-plus-circle me-1"></i>Tambah
                             </button>
-                        @endcan
+                        @endif
                     </div>
                 </div>
                 <div class="card-body">
@@ -1728,7 +1743,7 @@
                                             <td>
                                                 @if($lain->bukti_pembayaran_path)
                                                     <a href="{{ route('dokumen.pembayaran-lainnya', $lain) }}" target="_blank" class="text-primary">Lihat</a>
-                                                @else — @endif
+                                                @else Ã¢â‚¬â€ @endif
                                             </td>
                                             <td>
                                                 <div class="d-flex gap-1">
@@ -1754,7 +1769,7 @@
             </div>
 
             <!-- Payment Modal -->
-            @can('pembayarans.create')
+            @if (auth()->user()?->can('pembayarans.create') && $bolehDitagih)
                 <div class="modal fade" id="modalPembayaran" tabindex="-1" aria-labelledby="modalPembayaranLabel" aria-hidden="true">
                     <div class="modal-dialog modal-lg">
                         <div class="modal-content">
@@ -1776,14 +1791,14 @@
                                         </label>
                                         @php $sisaMap = collect($biayaBelumLunas ?? [])->keyBy('id'); @endphp
                                         <select class="form-select" id="selected_biaya_id" name="biaya_pendaftaran_id" required>
-                                            <option value="">— Pilih Biaya (wajib & non-wajib) —</option>
+                                            <option value="">Ã¢â‚¬â€ Pilih Biaya (wajib & non-wajib) Ã¢â‚¬â€</option>
                                             @foreach ($calon->tahunAjaran->biayaPendaftaran as $biayaOpt)
                                                 @php $sisaOpt = $sisaMap[$biayaOpt->id]['sisa'] ?? $biayaOpt->jumlah; @endphp
                                                 <option value="{{ $biayaOpt->id }}"
                                                     data-dapat-diangsur="{{ $biayaOpt->dapat_diangsur ? 1 : 0 }}"
                                                     data-sisa="{{ $sisaOpt }}"
                                                     data-mata-uang="{{ $biayaOpt->mata_uang }}">
-                                                    {{ $biayaOpt->jenis_biaya }} — {{ $biayaOpt->wajib_bayar ? 'Wajib' : 'Opsional' }} — Sisa Rp {{ number_format($sisaOpt, 0, ',', '.') }}
+                                                    {{ $biayaOpt->jenis_biaya }} Ã¢â‚¬â€ {{ $biayaOpt->wajib_bayar ? 'Wajib' : 'Opsional' }} Ã¢â‚¬â€ Sisa Rp {{ number_format($sisaOpt, 0, ',', '.') }}
                                                 </option>
                                             @endforeach
                                         </select>
@@ -1864,10 +1879,10 @@
                         </div>
                     </div>
                 </div>
-            @endcan
+            @endif
 
             <!-- Modal Pembayaran Lainnya -->
-            @can('pembayaran-lainnyas.create')
+            @if (auth()->user()?->can('pembayaran-lainnyas.create') && $bolehDitagih)
                 <div class="modal fade" id="modalPembayaranLainnya" tabindex="-1" aria-labelledby="modalPembayaranLainnyaLabel" aria-hidden="true">
                     <div class="modal-dialog modal-lg">
                         <div class="modal-content">
@@ -1943,10 +1958,10 @@
                         </div>
                     </div>
                 </div>
-            @endcan
+            @endif
 
             <!-- Modal Bayar Cicilan (tetap di show calon, tanpa pindah halaman) -->
-            @can('pembayarans.create')
+            @if (auth()->user()?->can('pembayarans.create') && $bolehDitagih)
                 <div class="modal fade" id="modalBayarCicilan" tabindex="-1" aria-labelledby="modalBayarCicilanLabel" aria-hidden="true">
                     <div class="modal-dialog">
                         <div class="modal-content">
@@ -1996,7 +2011,7 @@
                         </div>
                     </div>
                 </div>
-            @endcan
+            @endif
         </div>
     </div>
 @endsection
@@ -2090,7 +2105,7 @@
                 statusForm.addEventListener('submit', function(e) {
                     e.preventDefault();
                     const status = document.getElementById('status_pendaftaran').value;
-                    const studentName = document.querySelector('.page-subtitle').textContent.split(' • ')[0];
+                    const studentName = document.querySelector('.page-subtitle').textContent.split(' Ã¢â‚¬Â¢ ')[0];
                     const confirmMessage = status === 'diterima'
                         ? `Apakah Anda yakin ingin MENERIMA ${studentName}?`
                         : `Apakah Anda yakin ingin mengubah status ${studentName} menjadi ${status}?`;

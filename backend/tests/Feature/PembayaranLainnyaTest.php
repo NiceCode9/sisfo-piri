@@ -53,6 +53,21 @@ if (! function_exists('buatCalon')) {
     }
 }
 
+test('calon ditolak tidak dapat ditagih pembayaran lainnya', function () {
+    $calon = buatCalon(['status_pendaftaran' => 'ditolak']);
+
+    $this->actingAs(superAdmin())
+        ->post(route('admin.pembayaran-lainnyas.store'), [
+            'calon_siswa_id' => $calon->id,
+            'nama_biaya' => 'Seragam',
+            'jumlah' => 150000,
+            'metode_pembayaran' => 'tunai',
+        ])
+        ->assertSessionHas('error');
+
+    expect($calon->pembayaranLainnya()->count())->toBe(0);
+});
+
 test('tamu tidak dapat membuka daftar pembayaran lainnya', function () {
     $this->get(route('admin.pembayaran-lainnyas.index'))->assertRedirect(route('login'));
 });

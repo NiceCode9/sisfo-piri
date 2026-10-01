@@ -159,6 +159,15 @@ class PembayaranController extends Controller implements HasMiddleware
     {
         $validated = $request->validated();
 
+        $calon = CalonSiswa::findOrFail($validated['calon_siswa_id']);
+
+        // Menagih pendaftar yang sudah ditolak hanya menghasilkan uang yang
+        // tidak berhak masuk. Status `menunggu`/`diterima`/`daftar_ulang` tetap
+        // boleh ditagih karena biaya bisa dipungut sebelum pengumuman hasil.
+        if ($calon->status_pendaftaran === 'ditolak') {
+            return back()->with('error', 'Calon siswa ini berstatus ditolak sehingga tidak dapat ditagih pembayaran.')->withInput();
+        }
+
         // Validasi tautan cicilan: milik calon yang sama dan belum dibayar
         if (! empty($validated['detail_angsuran_id'])) {
             $detail = DetailAngsuran::with('rencanaAngsuran')->findOrFail($validated['detail_angsuran_id']);
@@ -212,6 +221,12 @@ class PembayaranController extends Controller implements HasMiddleware
      */
     protected function storeDenganAngsuran(StorePembayaranRequest $request, array $validated): RedirectResponse
     {
+        $calon = CalonSiswa::findOrFail($validated['calon_siswa_id']);
+
+        if ($calon->status_pendaftaran === 'ditolak') {
+            return back()->with('error', 'Calon siswa ini berstatus ditolak sehingga tidak dapat ditagih pembayaran.')->withInput();
+        }
+
         $biaya = BiayaPendaftaran::find($validated['biaya_pendaftaran_id'] ?? null);
 
         if (! $biaya || ! $biaya->dapat_diangsur) {
@@ -462,12 +477,13 @@ class PembayaranController extends Controller implements HasMiddleware
     }
 
     /**
-     * Calon dengan sisa tagihan (semua status, kecuali yang
-     * total berhasilnya sudah menutup semua biaya wajib).
+     * Calon dengan sisa tagihan (semua status kecuali yang sudah ditolak, dan
+     * kecuali yang total berhasilnya sudah menutup semua biaya wajib).
      */
     protected function calonBelumLunas()
     {
         $calons = CalonSiswa::belumLunas()
+            ->where('status_pendaftaran', '!=', 'ditolak')
             ->with(['jalurPendaftaran', 'tahunAjaran.biayaPendaftaran', 'pembayaran', 'rencanaAngsuran.detailAngsuran'])
             ->orderByDesc('created_at')
             ->limit(100)

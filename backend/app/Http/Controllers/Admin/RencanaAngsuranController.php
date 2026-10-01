@@ -37,6 +37,10 @@ class RencanaAngsuranController extends Controller implements HasMiddleware
             return back()->with('error', 'Biaya ini tidak dapat diangsur.')->withInput();
         }
 
+        if ($pembayaran->calonSiswa?->status_pendaftaran === 'ditolak') {
+            return back()->with('error', 'Calon siswa ini berstatus ditolak sehingga tidak dapat ditagih pembayaran.')->withInput();
+        }
+
         if ($pembayaran->status !== 'menunggu') {
             return back()->with('error', 'Hanya tagihan menunggu yang dapat dijadikan angsuran.')->withInput();
         }

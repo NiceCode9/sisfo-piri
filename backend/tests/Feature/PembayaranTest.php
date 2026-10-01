@@ -56,6 +56,91 @@ if (! function_exists('buatCalon')) {
     }
 }
 
+test('calon ditolak tidak dapat ditagih pembayaran manual', function () {
+    $calon = buatCalon(['status_pendaftaran' => 'ditolak']);
+
+    $this->actingAs(superAdmin())
+        ->post(route('admin.pembayarans.store'), [
+            'calon_siswa_id' => $calon->id,
+            'jumlah' => 100000,
+            'metode_pembayaran' => 'tunai',
+        ])
+        ->assertSessionHas('error');
+
+    expect($calon->pembayaran()->count())->toBe(0);
+});
+
+test('calon ditolak tidak dapat ditagih lewat alur angsuran', function () {
+    $calon = buatCalon(['status_pendaftaran' => 'ditolak']);
+    $biaya = BiayaPendaftaran::where('dapat_diangsur', true)->firstOrFail();
+
+    $this->actingAs(superAdmin())
+        ->post(route('admin.pembayarans.store'), [
+            'calon_siswa_id' => $calon->id,
+            'biaya_pendaftaran_id' => $biaya->id,
+            'jumlah' => 300000,
+            'metode_pembayaran' => 'tunai',
+            'buat_angsuran' => 1,
+            'dp_dibayar' => 100000,
+            'jumlah_cicilan' => 3,
+            'tanggal_mulai' => now()->toDateString(),
+        ])
+        ->assertSessionHas('error');
+
+    expect($calon->pembayaran()->count())->toBe(0)
+        ->and(RencanaAngsuran::where('calon_siswa_id', $calon->id)->count())->toBe(0);
+});
+
+test('calon ditolak tidak dapat dibuatkan rencana angsuran dari tagihan lama', function () {
+    $calon = buatCalon();
+    $biaya = BiayaPendaftaran::where('dapat_diangsur', true)->firstOrFail();
+    $pembayaran = Pembayaran::create([
+        'calon_siswa_id' => $calon->id,
+        'biaya_pendaftaran_id' => $biaya->id,
+        'kode_pembayaran' => 'PAY-2026-2001',
+        'jumlah' => 300000,
+        'metode_pembayaran' => 'transfer',
+        'jenis_pembayaran' => 'penuh',
+        'status' => 'menunggu',
+    ]);
+
+    $calon->update(['status_pendaftaran' => 'ditolak']);
+
+    $this->actingAs(superAdmin())
+        ->post(route('admin.rencana.store', $pembayaran), [
+            'dp_dibayar' => 100000,
+            'jumlah_cicilan' => 3,
+            'tanggal_mulai' => now()->toDateString(),
+        ])
+        ->assertSessionHas('error');
+
+    expect(RencanaAngsuran::where('calon_siswa_id', $calon->id)->count())->toBe(0);
+});
+
+test('calon ditolak disembunyikan dari pilihan calon pada form tambah pembayaran', function () {
+    $ditolak = buatCalon(['status_pendaftaran' => 'ditolak', 'nama_lengkap' => 'Calon Ditolak Ganti']);
+    $menunggu = buatCalon(['nama_lengkap' => 'Calon Menunggu Ganti']);
+
+    $html = $this->actingAs(superAdmin())->get(route('admin.pembayarans.create'))->assertOk()->getContent();
+
+    expect($html)->toContain('Calon Menunggu Ganti')
+        ->not->toContain('Calon Ditolak Ganti');
+});
+
+test('calon menunggu tetap boleh ditagih', function () {
+    $calon = buatCalon(['status_pendaftaran' => 'menunggu']);
+
+    $this->actingAs(superAdmin())
+        ->post(route('admin.pembayarans.store'), [
+            'calon_siswa_id' => $calon->id,
+            'jumlah' => 100000,
+            'metode_pembayaran' => 'tunai',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($calon->pembayaran()->count())->toBe(1);
+});
+
 test('tamu tidak dapat membuka daftar pembayaran', function () {
     $this->get(route('admin.pembayarans.index'))->assertRedirect(route('login'));
 });

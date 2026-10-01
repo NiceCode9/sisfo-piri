@@ -445,6 +445,31 @@ test('calon menunggu boleh diganti jalurnya', function () {
     expect($calon->fresh()->jalur_pendaftaran_id)->toBe($jalurBaru->id);
 });
 
+test('halaman show menonaktifkan penagihan untuk calon ditolak', function () {
+    $ditolak = CalonSiswa::create([
+        'jalur_pendaftaran_id' => JalurPendaftaran::first()->id,
+        'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
+        'no_pendaftaran' => 'PPDB-2026-1600',
+        'nik' => '0001234567801600',
+        'nama_lengkap' => 'Ditolak Tanpa Tagih',
+        'jenis_kelamin' => 'L',
+        'tempat_lahir' => 'Ngaglik',
+        'tanggal_lahir' => '2010-01-01',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Ditolak',
+        'status_pendaftaran' => 'ditolak',
+    ]);
+
+    $html = $this->actingAs(superAdmin())
+        ->get(route('admin.calon-siswas.show', $ditolak))
+        ->assertOk()
+        ->getContent();
+
+    // Ada penjelasan, dan tombol tambah pembayaran tidak dirender.
+    expect($html)->toContain('Penagihan dinonaktifkan')
+        ->and($html)->not->toContain('data-bs-target="#modalPembayaran"');
+});
+
 test('calon yang sudah jadi siswa tidak dapat dihapus dari halaman PPDB', function () {
     $jalur = JalurPendaftaran::first();
     $user = User::factory()->create();

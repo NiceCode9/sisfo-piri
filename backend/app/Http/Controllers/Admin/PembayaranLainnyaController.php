@@ -87,6 +87,10 @@ class PembayaranLainnyaController extends Controller implements HasMiddleware
     {
         $validated = $request->validated();
 
+        if (CalonSiswa::findOrFail($validated['calon_siswa_id'])->status_pendaftaran === 'ditolak') {
+            return back()->with('error', 'Calon siswa ini berstatus ditolak sehingga tidak dapat ditagih pembayaran.')->withInput();
+        }
+
         $validated['kode_pembayaran'] = Penomor::placeholder('LNN');
         // Input admin selalu langsung berhasil (bukti wajib untuk transfer).
         $validated['status'] = 'berhasil';
