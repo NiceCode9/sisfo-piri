@@ -14,7 +14,16 @@ class KuotaPendaftaran extends Model
         'jalur_pendaftaran_id',
         'kuota',
         'terisi',
-        'keterangan'
+        'kuota_pendaftaran',
+        'terisi_pendaftaran',
+        'keterangan',
+    ];
+
+    protected $casts = [
+        'kuota' => 'integer',
+        'terisi' => 'integer',
+        'kuota_pendaftaran' => 'integer',
+        'terisi_pendaftaran' => 'integer',
     ];
 
     public function tahunAjaran()
@@ -25,5 +34,33 @@ class KuotaPendaftaran extends Model
     public function jalurPendaftaran()
     {
         return $this->belongsTo(JalurPendaftaran::class, 'jalur_pendaftaran_id');
+    }
+
+    /**
+     * Kuota pendaftaran penuh? `kuota_pendaftaran` NULL berarti tidak dibatasi.
+     */
+    public function pendaftaranPenuh(): bool
+    {
+        return $this->kuota_pendaftaran !== null
+            && $this->terisi_pendaftaran >= $this->kuota_pendaftaran;
+    }
+
+    /**
+     * Kuota penerimaan penuh?
+     */
+    public function penerimaanPenuh(): bool
+    {
+        return $this->terisi >= $this->kuota;
+    }
+
+    /**
+     * Ambil baris kuota terkunci untuk satu jalur pada tahun ajaran tertentu.
+     */
+    public static function kunci(int $tahunAjaranId, int $jalurPendaftaranId): ?self
+    {
+        return self::where('tahun_ajaran_id', $tahunAjaranId)
+            ->where('jalur_pendaftaran_id', $jalurPendaftaranId)
+            ->lockForUpdate()
+            ->first();
     }
 }

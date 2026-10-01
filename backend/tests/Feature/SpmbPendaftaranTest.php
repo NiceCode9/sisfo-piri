@@ -80,6 +80,112 @@ test('halaman publik tidak punya tautan mati dan CTA mengarah ke tujuan yang ben
         ->assertSee(route('spmb.pendaftaran'), escape: false);
 });
 
+test('pendaftaran publik menambah kuota pendaftaran, bukan kuota penerimaan', function () {
+    $tahun = TahunAjaran::aktif()->first();
+    $jalur = JalurPendaftaran::first();
+    $kuota = KuotaPendaftaran::where('tahun_ajaran_id', $tahun->id)->where('jalur_pendaftaran_id', $jalur->id)->firstOrFail();
+    $kuota->update(['kuota' => 10, 'terisi' => 0, 'kuota_pendaftaran' => 5, 'terisi_pendaftaran' => 0]);
+
+    $this->post(route('spmb.store'), [
+        'jalur_pendaftaran_id' => $jalur->id,
+        'nama_lengkap' => 'Penghitung Kuota',
+        'jenis_kelamin' => 'L',
+        'nik' => '1234567890123500',
+        'nisn' => '1234567350',
+        'tempat_lahir' => 'Sleman',
+        'tanggal_lahir' => '2010-05-10',
+        'agama' => 'Islam',
+        'asal_sekolah' => 'SMP 1',
+        'alamat' => 'Jl Kuota 1',
+        'no_hp' => '081234567890',
+        'email' => 'kuota@example.com',
+        'nama_ayah' => 'Ayah',
+        'pekerjaan_ayah' => 'Petani',
+        'nama_ibu' => 'Ibu',
+        'pekerjaan_ibu' => 'IRT',
+        'no_hp_orang_tua' => '081234567891',
+        'ijazah_path' => UploadedFile::fake()->create('ijazah.pdf', 100, 'application/pdf'),
+        'kk_path' => UploadedFile::fake()->create('kk.pdf', 100, 'application/pdf'),
+        'akta_path' => UploadedFile::fake()->create('akta.pdf', 100, 'application/pdf'),
+        'foto_path' => UploadedFile::fake()->image('foto.jpg'),
+        'skl_path' => UploadedFile::fake()->create('skl.pdf', 100, 'application/pdf'),
+    ])->assertSessionHasNoErrors();
+
+    expect($kuota->fresh())
+        ->terisi_pendaftaran->toBe(1)
+        // Kuota penerimaan tidak boleh tersentuh oleh pendaftaran.
+        ->terisi->toBe(0);
+});
+
+test('pendaftaran tetap boleh masuk saat kuota penerimaan penuh tapi kuota pendaftaran tersedia', function () {
+    $tahun = TahunAjaran::aktif()->first();
+    $jalur = JalurPendaftaran::first();
+    $kuota = KuotaPendaftaran::where('tahun_ajaran_id', $tahun->id)->where('jalur_pendaftaran_id', $jalur->id)->firstOrFail();
+    // Penerimaan sudah penuh, pendaftaran masih longgar.
+    $kuota->update(['kuota' => 2, 'terisi' => 2, 'kuota_pendaftaran' => 100, 'terisi_pendaftaran' => 1]);
+
+    $this->post(route('spmb.store'), [
+        'jalur_pendaftaran_id' => $jalur->id,
+        'nama_lengkap' => 'Penerimaan Penuh',
+        'jenis_kelamin' => 'P',
+        'nik' => '1234567890123600',
+        'nisn' => '1234567360',
+        'tempat_lahir' => 'Sleman',
+        'tanggal_lahir' => '2010-05-10',
+        'agama' => 'Islam',
+        'asal_sekolah' => 'SMP 1',
+        'alamat' => 'Jl Kuota 2',
+        'no_hp' => '081234567890',
+        'email' => 'penuh-kuota@example.com',
+        'nama_ayah' => 'Ayah',
+        'pekerjaan_ayah' => 'Petani',
+        'nama_ibu' => 'Ibu',
+        'pekerjaan_ibu' => 'IRT',
+        'no_hp_orang_tua' => '081234567891',
+        'ijazah_path' => UploadedFile::fake()->create('ijazah.pdf', 100, 'application/pdf'),
+        'kk_path' => UploadedFile::fake()->create('kk.pdf', 100, 'application/pdf'),
+        'akta_path' => UploadedFile::fake()->create('akta.pdf', 100, 'application/pdf'),
+        'foto_path' => UploadedFile::fake()->image('foto.jpg'),
+        'skl_path' => UploadedFile::fake()->create('skl.pdf', 100, 'application/pdf'),
+    ])->assertSessionHasNoErrors();
+
+    expect($kuota->fresh())->terisi_pendaftaran->toBe(2);
+});
+
+test('kuota pendaftaran kosong berarti pendaftaran tidak dibatasi', function () {
+    $tahun = TahunAjaran::aktif()->first();
+    $jalur = JalurPendaftaran::first();
+    $kuota = KuotaPendaftaran::where('tahun_ajaran_id', $tahun->id)->where('jalur_pendaftaran_id', $jalur->id)->firstOrFail();
+    $kuota->update(['kuota' => 1, 'terisi' => 1, 'kuota_pendaftaran' => null, 'terisi_pendaftaran' => 99]);
+
+    $this->post(route('spmb.store'), [
+        'jalur_pendaftaran_id' => $jalur->id,
+        'nama_lengkap' => 'Tanpa Batas',
+        'jenis_kelamin' => 'L',
+        'nik' => '1234567890123700',
+        'nisn' => '1234567370',
+        'tempat_lahir' => 'Sleman',
+        'tanggal_lahir' => '2010-05-10',
+        'agama' => 'Islam',
+        'asal_sekolah' => 'SMP 1',
+        'alamat' => 'Jl Tanpa Batas',
+        'no_hp' => '081234567890',
+        'email' => 'tanpa-batas@example.com',
+        'nama_ayah' => 'Ayah',
+        'pekerjaan_ayah' => 'Petani',
+        'nama_ibu' => 'Ibu',
+        'pekerjaan_ibu' => 'IRT',
+        'no_hp_orang_tua' => '081234567891',
+        'ijazah_path' => UploadedFile::fake()->create('ijazah.pdf', 100, 'application/pdf'),
+        'kk_path' => UploadedFile::fake()->create('kk.pdf', 100, 'application/pdf'),
+        'akta_path' => UploadedFile::fake()->create('akta.pdf', 100, 'application/pdf'),
+        'foto_path' => UploadedFile::fake()->image('foto.jpg'),
+        'skl_path' => UploadedFile::fake()->create('skl.pdf', 100, 'application/pdf'),
+    ])->assertSessionHasNoErrors();
+
+    expect($kuota->fresh()->terisi_pendaftaran)->toBe(100);
+});
+
 test('timeline pendaftaran memakai data JadwalPpdb dari database', function () {
     $this->get(route('spmb.pendaftaran'))
         ->assertOk()
@@ -234,7 +340,7 @@ test('kuota penuh ditolak di pendaftaran publik', function () {
     $tahun = TahunAjaran::aktif()->first();
     $jalur = JalurPendaftaran::first();
     $kuota = KuotaPendaftaran::where('tahun_ajaran_id', $tahun->id)->where('jalur_pendaftaran_id', $jalur->id)->first();
-    $kuota->update(['kuota' => 1, 'terisi' => 1]);
+    $kuota->update(['kuota_pendaftaran' => 1, 'terisi_pendaftaran' => 1]);
 
     $response = $this->post(route('spmb.store'), [
         'jalur_pendaftaran_id' => $jalur->id,

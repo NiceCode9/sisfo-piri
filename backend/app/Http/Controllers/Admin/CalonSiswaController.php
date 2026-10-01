@@ -98,19 +98,17 @@ class CalonSiswaController extends Controller implements HasMiddleware
         $berkasUploads = collect($validated)->only($berkasFields)->filter()->toArray();
         $sertifikatUploads = $request->file('sertifikat', []);
 
-        // Kuota check with lock before create
+        // Gate kuota pendaftaran (batas jumlah pendaftar), bukan kuota penerimaan.
         try {
             DB::transaction(function () use ($calonData, $berkasUploads, $sertifikatUploads, $request) {
-                $kuota = KuotaPendaftaran::where('tahun_ajaran_id', $calonData['tahun_ajaran_id'])
-                    ->where('jalur_pendaftaran_id', $calonData['jalur_pendaftaran_id'])
-                    ->lockForUpdate()
-                    ->first();
+                $kuota = KuotaPendaftaran::kunci((int) $calonData['tahun_ajaran_id'], (int) $calonData['jalur_pendaftaran_id']);
 
-                if ($kuota && $kuota->terisi >= $kuota->kuota) {
-                    throw new \RuntimeException('Kuota jalur ini sudah penuh.');
+                if ($kuota?->pendaftaranPenuh()) {
+                    throw new \RuntimeException('Kuota pendaftaran untuk jalur ini sudah penuh.');
                 }
 
                 $calon = CalonSiswa::create($calonData);
+                $kuota?->increment('terisi_pendaftaran');
 
                 if (! empty($berkasUploads)) {
                     $berkasData = [];
@@ -243,15 +241,12 @@ class CalonSiswaController extends Controller implements HasMiddleware
         try {
             DB::transaction(function () use ($calonSiswa, $oldStatus, $newStatus, $request) {
                 // Lock kuota row for this jalur/tahun
-                $kuota = KuotaPendaftaran::where('tahun_ajaran_id', $calonSiswa->tahun_ajaran_id)
-                    ->where('jalur_pendaftaran_id', $calonSiswa->jalur_pendaftaran_id)
-                    ->lockForUpdate()
-                    ->first();
+                $kuota = KuotaPendaftaran::kunci((int) $calonSiswa->tahun_ajaran_id, (int) $calonSiswa->jalur_pendaftaran_id);
 
                 if ($kuota) {
                     if ($oldStatus !== 'diterima' && $newStatus === 'diterima') {
-                        if ($kuota->terisi >= $kuota->kuota) {
-                            throw new \RuntimeException('Kuota jalur ini sudah penuh, tidak dapat menerima.');
+                        if ($kuota->penerimaanPenuh()) {
+                            throw new \RuntimeException('Kuota penerimaan jalur ini sudah penuh, tidak dapat menerima.');
                         }
                         $kuota->increment('terisi');
                     } elseif ($oldStatus === 'diterima' && $newStatus !== 'diterima') {
@@ -456,14 +451,16 @@ class CalonSiswaController extends Controller implements HasMiddleware
         $calonSiswa->pembayaranLainnya->each(fn ($lain) => $berkasFiles->hapus($lain->bukti_pembayaran_path));
 
         DB::transaction(function () use ($calonSiswa) {
-            if ($calonSiswa->status_pendaftaran === 'diterima') {
-                $kuota = KuotaPendaftaran::where('tahun_ajaran_id', $calonSiswa->tahun_ajaran_id)
-                    ->where('jalur_pendaftaran_id', $calonSiswa->jalur_pendaftaran_id)
-                    ->lockForUpdate()
-                    ->first();
-                if ($kuota && $kuota->terisi > 0) {
-                    $kuota->decrement('terisi');
-                }
+            $kuota = KuotaPendaftaran::kunci((int) $calonSiswa->tahun_ajaran_id, (int) $calonSiswa->jalur_pendaftaran_id);
+
+            // Pendaftar dihapus => tidak lagi dihitung pada kuota pendaftaran.
+            if ($kuota && $kuota->terisi_pendaftaran > 0) {
+                $kuota->decrement('terisi_pendaftaran');
+            }
+
+            // Kuota penerimaan hanya berkurang bila ia memang pernah diterima.
+            if ($kuota && $calonSiswa->status_pendaftaran === 'diterima' && $kuota->terisi > 0) {
+                $kuota->decrement('terisi');
             }
 
             $calonSiswa->delete();

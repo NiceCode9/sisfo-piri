@@ -90,13 +90,11 @@ class SpmbController extends Controller
 
         try {
             $calon = DB::transaction(function () use ($validated, $tahunAjaranAktif, $request, &$passwordPlain, &$newUser) {
-                $kuota = KuotaPendaftaran::where('tahun_ajaran_id', $tahunAjaranAktif->id)
-                    ->where('jalur_pendaftaran_id', $validated['jalur_pendaftaran_id'])
-                    ->lockForUpdate()
-                    ->first();
+                // Kuota pendaftaran (batas jumlah pendaftar), bukan kuota penerimaan.
+                $kuota = KuotaPendaftaran::kunci($tahunAjaranAktif->id, (int) $validated['jalur_pendaftaran_id']);
 
-                if ($kuota && $kuota->terisi >= $kuota->kuota) {
-                    throw new \RuntimeException('Kuota untuk jalur ini sudah penuh.');
+                if ($kuota?->pendaftaranPenuh()) {
+                    throw new \RuntimeException('Kuota pendaftaran untuk jalur ini sudah penuh.');
                 }
 
                 $passwordPlain = Str::random(8);
@@ -158,6 +156,10 @@ class SpmbController extends Controller
                 ]);
 
                 Penomor::calon($calon);
+
+                // Pendaftar sah masuk, jadi kuotanya bertambah. Baris sudah dikunci
+                // di atas sehingga langkah ini aman dari pendaftaran bersamaan.
+                $kuota?->increment('terisi_pendaftaran');
 
                 return $calon;
             });

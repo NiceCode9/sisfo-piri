@@ -36,13 +36,23 @@
     <div class="card-body-nexus p-0">
         <div class="table-responsive">
             <table class="table-nexus w-100">
-                <thead><tr><th>Tahun Ajaran</th><th>Jalur</th><th>Terisi / Kuota</th><th>Progress</th><th>Aksi</th></tr></thead>
+                <thead><tr><th>Tahun Ajaran</th><th>Jalur</th><th>Daftar</th><th>Diterima / Kuota</th><th>Progress</th><th>Aksi</th></tr></thead>
                 <tbody>
                     @forelse($kuotas as $k)
-                        @php $pct = $k->kuota > 0 ? round($k->terisi / $k->kuota * 100) : 0; @endphp
+                        @php
+                            $pct = $k->kuota > 0 ? round($k->terisi / $k->kuota * 100) : 0;
+                            $pctDaftar = $k->kuota_pendaftaran ? round($k->terisi_pendaftaran / $k->kuota_pendaftaran * 100) : null;
+                        @endphp
                         <tr>
                             <td><span class="badge-nexus badge-info">{{ $k->tahunAjaran->nama_tahun_ajaran ?? '-' }}</span></td>
                             <td style="font-weight:600;font-size:13px;">{{ $k->jalurPendaftaran->nama_jalur ?? '-' }}</td>
+                            <td style="font-size:13px;">
+                                @if ($k->kuota_pendaftaran)
+                                    {{ $k->terisi_pendaftaran }}/{{ $k->kuota_pendaftaran }} ({{ $pctDaftar }}%)
+                                @else
+                                    <span class="text-muted">{{ $k->terisi_pendaftaran }}/∞</span>
+                                @endif
+                            </td>
                             <td style="font-size:13px;">{{ $k->terisi }}/{{ $k->kuota }} ({{ $pct }}%)</td>
                             <td style="min-width:140px;"><div class="progress-nexus"><div class="progress-fill" style="width:{{ min($pct, 100) }}%"></div></div></td>
                             <td>
@@ -53,7 +63,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="5" class="text-center py-4" style="color:var(--text-muted);">Belum ada kuota pendaftaran.</td></tr>
+                        <tr><td colspan="6" class="text-center py-4" style="color:var(--text-muted);">Belum ada kuota pendaftaran.</td></tr>
                     @endforelse
                 </tbody>
             </table>

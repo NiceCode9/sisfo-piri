@@ -19,6 +19,7 @@ use Database\Seeders\PermissionSeeder;
 use Database\Seeders\PpdbSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
@@ -528,6 +529,67 @@ test('hapus calon juga menghapus bukti pembayaran induk yang sebelumnya tertingg
         ->and(PembayaranLainnya::where('id', $lain->id)->exists())->toBeFalse();
 });
 
+test('hapus calon menunggu hanya menurunkan kuota pendaftaran', function () {
+    $tahun = TahunAjaran::aktif()->first();
+    $jalur = JalurPendaftaran::first();
+    $kuotaId = KuotaPendaftaran::where('tahun_ajaran_id', $tahun->id)->where('jalur_pendaftaran_id', $jalur->id)->value('id');
+    DB::table('kuota_pendaftarans')->where('id', $kuotaId)->update([
+        'kuota' => 5, 'terisi' => 2, 'kuota_pendaftaran' => 10, 'terisi_pendaftaran' => 3,
+    ]);
+
+    $calon = CalonSiswa::create([
+        'jalur_pendaftaran_id' => $jalur->id,
+        'tahun_ajaran_id' => $tahun->id,
+        'no_pendaftaran' => 'PPDB-2026-1800',
+        'nik' => '0001234567801800',
+        'nama_lengkap' => 'Penghitung Decrease',
+        'jenis_kelamin' => 'L',
+        'tempat_lahir' => 'Ngaglik',
+        'tanggal_lahir' => '2010-01-01',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Decrease',
+        'status_pendaftaran' => 'menunggu',
+    ]);
+
+    $this->actingAs(superAdmin())->delete(route('admin.calon-siswas.destroy', $calon))->assertRedirect();
+
+    $after = DB::table('kuota_pendaftarans')->where('id', $kuotaId)->first();
+
+    // Belum pernah diterima => hanya kuota pendaftaran yang turun.
+    expect((int) $after->terisi_pendaftaran)->toBe(2)
+        ->and((int) $after->terisi)->toBe(2);
+});
+
+test('hapus calon diterima menurunkan kedua kuota', function () {
+    $tahun = TahunAjaran::aktif()->first();
+    $jalur = JalurPendaftaran::first();
+    $kuotaId = KuotaPendaftaran::where('tahun_ajaran_id', $tahun->id)->where('jalur_pendaftaran_id', $jalur->id)->value('id');
+    DB::table('kuota_pendaftarans')->where('id', $kuotaId)->update([
+        'kuota' => 5, 'terisi' => 2, 'kuota_pendaftaran' => 10, 'terisi_pendaftaran' => 3,
+    ]);
+
+    $calon = CalonSiswa::create([
+        'jalur_pendaftaran_id' => $jalur->id,
+        'tahun_ajaran_id' => $tahun->id,
+        'no_pendaftaran' => 'PPDB-2026-1801',
+        'nik' => '0001234567801801',
+        'nama_lengkap' => 'Sudah Diterima',
+        'jenis_kelamin' => 'L',
+        'tempat_lahir' => 'Ngaglik',
+        'tanggal_lahir' => '2010-01-01',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Diterima',
+        'status_pendaftaran' => 'diterima',
+    ]);
+
+    $this->actingAs(superAdmin())->delete(route('admin.calon-siswas.destroy', $calon))->assertRedirect();
+
+    $after = DB::table('kuota_pendaftarans')->where('id', $kuotaId)->first();
+
+    expect((int) $after->terisi_pendaftaran)->toBe(2)
+        ->and((int) $after->terisi)->toBe(1);
+});
+
 test('calon yang sudah jadi siswa tidak dapat dihapus dari halaman PPDB', function () {
     $jalur = JalurPendaftaran::first();
     $user = User::factory()->create();
@@ -714,7 +776,7 @@ test('kuota penuh ditolak saat tambah calon', function () {
     $tahun = TahunAjaran::aktif()->first();
     $jalur = JalurPendaftaran::first();
     $kuota = KuotaPendaftaran::where('tahun_ajaran_id', $tahun->id)->where('jalur_pendaftaran_id', $jalur->id)->first();
-    $kuota->update(['kuota' => 1, 'terisi' => 1]);
+    $kuota->update(['kuota_pendaftaran' => 1, 'terisi_pendaftaran' => 1]);
 
     $response = $this->actingAs(superAdmin())->post(route('admin.calon-siswas.store'), [
         'jalur_pendaftaran_id' => $jalur->id,
