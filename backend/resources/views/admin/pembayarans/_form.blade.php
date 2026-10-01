@@ -129,7 +129,7 @@
     <div class="col-12 col-sm-6">
         <label class="form-label" for="bukti_pembayaran_path">Bukti Pembayaran</label>
         @if (!empty($pembayaran->bukti_pembayaran_path ?? null))
-            <div style="font-size:11px;">Saat ini: <a href="{{ Storage::disk('public')->url($pembayaran->bukti_pembayaran_path) }}" target="_blank" class="text-primary">Lihat</a></div>
+            <div style="font-size:11px;">Saat ini: <a href="{{ route('dokumen.pembayaran', $pembayaran) }}" target="_blank" class="text-primary">Lihat</a></div>
         @endif
         <input type="file" name="bukti_pembayaran_path" id="bukti_pembayaran_path" accept=".pdf,.jpg,.jpeg,.png" class="form-control @error('bukti_pembayaran_path') is-invalid @enderror" />
         @error('bukti_pembayaran_path')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror

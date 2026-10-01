@@ -18,7 +18,6 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
@@ -178,8 +177,10 @@ class SiswaController extends Controller implements HasMiddleware
             $siswa->update(['qr_token' => Str::random(32)]);
         }
 
+        // Foto diambil dari berkas PPDB yang privat, jadi diservis lewat route
+        // terotorisasi (admin sudah lewat middleware permission di route).
         $foto = $siswa->calonSiswa?->berkasCalonSiswa?->foto_path
-            ? Storage::disk('public')->url($siswa->calonSiswa->berkasCalonSiswa->foto_path)
+            ? route('dokumen.berkas', [$siswa->calonSiswa->berkasCalonSiswa, 'foto_path'])
             : null;
 
         $siswaList = collect([(object) [

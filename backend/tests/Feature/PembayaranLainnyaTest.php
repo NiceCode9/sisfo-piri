@@ -17,6 +17,7 @@ beforeEach(function () {
     $this->seed(PermissionSeeder::class);
     $this->seed(PpdbSeeder::class);
     Storage::fake('public');
+    Storage::fake('berkas');
 });
 
 if (! function_exists('superAdmin')) {
@@ -138,7 +139,7 @@ test('destroy menghapus baris dan file bukti', function () {
         'nama_biaya' => 'Denda',
         'jumlah' => 50000,
         'metode_pembayaran' => 'transfer',
-        'bukti_pembayaran_path' => UploadedFile::fake()->create('hapus.pdf', 100, 'application/pdf')->store('bukti', 'public'),
+        'bukti_pembayaran_path' => UploadedFile::fake()->create('hapus.pdf', 100, 'application/pdf')->store('bukti', 'berkas'),
         'status' => 'berhasil',
     ]);
     $path = $bayar->bukti_pembayaran_path;
@@ -147,7 +148,7 @@ test('destroy menghapus baris dan file bukti', function () {
         ->assertRedirect(route('admin.pembayaran-lainnyas.index'));
 
     expect(PembayaranLainnya::find($bayar->id))->toBeNull();
-    Storage::disk('public')->assertMissing($path);
+    Storage::disk('berkas')->assertMissing($path);
 });
 
 test('admin tanpa permission delete tidak dapat menghapus', function () {

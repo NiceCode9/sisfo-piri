@@ -19,6 +19,7 @@ beforeEach(function () {
     $this->seed(PermissionSeeder::class);
     $this->seed(PpdbSeeder::class);
     Storage::fake('public');
+    Storage::fake('berkas');
 });
 
 if (! function_exists('superAdmin')) {

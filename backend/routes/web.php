@@ -39,6 +39,7 @@ use App\Http\Controllers\Admin\TugasController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\WhatsappController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\DokumenController;
 use App\Http\Controllers\Ortu\DashboardController as OrtuDashboardController;
 use App\Http\Controllers\Ortu\ProfilController as OrtuProfilController;
 use App\Http\Controllers\Siswa\DashboardController;
@@ -62,6 +63,17 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')->name('logout');
+
+// Dokumen privat (berkas PPDB, sertifikat, bukti pembayaran) — isi path
+// divalidasi controller agar tidak bisa jadi open redirect/arbitrary read.
+Route::middleware('auth')->group(function () {
+    Route::get('/dokumen/berkas/{berkas}/{field}', [DokumenController::class, 'berkas'])
+        ->whereIn('field', ['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path', 'krm_path', 'kip_path'])
+        ->name('dokumen.berkas');
+    Route::get('/dokumen/sertifikat/{sertifikat}', [DokumenController::class, 'sertifikat'])->name('dokumen.sertifikat');
+    Route::get('/dokumen/pembayaran/{pembayaran}', [DokumenController::class, 'pembayaran'])->name('dokumen.pembayaran');
+    Route::get('/dokumen/pembayaran-lainnya/{pembayaranLainnya}', [DokumenController::class, 'pembayaranLainnya'])->name('dokumen.pembayaran-lainnya');
+});
 
 Route::prefix('siswa')->name('siswa.')->middleware(['auth', 'role:siswa'])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');

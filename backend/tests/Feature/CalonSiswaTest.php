@@ -23,6 +23,7 @@ beforeEach(function () {
     $this->seed(PpdbSeeder::class);
     $this->seed(AkademikSeeder::class);
     Storage::fake('public');
+    Storage::fake('berkas');
 });
 
 if (! function_exists('superAdmin')) {
@@ -131,7 +132,7 @@ test('super-admin dapat menambah calon siswa beserta berkas', function () {
     expect($calon)->not->toBeNull()
         ->and($calon->berkasCalonSiswa)->not->toBeNull()
         ->and($calon->berkasCalonSiswa->ijazah_path)->not->toBeNull();
-    Storage::disk('public')->assertExists($calon->berkasCalonSiswa->ijazah_path);
+    Storage::disk('berkas')->assertExists($calon->berkasCalonSiswa->ijazah_path);
     expect($calon->logStatusPendaftaran()->count())->toBe(1);
 });
 

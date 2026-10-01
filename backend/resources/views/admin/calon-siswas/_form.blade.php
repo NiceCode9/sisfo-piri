@@ -228,7 +228,7 @@
             <label class="form-label" for="{{ $field }}">{{ $meta['label'] }}</label>
             @if ($berkas && $berkas->$field)
                 <div class="mb-1" style="font-size: 12px;">
-                    Saat ini: <a href="{{ Storage::disk('public')->url($berkas->$field) }}" target="_blank" class="text-primary"><i class="fa-solid fa-eye"></i> Lihat file</a>
+                    Saat ini: <a href="{{ route('dokumen.berkas', [$berkas, $field]) }}" target="_blank" class="text-primary"><i class="fa-solid fa-eye"></i> Lihat file</a>
                     <span style="color: var(--text-muted);">— ganti file di bawah bila perlu</span>
                 </div>
             @endif
@@ -264,7 +264,7 @@
                 @foreach ($existingSertifikat as $s)
                     <tr>
                         <td>{{ $s->nama_sertifikat }}</td>
-                        <td><a href="{{ Storage::disk('public')->url($s->file_path) }}" target="_blank" class="text-primary"><i class="fa-solid fa-eye"></i> Lihat</a></td>
+                        <td><a href="{{ route('dokumen.sertifikat', $s) }}" target="_blank" class="text-primary"><i class="fa-solid fa-eye"></i> Lihat</a></td>
                         <td>
                             <form action="{{ route('admin.calon-siswas.sertifikat.destroy', $s) }}" method="POST" class="d-inline">
                                 @csrf @method('DELETE')

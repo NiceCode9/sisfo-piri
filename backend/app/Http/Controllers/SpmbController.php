@@ -138,7 +138,7 @@ class SpmbController extends Controller
                 $berkasData = [];
                 foreach (['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path', 'krm_path', 'kip_path'] as $field) {
                     if ($request->hasFile($field)) {
-                        $berkasData[$field] = $request->file($field)->store('berkas', 'public');
+                        $berkasData[$field] = $request->file($field)->store('berkas', 'berkas');
                     }
                 }
 
@@ -147,7 +147,7 @@ class SpmbController extends Controller
                 foreach ($request->file('sertifikat', []) as $i => $item) {
                     $calon->sertifikatPrestasis()->create([
                         'nama_sertifikat' => $request->input("sertifikat.{$i}.nama", 'Sertifikat Prestasi'),
-                        'file_path' => $item['file']->store('berkas/sertifikat', 'public'),
+                        'file_path' => $item['file']->store('berkas/sertifikat', 'berkas'),
                     ]);
                 }
 

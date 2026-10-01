@@ -188,7 +188,7 @@ class PembayaranController extends Controller implements HasMiddleware
         $validated['jenis_pembayaran'] = $validated['jenis_pembayaran'] ?? 'penuh';
 
         if ($request->hasFile('bukti_pembayaran_path')) {
-            $validated['bukti_pembayaran_path'] = $request->file('bukti_pembayaran_path')->store('bukti', 'public');
+            $validated['bukti_pembayaran_path'] = $request->file('bukti_pembayaran_path')->store('bukti', 'berkas');
             $validated['tanggal_pembayaran'] = $validated['tanggal_pembayaran'] ?? now()->toDateString();
         }
 
@@ -263,7 +263,7 @@ class PembayaranController extends Controller implements HasMiddleware
             $dpBayar = null;
             if ($dp > 0) {
                 $bukti = $request->hasFile('bukti_pembayaran_path')
-                    ? $request->file('bukti_pembayaran_path')->store('bukti', 'public')
+                    ? $request->file('bukti_pembayaran_path')->store('bukti', 'berkas')
                     : null;
 
                 $dpBayar = Pembayaran::create([
@@ -382,9 +382,9 @@ class PembayaranController extends Controller implements HasMiddleware
 
         if ($request->hasFile('bukti_pembayaran_path')) {
             if ($pembayaran->bukti_pembayaran_path) {
-                Storage::disk('public')->delete($pembayaran->bukti_pembayaran_path);
+                Storage::disk('berkas')->delete($pembayaran->bukti_pembayaran_path);
             }
-            $validated['bukti_pembayaran_path'] = $request->file('bukti_pembayaran_path')->store('bukti', 'public');
+            $validated['bukti_pembayaran_path'] = $request->file('bukti_pembayaran_path')->store('bukti', 'berkas');
             // Upload bukti baru oleh admin berarti pembayaran terverifikasi.
             $validated['status'] = 'berhasil';
         }
@@ -421,7 +421,7 @@ class PembayaranController extends Controller implements HasMiddleware
         }
 
         if ($pembayaran->bukti_pembayaran_path) {
-            Storage::disk('public')->delete($pembayaran->bukti_pembayaran_path);
+            Storage::disk('berkas')->delete($pembayaran->bukti_pembayaran_path);
         }
         $pembayaran->delete();
 

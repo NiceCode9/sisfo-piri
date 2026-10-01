@@ -1327,7 +1327,7 @@
                         <div class="document-list">
                             @foreach (['foto_path' => ['Pas Foto', 'Foto 3x4', 'bg-primary', 'bi-camera-fill'], 'ijazah_path' => ['Ijazah', 'Ijazah/STTB', 'bg-success', 'bi-award-fill'], 'kk_path' => ['Kartu Keluarga', 'KK Asli', 'bg-warning', 'bi-people-fill'], 'akta_path' => ['Akta Kelahiran', 'Akta Asli', 'bg-info', 'bi-file-earmark-text-fill'], 'skl_path' => ['Surat Keterangan Lulus', 'SKL Asli', 'bg-secondary', 'bi-mortarboard-fill'], 'krm_path' => ['KRM', 'Kartu Indonesia Pintar (opsional)', 'bg-danger', 'bi-card-text-fill'], 'kip_path' => ['KIP', 'Kartu Indonesia Pintar (opsional)', 'bg-info', 'bi-wallet-fill']] as $field => [$label, $desc, $bg, $icon])
                                 @if ($b->$field)
-                                    <a href="{{ Storage::disk('public')->url($b->$field) }}" target="_blank" class="document-item">
+                                    <a href="{{ route('dokumen.berkas', [$b, $field]) }}" target="_blank" class="document-item">
                                         <div class="document-icon {{ $bg }}">
                                             <i class="bi {{ $icon }}"></i>
                                         </div>
@@ -1342,7 +1342,7 @@
                                 @endif
                             @endforeach
                             @foreach ($calon->sertifikatPrestasis as $s)
-                                <a href="{{ Storage::disk('public')->url($s->file_path) }}" target="_blank" class="document-item">
+                                <a href="{{ route('dokumen.sertifikat', $s) }}" target="_blank" class="document-item">
                                     <div class="document-icon bg-warning">
                                         <i class="bi bi-trophy-fill"></i>
                                     </div>
@@ -1450,7 +1450,7 @@
                                         </div>
                                         <div class="payment-proof">
                                             @if ($pembayaran->bukti_pembayaran_path)
-                                                <a href="{{ Storage::disk('public')->url($pembayaran->bukti_pembayaran_path) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                <a href="{{ route('dokumen.pembayaran', $pembayaran) }}" target="_blank" class="btn btn-sm btn-outline-primary">
                                                     <i class="bi bi-eye"></i>
                                                 </a>
                                             @else
@@ -1727,7 +1727,7 @@
                                             </td>
                                             <td>
                                                 @if($lain->bukti_pembayaran_path)
-                                                    <a href="{{ Storage::disk('public')->url($lain->bukti_pembayaran_path) }}" target="_blank" class="text-primary">Lihat</a>
+                                                    <a href="{{ route('dokumen.pembayaran-lainnya', $lain) }}" target="_blank" class="text-primary">Lihat</a>
                                                 @else — @endif
                                             </td>
                                             <td>

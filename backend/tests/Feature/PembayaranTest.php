@@ -20,6 +20,7 @@ beforeEach(function () {
     $this->seed(PermissionSeeder::class);
     $this->seed(PpdbSeeder::class);
     Storage::fake('public');
+    Storage::fake('berkas');
 });
 
 if (! function_exists('superAdmin')) {
@@ -133,7 +134,7 @@ test('store dengan bukti otomatis berhasil dan tanggal hari ini', function () {
     $bayar = Pembayaran::where('calon_siswa_id', $calon->id)->first();
     expect($bayar->status)->toBe('berhasil')
         ->and($bayar->tanggal_pembayaran)->toBe(now()->toDateString());
-    Storage::disk('public')->assertExists($bayar->bukti_pembayaran_path);
+    Storage::disk('berkas')->assertExists($bayar->bukti_pembayaran_path);
 });
 
 test('validasi menolak metode salah dan jumlah negatif', function () {
@@ -175,11 +176,11 @@ test('ganti bukti menghapus file lama', function () {
         'jumlah' => 100000,
         'metode_pembayaran' => 'transfer',
         'jenis_pembayaran' => 'penuh',
-        'bukti_pembayaran_path' => UploadedFile::fake()->create('lama.pdf', 100, 'application/pdf')->store('bukti', 'public'),
+        'bukti_pembayaran_path' => UploadedFile::fake()->create('lama.pdf', 100, 'application/pdf')->store('bukti', 'berkas'),
         'status' => 'menunggu',
     ]);
     $lama = $bayar->bukti_pembayaran_path;
-    Storage::disk('public')->assertExists($lama);
+    Storage::disk('berkas')->assertExists($lama);
 
     $this->actingAs(superAdmin())->put(route('admin.pembayarans.update', $bayar), [
         'calon_siswa_id' => $calon->id,
@@ -188,8 +189,8 @@ test('ganti bukti menghapus file lama', function () {
         'bukti_pembayaran_path' => UploadedFile::fake()->create('baru.pdf', 100, 'application/pdf'),
     ])->assertRedirect(route('admin.pembayarans.index'));
 
-    Storage::disk('public')->assertMissing($lama);
-    Storage::disk('public')->assertExists($bayar->fresh()->bukti_pembayaran_path);
+    Storage::disk('berkas')->assertMissing($lama);
+    Storage::disk('berkas')->assertExists($bayar->fresh()->bukti_pembayaran_path);
 });
 
 test('destroy menghapus baris dan file bukti', function () {
@@ -200,7 +201,7 @@ test('destroy menghapus baris dan file bukti', function () {
         'jumlah' => 100000,
         'metode_pembayaran' => 'tunai',
         'jenis_pembayaran' => 'penuh',
-        'bukti_pembayaran_path' => UploadedFile::fake()->create('hapus.pdf', 100, 'application/pdf')->store('bukti', 'public'),
+        'bukti_pembayaran_path' => UploadedFile::fake()->create('hapus.pdf', 100, 'application/pdf')->store('bukti', 'berkas'),
         'status' => 'menunggu',
     ]);
     $path = $bayar->bukti_pembayaran_path;
@@ -209,7 +210,7 @@ test('destroy menghapus baris dan file bukti', function () {
         ->assertRedirect(route('admin.pembayarans.index'));
 
     expect(Pembayaran::find($bayar->id))->toBeNull();
-    Storage::disk('public')->assertMissing($path);
+    Storage::disk('berkas')->assertMissing($path);
 });
 
 test('admin tanpa permission delete tidak dapat menghapus', function () {

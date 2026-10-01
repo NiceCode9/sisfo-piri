@@ -62,7 +62,7 @@
                             </td>
                             <td>
                                 @if($p->bukti_pembayaran_path)
-                                    <a href="{{ Storage::disk('public')->url($p->bukti_pembayaran_path) }}" target="_blank" class="text-primary" style="font-size:12px;">Lihat</a>
+                                    <a href="{{ route('dokumen.pembayaran-lainnya', $p) }}" target="_blank" class="text-primary" style="font-size:12px;">Lihat</a>
                                 @else — @endif
                             </td>
                             <td>

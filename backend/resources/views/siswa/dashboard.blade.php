@@ -85,7 +85,7 @@
                                             </td>
                                             <td>
                                                 @if($b->$field)
-                                                    <a href="{{ Storage::disk('public')->url($b->$field) }}" target="_blank" class="text-primary">Lihat</a>
+                                                    <a href="{{ route('dokumen.berkas', [$b, $field]) }}" target="_blank" class="text-primary">Lihat</a>
                                                 @else — @endif
                                             </td>
                                         </tr>
@@ -121,7 +121,7 @@
                                                     <span class="badge-nexus badge-neutral">menunggu</span>
                                                 @endif
                                             </td>
-                                            <td><a href="{{ Storage::disk('public')->url($s->file_path) }}" target="_blank" class="text-primary">Lihat</a></td>
+                                            <td><a href="{{ route('dokumen.sertifikat', $s) }}" target="_blank" class="text-primary">Lihat</a></td>
                                         </tr>
                                     @endforeach
                                 </tbody>

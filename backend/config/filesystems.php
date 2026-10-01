@@ -47,9 +47,21 @@ return [
             'report' => false,
         ],
 
+        /*
+         * Dokumen privat (berkas PPDB, sertifikat, bukti pembayaran). Tidak punya
+         * 'url' sehingga tidak terekspos lewat symlink /storage — hanya bisa
+         * diakses lewat route terotorisasi di DokumenController.
+         */
+        'berkas' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/berkas'),
+            'visibility' => 'private',
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
-            'driver' => 's3',
-            'key' => env('AWS_ACCESS_KEY_ID'),
+            'driver' => 's3',            'key' => env('AWS_ACCESS_KEY_ID'),
             'secret' => env('AWS_SECRET_ACCESS_KEY'),
             'region' => env('AWS_DEFAULT_REGION'),
             'bucket' => env('AWS_BUCKET'),

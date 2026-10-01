@@ -113,7 +113,7 @@ class CalonSiswaController extends Controller implements HasMiddleware
                 if (! empty($berkasUploads)) {
                     $berkasData = [];
                     foreach ($berkasUploads as $field => $file) {
-                        $berkasData[$field] = $file->store('berkas', 'public');
+                        $berkasData[$field] = $file->store('berkas', 'berkas');
                     }
                     $calon->berkasCalonSiswa()->create($berkasData);
                 }
@@ -121,7 +121,7 @@ class CalonSiswaController extends Controller implements HasMiddleware
                 foreach ($sertifikatUploads as $i => $item) {
                     $calon->sertifikatPrestasis()->create([
                         'nama_sertifikat' => $request->input("sertifikat.{$i}.nama", 'Sertifikat Prestasi'),
-                        'file_path' => $item['file']->store('berkas/sertifikat', 'public'),
+                        'file_path' => $item['file']->store('berkas/sertifikat', 'berkas'),
                     ]);
                 }
 
@@ -187,9 +187,9 @@ class CalonSiswaController extends Controller implements HasMiddleware
                 $berkas = $calonSiswa->berkasCalonSiswa()->firstOrCreate([]);
                 foreach ($berkasUploads as $field => $file) {
                     if ($berkas->$field) {
-                        Storage::disk('public')->delete($berkas->$field);
+                        Storage::disk('berkas')->delete($berkas->$field);
                     }
-                    $berkas->$field = $file->store('berkas', 'public');
+                    $berkas->$field = $file->store('berkas', 'berkas');
                 }
                 $berkas->save();
             }
@@ -197,7 +197,7 @@ class CalonSiswaController extends Controller implements HasMiddleware
             foreach ($sertifikatUploads as $i => $item) {
                 $calonSiswa->sertifikatPrestasis()->create([
                     'nama_sertifikat' => $request->input("sertifikat.{$i}.nama", 'Sertifikat Prestasi'),
-                    'file_path' => $item['file']->store('berkas/sertifikat', 'public'),
+                    'file_path' => $item['file']->store('berkas/sertifikat', 'berkas'),
                 ]);
             }
         });
@@ -340,9 +340,9 @@ class CalonSiswaController extends Controller implements HasMiddleware
         foreach (['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path', 'krm_path', 'kip_path'] as $field) {
             if ($request->hasFile($field)) {
                 if ($berkas->$field) {
-                    Storage::disk('public')->delete($berkas->$field);
+                    Storage::disk('berkas')->delete($berkas->$field);
                 }
-                $data[$field] = $request->file($field)->store('berkas', 'public');
+                $data[$field] = $request->file($field)->store('berkas', 'berkas');
             }
         }
 
@@ -353,7 +353,7 @@ class CalonSiswaController extends Controller implements HasMiddleware
 
     public function destroySertifikat(SertifikatPrestasi $sertifikat): RedirectResponse
     {
-        Storage::disk('public')->delete($sertifikat->file_path);
+        Storage::disk('berkas')->delete($sertifikat->file_path);
         $nama = $sertifikat->nama_sertifikat;
         $sertifikat->delete();
 
@@ -385,16 +385,16 @@ class CalonSiswaController extends Controller implements HasMiddleware
             if ($calonSiswa->berkasCalonSiswa) {
                 foreach (['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path', 'krm_path', 'kip_path'] as $field) {
                     if ($calonSiswa->berkasCalonSiswa->$field) {
-                        Storage::disk('public')->delete($calonSiswa->berkasCalonSiswa->$field);
+                        Storage::disk('berkas')->delete($calonSiswa->berkasCalonSiswa->$field);
                     }
                 }
             }
             foreach ($calonSiswa->sertifikatPrestasis as $sertifikat) {
-                Storage::disk('public')->delete($sertifikat->file_path);
+                Storage::disk('berkas')->delete($sertifikat->file_path);
             }
             foreach ($calonSiswa->pembayaranLainnya as $lain) {
                 if ($lain->bukti_pembayaran_path) {
-                    Storage::disk('public')->delete($lain->bukti_pembayaran_path);
+                    Storage::disk('berkas')->delete($lain->bukti_pembayaran_path);
                 }
             }
             $calonSiswa->delete();

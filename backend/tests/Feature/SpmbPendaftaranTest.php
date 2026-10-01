@@ -16,6 +16,7 @@ beforeEach(function () {
     $this->seed(PermissionSeeder::class);
     $this->seed(PpdbSeeder::class);
     Storage::fake('public');
+    Storage::fake('berkas');
 });
 
 test('halaman pendaftaran dapat ditampilkan', function () {
@@ -57,7 +58,7 @@ test('pendaftaran publik sukses dengan 5 berkas', function () {
     expect($calon)->not->toBeNull()
         ->and($calon->no_pendaftaran)->toStartWith('PPDB-');
     expect($calon->berkasCalonSiswa)->not->toBeNull();
-    Storage::disk('public')->assertExists($calon->berkasCalonSiswa->ijazah_path);
+    Storage::disk('berkas')->assertExists($calon->berkasCalonSiswa->ijazah_path);
 });
 
 test('validasi nik 16 digit ditolak', function () {

@@ -71,7 +71,7 @@
     <div class="d-flex gap-2 align-items-center flex-wrap">
         <span class="badge-nexus {{ $pembayaran->status === 'berhasil' ? 'badge-info' : ($pembayaran->status === 'gagal' ? 'badge-danger' : 'badge-neutral') }}" style="font-size: 13px;">{{ $pembayaran->status }}</span>
         @if($pembayaran->bukti_pembayaran_path)
-            <a href="{{ Storage::disk('public')->url($pembayaran->bukti_pembayaran_path) }}" target="_blank" class="btn btn-sm btn-light"><i class="fa-solid fa-receipt"></i> Lihat Bukti</a>
+            <a href="{{ route('dokumen.pembayaran', $pembayaran) }}" target="_blank" class="btn btn-sm btn-light"><i class="fa-solid fa-receipt"></i> Lihat Bukti</a>
         @endif
     </div>
 </div>
@@ -110,11 +110,11 @@
                 @if($pembayaran->bukti_pembayaran_path)
                     @php $ext = strtolower(pathinfo($pembayaran->bukti_pembayaran_path, PATHINFO_EXTENSION)); @endphp
                     @if(in_array($ext, ['jpg', 'jpeg', 'png', 'webp']))
-                        <a href="{{ Storage::disk('public')->url($pembayaran->bukti_pembayaran_path) }}" target="_blank">
-                            <img src="{{ Storage::disk('public')->url($pembayaran->bukti_pembayaran_path) }}" alt="Bukti {{ $pembayaran->kode_pembayaran }}" class="img-fluid" />
+                        <a href="{{ route('dokumen.pembayaran', $pembayaran) }}" target="_blank">
+                            <img src="{{ route('dokumen.pembayaran', $pembayaran) }}" alt="Bukti {{ $pembayaran->kode_pembayaran }}" class="img-fluid" />
                         </a>
                     @else
-                        <a href="{{ Storage::disk('public')->url($pembayaran->bukti_pembayaran_path) }}" target="_blank" class="btn btn-nexus-outline btn-sm"><i class="fa-solid fa-file-pdf"></i> Lihat Bukti ({{ strtoupper($ext) }})</a>
+                        <a href="{{ route('dokumen.pembayaran', $pembayaran) }}" target="_blank" class="btn btn-nexus-outline btn-sm"><i class="fa-solid fa-file-pdf"></i> Lihat Bukti ({{ strtoupper($ext) }})</a>
                     @endif
                 @else
                     <p class="mb-0" style="font-size:13px;color:var(--text-muted);">Belum ada bukti terlampir.</p>

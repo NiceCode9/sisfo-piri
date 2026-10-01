@@ -16,6 +16,7 @@ beforeEach(function () {
     $this->seed(PermissionSeeder::class);
     $this->seed(PpdbSeeder::class);
     Storage::fake('public');
+    Storage::fake('berkas');
 });
 
 if (! function_exists('superAdmin')) {
@@ -49,7 +50,7 @@ function createCalonWithBerkas(array $overrides = []): CalonSiswa
 
     // initial berkas file
     $calon->berkasCalonSiswa()->create([
-        'ijazah_path' => UploadedFile::fake()->create('old-ijazah.pdf', 100, 'application/pdf')->store('berkas', 'public'),
+        'ijazah_path' => UploadedFile::fake()->create('old-ijazah.pdf', 100, 'application/pdf')->store('berkas', 'berkas'),
     ]);
 
     return $calon->fresh();
@@ -83,7 +84,7 @@ test('super-admin dapat verifikasi berkas dengan flag', function () {
 test('super-admin dapat ganti file berkas dan old file terhapus', function () {
     $calon = createCalonWithBerkas();
     $oldPath = $calon->berkasCalonSiswa->ijazah_path;
-    Storage::disk('public')->assertExists($oldPath);
+    Storage::disk('berkas')->assertExists($oldPath);
 
     $newFile = UploadedFile::fake()->create('new-ijazah.pdf', 100, 'application/pdf');
 
@@ -93,10 +94,10 @@ test('super-admin dapat ganti file berkas dan old file terhapus', function () {
     ]);
 
     $response->assertRedirect();
-    Storage::disk('public')->assertMissing($oldPath);
+    Storage::disk('berkas')->assertMissing($oldPath);
     $fresh = $calon->fresh()->berkasCalonSiswa;
     expect($fresh->ijazah_path)->not->toBe($oldPath);
-    Storage::disk('public')->assertExists($fresh->ijazah_path);
+    Storage::disk('berkas')->assertExists($fresh->ijazah_path);
 });
 
 test('validasi foto mimes ditolak', function () {

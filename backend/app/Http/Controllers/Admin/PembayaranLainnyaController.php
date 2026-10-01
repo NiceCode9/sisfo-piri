@@ -92,7 +92,7 @@ class PembayaranLainnyaController extends Controller implements HasMiddleware
         $validated['status'] = 'berhasil';
 
         if ($request->hasFile('bukti_pembayaran_path')) {
-            $validated['bukti_pembayaran_path'] = $request->file('bukti_pembayaran_path')->store('bukti', 'public');
+            $validated['bukti_pembayaran_path'] = $request->file('bukti_pembayaran_path')->store('bukti', 'berkas');
             $validated['tanggal_pembayaran'] = $validated['tanggal_pembayaran'] ?? now()->toDateString();
         }
 
@@ -125,9 +125,9 @@ class PembayaranLainnyaController extends Controller implements HasMiddleware
 
         if ($request->hasFile('bukti_pembayaran_path')) {
             if ($pembayaranLainnya->bukti_pembayaran_path) {
-                Storage::disk('public')->delete($pembayaranLainnya->bukti_pembayaran_path);
+                Storage::disk('berkas')->delete($pembayaranLainnya->bukti_pembayaran_path);
             }
-            $validated['bukti_pembayaran_path'] = $request->file('bukti_pembayaran_path')->store('bukti', 'public');
+            $validated['bukti_pembayaran_path'] = $request->file('bukti_pembayaran_path')->store('bukti', 'berkas');
             // Upload bukti baru oleh admin berarti terverifikasi.
             $validated['status'] = 'berhasil';
         }
@@ -148,7 +148,7 @@ class PembayaranLainnyaController extends Controller implements HasMiddleware
     public function destroy(PembayaranLainnya $pembayaranLainnya): RedirectResponse
     {
         if ($pembayaranLainnya->bukti_pembayaran_path) {
-            Storage::disk('public')->delete($pembayaranLainnya->bukti_pembayaran_path);
+            Storage::disk('berkas')->delete($pembayaranLainnya->bukti_pembayaran_path);
         }
         $pembayaranLainnya->delete();
 

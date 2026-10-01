@@ -15,6 +15,7 @@ beforeEach(function () {
     $this->seed(PermissionSeeder::class);
     $this->seed(PpdbSeeder::class);
     Storage::fake('public');
+    Storage::fake('berkas');
 });
 
 if (! function_exists('superAdmin')) {
@@ -82,7 +83,7 @@ test('jalur olahraga dengan 2 sertifikat berhasil', function () {
         ->and($calon->sertifikatPrestasis)->toHaveCount(2);
     expect($calon->sertifikatPrestasis->pluck('nama_sertifikat')->all())
         ->toContain('Juara 1 Pencak Silat Provinsi');
-    Storage::disk('public')->assertExists($calon->sertifikatPrestasis->first()->file_path);
+    Storage::disk('berkas')->assertExists($calon->sertifikatPrestasis->first()->file_path);
 });
 
 test('jalur reguler tanpa sertifikat tetap lolos', function () {
@@ -172,12 +173,12 @@ test('hapus calon menghapus file sertifikat', function () {
 
     $calon = CalonSiswa::where('nik', '9900000000000006')->first();
     $path = $calon->sertifikatPrestasis->first()->file_path;
-    Storage::disk('public')->assertExists($path);
+    Storage::disk('berkas')->assertExists($path);
 
     $this->actingAs(superAdmin())->delete(route('admin.calon-siswas.destroy', $calon))
         ->assertRedirect(route('admin.calon-siswas.index'));
 
-    Storage::disk('public')->assertMissing($path);
+    Storage::disk('berkas')->assertMissing($path);
     expect(CalonSiswa::find($calon->id))->toBeNull();
 });
 
