@@ -31,8 +31,8 @@
                                 </svg>
                             </div>
                         </div>
-                        <h3 class="text-lg font-bold text-gray-800 mb-2">Buat Akun</h3>
-                        <p class="text-sm text-gray-600">Registrasi akun calon murid di website</p>
+                        <h3 class="text-lg font-bold text-gray-800 mb-2">Isi Data Diri</h3>
+                        <p class="text-sm text-gray-600">Lengkapi data pribadi siswa</p>
                     </div>
 
                     {{-- Step 2 --}}
@@ -96,9 +96,9 @@
                         <svg class="w-5 h-5 text-primary-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
                         </svg>
-                        Buat Akun
+                        Isi Data Diri
                     </h3>
-                    <p class="text-sm text-gray-700">Registrasi akun calon murid di website dengan email dan password</p>
+                    <p class="text-sm text-gray-700">Lengkapi data pribadi siswa. Akun memantau status dibuat otomatis setelah form dikirim — username memakai NISN dan password ditampilkan sekali di halaman berikut.</p>
                 </div>
             </div>
 
@@ -162,7 +162,7 @@
         <div class="text-center mt-16">
             <div class="inline-block bg-gradient-to-r from-primary-100 to-secondary-100 rounded-3xl p-8 shadow-lg">
                 <h3 class="text-xl md:text-2xl font-bold text-gray-800 mb-3">Siap Memulai?</h3>
-                <p class="text-gray-600 mb-6 max-w-md mx-auto">Klik tombol di bawah untuk membuat akun dan mulai proses pendaftaran sekarang!</p>
+                <p class="text-gray-600 mb-6 max-w-md mx-auto">Klik tombol di bawah untuk mengisi formulir pendaftaran. Akun untuk memantau status terbit otomatis setelah form dikirim.</p>
                 <a href="{{ route('spmb.pendaftaran') }}#form-pendaftaran" class="inline-flex items-center px-8 py-4 text-lg font-bold text-white bg-primary-600 rounded-2xl hover:bg-primary-700 transition shadow-xl hover:shadow-2xl hover:scale-105 transform">
                     <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>

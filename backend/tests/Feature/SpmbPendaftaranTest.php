@@ -274,6 +274,19 @@ test('halaman pendaftaran menampilkan peringatan ketika ditutup', function () {
         ->assertSee('Pendaftaran Belum Dibuka');
 });
 
+test('halaman publik tidak lagi menjanjikan pembuatan akun terpisah', function () {
+    $html = $this->get(route('spmb.home'))->assertOk()->getContent();
+
+    // Tidak ada form password di wizard, jadi jangan menjanjikan langkah
+    // "buat akun dengan email dan password" seperti dulu.
+    expect($html)->not->toContain('Buat Akun')
+        ->and($html)->not->toContain('dengan email dan password')
+        ->and($html)->not->toContain('membuat akun')
+        // Penjelasan baru: akun terbit otomatis, username = NISN.
+        ->and($html)->toContain('dibuat otomatis')
+        ->and($html)->toContain('username memakai NISN');
+});
+
 test('halaman publik tidak lagi menjanjikan batas 2MB untuk dokumen PDF', function () {
     $html = $this->get(route('spmb.home'))->assertOk()->getContent();
 
