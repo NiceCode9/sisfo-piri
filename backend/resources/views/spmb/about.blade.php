@@ -1,41 +1,32 @@
 @extends('layouts.spmb')
 
-@section('title', 'Tentang Sekolah — ' . ($profileSekolah->nama_sekolah ?? 'SPMB'))
+@section('title', 'Tentang Sekolah - '.($profileSekolah?->nama_sekolah ?: 'SPMB'))
 
 @php
-    // ============================================================
-    // TODO: Semua variabel di bawah ini SEMENTARA/DUMMY untuk keperluan
-    // desain frontend. Ganti dengan data asli dari controller nanti
-    // (mis. ProfileSekolahController, PrestasiController, dll).
-    // ============================================================
-    $profileSekolah = $profileSekolah ?? (object) [
-        'nama_sekolah' => 'SMP Harapan Bangsa',
-        'tahun_berdiri' => 2011,
-        'akreditasi' => 'A',
-        'alamat' => 'Jl. Pendidikan No. 123, Kota Bandung, Jawa Barat 40123',
-        'telp' => '(022) 1234-5678',
-        'email' => 'info@smpharapanbangsa.sch.id',
-    ];
+    // $profileSekolah dishare otomatis via View composer (spmb.*). Tidak ada
+    // lagi objek cadangan berisi data karangan: nama sekolah, alamat, telepon,
+    // email, visi/misi, dan sambutan diambil apa adanya dari database.
+    // Nilai yang masih placeholder "GANTI: ..." disaring oleh accessor
+    // `*Bersih`, dan bagian yang kosong tidak ditampilkan sama sekali.
+    //
+    // Daftar nilai & fasilitas di bawah masih contoh desain (belum ada tabel
+    // sumbernya) dan perlu diganti saat modul profilnya tersedia.
 
     // Angka statistik diambil dari view composer spmb.* supaya sama dengan
     // yang tampil di hero. Nilai kosong berarti data belum diisi, jadi
-    // menampilkan tanda pisah — bukan angka cadangan seperti 500+/35+/A.
+    // menampilkan tanda pisah - bukan angka cadangan seperti 500+/35+/A.
     $tahunBerjalan = $lamaBerdiri ?? null;
 
     $stats = [
-        ['value' => $jumlahSiswaAktif ?: '—', 'label' => 'Siswa Aktif'],
-        ['value' => $jumlahGuruAktif ?: '—', 'label' => 'Tenaga Pendidik'],
-        ['value' => $tahunBerjalan ?: '—', 'label' => 'Tahun Berdiri'],
-        ['value' => $profileSekolah->akreditasi ?: '—', 'label' => 'Akreditasi'],
+        ['value' => $jumlahSiswaAktif ?: '-', 'label' => 'Siswa Aktif'],
+        ['value' => $jumlahGuruAktif ?: '-', 'label' => 'Tenaga Pendidik'],
+        ['value' => $tahunBerjalan ?: '-', 'label' => 'Tahun Berdiri'],
+        ['value' => $profileSekolah?->akreditasi ?: '-', 'label' => 'Akreditasi'],
     ];
 
-    $misiList = ! empty($profileSekolah->misi) ? $profileSekolah->misi : [
-        'Menyelenggarakan pembelajaran yang aktif, kreatif, dan menyenangkan berbasis Kurikulum Merdeka',
-        'Membentuk karakter siswa yang berakhlak mulia, disiplin, dan bertanggung jawab',
-        'Mengembangkan potensi akademik dan non-akademik siswa secara seimbang',
-        'Membangun lingkungan sekolah yang aman, inklusif, dan ramah anak',
-        'Menjalin kemitraan aktif dengan orang tua dan masyarakat sekitar',
-    ];
+    // Misi hanya tampil kalau benar-benar diisi di profil. Versi lama mengarang
+    // lima butir misi sehingga sekolah tampak punya visi-misi padahal kosong.
+    $misiList = $profileSekolah?->misi_bersih ?? [];
 
     $nilaiList = [
         ['icon' => 'heart', 'title' => 'Integritas', 'desc' => 'Jujur dan bertanggung jawab dalam setiap tindakan'],
@@ -54,21 +45,23 @@
         ['title' => 'Ruang Kesenian', 'desc' => 'Fasilitas untuk mengembangkan bakat seni dan musik siswa', 'image' => 'https://via.placeholder.com/500x400?text=Ruang+Kesenian'],
         ['title' => 'Masjid Sekolah', 'desc' => 'Tempat ibadah yang nyaman untuk kegiatan keagamaan', 'image' => 'https://via.placeholder.com/500x400?text=Masjid'],
     ];
-
+// Nama & sambutan kepala sekolah diambil apa adanya dari profil. Versi lama
+    // mengarang nama ("Dr. Ahmad Fauzi, M.Pd.") dan satu paragraf sambutan, jadi
+    // halaman publik mencantumkan orang yang tidak ada datanya.
     $kepalaSekolah = (object) [
-        'nama' => $profileSekolah->nama_kepala ?? 'Dr. Ahmad Fauzi, M.Pd.',
+        'nama' => $profileSekolah?->nama_kepala_bersih,
         'jabatan' => 'Kepala Sekolah',
-        'foto' => ! empty($profileSekolah->foto_kepala_path)
+        'foto' => ! empty($profileSekolah?->foto_kepala_path)
             ? Storage::disk('public')->url($profileSekolah->foto_kepala_path)
-            : 'https://via.placeholder.com/400x400?text=Foto+Kepala+Sekolah',
-        'sambutan' => $profileSekolah->sambutan ?? ('Selamat datang di ' . $profileSekolah->nama_sekolah . '. Kami berkomitmen menghadirkan pendidikan berkualitas yang membentuk generasi cerdas, berkarakter, dan siap menghadapi tantangan masa depan. Mari bergabung bersama kami.'),
+            : null,
+        'sambutan' => $profileSekolah?->sambutan_bersih,
     ];
 
-    $fotoGedung = ! empty($profileSekolah->foto_gedung_path)
+    $fotoGedung = ! empty($profileSekolah?->foto_gedung_path)
         ? Storage::disk('public')->url($profileSekolah->foto_gedung_path)
-        : 'https://via.placeholder.com/600x500?text=Gedung+Sekolah';
+        : null;
 
-    $visiSekolah = $profileSekolah->visi ?? 'Mewujudkan generasi yang cerdas, berkarakter, dan berprestasi untuk masa depan Indonesia yang gemilang.';
+    $visiSekolah = $profileSekolah?->visi_bersih;
 
     $icons = [
         'heart' => ['M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z'],
@@ -109,7 +102,7 @@
 
             <h1 class="text-4xl md:text-6xl font-extrabold text-white mb-6 leading-tight">
                 Mengenal Lebih Dekat<br/>
-                <span class="text-secondary-300">{{ $profileSekolah->nama_sekolah }}</span>
+                <span class="text-secondary-300">{{ $profileSekolah?->nama_sekolah }}</span>
             </h1>
 
             <p class="text-lg md:text-xl text-white/90 max-w-2xl mx-auto mb-10 leading-relaxed">
@@ -133,13 +126,17 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid lg:grid-cols-2 gap-12 items-center">
                 <div class="relative">
-                    <img src="{{ $fotoGedung }}"
-                         alt="Gedung {{ $profileSekolah->nama_sekolah }}"
-                         class="rounded-3xl shadow-2xl w-full h-auto object-cover">
-                    <div class="absolute -bottom-6 -right-6 z-10 bg-white rounded-2xl p-5 shadow-xl hidden md:block">
-                        <div class="text-3xl font-extrabold text-primary-600">{{ $profileSekolah->tahun_berdiri ?? '-' }}</div>
-                        <div class="text-sm text-gray-500">Tahun Berdiri</div>
-                    </div>
+                    @if ($fotoGedung)
+                        <img src="{{ $fotoGedung }}"
+                             alt="Gedung {{ $profileSekolah?->nama_sekolah }}"
+                             class="rounded-3xl shadow-2xl w-full h-auto object-cover">
+                    @endif
+                    @if ($profileSekolah?->tahun_berdiri)
+                        <div class="absolute -bottom-6 -right-6 z-10 bg-white rounded-2xl p-5 shadow-xl hidden md:block">
+                            <div class="text-3xl font-extrabold text-primary-600">{{ $profileSekolah->tahun_berdiri }}</div>
+                            <div class="text-sm text-gray-500">Tahun Berdiri</div>
+                        </div>
+                    @endif
                 </div>
 
                 <div class="space-y-6">
@@ -149,20 +146,22 @@
                     </h2>
                     {{-- TODO: ganti dengan narasi sejarah asli sekolah --}}
                     <p class="text-gray-600 leading-relaxed">
-                        {{ $profileSekolah->nama_sekolah }} didirikan pada tahun {{ $profileSekolah->tahun_berdiri ?? '-' }} dengan visi menghadirkan pendidikan yang berkualitas dan terjangkau bagi masyarakat sekitar.
+                        {{ $profileSekolah?->nama_sekolah }} didirikan pada tahun {{ $profileSekolah?->tahun_berdiri ?? '-' }} dengan visi menghadirkan pendidikan yang berkualitas dan terjangkau bagi masyarakat sekitar.
                     </p>
                     <p class="text-gray-600 leading-relaxed">
                         Selama {{ $tahunBerjalan }} tahun perjalanan, kami terus berkembang — dari fasilitas, kurikulum, hingga kualitas tenaga pendidik — untuk memastikan setiap siswa mendapatkan pengalaman belajar terbaik dan siap melangkah ke jenjang pendidikan berikutnya.
                     </p>
                     <div class="flex items-center gap-3 pt-2">
-                        <div class="w-10 h-10 bg-accent-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <svg class="w-5 h-5 text-accent-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                @foreach ($renderIcon('check') as $d)
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
-                                @endforeach
-                            </svg>
-                        </div>
-                        <span class="text-gray-700 font-medium">Terakreditasi {{ $profileSekolah->akreditasi }} — Standar Nasional</span>
+                        @if ($profileSekolah?->akreditasi)
+                            <div class="w-10 h-10 bg-accent-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <svg class="w-5 h-5 text-accent-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    @foreach ($renderIcon('check') as $d)
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                                    @endforeach
+                                </svg>
+                            </div>
+                            <span class="text-gray-700 font-medium">Terakreditasi {{ $profileSekolah->akreditasi }} - Standar Nasional</span>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -178,22 +177,26 @@
             </div>
 
             <div class="grid lg:grid-cols-5 gap-8">
-                {{-- Visi --}}
-                <div class="lg:col-span-2 bg-gradient-primary rounded-3xl p-8 md:p-10 text-white shadow-xl flex flex-col justify-center">
-                    <div class="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-6">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            @foreach ($renderIcon('target') as $d)
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
-                            @endforeach
-                        </svg>
+                {{-- Visi & Misi. Seluruh bagian ini disembunyikan kalau profil belum diisi,
+                     supaya halaman tidak menampilkan visi-misi karangan. --}}
+                @if ($visiSekolah)
+                    <div class="lg:col-span-2 bg-gradient-primary rounded-3xl p-8 md:p-10 text-white shadow-xl flex flex-col justify-center">
+                        <div class="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-6">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                @foreach ($renderIcon('target') as $d)
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                                @endforeach
+                            </svg>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-4">Visi</h3>
+                        <p class="text-white/90 leading-relaxed text-lg">
+                            {{ $visiSekolah }}
+                        </p>
                     </div>
-                    <h3 class="text-2xl font-bold mb-4">Visi</h3>
-                    <p class="text-white/90 leading-relaxed text-lg">
-                        {{ $visiSekolah }}
-                    </p>
-                </div>
+                @endif
 
                 {{-- Misi --}}
+                @if (count($misiList))
                 <div class="lg:col-span-3 bg-white rounded-3xl p-8 md:p-10 shadow-xl border border-gray-100">
                     <div class="w-14 h-14 bg-primary-100 rounded-2xl flex items-center justify-center mb-6">
                         <svg class="w-7 h-7 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -214,6 +217,7 @@
                         @endforeach
                     </div>
                 </div>
+                @endif
             </div>
         </div>
     </section>
@@ -246,33 +250,40 @@
     </section>
 
     {{-- ============ SAMBUTAN KEPALA SEKOLAH ============ --}}
+    @if ($kepalaSekolah->sambutan || $kepalaSekolah->nama)
     <section class="py-20 bg-slate-50">
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
                 <div class="grid md:grid-cols-5">
-                    <div class="md:col-span-2 relative">
-                        {{-- TODO: ganti dengan foto asli kepala sekolah --}}
-                        <img src="{{ $kepalaSekolah->foto }}" alt="{{ $kepalaSekolah->nama }}"
-                             class="w-full h-64 md:h-full object-cover">
-                    </div>
-                    <div class="md:col-span-3 p-8 md:p-10 flex flex-col justify-center relative">
-                        <svg class="w-10 h-10 text-primary-100 mb-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            @foreach ($renderIcon('quote') as $d)
-                                <path d="{{ $d }}"/>
-                            @endforeach
-                        </svg>
-                        <p class="text-gray-700 text-lg leading-relaxed mb-6 italic">
-                            &ldquo;{{ $kepalaSekolah->sambutan }}&rdquo;
-                        </p>
-                        <div>
-                            <div class="font-bold text-gray-800 text-lg">{{ $kepalaSekolah->nama }}</div>
-                            <div class="text-primary-600 text-sm font-medium">{{ $kepalaSekolah->jabatan }}</div>
+                    @if ($kepalaSekolah->foto)
+                        <div class="md:col-span-2 relative">
+                            <img src="{{ $kepalaSekolah->foto }}" alt="{{ $kepalaSekolah->nama }}"
+                                 class="w-full h-64 md:h-full object-cover">
                         </div>
+                    @endif
+                    <div class="md:col-span-3 p-8 md:p-10 flex flex-col justify-center relative">
+                        @if ($kepalaSekolah->sambutan)
+                            <svg class="w-10 h-10 text-primary-100 mb-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                @foreach ($renderIcon('quote') as $d)
+                                    <path d="{{ $d }}"/>
+                                @endforeach
+                            </svg>
+                            <p class="text-gray-700 text-lg leading-relaxed mb-6 italic">
+                                &ldquo;{{ $kepalaSekolah->sambutan }}&rdquo;
+                            </p>
+                        @endif
+                        @if ($kepalaSekolah->nama)
+                            <div>
+                                <div class="font-bold text-gray-800 text-lg">{{ $kepalaSekolah->nama }}</div>
+                                <div class="text-primary-600 text-sm font-medium">{{ $kepalaSekolah->jabatan }}</div>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
         </div>
     </section>
+    @endif
 
     {{-- ============ FASILITAS ============ --}}
     <section class="py-20 bg-white">

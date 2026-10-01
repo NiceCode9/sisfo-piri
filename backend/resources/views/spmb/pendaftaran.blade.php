@@ -16,10 +16,13 @@
 
     $jadwalPpdbs = $jadwalPpdbs ?? collect();
 
-    $profileSekolah = $profileSekolah ?? (object) [
-        'telp' => '(022) 1234-5678',
-        'email' => 'spmb@smpharapanbangsa.sch.id',
-    ];
+    // Nomor kontak asal template ("(022) 1234-5678",
+    // "spmb@smpharapanbangsa.sch.id") sudah dihapus: bukan milik sekolah ini.
+    // Kontak diambil dari profil, dan disembunyikan bila belum diisi.
+    $kontakTelp = $profileSekolah?->telp_bersih;
+    $kontakTelpTel = $profileSekolah?->telp_tel;
+    $kontakWhatsapp = $profileSekolah?->whatsapp;
+    $kontakEmail = $profileSekolah?->email_bersih;
 
     // Ikon inline (pengganti Font Awesome, konsisten dengan section lain di site ini).
     $icons = [
@@ -87,7 +90,7 @@
         ['icon' => 'globe', 'text' => 'Pendaftaran dilakukan secara online melalui website ini'],
         ['icon' => 'book-open', 'text' => 'Tes masuk meliputi: Matematika, IPA, dan Bahasa Indonesia'],
         ['icon' => 'bell', 'text' => 'Pengumuman hasil seleksi dapat dilihat di website ini'],
-        ['icon' => 'phone', 'text' => "Informasi lebih lanjut hubungi: {$profileSekolah->telp}"],
+        ['icon' => 'phone', 'text' => 'Informasi lebih lanjut tersedia lewat kontak sekolah'],
     ];
 
     $trustStrip = [
@@ -778,24 +781,28 @@
             <h2 class="text-3xl font-bold text-white mb-4">Butuh Bantuan?</h2>
             <p class="text-xl text-white/90 mb-8">Tim kami siap membantu Anda dalam proses pendaftaran</p>
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="tel:{{ $profileSekolah->telp }}"
+                @if ($kontakTelpTel)
+                <a href="tel:{{ $kontakTelpTel }}"
                    class="inline-flex items-center justify-center px-6 py-3 bg-white text-primary-600 rounded-xl font-semibold hover:bg-gray-100 transition-colors duration-200">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         @foreach ($renderIcon('phone') as $d)
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
                         @endforeach
                     </svg>
-                    {{ $profileSekolah->telp }}
+                    {{ $kontakTelp }}
                 </a>
-                <a href="mailto:{{ $profileSekolah->email }}"
+                @endif
+                @if ($kontakEmail)
+                <a href="mailto:{{ $kontakEmail }}"
                    class="inline-flex items-center justify-center px-6 py-3 bg-white/10 text-white rounded-xl font-semibold hover:bg-white/20 transition-colors duration-200 border border-white/20">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         @foreach ($renderIcon('envelope') as $d)
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
                         @endforeach
                     </svg>
-                    {{ $profileSekolah->email }}
+                    {{ $kontakEmail }}
                 </a>
+                @endif
             </div>
         </div>
     </section>

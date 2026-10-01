@@ -5,6 +5,7 @@ use App\Models\Guru;
 use App\Models\JadwalPpdb;
 use App\Models\JalurPendaftaran;
 use App\Models\KuotaPendaftaran;
+use App\Models\ProfilSekolah;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
@@ -759,4 +760,112 @@ test('badge hero disembunyikan ketika tidak ada tahun ajaran aktif', function ()
     // status pendaftaran sama sekali.
     expect($hero)->not->toContain('Pendaftaran Dibuka')
         ->and($hero)->not->toContain('Pendaftaran Ditutup');
+});
+
+test('placeholder GANTI pada profil tidak bocor ke halaman publik', function () {
+    // Nilai persis seperti hasil seeder: masih placeholder.
+    ProfilSekolah::create([
+        'nama_sekolah' => 'SMP PIRI NGAGLIK',
+        'alamat' => 'GANTI: Jl. ... , Ngaglik, Sleman, Yogyakarta',
+        'telp' => 'GANTI: (0274) ...',
+        'sambutan' => 'GANTI: sambutan kepala sekolah untuk halaman tentang kami.',
+        'visi' => 'GANTI: visi sekolah.',
+        'nama_kepala' => 'GANTI: Nama Kepala Sekolah',
+    ]);
+
+    foreach (['spmb.home', 'spmb.pendaftaran', 'spmb.about'] as $route) {
+        $html = $this->get(route($route))->assertOk()->getContent();
+
+        expect($html)->not->toContain('GANTI:')
+            // `href="tel:GANTI: ..."` dulu benar-benar merusak tautan telepon.
+            ->and($html)->not->toContain('tel:GANTI');
+    }
+});
+
+test('data kontak palsu bawaan template tidak lagi tampil di halaman publik', function () {
+    ProfilSekolah::create([
+        'nama_sekolah' => 'SMP PIRI NGAGLIK',
+        'alamat' => 'GANTI: Jl. ... , Ngaglik',
+        'telp' => 'GANTI: (0274) ...',
+    ]);
+
+    foreach (['spmb.home', 'spmb.pendaftaran', 'spmb.about'] as $route) {
+        $html = $this->get(route($route))->assertOk()->getContent();
+
+        // Nomor & alamat contoh dari template awal bukan milik sekolah mana pun.
+        expect($html)->not->toContain('Kelurahan Maju Jaya')
+            ->and($html)->not->toContain('smpharapanbangsa.sch.id')
+            ->and($html)->not->toContain('0812-3456-7890')
+            ->and($html)->not->toContain('(022) 1234-5678');
+    }
+});
+
+test('accessor profil menyaring placeholder dan kosong', function () {
+    $profil = ProfilSekolah::create([
+        'nama_sekolah' => 'SMP PIRI NGAGLIK',
+        'alamat' => 'GANTI: Jl. ...',
+        'telp' => '  ',
+        'email' => 'spmb@piri.example.sch.id',
+        'visi' => 'TODO: visi',
+        'nama_kepala' => 'Budi Santoso, S.Pd.',
+        'misi' => ['Misi pertama', 'GANTI: misi kedua', '', 'Misi ketiga'],
+    ]);
+
+    expect($profil->alamat_bersih)->toBeNull()
+        ->and($profil->telp_bersih)->toBeNull()
+        ->and($profil->telp_tel)->toBeNull()
+        ->and($profil->whatsapp)->toBeNull()
+        ->and($profil->visi_bersih)->toBeNull()
+        ->and($profil->email_bersih)->toBe('spmb@piri.example.sch.id')
+        ->and($profil->nama_kepala_bersih)->toBe('Budi Santoso, S.Pd.')
+        // Entri misi yang kosong / placeholder ikut dibuang.
+        ->and($profil->misi_bersih)->toBe(['Misi pertama', 'Misi ketiga']);
+});
+
+test('nomor telepon profil dinormalkan untuk tautan tel dan whatsapp', function () {
+    $profil = ProfilSekolah::create([
+        'nama_sekolah' => 'SMP PIRI NGAGLIK',
+        'telp' => '(0274) 123 456',
+    ]);
+
+    // 0274 -> +62 274, wa.me tanpa kode negara.
+    expect($profil->telp_tel)->toBe('+62274123456')
+        ->and($profil->whatsapp)->toBe('62274123456')
+        ->and($profil->telp_bersih)->toBe('(0274) 123 456');
+});
+
+test('visi misi dan sambutan karangan tidak lagi muncul di halaman tentang', function () {
+    ProfilSekolah::create([
+        'nama_sekolah' => 'SMP PIRI NGAGLIK',
+        'visi' => 'GANTI: visi sekolah.',
+        'misi' => [],
+        'nama_kepala' => 'GANTI: Nama Kepala Sekolah',
+    ]);
+
+    $html = $this->get(route('spmb.about'))->assertOk()->getContent();
+
+    // Versi lama mengarang lima butir misi, satu visi, dan nama kepala sekolah
+    // lengkap dengan gelar.
+    expect($html)->not->toContain('Dr. Ahmad Fauzi')
+        ->and($html)->not->toContain('Menyelenggarakan pembelajaran yang aktif')
+        ->and($html)->not->toContain('Mewujudkan generasi yang cerdas')
+        ->and($html)->not->toContain('Ahmad Fauzi');
+});
+
+test('visi misi dan sambutan profil yang sudah terisi tetap tampil', function () {
+    ProfilSekolah::create([
+        'nama_sekolah' => 'SMP PIRI NGAGLIK',
+        'visi' => 'Visi resmi sekolah',
+        'misi' => ['Misi resmi pertama', 'Misi resmi kedua'],
+        'nama_kepala' => 'Budi Santoso, S.Pd.',
+        'sambutan' => 'Sambutan resmi kepala sekolah.',
+    ]);
+
+    $html = $this->get(route('spmb.about'))->assertOk()->getContent();
+
+    expect($html)->toContain('Visi resmi sekolah')
+        ->and($html)->toContain('Misi resmi pertama')
+        ->and($html)->toContain('Misi resmi kedua')
+        ->and($html)->toContain('Budi Santoso, S.Pd.')
+        ->and($html)->toContain('Sambutan resmi kepala sekolah.');
 });
