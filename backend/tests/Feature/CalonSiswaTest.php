@@ -337,6 +337,114 @@ test('calon ditolak tanpa tagihan tidak error', function () {
     expect($calon->fresh()->status_pendaftaran)->toBe('ditolak');
 });
 
+test('calon diterima tetap bisa dikoreksi tanpa mengubah jalur', function () {
+    $calon = CalonSiswa::create([
+        'jalur_pendaftaran_id' => JalurPendaftaran::first()->id,
+        'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
+        'no_pendaftaran' => 'PPDB-2026-1300',
+        'nik' => '0001234567801300',
+        'nama_lengkap' => 'Salah Ketik',
+        'jenis_kelamin' => 'L',
+        'tempat_lahir' => 'Ngaglik',
+        'tanggal_lahir' => '2010-01-01',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Lama',
+        'status_pendaftaran' => 'menunggu',
+    ]);
+
+    $this->actingAs(superAdmin())
+        ->patch(route('admin.calon-siswas.status', $calon), ['status' => 'diterima'])
+        ->assertSessionHasNoErrors();
+
+    // POST form mengirim nilai sebagai string; harus tetap dianggap "tidak berubah".
+    $this->actingAs(superAdmin())
+        ->put(route('admin.calon-siswas.update', $calon), [
+            'jalur_pendaftaran_id' => (string) $calon->jalur_pendaftaran_id,
+            'tahun_ajaran_id' => (string) $calon->tahun_ajaran_id,
+            'nik' => $calon->nik,
+            'nama_lengkap' => 'Nama Sudah Dikoreksi',
+            'jenis_kelamin' => 'L',
+            'tempat_lahir' => 'Ngaglik',
+            'tanggal_lahir' => '2010-01-01',
+            'agama' => 'Islam',
+            'alamat' => 'Jl Baru',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($calon->fresh())
+        ->nama_lengkap->toBe('Nama Sudah Dikoreksi')
+        ->alamat->toBe('Jl Baru')
+        ->status_pendaftaran->toBe('diterima');
+});
+
+test('calon diterima tetap ditolak bila jalurnya diganti', function () {
+    $jalurLama = JalurPendaftaran::first();
+    $jalurBaru = JalurPendaftaran::where('id', '!=', $jalurLama->id)->firstOrFail();
+    $calon = CalonSiswa::create([
+        'jalur_pendaftaran_id' => $jalurLama->id,
+        'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
+        'no_pendaftaran' => 'PPDB-2026-1400',
+        'nik' => '0001234567801400',
+        'nama_lengkap' => 'Ganti Jalur',
+        'jenis_kelamin' => 'P',
+        'tempat_lahir' => 'Ngaglik',
+        'tanggal_lahir' => '2010-01-01',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Jalur',
+        'status_pendaftaran' => 'diterima',
+    ]);
+
+    $this->actingAs(superAdmin())
+        ->put(route('admin.calon-siswas.update', $calon), [
+            'jalur_pendaftaran_id' => (string) $jalurBaru->id,
+            'tahun_ajaran_id' => (string) $calon->tahun_ajaran_id,
+            'nik' => $calon->nik,
+            'nama_lengkap' => $calon->nama_lengkap,
+            'jenis_kelamin' => 'P',
+            'tempat_lahir' => 'Ngaglik',
+            'tanggal_lahir' => '2010-01-01',
+            'agama' => 'Islam',
+            'alamat' => 'Jl Jalur',
+        ])
+        ->assertSessionHas('error');
+
+    expect($calon->fresh()->jalur_pendaftaran_id)->toBe($jalurLama->id);
+});
+
+test('calon menunggu boleh diganti jalurnya', function () {
+    $jalurLama = JalurPendaftaran::first();
+    $jalurBaru = JalurPendaftaran::where('id', '!=', $jalurLama->id)->firstOrFail();
+    $calon = CalonSiswa::create([
+        'jalur_pendaftaran_id' => $jalurLama->id,
+        'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
+        'no_pendaftaran' => 'PPDB-2026-1500',
+        'nik' => '0001234567801500',
+        'nama_lengkap' => 'Pindah Jalur',
+        'jenis_kelamin' => 'L',
+        'tempat_lahir' => 'Ngaglik',
+        'tanggal_lahir' => '2010-01-01',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Pindah',
+        'status_pendaftaran' => 'menunggu',
+    ]);
+
+    $this->actingAs(superAdmin())
+        ->put(route('admin.calon-siswas.update', $calon), [
+            'jalur_pendaftaran_id' => (string) $jalurBaru->id,
+            'tahun_ajaran_id' => (string) $calon->tahun_ajaran_id,
+            'nik' => $calon->nik,
+            'nama_lengkap' => $calon->nama_lengkap,
+            'jenis_kelamin' => 'L',
+            'tempat_lahir' => 'Ngaglik',
+            'tanggal_lahir' => '2010-01-01',
+            'agama' => 'Islam',
+            'alamat' => 'Jl Pindah',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($calon->fresh()->jalur_pendaftaran_id)->toBe($jalurBaru->id);
+});
+
 test('calon yang sudah jadi siswa tidak dapat dihapus dari halaman PPDB', function () {
     $jalur = JalurPendaftaran::first();
     $user = User::factory()->create();

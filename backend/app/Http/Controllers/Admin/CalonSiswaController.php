@@ -165,14 +165,16 @@ class CalonSiswaController extends Controller implements HasMiddleware
     {
         $validated = $request->validated();
 
-        // If jalur/tahun changed and current status is diterima, adjust kuota?
-        $oldJalur = $calonSiswa->jalur_pendaftaran_id;
-        $oldTahun = $calonSiswa->tahun_ajaran_id;
+        // ID jalur/tahun bertipe integer di DB tetapi string dari form POST.
+        // Tanpa normalisasi, `!==` selalu bernilai true sehingga setiap edit
+        // calon `diterima` ditolak walau jalurnya tidak berubah sama sekali.
+        $oldJalur = (int) $calonSiswa->jalur_pendaftaran_id;
+        $oldTahun = (int) $calonSiswa->tahun_ajaran_id;
         $oldStatus = $calonSiswa->status_pendaftaran;
-        $newJalur = $validated['jalur_pendaftaran_id'];
-        $newTahun = $validated['tahun_ajaran_id'] ?? $oldTahun;
+        $newJalur = (int) $validated['jalur_pendaftaran_id'];
+        $newTahun = (int) ($validated['tahun_ajaran_id'] ?? $oldTahun);
 
-        if (($oldJalur !== $newJalur || $oldTahun != $newTahun) && $oldStatus === 'diterima') {
+        if (($oldJalur !== $newJalur || $oldTahun !== $newTahun) && $oldStatus === 'diterima') {
             return back()->with('error', 'Tidak dapat mengganti jalur/tahun untuk calon yang sudah diterima. Ubah status dulu.')->withInput();
         }
 
@@ -406,7 +408,7 @@ class CalonSiswaController extends Controller implements HasMiddleware
             return back()->with(
                 'error',
                 'Calon ini sudah menjadi siswa aktif beserta riwayat kelas dan absensinya. '
-                .'Gunakan Master Siswa → nonaktifkan bila perlu dihapus dari dort.'
+                .'Gunakan Master Siswa → nonaktifkan bila perlu dikeluarkan dari daftar aktif.'
             );
         }
 
