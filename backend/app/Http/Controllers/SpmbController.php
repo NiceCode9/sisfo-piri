@@ -16,6 +16,8 @@ use App\Models\Pengumuman;
 use App\Models\TahunAjaran;
 use App\Models\User;
 use App\Support\Penomor;
+use Illuminate\Database\QueryException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -88,10 +90,6 @@ class SpmbController extends Controller
 
         try {
             $calon = DB::transaction(function () use ($validated, $tahunAjaranAktif, $request, &$passwordPlain, &$newUser) {
-                if (User::where('username', $validated['nisn'])->exists()) {
-                    throw new \RuntimeException('NISN sudah terdaftar sebagai akun. Gunakan NISN lain atau hubungi admin.');
-                }
-
                 $kuota = KuotaPendaftaran::where('tahun_ajaran_id', $tahunAjaranAktif->id)
                     ->where('jalur_pendaftaran_id', $validated['jalur_pendaftaran_id'])
                     ->lockForUpdate()
@@ -163,6 +161,22 @@ class SpmbController extends Controller
 
                 return $calon;
             });
+        } catch (UniqueConstraintViolationException $e) {
+            // Jaring pengaman bila ada kolom unik yang belum tertutup rule. Pesan
+            // SQL mentah tidak boleh sampai ke pengunjung publik.
+            $field = Str::contains($e->getMessage(), 'email') ? 'email' : 'nisn';
+
+            return back()->withErrors([
+                $field => $field === 'email'
+                    ? 'Email ini sudah terdaftar. Gunakan email lain.'
+                    : 'NISN sudah terdaftar sebagai akun. Gunakan NISN lain atau hubungi admin.',
+            ])->withInput();
+        } catch (QueryException $e) {
+            report($e);
+
+            return back()->withErrors([
+                'email' => 'Pendaftaran gagal diproses. Silakan coba beberapa saat lagi.',
+            ])->withInput();
         } catch (\RuntimeException $e) {
             return back()->withErrors(['jalur_pendaftaran_id' => $e->getMessage()])->withInput();
         }
