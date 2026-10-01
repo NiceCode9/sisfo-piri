@@ -163,7 +163,7 @@
             <div class="inline-block bg-gradient-to-r from-primary-100 to-secondary-100 rounded-3xl p-8 shadow-lg">
                 <h3 class="text-xl md:text-2xl font-bold text-gray-800 mb-3">Siap Memulai?</h3>
                 <p class="text-gray-600 mb-6 max-w-md mx-auto">Klik tombol di bawah untuk membuat akun dan mulai proses pendaftaran sekarang!</p>
-                <a href="#" class="inline-flex items-center px-8 py-4 text-lg font-bold text-white bg-primary-600 rounded-2xl hover:bg-primary-700 transition shadow-xl hover:shadow-2xl hover:scale-105 transform">
+                <a href="{{ route('spmb.pendaftaran') }}#form-pendaftaran" class="inline-flex items-center px-8 py-4 text-lg font-bold text-white bg-primary-600 rounded-2xl hover:bg-primary-700 transition shadow-xl hover:shadow-2xl hover:scale-105 transform">
                     <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
                     </svg>

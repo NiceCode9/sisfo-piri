@@ -62,6 +62,24 @@ test('pendaftaran publik sukses dengan 5 berkas', function () {
     Storage::disk('berkas')->assertExists($calon->berkasCalonSiswa->ijazah_path);
 });
 
+test('halaman publik tidak punya tautan mati dan CTA mengarah ke tujuan yang benar', function () {
+    foreach (['spmb.home', 'spmb.pendaftaran', 'spmb.about'] as $route) {
+        $html = $this->get(route($route))->assertOk()->getContent();
+
+        // Tidak boleh ada tautan yang tidak punya tujuan.
+        expect($html)->not->toContain('href="#"');
+
+        // Handler smooth-scroll harus mengubah preventDefault jadi kondisi terakhir,
+        // bukan di awal — versi lama melempar DOMException untuk href="#".
+        expect($html)->toContain("if (!href || href === '#' || href.length < 2)");
+    }
+
+    // Dua tombol konversi utama harus benar-benar menuju URL yang ada.
+    $this->get(route('spmb.home'))
+        ->assertSee('href="'.route('login').'"', escape: false)
+        ->assertSee(route('spmb.pendaftaran'), escape: false);
+});
+
 test('timeline pendaftaran memakai data JadwalPpdb dari database', function () {
     $this->get(route('spmb.pendaftaran'))
         ->assertOk()

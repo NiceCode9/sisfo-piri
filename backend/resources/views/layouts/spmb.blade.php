@@ -27,14 +27,25 @@
     <script>
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
+                const href = this.getAttribute('href');
+
+                // Tautan yang isinya hanya tanda pagar bukan anchor yang valid:
+                // querySelector akan melempar DOMException. Abaikan saja daripada
+                // membatalkan navigasi lalu menghasilkan error di console.
+                if (!href || href === '#' || href.length < 2) {
+                    return;
                 }
+
+                const target = document.querySelector(href);
+                if (!target) {
+                    return;
+                }
+
+                e.preventDefault();
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
             });
         });
     </script>

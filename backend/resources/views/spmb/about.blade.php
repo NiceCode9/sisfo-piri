@@ -171,7 +171,7 @@
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-14">
                 <span class="inline-block px-4 py-1.5 bg-accent-100 text-accent-700 rounded-full text-sm font-semibold mb-4">Arah Kami</span>
-                <h2 class="text-3xl md:text-4xl font-extrabold text-gray-800">Visi &amp; Misi</h2>
+                <h2 id="visi-misi" class="text-3xl md:text-4xl font-extrabold text-gray-800">Visi &amp; Misi</h2>
             </div>
 
             <div class="grid lg:grid-cols-5 gap-8">

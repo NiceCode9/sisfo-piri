@@ -171,23 +171,29 @@
                         </div>
                     </div>
 
-                    {{-- Social Media --}}
-                    <div class="bg-gradient-to-br from-primary-600 to-accent-600 rounded-3xl p-6 md:p-8 text-white shadow-lg">
-                        <h3 class="text-xl font-bold mb-4">Ikuti Media Sosial Kami</h3>
-                        <p class="text-white/90 mb-6 text-sm">Dapatkan update terbaru seputar SPMB dan kegiatan sekolah</p>
-                        <div class="grid grid-cols-2 gap-4">
-                            @foreach ($socialLinks as $social)
-                                <a href="{{ $social['url'] }}" target="_blank" rel="noopener"
-                                   aria-label="{{ $social['name'] }} sekolah"
-                                   class="flex items-center space-x-3 bg-white/10 hover:bg-white/20 rounded-xl p-4 transition">
-                                    <svg class="w-6 h-6 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                        <path d="{{ $social['icon'] }}"/>
-                                    </svg>
-                                    <span class="font-semibold">{{ $social['name'] }}</span>
-                                </a>
-                            @endforeach
+                    {{-- Kartu hanya dirender bila sekurangnya ada satu URL media sosial
+                         yang benar. Entri tanpa URL (masih '#') disembunyikan supaya
+                         pengunjung tidak menemukan tautan yang tidak bisa diklik. --}}
+                    @php $socialLinks = array_values(array_filter($socialLinks, fn ($s) => filled($s['url']) && $s['url'] !== '#')); @endphp
+
+                    @if (count($socialLinks))
+                        <div class="bg-gradient-to-br from-primary-600 to-accent-600 rounded-3xl p-6 md:p-8 text-white shadow-lg">
+                            <h3 class="text-xl font-bold mb-4">Ikuti Media Sosial Kami</h3>
+                            <p class="text-white/90 mb-6 text-sm">Dapatkan update terbaru seputar SPMB dan kegiatan sekolah</p>
+                            <div class="grid grid-cols-2 gap-4">
+                                @foreach ($socialLinks as $social)
+                                    <a href="{{ $social['url'] }}" target="_blank" rel="noopener"
+                                       aria-label="{{ $social['name'] }} sekolah"
+                                       class="flex items-center space-x-3 bg-white/10 hover:bg-white/20 rounded-xl p-4 transition">
+                                        <svg class="w-6 h-6 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                            <path d="{{ $social['icon'] }}"/>
+                                        </svg>
+                                        <span class="font-semibold">{{ $social['name'] }}</span>
+                                    </a>
+                                @endforeach
+                            </div>
                         </div>
-                    </div>
+                    @endif
                 </div>
 
             </div>
