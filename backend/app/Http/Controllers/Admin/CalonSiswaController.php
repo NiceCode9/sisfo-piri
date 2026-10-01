@@ -86,7 +86,9 @@ class CalonSiswaController extends Controller implements HasMiddleware
 
         $validated['tahun_ajaran_id'] = $tahunAjaranId;
         $validated['no_pendaftaran'] = $this->generateNoPendaftaran();
-        $validated['status_pendaftaran'] = $validated['status_pendaftaran'] ?? 'menunggu';
+        // Pendaftaran baru selalu mulai 'menunggu'. Penerimaan hanya lewat updateStatus()
+        // agar kuota, log status, akun siswa, dan tagihan tidak terlewat.
+        $validated['status_pendaftaran'] = 'menunggu';
 
         $berkasFields = ['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path', 'krm_path', 'kip_path'];
         $calonData = collect($validated)->except([...$berkasFields, 'sertifikat'])->toArray();
@@ -171,7 +173,7 @@ class CalonSiswaController extends Controller implements HasMiddleware
         }
 
         $berkasFields = ['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path', 'krm_path', 'kip_path'];
-        $calonData = collect($validated)->except([...$berkasFields, 'sertifikat'])->toArray();
+        $calonData = collect($validated)->except([...$berkasFields, 'sertifikat', 'status_pendaftaran'])->toArray();
         $berkasUploads = collect($validated)->only($berkasFields)->filter()->toArray();
         $sertifikatUploads = $request->file('sertifikat', []);
 

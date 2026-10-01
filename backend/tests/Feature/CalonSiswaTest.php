@@ -3,6 +3,8 @@
 use App\Models\CalonSiswa;
 use App\Models\JalurPendaftaran;
 use App\Models\KuotaPendaftaran;
+use App\Models\LogStatusPendaftaran;
+use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
@@ -156,6 +158,67 @@ test('baris sertifikat kosong dari form admin tidak menggagalkan jalur non-wajib
     $response->assertSessionHasNoErrors();
     $response->assertRedirect(route('admin.calon-siswas.index'));
     expect(CalonSiswa::where('nik', '1234567890123999')->exists())->toBeTrue();
+});
+
+test('edit tidak dapat memaksa status menjadi diterima', function () {
+    $jalur = JalurPendaftaran::first();
+    $calon = CalonSiswa::create([
+        'jalur_pendaftaran_id' => $jalur->id,
+        'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
+        'no_pendaftaran' => 'PPDB-2026-0900',
+        'nik' => '1234567890900111',
+        'nama_lengkap' => 'Bypass Status',
+        'jenis_kelamin' => 'L',
+        'tempat_lahir' => 'Ngaglik',
+        'tanggal_lahir' => '2010-01-01',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Bypass',
+        'status_pendaftaran' => 'menunggu',
+    ]);
+    $kuota = KuotaPendaftaran::where('tahun_ajaran_id', $calon->tahun_ajaran_id)
+        ->where('jalur_pendaftaran_id', $jalur->id)->first();
+    $terisiAwal = $kuota?->terisi ?? 0;
+
+    // Coba bypass: kirim status_pendaftaran langsung lewat form edit.
+    $this->actingAs(superAdmin())->put(route('admin.calon-siswas.update', $calon), [
+        'jalur_pendaftaran_id' => $jalur->id,
+        'nik' => '1234567890900111',
+        'nama_lengkap' => 'Bypass Status',
+        'jenis_kelamin' => 'L',
+        'tempat_lahir' => 'Ngaglik',
+        'tanggal_lahir' => '2010-01-01',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Bypass',
+        'status_pendaftaran' => 'diterima',
+    ])->assertRedirect(route('admin.calon-siswas.show', $calon));
+
+    // Status, kuota, log status, dan tabel siswa harus tidak tersentuh.
+    expect($calon->fresh()->status_pendaftaran)->toBe('menunggu')
+        ->and($kuota?->fresh()->terisi)->toBe($terisiAwal)
+        ->and(LogStatusPendaftaran::where('calon_siswa_id', $calon->id)->count())->toBe(0)
+        ->and(Siswa::where('calon_siswa_id', $calon->id)->exists())->toBeFalse();
+});
+
+test('tambah calon selalu berstatus menunggu meski admin kirim accepted', function () {
+    $jalur = JalurPendaftaran::first();
+
+    $this->actingAs(superAdmin())->post(route('admin.calon-siswas.store'), [
+        'jalur_pendaftaran_id' => $jalur->id,
+        'nik' => '1234567890900222',
+        'nama_lengkap' => 'Langsung Diterima',
+        'jenis_kelamin' => 'P',
+        'tempat_lahir' => 'Ngaglik',
+        'tanggal_lahir' => '2010-01-01',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Langsung',
+        'status_pendaftaran' => 'diterima',
+    ])->assertRedirect(route('admin.calon-siswas.index'));
+
+    $calon = CalonSiswa::where('nik', '1234567890900222')->first();
+
+    expect($calon)->not->toBeNull()
+        ->and($calon->status_pendaftaran)->toBe('menunggu')
+        ->and(Siswa::where('calon_siswa_id', $calon->id)->exists())->toBeFalse();
 });
 
 test('nik duplikat ditolak saat tambah calon', function () {

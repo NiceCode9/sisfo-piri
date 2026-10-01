@@ -46,7 +46,9 @@ class UpdateCalonSiswaRequest extends FormRequest
             'nama_ibu' => ['nullable', 'string', 'max:255'],
             'pekerjaan_ibu' => ['nullable', 'string', 'max:50'],
             'no_hp_orang_tua' => ['nullable', 'string', 'max:20'],
-            'status_pendaftaran' => ['nullable', 'in:menunggu,diterima,ditolak,daftar_ulang'],
+            // Catatan: status_pendaftaran sengaja TIDAK bisa diubah lewat form edit.
+            // Transisi status hanya lewat CalonSiswaController::updateStatus() agar
+            // kuota, log status, akun siswa, dan tagihan selalu ikut terproses.
             'ijazah_path' => ['nullable', 'file', 'mimes:pdf', 'max:5120'],
             'kk_path' => ['nullable', 'file', 'mimes:pdf', 'max:5120'],
             'akta_path' => ['nullable', 'file', 'mimes:pdf', 'max:5120'],
