@@ -19,14 +19,6 @@ beforeEach(function () {
     $this->seed(PpdbSeeder::class);
     Storage::fake('public');
     Storage::fake('berkas');
-
-    // Jadwal seed bertanggal Mei 2026 (sudah lewat). Gate jadwal memakai
-    // rentang ini, jadi dibuat melatari "hari ini" supaya test tidak bergantung
-    // pada kalender. Test khusus gate mengatur rentangnya sendiri.
-    JadwalPpdb::where('tipe', 'pendaftaran')->update([
-        'tanggal_mulai' => now()->subMonth()->toDateString(),
-        'tanggal_selesai' => now()->addMonth()->toDateString(),
-    ]);
 });
 
 /**
@@ -283,23 +275,46 @@ test('halaman pendaftaran menampilkan peringatan ketika ditutup', function () {
 });
 
 test('timeline pendaftaran memakai data JadwalPpdb dari database', function () {
-    $this->get(route('spmb.pendaftaran'))
+    // Seeder membuat jadwal relatif terhadap hari ini, jadi yang diuji adalah
+    // tanggal yang benar-benar tersimpan di database.
+    $verifikasi = JadwalPpdb::where('tipe', 'verifikasi')->firstOrFail();
+    $jumlahJadwal = JadwalPpdb::count();
+
+    $html = $this->get(route('spmb.pendaftaran'))
         ->assertOk()
-        // Nama & tanggal asli dari seeder harus tampil.
+        // Nama fase dari seeder harus tampil.
         ->assertSee('Pendaftaran Online')
         ->assertSee('Verifikasi Berkas')
         ->assertSee('Tes Seleksi')
         ->assertSee('Daftar Ulang')
-        // Tanggal dari database, bukan dummy hardcoded. Jadwal non-pendaftaran
-        // masih memakai tanggal seed; baris pendaftaran sudah di-override beforeEach.
-        ->assertSee('15 Jun 2026')
-        ->assertSee('30 Jun 2026')
-        ->assertSee(now()->subMonth()->translatedFormat('d M Y'))
-        // Tanggal dummy lama (Tes Masuk 5 Des, Verifikasi 12 Des) tidak boleh muncul.
-        ->assertDontSee('Tes Masuk')
-        ->assertDontSee('5 Des 2026')
-        ->assertDontSee('12 Des 2026')
-        ->assertDontSee('21 Des 2026');
+        // Tanggal dari database, bukan dummy hardcoded. `locale('id')` meniru
+        // view yang memformat tanggal dengan nama bulan Indonesia.
+        ->assertSee($verifikasi->tanggal_mulai->locale('id')->translatedFormat('d M Y'))
+        ->assertSee($verifikasi->tanggal_selesai->locale('id')->translatedFormat('d M Y'))
+        ->getContent();
+
+    // Satu kartu timeline per baris jadwal di database. `bg-gradient-primary
+    // rounded-full` hanya dipakai oleh ikon timeline.
+    expect(substr_count($html, 'bg-gradient-primary rounded-full'))->toBe($jumlahJadwal)
+        // Nama fase dummy lama tidak ada di database maupun view.
+        ->and($html)->not->toContain('Tes Masuk');
+});
+
+test('jadwal hasil seeder membuat pendaftaran sedang berlangsung', function () {
+    $jendela = JadwalPpdb::jendelaPendaftaran(TahunAjaran::aktif()->first());
+
+    expect($jendela)->not->toBeNull()
+        ->and($jendela->tipe)->toBe('pendaftaran')
+        ->and($jendela->sedangBerlangsung())->toBeTrue();
+});
+
+test('seeder mengisi kuota pendaftaran dan kuota penerimaan terpisah', function () {
+    $kuota = KuotaPendaftaran::whereNotNull('kuota_pendaftaran')->firstOrFail();
+
+    expect($kuota->terisi_pendaftaran)->toBeGreaterThan(0)
+        ->and($kuota->kuota)->toBeGreaterThan(0)
+        ->and($kuota->pendaftaranPenuh())->toBeFalse()
+        ->and($kuota->penerimaanPenuh())->toBeFalse();
 });
 
 test('email yang sudah dipakai akun lain ditolak tanpa membocorkan pesan SQL', function () {

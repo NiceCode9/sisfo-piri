@@ -88,12 +88,18 @@ class PpdbSeeder extends Seeder
         $tahunAjaranAktif = TahunAjaran::where('status_aktif', true)->first();
         $jalurIds = JalurPendaftaran::where('aktif', true)->pluck('id')->toArray();
 
+        // Kuota dipecah dua (lihat migrasi split_kuota_pendaftaran):
+        //   - kuota_pendaftaran / terisi_pendaftaran = batas JUMLAH pendaftar.
+        //     Dilewati `null` = tidak dibatasi.
+        //   - kuota / terisi = batas JUMLAH yang boleh DITERIMA.
         $kuotaPendaftaran = [
             [
                 'tahun_ajaran_id' => $tahunAjaranAktif->id,
                 'jalur_pendaftaran_id' => $jalurIds[0], // Jalur Reguler
                 'kuota' => 200,
                 'terisi' => 150,
+                'kuota_pendaftaran' => 400,
+                'terisi_pendaftaran' => 320,
                 'keterangan' => 'Kuota untuk jalur reguler tahun ajaran 2024/2025',
             ],
             [
@@ -101,6 +107,8 @@ class PpdbSeeder extends Seeder
                 'jalur_pendaftaran_id' => $jalurIds[1], // Jalur Prestasi
                 'kuota' => 50,
                 'terisi' => 35,
+                'kuota_pendaftaran' => 150,
+                'terisi_pendaftaran' => 98,
                 'keterangan' => 'Kuota untuk jalur prestasi tahun ajaran 2024/2025',
             ],
             [
@@ -108,6 +116,8 @@ class PpdbSeeder extends Seeder
                 'jalur_pendaftaran_id' => $jalurIds[2], // Jalur Afirmasi
                 'kuota' => 30,
                 'terisi' => 20,
+                'kuota_pendaftaran' => 90,
+                'terisi_pendaftaran' => 55,
                 'keterangan' => 'Kuota untuk jalur afirmasi tahun ajaran 2024/2025',
             ],
             [
@@ -115,6 +125,8 @@ class PpdbSeeder extends Seeder
                 'jalur_pendaftaran_id' => $jalurIds[3], // Jalur Mutasi
                 'kuota' => 20,
                 'terisi' => 5,
+                'kuota_pendaftaran' => 60,
+                'terisi_pendaftaran' => 18,
                 'keterangan' => 'Kuota untuk jalur mutasi tahun ajaran 2024/2025',
             ],
             [
@@ -122,6 +134,8 @@ class PpdbSeeder extends Seeder
                 'jalur_pendaftaran_id' => $jalurIds[4], // Jalur Prestasi Olahraga
                 'kuota' => 20,
                 'terisi' => 0,
+                'kuota_pendaftaran' => null, // jalur kecil: biarkan tanpa batas
+                'terisi_pendaftaran' => 0,
                 'keterangan' => 'Kuota untuk jalur prestasi olahraga tahun ajaran 2024/2025',
             ],
         ];
@@ -180,45 +194,52 @@ class PpdbSeeder extends Seeder
         }
 
         // 5. Seeder Jadwal PPDB
+        //
+        // Tanggal dibuat relatif terhadap hari ini supaya data hasil seed selalu
+        // bisa langsung dicoba: fase pendaftaran sedang berlangsung, fase
+        // berikutnya menyusul. Tanggal statis membuat gate pendaftaran (tipe
+        // `pendaftaran`) menutup form begitu tanggalnya lewat.
+        $hariIni = now()->startOfDay();
+
         $jadwalPpdb = [
             [
                 'tahun_ajaran_id' => $tahunAjaranAktif->id,
                 'nama_jadwal' => 'Pendaftaran Online',
                 'tipe' => 'pendaftaran',
-                'tanggal_mulai' => '2026-05-01',
-                'tanggal_selesai' => '2026-05-31',
+                'tanggal_mulai' => $hariIni->copy()->subMonth()->toDateString(),
+                'tanggal_selesai' => $hariIni->copy()->addMonths(2)->toDateString(),
                 'keterangan' => 'Periode pendaftaran online untuk calon siswa baru',
             ],
             [
                 'tahun_ajaran_id' => $tahunAjaranAktif->id,
                 'nama_jadwal' => 'Verifikasi Berkas',
                 'tipe' => 'verifikasi',
-                'tanggal_mulai' => '2026-06-01',
-                'tanggal_selesai' => '2026-06-10',
+                'tanggal_mulai' => $hariIni->copy()->addMonths(2)->addDay()->toDateString(),
+                'tanggal_selesai' => $hariIni->copy()->addMonths(2)->addDays(10)->toDateString(),
                 'keterangan' => 'Periode verifikasi berkas pendaftaran',
             ],
             [
                 'tahun_ajaran_id' => $tahunAjaranAktif->id,
                 'nama_jadwal' => 'Tes Seleksi',
                 'tipe' => 'tes',
-                'tanggal_mulai' => '2026-06-15',
-                'tanggal_selesai' => '2026-06-20',
+                'tanggal_mulai' => $hariIni->copy()->addMonths(2)->addDays(15)->toDateString(),
+                'tanggal_selesai' => $hariIni->copy()->addMonths(2)->addDays(20)->toDateString(),
                 'keterangan' => 'Pelaksanaan tes seleksi untuk calon siswa',
             ],
             [
                 'tahun_ajaran_id' => $tahunAjaranAktif->id,
                 'nama_jadwal' => 'Pengumuman Hasil',
                 'tipe' => 'pengumuman',
-                'tanggal_mulai' => '2026-06-25',
-                'tanggal_selesai' => '2026-06-25',
+                'tanggal_mulai' => $hariIni->copy()->addMonths(2)->addDays(25)->toDateString(),
+                'tanggal_selesai' => $hariIni->copy()->addMonths(2)->addDays(25)->toDateString(),
                 'keterangan' => 'Pengumuman hasil seleksi PPDB',
             ],
             [
                 'tahun_ajaran_id' => $tahunAjaranAktif->id,
                 'nama_jadwal' => 'Daftar Ulang',
                 'tipe' => 'daftar_ulang',
-                'tanggal_mulai' => '2026-06-26',
-                'tanggal_selesai' => '2026-06-30',
+                'tanggal_mulai' => $hariIni->copy()->addMonths(2)->addDays(26)->toDateString(),
+                'tanggal_selesai' => $hariIni->copy()->addMonths(3)->toDateString(),
                 'keterangan' => 'Periode daftar ulang untuk siswa yang diterima',
             ],
         ];

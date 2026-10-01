@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\CalonSiswa;
-use App\Models\JadwalPpdb;
 use App\Models\JalurPendaftaran;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
@@ -17,13 +16,6 @@ beforeEach(function () {
     $this->seed(PpdbSeeder::class);
     Storage::fake('public');
     Storage::fake('berkas');
-
-    // Jadwal seed bertanggal Mei 2026 (sudah lewat) sehingga gate pendaftaran
-    // menutup form. Buka rentangnya agar test fokus pada sertifikat.
-    JadwalPpdb::where('tipe', 'pendaftaran')->update([
-        'tanggal_mulai' => now()->subMonth()->toDateString(),
-        'tanggal_selesai' => now()->addMonth()->toDateString(),
-    ]);
 });
 
 if (! function_exists('superAdmin')) {
