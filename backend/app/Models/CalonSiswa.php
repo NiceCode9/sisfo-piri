@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
+use App\Support\TagihanCalon;
 use Illuminate\Database\Eloquent\Model;
 
 class CalonSiswa extends Model
@@ -96,17 +96,13 @@ class CalonSiswa extends Model
     }
 
     /**
-     * Calon dengan sisa tagihan: total pembayaran berhasil
-     * masih di bawah total biaya wajib tahun ajarannya.
-     * Semua status masuk; yang sudah lunas tersaring keluar.
+     * Ringkasan tagihan (total, terbayar, sisa, rincian per biaya).
+     *
+     * Definisi "lunas" hanya ada di `App\Support\TagihanCalon` supaya halaman
+     * detail dan pemilih pembayaran tidak pernah berbeda jawaban.
      */
-    public function scopeBelumLunas(Builder $query): Builder
+    public function tagihan(): TagihanCalon
     {
-        // Tagihan induk yang ikut berhasil saat rencananya lunas dikecualikan
-        // (DP + cicilannya sudah tercatat sendiri) agar tidak terhitung ganda.
-        return $query->whereRaw(
-            'COALESCE((SELECT SUM(jumlah) FROM pembayarans WHERE pembayarans.calon_siswa_id = calon_siswas.id AND pembayarans.status = ? AND NOT EXISTS (SELECT 1 FROM rencana_angsurans WHERE rencana_angsurans.pembayaran_id = pembayarans.id AND rencana_angsurans.status = ?)), 0) < COALESCE((SELECT SUM(jumlah) FROM biaya_pendaftarans WHERE biaya_pendaftarans.tahun_ajaran_id = calon_siswas.tahun_ajaran_id AND biaya_pendaftarans.wajib_bayar = 1), 0)',
-            ['berhasil', 'lunas']
-        );
+        return TagihanCalon::untuk($this);
     }
 }

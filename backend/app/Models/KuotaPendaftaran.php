@@ -47,10 +47,13 @@ class KuotaPendaftaran extends Model
 
     /**
      * Kuota penerimaan penuh?
+     *
+     * `kuota` NULL diperlakukan sebagai "tanpa batas" agar konsisten dengan
+     * `pendaftaranPenuh()` yang memakai NULL = tidak dibatasi.
      */
     public function penerimaanPenuh(): bool
     {
-        return $this->terisi >= $this->kuota;
+        return $this->kuota !== null && $this->terisi >= $this->kuota;
     }
 
     /**

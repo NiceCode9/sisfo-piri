@@ -496,20 +496,23 @@ class PembayaranController extends Controller implements HasMiddleware
      */
     protected function calonBelumLunas()
     {
-        $calons = CalonSiswa::belumLunas()
+        $calons = CalonSiswa::query()
             ->where('status_pendaftaran', '!=', 'ditolak')
-            ->with(['jalurPendaftaran', 'tahunAjaran.biayaPendaftaran', 'pembayaran', 'rencanaAngsuran.detailAngsuran'])
-            ->orderByDesc('created_at')
-            ->limit(100)
+            ->with(['jalurPendaftaran', 'tahunAjaran.biayaPendaftaran', 'pembayaran', 'rencanaAngsuran'])
+            ->latest('created_at')
+            ->limit(200)
             ->get();
 
-        $calons->each(function ($calon) {
-            $lunasIndukIds = $calon->rencanaAngsuran->where('status', 'lunas')->pluck('pembayaran_id')->filter()->all();
-            $terbayar = $calon->pembayaran->where('status', 'berhasil')->whereNotIn('id', $lunasIndukIds)->sum('jumlah');
-            $wajib = $calon->tahunAjaran?->biayaPendaftaran->where('wajib_bayar', true)->sum('jumlah') ?? 0;
-            $calon->sisa_tagihan = max(0, $wajib - $terbayar);
-        });
+        // Definisi "belum lunas" memakai kalkulator yang sama dengan halaman
+        // detail calon, supaya kedua layar tidak pernah berbeda jawaban.
+        return $calons
+            ->map(function (CalonSiswa $calon) {
+                $calon->sisa_tagihan = $calon->tagihan()->sisaWajib();
 
-        return $calons;
+                return $calon;
+            })
+            ->filter(fn (CalonSiswa $calon) => $calon->sisa_tagihan > 0)
+            ->take(100)
+            ->values();
     }
 }

@@ -1501,59 +1501,19 @@
                 </div>
                 <div class="card-body">
                     @php
-                        $totalBiaya = 0;
-                        $totalBayar = 0;
-                        $biayaBelumLunas = [];
+                        // Satu sumber kebenaran: App\Support\TagihanCalon.
+                        // Definisi "lunas" tidak lagi dihitung terpisah di sini,
+                        // sehingga halaman ini tidak bisa berbeda jawaban dengan
+                        // pemilih pembayaran.
+                        $tagihan = $calon->tagihan();
+                        $biayaBelumLunas = array_values(array_filter(
+                            $tagihan->rincian(),
+                            fn (array $b) => ! $b['lunas'],
+                        ));
 
-                        foreach ($calon->tahunAjaran->biayaPendaftaran as $biaya) {
-                            $totalBiaya += $biaya->jumlah;
-                            // Bila ada rencana angsuran, hitung dari DP + cicilan yang dibayar
-                            // agar tagihan induk yang ikut berhasil saat lunas tidak terhitung ganda.
-                            $rencanaBiaya = $calon->rencanaAngsuran
-                                ->where('biaya_pendaftaran_id', $biaya->id)
-                                ->sortByDesc('created_at')
-                                ->first();
-                            if ($rencanaBiaya) {
-                                $totalPembayaranBiaya = $rencanaBiaya->dp_dibayar
-                                    + $rencanaBiaya->detailAngsuran
-                                        ->where('cicilan_ke', '>', 0)
-                                        ->where('status', 'dibayar')
-                                        ->sum('total_bayar');
-                            } else {
-                                $totalPembayaranBiaya = $calon->pembayaran
-                                    ->where('biaya_pendaftaran_id', $biaya->id)
-                                    ->where('status', 'berhasil')
-                                    ->sum('jumlah');
-                            }
-
-                            $totalBayar += $totalPembayaranBiaya;
-
-                            if ($totalPembayaranBiaya < $biaya->jumlah) {
-                                $tagihanMenunggu = $calon->pembayaran
-                                    ->where('biaya_pendaftaran_id', $biaya->id)
-                                    ->where('status', 'menunggu')
-                                    ->first();
-
-                                $biayaBelumLunas[] = [
-                                    'id' => $biaya->id,
-                                    'jenis' => $biaya->jenis_biaya,
-                                    'jumlah' => $biaya->jumlah,
-                                    'terbayar' => $totalPembayaranBiaya,
-                                    'sisa' => $biaya->jumlah - $totalPembayaranBiaya,
-                                    'wajib' => $biaya->wajib_bayar,
-                                    'mata_uang' => $biaya->mata_uang,
-                                    'keterangan' => $biaya->keterangan,
-                                    'dapat_diangsur' => $biaya->dapat_diangsur,
-                                    'tagihan_id' => $tagihanMenunggu?->id,
-                                    'rencana_aktif' => $calon->rencanaAngsuran
-                                        ->where('biaya_pendaftaran_id', $biaya->id)
-                                        ->where('status', 'aktif')
-                                        ->isNotEmpty(),
-                                ];
-                            }
-                        }
-
-                        $totalBelumBayar = $totalBiaya - $totalBayar;
+                        $totalWajib = $tagihan->totalWajib();
+                        $terbayarWajib = $tagihan->terbayarWajib();
+                        $totalBelumBayar = $tagihan->sisaWajib();
                     @endphp
 
                     <!-- Payment Summary -->
@@ -1566,8 +1526,8 @@
                                 </div>
                                 <div class="summary-amount">Rp {{ number_format($totalBelumBayar, 0, ',', '.') }}</div>
                                 <div class="summary-detail">
-                                    Total: Rp {{ number_format($totalBiaya, 0, ',', '.') }} Ã¢â‚¬Â¢
-                                    Terbayar: Rp {{ number_format($totalBayar, 0, ',', '.') }}
+                                    Total biaya wajib: Rp {{ number_format($totalWajib, 0, ',', '.') }} â€¢
+                                    Terbayar: Rp {{ number_format($terbayarWajib, 0, ',', '.') }}
                                 </div>
                             </div>
                             @if ($totalBelumBayar > 0)
@@ -1789,16 +1749,14 @@
                                         <label for="selected_biaya_id" class="form-label">
                                             <i class="bi bi-tag text-primary me-1"></i>Biaya <span class="text-danger">*</span>
                                         </label>
-                                        @php $sisaMap = collect($biayaBelumLunas ?? [])->keyBy('id'); @endphp
                                         <select class="form-select" id="selected_biaya_id" name="biaya_pendaftaran_id" required>
                                             <option value="">Ã¢â‚¬â€ Pilih Biaya (wajib & non-wajib) Ã¢â‚¬â€</option>
-                                            @foreach ($calon->tahunAjaran->biayaPendaftaran as $biayaOpt)
-                                                @php $sisaOpt = $sisaMap[$biayaOpt->id]['sisa'] ?? $biayaOpt->jumlah; @endphp
-                                                <option value="{{ $biayaOpt->id }}"
-                                                    data-dapat-diangsur="{{ $biayaOpt->dapat_diangsur ? 1 : 0 }}"
-                                                    data-sisa="{{ $sisaOpt }}"
-                                                    data-mata-uang="{{ $biayaOpt->mata_uang }}">
-                                                    {{ $biayaOpt->jenis_biaya }} Ã¢â‚¬â€ {{ $biayaOpt->wajib_bayar ? 'Wajib' : 'Opsional' }} Ã¢â‚¬â€ Sisa Rp {{ number_format($sisaOpt, 0, ',', '.') }}
+                                            @foreach ($tagihan->rincian() as $biayaOpt)
+                                                <option value="{{ $biayaOpt['id'] }}"
+                                                    data-dapat-diangsur="{{ $biayaOpt['dapat_diangsur'] ? 1 : 0 }}"
+                                                    data-sisa="{{ $biayaOpt['sisa'] }}"
+                                                    data-mata-uang="{{ $biayaOpt['mata_uang'] }}">
+                                                    {{ $biayaOpt['jenis'] }} Ã¢â‚¬â€ {{ $biayaOpt['wajib'] ? 'Wajib' : 'Opsional' }} Ã¢â‚¬â€ Sisa Rp {{ number_format($biayaOpt['sisa'], 0, ',', '.') }}
                                                 </option>
                                             @endforeach
                                         </select>

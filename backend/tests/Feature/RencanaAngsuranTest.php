@@ -173,6 +173,76 @@ test('rencana ganda untuk tagihan sama diblokir', function () {
     expect(RencanaAngsuran::count())->toBe(1);
 });
 
+test('halaman detail dan pemilih pembayaran sepakat soal status lunas', function () {
+    // Dua definisi "lunas" dulu hidup berdampingan: halaman detail menghitung
+    // dari rencana angsuran (dp_dibayar + cicilan), sementara pemilih
+    // pembayaran menghitung dari tabel `pembayarans`. Begitu status baris DP
+    // diubah ke `gagal`, keduanya berbeda jawaban untuk data yang sama.
+    $tagihan = buatTagihanAngsuran();
+    $rencana = buatRencana($this, $tagihan);
+    $calon = $tagihan->calonSiswa;
+    $dp = Pembayaran::where('jenis_pembayaran', 'dp_angsuran')->firstOrFail();
+
+    $tagihan->update(['status' => 'berhasil']);
+    $dp->update(['status' => 'berhasil']);
+
+    expect($calon->tagihan()->lunasWajib())->toBeFalse();
+
+    // Admin membatalkan pembayaran DP.
+    $dp->update(['status' => 'gagal']);
+
+    $sisa = $calon->fresh()->tagihan()->sisaWajib();
+    expect($sisa)->toBeGreaterThan(0);
+
+    // Halaman detail menulis "Sisa Pembayaran", bukan "Lunas".
+    $this->actingAs(superAdmin())
+        ->get(route('admin.calon-siswas.show', $calon))
+        ->assertOk()
+        ->assertSee('Sisa Pembayaran')
+        ->assertDontSee('Pembayaran Lunas!');
+
+    // Pemilih pembayaran menampilkan sisa yang sama persis dengan halaman detail.
+    $html = $this->actingAs(superAdmin())
+        ->get(route('admin.pembayarans.create'))
+        ->assertOk()
+        ->getContent();
+
+    $sisaTampil = 'Sisa Rp '.number_format($sisa, 0, ',', '.');
+
+    expect($html)->toContain($calon->nama_lengkap)
+        ->and($html)->toContain($sisaTampil);
+});
+
+test('tagihan induk rencana yang sudah lunas tidak dihitung dua kali', function () {
+    $tagihan = buatTagihanAngsuran();
+    buatRencana($this, $tagihan);
+    $calon = $tagihan->calonSiswa;
+
+    // Bayar seluruh cicilan sampai rencana menutup tagihan induk.
+    foreach ($calon->rencanaAngsuran->first()->detailAngsuran->where('cicilan_ke', '>', 0) as $detail) {
+        $bayar = Pembayaran::create([
+            'calon_siswa_id' => $calon->id,
+            'biaya_pendaftaran_id' => $tagihan->biaya_pendaftaran_id,
+            'detail_angsuran_id' => $detail->id,
+            'kode_pembayaran' => 'PAY-2026-CIC-'.$detail->id,
+            'jumlah' => (float) $detail->nominal_per_cicilan,
+            'metode_pembayaran' => 'tunai',
+            'jenis_pembayaran' => 'cicilan_angsuran',
+            'status' => 'berhasil',
+        ]);
+    }
+
+    $calon->rencanaAngsuran->first()->update(['status' => 'lunas']);
+    $tagihan->update(['status' => 'berhasil']);
+
+    // DP + seluruh cicilan = jumlah tagihan, tidak boleh melebihi.
+    $biaya = $tagihan->biayaPendaftaran;
+    $terbayar = $calon->fresh()->tagihan()->terbayar();
+
+    expect((float) $terbayar)->toBeGreaterThan(0)
+        ->and((float) $terbayar)->toBeLessThanOrEqual((float) $biaya->jumlah);
+});
+
 test('bayar cicilan terverifikasi menutup detail dan kurangi sisa', function () {
     $tagihan = buatTagihanAngsuran();
     $rencana = buatRencana($this, $tagihan);
