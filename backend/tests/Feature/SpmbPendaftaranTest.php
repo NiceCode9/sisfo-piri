@@ -312,6 +312,24 @@ test('jalur yang kuotanya penuh otomatis dinonaktifkan di wizard', function () {
         ->and($html)->toContain('disabled');
 });
 
+test('pendaftaran publik dibatasi 20 percobaan per menit per IP', function () {
+    // Batas lama 5/menit terlalu kecil untuk sekolah yang berbagi IP/NAT.
+    $payload = payloadSpmb(['nik' => '1234567890124300', 'nisn' => '1234567430']);
+
+    for ($i = 1; $i <= 20; $i++) {
+        $this->post(route('spmb.store'), $payload)->assertRedirect();
+    }
+
+    // Percobaan ke-21 diblokir. Respons throttle ikut membawa pesan yang bisa
+    // dibaca pengguna (bukan 429 kosong).
+    $response = $this->post(route('spmb.store'), $payload);
+    $response->assertRedirect();
+    $response->assertSessionHasErrors('jalur_pendaftaran_id');
+
+    $pesan = implode(' ', session('errors')->getBag('default')->all());
+    expect($pesan)->toContain('Terlalu banyak permintaan pendaftaran');
+});
+
 test('pendaftaran ke jalur non-aktif ditolak walau POST langsung', function () {
     $jalur = JalurPendaftaran::firstOrFail();
     $jalur->update(['aktif' => false]);

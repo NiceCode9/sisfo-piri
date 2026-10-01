@@ -22,6 +22,19 @@ return Application::configure(basePath: dirname(__DIR__))
             RateLimiter::for('heartbeat', function (Request $request) {
                 return Limit::perMinute(6)->by($request->user()?->id ?: $request->ip());
             });
+
+            // Pendaftaran publik. Batas lama 5/menit terlalu kecil untuk sekolah:
+            // satu IP/NAT bersama membuat seluruh orang tua di balik proxy yang
+            // sama saling mengunci, dan form upload 5 berkas mudah gagal validasi
+            // sehingga percobaan ulang ikut kehabisan jatah.
+            RateLimiter::for('pendaftaran', function (Request $request) {
+                return Limit::perMinute(20)
+                    ->by($request->ip())
+                    ->response(fn () => redirect()
+                        ->back()
+                        ->withInput()
+                        ->withErrors(['jalur_pendaftaran_id' => 'Terlalu banyak permintaan pendaftaran. Silakan coba lagi beberapa saat lagi.']));
+            });
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
