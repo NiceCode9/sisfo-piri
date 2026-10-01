@@ -221,6 +221,91 @@ test('tambah calon selalu berstatus menunggu meski admin kirim accepted', functi
         ->and(Siswa::where('calon_siswa_id', $calon->id)->exists())->toBeFalse();
 });
 
+test('penomoran pendaftaran tetap unik meski ada nomor yang terhapus', function () {
+    $jalur = JalurPendaftaran::first();
+    $tahunId = TahunAjaran::aktif()->first()->id;
+
+    $buat = function (string $nik, string $no) use ($jalur, $tahunId) {
+        // NIK harus 16 digit (validasi admin).
+        $nik = str_pad($nik, 16, '0', STR_PAD_LEFT);
+
+        return CalonSiswa::create([
+            'jalur_pendaftaran_id' => $jalur->id,
+            'tahun_ajaran_id' => $tahunId,
+            'no_pendaftaran' => $no,
+            'nik' => $nik,
+            'nama_lengkap' => 'Siswa '.$no,
+            'jenis_kelamin' => 'L',
+            'tempat_lahir' => 'Ngaglik',
+            'tanggal_lahir' => '2010-01-01',
+            'agama' => 'Islam',
+            'alamat' => 'Jl Nomor',
+            'status_pendaftaran' => 'menunggu',
+        ]);
+    };
+
+    // Tiga baris; nomor sengaja tidak berurutan agar hitungan "count" tidak cocok.
+    $a = $buat('1234567800001', 'PPDB-2026-0001');
+    $b = $buat('1234567800002', 'PPDB-2026-0002');
+    $c = $buat('1234567800003', 'PPDB-2026-0003');
+
+    // Hapus baris tengah — count() turun ke 2 (bug lama: nomor berikutnya jadi 0003 → bentrok).
+    $b->delete();
+
+    $response = $this->actingAs(superAdmin())->post(route('admin.calon-siswas.store'), [
+        'jalur_pendaftaran_id' => $jalur->id,
+        'nik' => str_pad('1234567800004', 16, '0', STR_PAD_LEFT),
+        'nama_lengkap' => 'Pendaftar Baru',
+        'jenis_kelamin' => 'P',
+        'tempat_lahir' => 'Ngaglik',
+        'tanggal_lahir' => '2010-01-01',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Baru',
+    ]);
+
+    $response->assertSessionHasNoErrors();
+    $nikBaru = str_pad('1234567800004', 16, '0', STR_PAD_LEFT);
+    $baru = CalonSiswa::where('nik', $nikBaru)->first();
+
+    expect($baru)->not->toBeNull()
+        ->and($baru->no_pendaftaran)->toStartWith('PPDB-'.date('Y').'-')
+        // Berbeda dari nomor yang sudah dipakai.
+        ->and($baru->no_pendaftaran)->not->toBe('PPDB-2026-0003')
+        ->and($baru->no_pendaftaran)->not->toBe('PPDB-2026-0001')
+        // Tidak ada duplikat di tabel.
+        ->and(CalonSiswa::where('no_pendaftaran', $baru->no_pendaftaran)->count())->toBe(1);
+});
+
+test('penerimaan menghasilkan kode pembayaran berformat PAY dan unik', function () {
+    $jalur = JalurPendaftaran::first();
+    // Diterima hanya diproses bila calon punya akun (user_id) — meniru alur form publik.
+    $user = User::factory()->create();
+    $calon = CalonSiswa::create([
+        'jalur_pendaftaran_id' => $jalur->id,
+        'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
+        'user_id' => $user->id,
+        'no_pendaftaran' => 'PPDB-2026-0500',
+        'nik' => '1234567800500',
+        'nama_lengkap' => 'Bayar Uji',
+        'jenis_kelamin' => 'L',
+        'tempat_lahir' => 'Ngaglik',
+        'tanggal_lahir' => '2010-01-01',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Bayar',
+        'status_pendaftaran' => 'menunggu',
+    ]);
+
+    $this->actingAs(superAdmin())
+        ->patch(route('admin.calon-siswas.status', $calon), ['status' => 'diterima'])
+        ->assertSessionHasNoErrors();
+
+    $kodes = $calon->pembayaran()->pluck('kode_pembayaran');
+
+    expect($kodes)->not->toBeEmpty()
+        ->and($kodes->filter(fn ($k) => str_starts_with($k, 'PAY-'.date('Y')))->count())->toBe($kodes->count())
+        ->and($kodes->unique()->count())->toBe($kodes->count());
+});
+
 test('nik duplikat ditolak saat tambah calon', function () {
     $jalur = JalurPendaftaran::first();
     CalonSiswa::create([

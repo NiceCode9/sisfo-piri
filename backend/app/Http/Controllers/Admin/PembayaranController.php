@@ -11,6 +11,7 @@ use App\Models\CalonSiswa;
 use App\Models\DetailAngsuran;
 use App\Models\Pembayaran;
 use App\Models\RencanaAngsuran;
+use App\Support\Penomor;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -181,7 +182,7 @@ class PembayaranController extends Controller implements HasMiddleware
             return $this->storeDenganAngsuran($request, $validated);
         }
 
-        $validated['kode_pembayaran'] = $this->generateKode();
+        $validated['kode_pembayaran'] = Penomor::placeholder('PAY');
         // Input admin selalu langsung berhasil (bukti wajib untuk transfer).
         $validated['status'] = 'berhasil';
         $validated['jenis_pembayaran'] = $validated['jenis_pembayaran'] ?? 'penuh';
@@ -192,6 +193,7 @@ class PembayaranController extends Controller implements HasMiddleware
         }
 
         $pembayaran = Pembayaran::create(collect($validated)->except(['buat_angsuran', 'dp_dibayar', 'jumlah_cicilan', 'tanggal_mulai', 'redirect_to'])->toArray());
+        Penomor::pembayaran($pembayaran);
 
         // Pembayaran cicilan yang langsung berhasil menutup detail + rencana
         // (tutupCicilan melunasi induk otomatis saat cicilan terakhir dibayar).
@@ -247,7 +249,7 @@ class PembayaranController extends Controller implements HasMiddleware
             $induk = Pembayaran::create([
                 'calon_siswa_id' => $validated['calon_siswa_id'],
                 'biaya_pendaftaran_id' => $biaya->id,
-                'kode_pembayaran' => $this->generateKode(),
+                'kode_pembayaran' => Penomor::placeholder('PAY'),
                 'jumlah' => $total,
                 'metode_pembayaran' => $validated['metode_pembayaran'],
                 'jenis_pembayaran' => 'penuh',
@@ -256,6 +258,7 @@ class PembayaranController extends Controller implements HasMiddleware
                 'catatan' => $validated['catatan'] ?? null,
                 'keterangan_angsuran' => $validated['keterangan_angsuran'] ?? null,
             ]);
+            Penomor::pembayaran($induk);
 
             $dpBayar = null;
             if ($dp > 0) {
@@ -266,7 +269,7 @@ class PembayaranController extends Controller implements HasMiddleware
                 $dpBayar = Pembayaran::create([
                     'calon_siswa_id' => $validated['calon_siswa_id'],
                     'biaya_pendaftaran_id' => $biaya->id,
-                    'kode_pembayaran' => $this->generateKode(),
+                    'kode_pembayaran' => Penomor::placeholder('PAY'),
                     'jumlah' => $dp,
                     'metode_pembayaran' => $validated['metode_pembayaran'],
                     'jenis_pembayaran' => 'dp_angsuran',
@@ -275,13 +278,14 @@ class PembayaranController extends Controller implements HasMiddleware
                     'status' => 'berhasil',
                     'keterangan_angsuran' => 'DP angsuran untuk '.$induk->kode_pembayaran,
                 ]);
+                Penomor::pembayaran($dpBayar);
             }
 
             $rencana = RencanaAngsuran::create([
                 'calon_siswa_id' => $validated['calon_siswa_id'],
                 'biaya_pendaftaran_id' => $biaya->id,
                 'pembayaran_id' => $induk->id,
-                'kode_angsuran' => $this->generateKodeAngsuran(),
+                'kode_angsuran' => Penomor::placeholder('ANG'),
                 'total_biaya' => $total,
                 'dp_dibayar' => $dp,
                 'sisa_hutang' => $sisa,
@@ -291,6 +295,7 @@ class PembayaranController extends Controller implements HasMiddleware
                 'tanggal_selesai' => Carbon::parse($validated['tanggal_mulai'])->addMonthsNoOverflow($n - 1)->toDateString(),
                 'status' => 'aktif',
             ]);
+            Penomor::angsuran($rencana);
 
             // Baris ke-0 = DP, ikut termasuk sebagai angsuran (sudah dibayar)
             if ($dpBayar) {
@@ -476,21 +481,5 @@ class PembayaranController extends Controller implements HasMiddleware
         });
 
         return $calons;
-    }
-
-    private function generateKode(): string
-    {
-        $year = date('Y');
-        $count = Pembayaran::whereYear('created_at', $year)->count() + 1;
-
-        return sprintf('PAY-%s-%04d', $year, $count);
-    }
-
-    private function generateKodeAngsuran(): string
-    {
-        $year = date('Y');
-        $count = RencanaAngsuran::whereYear('created_at', $year)->count() + 1;
-
-        return sprintf('ANG-%s-%04d', $year, $count);
     }
 }

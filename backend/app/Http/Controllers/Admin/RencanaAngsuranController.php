@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\StoreRencanaAngsuranRequest;
 use App\Models\DetailAngsuran;
 use App\Models\Pembayaran;
 use App\Models\RencanaAngsuran;
+use App\Support\Penomor;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -77,7 +78,7 @@ class RencanaAngsuranController extends Controller implements HasMiddleware
             $dpBayar = Pembayaran::create([
                 'calon_siswa_id' => $pembayaran->calon_siswa_id,
                 'biaya_pendaftaran_id' => $pembayaran->biaya_pendaftaran_id,
-                'kode_pembayaran' => $this->generateKode(),
+                'kode_pembayaran' => Penomor::placeholder('PAY'),
                 'jumlah' => $dp,
                 'metode_pembayaran' => $pembayaran->metode_pembayaran,
                 'jenis_pembayaran' => 'dp_angsuran',
@@ -85,12 +86,13 @@ class RencanaAngsuranController extends Controller implements HasMiddleware
                 'status' => 'berhasil',
                 'keterangan_angsuran' => 'DP angsuran untuk '.$pembayaran->kode_pembayaran,
             ]);
+            Penomor::pembayaran($dpBayar);
 
             $rencana = RencanaAngsuran::create([
                 'calon_siswa_id' => $pembayaran->calon_siswa_id,
                 'biaya_pendaftaran_id' => $pembayaran->biaya_pendaftaran_id,
                 'pembayaran_id' => $pembayaran->id,
-                'kode_angsuran' => $this->generateKodeAngsuran(),
+                'kode_angsuran' => Penomor::placeholder('ANG'),
                 'total_biaya' => $total,
                 'dp_dibayar' => $dp,
                 'sisa_hutang' => $sisa,
@@ -101,6 +103,7 @@ class RencanaAngsuranController extends Controller implements HasMiddleware
                 'status' => 'aktif',
                 'catatan' => $validated['catatan'] ?? null,
             ]);
+            Penomor::angsuran($rencana);
 
             // Baris ke-0 = DP, ikut termasuk sebagai angsuran (sudah dibayar)
             $dpDetail = null;
@@ -165,21 +168,5 @@ class RencanaAngsuranController extends Controller implements HasMiddleware
         $rencana->update(['status' => 'batal']);
 
         return back()->with('success', "Rencana {$rencana->kode_angsuran} dibatalkan.");
-    }
-
-    private function generateKode(): string
-    {
-        $year = date('Y');
-        $count = Pembayaran::whereYear('created_at', $year)->count() + 1;
-
-        return sprintf('PAY-%s-%04d', $year, $count);
-    }
-
-    private function generateKodeAngsuran(): string
-    {
-        $year = date('Y');
-        $count = RencanaAngsuran::whereYear('created_at', $year)->count() + 1;
-
-        return sprintf('ANG-%s-%04d', $year, $count);
     }
 }

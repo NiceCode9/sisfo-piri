@@ -15,6 +15,7 @@ use App\Models\Pembayaran;
 use App\Models\SertifikatPrestasi;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
+use App\Support\Penomor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -85,7 +86,7 @@ class CalonSiswaController extends Controller implements HasMiddleware
         }
 
         $validated['tahun_ajaran_id'] = $tahunAjaranId;
-        $validated['no_pendaftaran'] = $this->generateNoPendaftaran();
+        $validated['no_pendaftaran'] = Penomor::placeholder('PPDB');
         // Pendaftaran baru selalu mulai 'menunggu'. Penerimaan hanya lewat updateStatus()
         // agar kuota, log status, akun siswa, dan tagihan tidak terlewat.
         $validated['status_pendaftaran'] = 'menunggu';
@@ -131,6 +132,8 @@ class CalonSiswaController extends Controller implements HasMiddleware
                     'user_id' => auth()->id(),
                     'catatan' => 'Pendaftaran dibuat via admin',
                 ]);
+
+                Penomor::calon($calon);
             });
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage())->withInput();
@@ -275,19 +278,23 @@ class CalonSiswaController extends Controller implements HasMiddleware
                         ->get();
 
                     foreach ($biayasWajib as $biaya) {
-                        Pembayaran::firstOrCreate(
+                        $pembayaran = Pembayaran::firstOrCreate(
                             [
                                 'calon_siswa_id' => $calonSiswa->id,
                                 'biaya_pendaftaran_id' => $biaya->id,
                             ],
                             [
-                                'kode_pembayaran' => $this->generateKodePembayaran(),
+                                'kode_pembayaran' => Penomor::placeholder('PAY'),
                                 'jumlah' => $biaya->jumlah,
                                 'metode_pembayaran' => 'transfer',
                                 'jenis_pembayaran' => 'penuh',
                                 'status' => 'menunggu',
                             ]
                         );
+
+                        if (str_starts_with($pembayaran->kode_pembayaran, 'PAY-')) {
+                            Penomor::pembayaran($pembayaran);
+                        }
                     }
                 }
             });
@@ -384,21 +391,5 @@ class CalonSiswaController extends Controller implements HasMiddleware
         });
 
         return redirect()->route('admin.calon-siswas.index')->with('success', 'Calon siswa dihapus.');
-    }
-
-    private function generateNoPendaftaran(): string
-    {
-        $year = date('Y');
-        $count = CalonSiswa::whereYear('created_at', $year)->count() + 1;
-
-        return sprintf('PPDB-%s-%04d', $year, $count);
-    }
-
-    private function generateKodePembayaran(): string
-    {
-        $year = date('Y');
-        $count = Pembayaran::whereYear('created_at', $year)->count() + 1;
-
-        return sprintf('PAY-%s-%04d', $year, $count);
     }
 }

@@ -15,6 +15,7 @@ use App\Models\LogStatusPendaftaran;
 use App\Models\Pengumuman;
 use App\Models\TahunAjaran;
 use App\Models\User;
+use App\Support\Penomor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -100,8 +101,6 @@ class SpmbController extends Controller
                     throw new \RuntimeException('Kuota untuk jalur ini sudah penuh.');
                 }
 
-                $noPendaftaran = sprintf('PPDB-%s-%04d', date('Y'), CalonSiswa::whereYear('created_at', date('Y'))->count() + 1);
-
                 $passwordPlain = Str::random(8);
 
                 $newUser = User::create([
@@ -116,7 +115,7 @@ class SpmbController extends Controller
                     'jalur_pendaftaran_id' => $validated['jalur_pendaftaran_id'],
                     'tahun_ajaran_id' => $tahunAjaranAktif->id,
                     'user_id' => $newUser->id,
-                    'no_pendaftaran' => $noPendaftaran,
+                    'no_pendaftaran' => Penomor::placeholder('PPDB'),
                     'nik' => $validated['nik'],
                     'nisn' => $validated['nisn'],
                     'nama_lengkap' => $validated['nama_lengkap'],
@@ -159,6 +158,8 @@ class SpmbController extends Controller
                     'user_id' => $newUser->id,
                     'catatan' => 'Pendaftaran via form publik',
                 ]);
+
+                Penomor::calon($calon);
 
                 return $calon;
             });

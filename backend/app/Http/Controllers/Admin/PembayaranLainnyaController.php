@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\StorePembayaranLainnyaRequest;
 use App\Http\Requests\Admin\UpdatePembayaranLainnyaRequest;
 use App\Models\CalonSiswa;
 use App\Models\PembayaranLainnya;
+use App\Support\Penomor;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -86,7 +87,7 @@ class PembayaranLainnyaController extends Controller implements HasMiddleware
     {
         $validated = $request->validated();
 
-        $validated['kode_pembayaran'] = $this->generateKode();
+        $validated['kode_pembayaran'] = Penomor::placeholder('LNN');
         // Input admin selalu langsung berhasil (bukti wajib untuk transfer).
         $validated['status'] = 'berhasil';
 
@@ -98,6 +99,7 @@ class PembayaranLainnyaController extends Controller implements HasMiddleware
         $pembayaran = PembayaranLainnya::create(
             collect($validated)->except('redirect_to')->toArray()
         );
+        Penomor::pembayaranLainnya($pembayaran);
 
         return $this->redirectAfterStore($request, "Pembayaran lainnya {$pembayaran->kode_pembayaran} berhasil dibuat.");
     }
@@ -166,13 +168,5 @@ class PembayaranLainnyaController extends Controller implements HasMiddleware
         }
 
         return redirect()->route('admin.pembayaran-lainnyas.index')->with('success', $message);
-    }
-
-    private function generateKode(): string
-    {
-        $year = date('Y');
-        $count = PembayaranLainnya::whereYear('created_at', $year)->count() + 1;
-
-        return sprintf('LNN-%s-%04d', $year, $count);
     }
 }
