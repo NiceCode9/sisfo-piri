@@ -4,24 +4,17 @@
 
 @php
     // ============================================================
-    // TODO: Semua variabel di bawah ini SEMENTARA/DUMMY untuk keperluan
-    // desain frontend. Ganti dengan data asli dari controller nanti:
-    //   - $jalurPendaftarans, $tahunAjaranAktif -> dari JalurPendaftaranController
-    //   - $jadwalPpdb -> dari JadwalPpdbController
-    //   - $profileSekolah -> dari ProfileSekolahController
+    // Fallback hanya untuk data yang belum ada di database. Jadwal TIDAK
+    // boleh di-fallback dengan tanggal hardcoded: dulu controller mengirim
+    // $jadwalPpdbs (jamak) sementara view membaca $jadwalPpdb (tunggal),
+    // sehingga timeline selalu menampilkan tanggal palsu Nov/Des 2026.
     // ============================================================
     $jalurPendaftarans = $jalurPendaftarans ?? collect([
         (object) ['id' => 1, 'nama_jalur' => 'Reguler', 'aktif' => true],
         (object) ['id' => 2, 'nama_jalur' => 'Prestasi / Beasiswa', 'aktif' => true],
     ]);
 
-    $jadwalPpdb = $jadwalPpdb ?? collect([
-        (object) ['nama_jadwal' => 'Pendaftaran', 'tanggal_mulai' => '1 Nov 2026', 'tanggal_selesai' => '30 Nov 2026', 'keterangan' => null],
-        (object) ['nama_jadwal' => 'Tes Masuk', 'tanggal_mulai' => '5 Des 2026', 'tanggal_selesai' => '10 Des 2026', 'keterangan' => null],
-        (object) ['nama_jadwal' => 'Verifikasi Berkas', 'tanggal_mulai' => '12 Des 2026', 'tanggal_selesai' => '15 Des 2026', 'keterangan' => null],
-        (object) ['nama_jadwal' => 'Pengumuman', 'tanggal_mulai' => '20 Des 2026', 'tanggal_selesai' => '20 Des 2026', 'keterangan' => null],
-        (object) ['nama_jadwal' => 'Daftar Ulang', 'tanggal_mulai' => '21 Des 2026', 'tanggal_selesai' => '31 Des 2026', 'keterangan' => null],
-    ]);
+    $jadwalPpdbs = $jadwalPpdbs ?? collect();
 
     $profileSekolah = $profileSekolah ?? (object) [
         'telp' => '(022) 1234-5678',
@@ -60,10 +53,28 @@
         'shield-check' => ['M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z'],
     ];
 
-    $timelineIcons = [
-        'Pendaftaran' => 'calendar', 'Tes Masuk' => 'clipboard', 'Verifikasi Berkas' => 'document',
-        'Pengumuman' => 'bell', 'Daftar Ulang' => 'check-circle',
+    // Nama jadwal berasal dari database (bukan hardcode), jadi ikon dicocokkan
+    // dengan kemiripan kata agar tetap cocok walau admin memberi nama lain,
+    // mis. "Pendaftaran Online" atau "Pengumuman Hasil".
+    $timelineIconKeywords = [
+        'pendaftaran' => 'calendar',
+        'tes' => 'clipboard',
+        'verifikasi' => 'document',
+        'pengumuman' => 'bell',
+        'daftar ulang' => 'check-circle',
     ];
+
+    $cariIkonJadwal = function (string $nama) use ($timelineIconKeywords): string {
+        $nama = mb_strtolower($nama);
+
+        foreach ($timelineIconKeywords as $kata => $ikon) {
+            if (str_contains($nama, $kata)) {
+                return $ikon;
+            }
+        }
+
+        return 'calendar';
+    };
 
     $persyaratanList = [
         'Fotokopi akte kelahiran dan kartu keluarga',
@@ -269,8 +280,8 @@
                 <div class="relative">
                     <div class="absolute left-1/2 -translate-x-1/2 h-full w-1 bg-gradient-to-b from-primary-500 to-accent-500 rounded-full"></div>
 
-                    @foreach ($jadwalPpdb as $index => $jadwal)
-                        @php $iconKey = $timelineIcons[$jadwal->nama_jadwal] ?? 'calendar'; @endphp
+                    @forelse ($jadwalPpdbs as $index => $jadwal)
+                        @php $iconKey = $cariIkonJadwal($jadwal->nama_jadwal); @endphp
                         <div class="relative flex items-center mb-8 {{ $index % 2 == 0 ? 'flex-row' : 'flex-row-reverse' }}">
                             <div class="w-5/12 {{ $index % 2 == 0 ? 'text-right pr-8' : 'text-left pl-8' }}">
                                 <div class="bg-white rounded-2xl shadow-lg p-6 hover:shadow-2xl transition-all duration-300 border border-gray-100 card-hover">
@@ -284,7 +295,7 @@
                                         </div>
                                     </div>
                                     <h3 class="text-lg font-bold text-gray-800 mb-2">{{ $jadwal->nama_jadwal }}</h3>
-                                    <p class="text-sm text-gray-600 mb-2">{{ $jadwal->tanggal_mulai }} - {{ $jadwal->tanggal_selesai }}</p>
+                                    <p class="text-sm text-gray-600 mb-2">{{ \Carbon\Carbon::parse($jadwal->tanggal_mulai)->locale('id')->translatedFormat('d M Y') }} &ndash; {{ \Carbon\Carbon::parse($jadwal->tanggal_selesai)->locale('id')->translatedFormat('d M Y') }}</p>
                                     @if ($jadwal->keterangan)
                                         <p class="text-sm text-gray-500">{{ $jadwal->keterangan }}</p>
                                     @endif
@@ -293,7 +304,12 @@
                             <div class="absolute left-1/2 -translate-x-1/2 w-6 h-6 bg-white border-4 border-primary-500 rounded-full shadow-lg z-10"></div>
                             <div class="w-5/12"></div>
                         </div>
-                    @endforeach
+                    @empty
+                        <div class="max-w-xl mx-auto text-center bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+                            <p class="text-base font-semibold text-gray-700 mb-1">Jadwal PPDB belum dipublikasikan</p>
+                            <p class="text-sm text-gray-500">Silakan cek kembali atau hubungi sekolah untuk informasi tanggal pendaftaran.</p>
+                        </div>
+                    @endforelse
                 </div>
             </div>
 

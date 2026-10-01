@@ -62,6 +62,22 @@ test('pendaftaran publik sukses dengan 5 berkas', function () {
     Storage::disk('berkas')->assertExists($calon->berkasCalonSiswa->ijazah_path);
 });
 
+test('timeline pendaftaran memakai data JadwalPpdb dari database', function () {
+    $this->get(route('spmb.pendaftaran'))
+        ->assertOk()
+        // Nama & tanggal asli dari seeder harus tampil.
+        ->assertSee('Pendaftaran Online')
+        ->assertSee('Verifikasi Berkas')
+        ->assertSee('Tes Seleksi')
+        ->assertSee('Daftar Ulang')
+        // Tanggal asli (1 Mei 2026 - 31 Mei 2026) dengan nama bulan Indonesia.
+        ->assertSee('1 Mei 2026')
+        ->assertSee('31 Mei 2026')
+        // Tanggal hardcoded lama tidak boleh muncul lagi.
+        ->assertDontSee('1 Nov 2026')
+        ->assertDontSee('31 Des 2026');
+});
+
 test('email yang sudah dipakai akun lain ditolak tanpa membocorkan pesan SQL', function () {
     $jalur = JalurPendaftaran::first();
     // Akun admin/guru sudah memakai email ini; email juga UNIQUE di tabel users.
