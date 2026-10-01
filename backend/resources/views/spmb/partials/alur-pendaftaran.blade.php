@@ -134,7 +134,7 @@
                         </svg>
                         Upload Dokumen
                     </h3>
-                    <p class="text-sm text-gray-700">Upload semua berkas persyaratan dalam format PDF/JPG (max 2MB)</p>
+                    <p class="text-sm text-gray-700">Upload semua berkas persyaratan: dokumen PDF maks 5MB, pas foto JPG/PNG maks 2MB</p>
                 </div>
             </div>
 

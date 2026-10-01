@@ -274,6 +274,15 @@ test('halaman pendaftaran menampilkan peringatan ketika ditutup', function () {
         ->assertSee('Pendaftaran Belum Dibuka');
 });
 
+test('halaman publik tidak lagi menjanjikan batas 2MB untuk dokumen PDF', function () {
+    $html = $this->get(route('spmb.home'))->assertOk()->getContent();
+
+    // Validasi menerima PDF sampai 5MB; teks lama "max 2MB" menyesatkan.
+    expect($html)->not->toContain('max 2MB')
+        ->and($html)->toContain('dokumen PDF maks 5MB')
+        ->and($html)->toContain('pas foto JPG/PNG maks 2MB');
+});
+
 test('timeline pendaftaran memakai data JadwalPpdb dari database', function () {
     // Seeder membuat jadwal relatif terhadap hari ini, jadi yang diuji adalah
     // tanggal yang benar-benar tersimpan di database.
