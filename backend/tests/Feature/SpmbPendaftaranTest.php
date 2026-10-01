@@ -1,9 +1,11 @@
 <?php
 
 use App\Models\CalonSiswa;
+use App\Models\Guru;
 use App\Models\JadwalPpdb;
 use App\Models\JalurPendaftaran;
 use App\Models\KuotaPendaftaran;
+use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
@@ -635,6 +637,20 @@ test('tahun ajaran aktif tidak ada ditolak', function () {
     $response->assertSessionHasErrors(['jalur_pendaftaran_id']);
 });
 
+/**
+ * Isi hanya bagian hero landing page.
+ *
+ * Assertion atas seluruh halaman tidak bisa membedakan badge hero dari teks
+ * lain yang kebetulan sama (mis. label "Pendaftaran Dibuka" di kartu gelombang,
+ * atau tahun ajaran yang ikut muncul di isi pengumuman hasil seed).
+ */
+function heroHtml(string $html): string
+{
+    preg_match('/<section id="beranda".*?<\/section>/s', $html, $m);
+
+    return $m[0] ?? '';
+}
+
 test('kartu kuota terbatas memakai angka nyata dari database, bukan hardcoded', function () {
     $tahun = TahunAjaran::aktif()->firstOrFail();
 
@@ -677,4 +693,70 @@ test('kartu kuota terbatas tidak menampilkan angka palsu saat belum ada data', f
     expect($html)->not->toContain('>180</span>')
         ->and($html)->not->toContain('6 Kelas Tersedia')
         ->and($html)->toContain('—</span>');
+});
+
+test('statistik hero memakai jumlah siswa dan guru aktif dari database', function () {
+    $hero = heroHtml($this->get(route('spmb.home'))->assertOk()->getContent());
+
+    $siswa = Siswa::where('is_aktif', true)->count();
+    $guru = Guru::where('is_aktif', true)->count();
+
+    expect($hero)->toContain('>'.($siswa ?: '—').'</div>')
+        ->and($hero)->toContain('>'.($guru ?: '—').'</div>')
+        // Angka karangan lama harus hilang.
+        ->and($hero)->not->toContain('500+')
+        ->and($hero)->not->toContain('25+')
+        ->and($hero)->not->toContain('15+');
+});
+
+test('tahun ajaran pada hero diambil dari tahun ajaran aktif', function () {
+    $tahun = TahunAjaran::aktif()->firstOrFail();
+    $tahun->update(['nama_tahun_ajaran' => '2099/2100']);
+
+    $hero = heroHtml($this->get(route('spmb.home'))->assertOk()->getContent());
+
+    expect($hero)->toContain('2099/2100')
+        // Literal lama tidak boleh lagi ditulis di view hero.
+        ->and($hero)->not->toContain('2026/2027');
+});
+
+test('badge hero mencerminkan status jendela pendaftaran', function () {
+    // Dibuka: badge hijau.
+    $hero = heroHtml($this->get(route('spmb.home'))->assertOk()->getContent());
+    expect($hero)->toContain('Pendaftaran Dibuka!');
+
+    // Belum mulai: badge menampilkan tanggal mulai, bukan "Dibuka!".
+    JadwalPpdb::where('tipe', 'pendaftaran')->update([
+        'tanggal_mulai' => now()->addWeek()->toDateString(),
+        'tanggal_selesai' => now()->addMonth()->toDateString(),
+    ]);
+
+    $mulai = JadwalPpdb::where('tipe', 'pendaftaran')->firstOrFail()->tanggal_mulai->translatedFormat('d M Y');
+    $hero = heroHtml($this->get(route('spmb.home'))->assertOk()->getContent());
+
+    expect($hero)->toContain('Pendaftaran dibuka '.$mulai)
+        ->and($hero)->not->toContain('Pendaftaran Dibuka!');
+});
+
+test('badge hero menampilkan pendaftaran ditutup setelah jadwal berakhir', function () {
+    JadwalPpdb::where('tipe', 'pendaftaran')->update([
+        'tanggal_mulai' => now()->subMonths(2)->toDateString(),
+        'tanggal_selesai' => now()->subDay()->toDateString(),
+    ]);
+
+    $hero = heroHtml($this->get(route('spmb.home'))->assertOk()->getContent());
+
+    expect($hero)->toContain('Pendaftaran Ditutup')
+        ->and($hero)->not->toContain('Pendaftaran Dibuka!');
+});
+
+test('badge hero disembunyikan ketika tidak ada tahun ajaran aktif', function () {
+    TahunAjaran::query()->update(['status_aktif' => false]);
+
+    $hero = heroHtml($this->get(route('spmb.home'))->assertOk()->getContent());
+
+    // Tanpa tahun ajaran tidak ada yang bisa dijanjikan, jadi jangan tampilkan
+    // status pendaftaran sama sekali.
+    expect($hero)->not->toContain('Pendaftaran Dibuka')
+        ->and($hero)->not->toContain('Pendaftaran Ditutup');
 });

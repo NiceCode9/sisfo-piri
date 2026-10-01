@@ -17,13 +17,16 @@
         'email' => 'info@smpharapanbangsa.sch.id',
     ];
 
-    $tahunBerjalan = date('Y') - ($profileSekolah->tahun_berdiri ?? 2011);
+    // Angka statistik diambil dari view composer spmb.* supaya sama dengan
+    // yang tampil di hero. Nilai kosong berarti data belum diisi, jadi
+    // menampilkan tanda pisah — bukan angka cadangan seperti 500+/35+/A.
+    $tahunBerjalan = $lamaBerdiri ?? null;
 
     $stats = [
-        ['value' => ($jumlahSiswaAktif ?? 0) > 0 ? $jumlahSiswaAktif . '+' : '500+', 'label' => 'Siswa Aktif'],
-        ['value' => '35+', 'label' => 'Tenaga Pendidik'],
-        ['value' => $tahunBerjalan . '+', 'label' => 'Tahun Berdiri'],
-        ['value' => $profileSekolah->akreditasi ?? 'A', 'label' => 'Akreditasi'],
+        ['value' => $jumlahSiswaAktif ?: '—', 'label' => 'Siswa Aktif'],
+        ['value' => $jumlahGuruAktif ?: '—', 'label' => 'Tenaga Pendidik'],
+        ['value' => $tahunBerjalan ?: '—', 'label' => 'Tahun Berdiri'],
+        ['value' => $profileSekolah->akreditasi ?: '—', 'label' => 'Akreditasi'],
     ];
 
     $misiList = ! empty($profileSekolah->misi) ? $profileSekolah->misi : [

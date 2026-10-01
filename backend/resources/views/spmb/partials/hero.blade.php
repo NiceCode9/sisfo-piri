@@ -1,7 +1,7 @@
-{{-- TODO: ganti dengan data asli tahun ajaran --}}
+{{-- Statistik & badge di bawah memakai data nyata: tahun ajaran aktif,
+     jumlah siswa/guru aktif, dan jendela pendaftaran dari database. --}}
 @php
-    $tahunAjaran = '2026/2027'; // ganti dinamis sesuai kebutuhan
-    $currentYear = date('Y');
+    $tahunAjaran = $tahunAjaranAktif?->nama_tahun_ajaran;
 @endphp
 
 <section id="beranda" class="relative min-h-screen flex items-center bg-gradient-primary overflow-hidden">
@@ -16,9 +16,21 @@
 
             {{-- Left Content --}}
             <div class="text-white space-y-6 animate-fade-in-up">
-                <div class="inline-block px-4 py-2 bg-secondary-500 rounded-full text-sm font-semibold shadow-lg">
-                    🎉 Pendaftaran Dibuka!
-                </div>
+                @if ($tahunAjaranAktif)
+                    @if ($pendaftaranDibuka)
+                        <div class="inline-block px-4 py-2 bg-secondary-500 rounded-full text-sm font-semibold shadow-lg">
+                            🎉 Pendaftaran Dibuka!
+                        </div>
+                    @elseif ($jendelaPendaftaran?->tanggal_mulai?->startOfDay()->isFuture())
+                        <div class="inline-block px-4 py-2 bg-amber-400 rounded-full text-sm font-semibold shadow-lg text-amber-950">
+                            Pendaftaran dibuka {{ $jendelaPendaftaran->tanggal_mulai->translatedFormat('d M Y') }}
+                        </div>
+                    @else
+                        <div class="inline-block px-4 py-2 bg-white/25 rounded-full text-sm font-semibold shadow-lg">
+                            Pendaftaran Ditutup
+                        </div>
+                    @endif
+                @endif
 
                 <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight">
                     Wujudkan Impianmu<br/>
@@ -26,7 +38,10 @@
                 </h1>
 
                 <p class="text-lg md:text-xl text-white/90 leading-relaxed">
-                    Bergabunglah dalam Penerimaan Murid Baru Tahun Ajaran <span class="font-bold">{{ $tahunAjaran }}</span>.
+                    Bergabunglah dalam Penerimaan Murid Baru
+                    @if ($tahunAjaran)
+                        Tahun Ajaran <span class="font-bold">{{ $tahunAjaran }}</span>
+                    @endif.
                     Raih prestasi, kembangkan bakatmu, dan ciptakan masa depan cerah!
                 </p>
 
@@ -47,17 +62,20 @@
                 </div>
 
                 {{-- Stats --}}
+                {{-- Angka diambil dari database lewat view composer spmb.*.
+                     Kosong berarti belum ada data, jadi tampilkan tanda pisah
+                     dan bukan angka karangan. --}}
                 <div class="grid grid-cols-3 gap-4 pt-8">
                     <div class="text-center">
-                        <div class="text-3xl md:text-4xl font-extrabold text-secondary-300">500+</div>
+                        <div class="text-3xl md:text-4xl font-extrabold text-secondary-300">{{ $jumlahSiswaAktif ?: '—' }}</div>
                         <div class="text-sm text-white/80">Siswa Aktif</div>
                     </div>
                     <div class="text-center">
-                        <div class="text-3xl md:text-4xl font-extrabold text-secondary-300">25+</div>
-                        <div class="text-sm text-white/80">Guru Berpengalaman</div>
+                        <div class="text-3xl md:text-4xl font-extrabold text-secondary-300">{{ $jumlahGuruAktif ?: '—' }}</div>
+                        <div class="text-sm text-white/80">Guru Aktif</div>
                     </div>
                     <div class="text-center">
-                        <div class="text-3xl md:text-4xl font-extrabold text-secondary-300">15+</div>
+                        <div class="text-3xl md:text-4xl font-extrabold text-secondary-300">{{ $lamaBerdiri ?: '—' }}</div>
                         <div class="text-sm text-white/80">Tahun Berdiri</div>
                     </div>
                 </div>
@@ -81,8 +99,13 @@
                             </svg>
                         </div>
                         <div>
-                            <div class="text-sm font-bold text-gray-800">Terakreditasi A</div>
-                            <div class="text-xs text-gray-500">Standar Nasional</div>
+                            @if ($profileSekolah?->akreditasi)
+                                <div class="text-sm font-bold text-gray-800">Terakreditasi {{ $profileSekolah->akreditasi }}</div>
+                                <div class="text-xs text-gray-500">Standar Nasional</div>
+                            @else
+                                <div class="text-sm font-bold text-gray-800">Sekolah Terakreditasi</div>
+                                <div class="text-xs text-gray-500">Status belum dicantumkan</div>
+                            @endif
                         </div>
                     </div>
                 </div>

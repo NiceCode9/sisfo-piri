@@ -54,6 +54,11 @@ class SpmbController extends Controller
             'galeriFotos' => $galeriFotos,
             'prestasis' => $prestasis,
             'ringkasanKuota' => $this->ringkasanKuota($tahunAjaranAktif),
+            // Badge hero harus mencerminkan gate yang sama dengan form, kalau
+            // tidak landing page tetap Divecta "Pendaftaran Dibuka!" padahal
+            // form-nya sudah ditutup.
+            'jendelaPendaftaran' => $jendela = JadwalPpdb::jendelaPendaftaran($tahunAjaranAktif),
+            'pendaftaranDibuka' => $tahunAjaranAktif !== null && ($jendela === null || $jendela->sedangBerlangsung()),
         ]);
     }
 
