@@ -6,6 +6,7 @@ use App\Exports\CalonDiterimaExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreCalonSiswaRequest;
 use App\Http\Requests\Admin\UpdateCalonSiswaRequest;
+use App\Models\BerkasCalonSiswa;
 use App\Models\BiayaPendaftaran;
 use App\Models\CalonSiswa;
 use App\Models\JalurPendaftaran;
@@ -23,6 +24,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -93,7 +95,7 @@ class CalonSiswaController extends Controller implements HasMiddleware
         // agar kuota, log status, akun siswa, dan tagihan tidak terlewat.
         $validated['status_pendaftaran'] = 'menunggu';
 
-        $berkasFields = ['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path', 'krm_path', 'kip_path'];
+        $berkasFields = BerkasCalonSiswa::UPLOADABLE;
         $calonData = collect($validated)->except([...$berkasFields, 'sertifikat'])->toArray();
         $berkasUploads = collect($validated)->only($berkasFields)->filter()->toArray();
         $sertifikatUploads = $request->file('sertifikat', []);
@@ -177,7 +179,7 @@ class CalonSiswaController extends Controller implements HasMiddleware
             return back()->with('error', 'Tidak dapat mengganti jalur/tahun untuk calon yang sudah diterima. Ubah status dulu.')->withInput();
         }
 
-        $berkasFields = ['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path', 'krm_path', 'kip_path'];
+        $berkasFields = BerkasCalonSiswa::UPLOADABLE;
         $calonData = collect($validated)->except([...$berkasFields, 'sertifikat', 'status_pendaftaran'])->toArray();
         $berkasUploads = collect($validated)->only($berkasFields)->filter()->toArray();
         $sertifikatUploads = $request->file('sertifikat', []);
@@ -358,7 +360,7 @@ class CalonSiswaController extends Controller implements HasMiddleware
         $request->validate([
             'status_verifikasi' => ['required', 'boolean'],
             'berkas_perlu_perbaikan' => ['nullable', 'array'],
-            'berkas_perlu_perbaikan.*' => ['string', 'in:ijazah_path,kk_path,akta_path,foto_path,skl_path,krm_path,kip_path,sertifikat'],
+            'berkas_perlu_perbaikan.*' => ['string', Rule::in(BerkasCalonSiswa::PERLU_PERBAIKAN)],
             'alasan_penolakan' => ['nullable', 'string', 'max:1000'],
             'catatan_berkas' => ['nullable', 'string', 'max:1000'],
             'ijazah_path' => ['nullable', 'file', 'mimes:pdf', 'max:5120'],
@@ -387,7 +389,7 @@ class CalonSiswaController extends Controller implements HasMiddleware
 
         $berkasFiles = new Berkas;
 
-        foreach (['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path', 'krm_path', 'kip_path'] as $field) {
+        foreach (BerkasCalonSiswa::UPLOADABLE as $field) {
             if ($request->hasFile($field)) {
                 // File lama baru dihapus setelah commit supaya baris tidak
                 // pernah menunjuk file yang sudah hilang.
@@ -440,7 +442,7 @@ class CalonSiswaController extends Controller implements HasMiddleware
         $berkasFiles = new Berkas;
 
         if ($calonSiswa->berkasCalonSiswa) {
-            foreach (['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path', 'krm_path', 'kip_path'] as $field) {
+            foreach (BerkasCalonSiswa::UPLOADABLE as $field) {
                 $berkasFiles->hapus($calonSiswa->berkasCalonSiswa->$field);
             }
         }

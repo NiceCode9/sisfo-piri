@@ -21,19 +21,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class DokumenController extends Controller
 {
-    private const BERKAS_FIELDS = [
-        'ijazah_path',
-        'kk_path',
-        'akta_path',
-        'foto_path',
-        'skl_path',
-        'krm_path',
-        'kip_path',
-    ];
-
     public function berkas(BerkasCalonSiswa $berkas, string $field): StreamedResponse
     {
-        abort_unless(in_array($field, self::BERKAS_FIELDS, true), 404);
+        abort_unless(in_array($field, BerkasCalonSiswa::UPLOADABLE, true), 404);
 
         $path = $berkas->{$field};
         $calon = $berkas->calonSiswa;

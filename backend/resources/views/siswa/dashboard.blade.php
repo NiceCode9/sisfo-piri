@@ -71,9 +71,9 @@
                             <table class="table-nexus w-100" style="font-size: 13px;">
                                 <thead><tr><th>Berkas</th><th>Status</th><th>File</th></tr></thead>
                                 <tbody>
-                                    @foreach (['ijazah_path'=>'Ijazah','kk_path'=>'KK','akta_path'=>'Akta','foto_path'=>'Foto','skl_path'=>'SKL','krm_path'=>'KRM','kip_path'=>'KIP'] as $field=>$label)
+                                    @foreach (\App\Models\BerkasCalonSiswa::UPLOADABLE as $field)
                                         <tr>
-                                            <td>{{ $label }}</td>
+                                            <td>{{ \App\Models\BerkasCalonSiswa::LABELS[$field] ?? $field }}</td>
                                             <td>
                                                 @if(in_array($field, $b->berkas_perlu_perbaikan ?? []))
                                                     <span class="badge-nexus badge-danger">perlu perbaikan</span>

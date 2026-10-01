@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Spmb\StorePendaftaranRequest;
+use App\Models\BerkasCalonSiswa;
 use App\Models\BiayaPendaftaran;
 use App\Models\Brosur;
 use App\Models\CalonSiswa;
@@ -149,7 +150,7 @@ class SpmbController extends Controller
                 ]);
 
                 $berkasData = [];
-                foreach (['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path', 'krm_path', 'kip_path'] as $field) {
+                foreach (BerkasCalonSiswa::UPLOADABLE as $field) {
                     if ($request->hasFile($field)) {
                         $berkasData[$field] = $request->file($field)->store('berkas', 'berkas');
                     }

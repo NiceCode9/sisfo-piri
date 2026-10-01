@@ -1325,14 +1325,14 @@
                     @if ($calon->berkasCalonSiswa)
                         @php $b = $calon->berkasCalonSiswa; @endphp
                         <div class="document-list">
-                            @foreach (['foto_path' => ['Pas Foto', 'Foto 3x4', 'bg-primary', 'bi-camera-fill'], 'ijazah_path' => ['Ijazah', 'Ijazah/STTB', 'bg-success', 'bi-award-fill'], 'kk_path' => ['Kartu Keluarga', 'KK Asli', 'bg-warning', 'bi-people-fill'], 'akta_path' => ['Akta Kelahiran', 'Akta Asli', 'bg-info', 'bi-file-earmark-text-fill'], 'skl_path' => ['Surat Keterangan Lulus', 'SKL Asli', 'bg-secondary', 'bi-mortarboard-fill'], 'krm_path' => ['KRM', 'Kartu Indonesia Pintar (opsional)', 'bg-danger', 'bi-card-text-fill'], 'kip_path' => ['KIP', 'Kartu Indonesia Pintar (opsional)', 'bg-info', 'bi-wallet-fill']] as $field => [$label, $desc, $bg, $icon])
+                            @foreach (['foto_path' => ['Foto 3x4', 'bg-primary', 'bi-camera-fill'], 'ijazah_path' => ['Ijazah/STTB', 'bg-success', 'bi-award-fill'], 'kk_path' => ['KK Asli', 'bg-warning', 'bi-people-fill'], 'akta_path' => ['Akta Asli', 'bg-info', 'bi-file-earmark-text-fill'], 'skl_path' => ['SKL Asli', 'bg-secondary', 'bi-mortarboard-fill'], 'krm_path' => ['Opsional', 'bg-danger', 'bi-card-text-fill'], 'kip_path' => ['Opsional', 'bg-info', 'bi-wallet-fill']] as $field => [$desc, $bg, $icon])
                                 @if ($b->$field)
                                     <a href="{{ route('dokumen.berkas', [$b, $field]) }}" target="_blank" class="document-item">
                                         <div class="document-icon {{ $bg }}">
                                             <i class="bi {{ $icon }}"></i>
                                         </div>
                                         <div class="document-info">
-                                            <div class="document-name">{{ $label }}</div>
+                                            <div class="document-name">{{ \App\Models\BerkasCalonSiswa::LABELS[$field] ?? $field }}</div>
                                             <div class="document-desc">{{ $desc }}</div>
                                         </div>
                                         <div class="document-action">
@@ -1381,9 +1381,9 @@
                                     <div style="font-size:11px;color:#6c757d;">PDF 5MB, Foto JPG/PNG 2MB. File lama dihapus bila diganti.</div>
                                 </div>
                                 <div class="row g-2">
-                                    @foreach (['ijazah_path' => 'Ijazah', 'kk_path' => 'KK', 'akta_path' => 'Akta', 'foto_path' => 'Foto', 'skl_path' => 'SKL', 'krm_path' => 'KRM', 'kip_path' => 'KIP'] as $fld => $lbl)
+                                    @foreach (\App\Models\BerkasCalonSiswa::UPLOADABLE as $fld)
                                         <div class="col-12 col-sm-6">
-                                            <label class="form-label" style="font-size:12px;" for="berkas-{{ $fld }}">{{ $lbl }}</label>
+                                            <label class="form-label" style="font-size:12px;" for="berkas-{{ $fld }}">{{ \App\Models\BerkasCalonSiswa::LABELS[$fld] ?? $fld }}</label>
                                             <input type="file" name="{{ $fld }}" id="berkas-{{ $fld }}" class="form-control form-control-sm @error($fld) is-invalid @enderror" />
                                             @error($fld)<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                         </div>
@@ -1392,12 +1392,12 @@
                                 <div>
                                     <label class="form-label" style="font-size: 12px;">Berkas perlu perbaikan</label>
                                     <div class="d-flex flex-wrap gap-2">
-                                        @foreach (['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path', 'krm_path', 'kip_path', 'sertifikat'] as $f)
-                                            <div class="form-check">
-                                                <input type="checkbox" name="berkas_perlu_perbaikan[]" value="{{ $f }}" id="perlu-{{ $f }}" class="form-check-input" @checked(in_array($f, old('berkas_perlu_perbaikan', $calon->berkasCalonSiswa->berkas_perlu_perbaikan ?? []))) />
-                                                <label class="form-check-label" style="font-size: 12px;" for="perlu-{{ $f }}">{{ $f }}</label>
-                                            </div>
-                                        @endforeach
+                            @foreach (\App\Models\BerkasCalonSiswa::PERLU_PERBAIKAN as $f)
+                                <div class="form-check">
+                                    <input type="checkbox" name="berkas_perlu_perbaikan[]" value="{{ $f }}" id="perlu-{{ $f }}" class="form-check-input" @checked(in_array($f, old('berkas_perlu_perbaikan', $calon->berkasCalonSiswa->berkas_perlu_perbaikan ?? []))) />
+                                    <label class="form-check-label" for="perlu-{{ $f }}">{{ \App\Models\BerkasCalonSiswa::LABELS[$f] ?? $f }}</label>
+                                </div>
+                            @endforeach
                                     </div>
                                 </div>
                                 <div class="form-floating">

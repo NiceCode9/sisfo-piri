@@ -590,6 +590,35 @@ test('hapus calon diterima menurunkan kedua kuota', function () {
         ->and((int) $after->terisi)->toBe(1);
 });
 
+test('label berkas memakai nama ramah, bukan nama kolom mentah', function () {
+    $calon = CalonSiswa::create([
+        'jalur_pendaftaran_id' => JalurPendaftaran::first()->id,
+        'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
+        'no_pendaftaran' => 'PPDB-2026-1900',
+        'nik' => '0001234567801900',
+        'nama_lengkap' => 'Cek Label',
+        'jenis_kelamin' => 'L',
+        'tempat_lahir' => 'Ngaglik',
+        'tanggal_lahir' => '2010-01-01',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Label',
+        'status_pendaftaran' => 'menunggu',
+    ]);
+
+    $html = $this->actingAs(superAdmin())
+        ->get(route('admin.calon-siswas.show', $calon))
+        ->assertOk()
+        ->getContent();
+
+    // Nama kolom mentah pernah tampil di checkbox "Berkas perlu perbaikan".
+    expect($html)->not->toContain('>ijazah_path<')
+        ->and($html)->not->toContain('>kk_path<')
+        ->and($html)->not->toContain('>kip_path<')
+        ->and($html)->toContain('Ijazah')
+        ->and($html)->toContain('Kartu Keluarga')
+        ->and($html)->toContain('Kartu Indonesia Pintar');
+});
+
 test('calon yang sudah jadi siswa tidak dapat dihapus dari halaman PPDB', function () {
     $jalur = JalurPendaftaran::first();
     $user = User::factory()->create();

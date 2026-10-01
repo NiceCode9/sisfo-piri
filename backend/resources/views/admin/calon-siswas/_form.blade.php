@@ -211,21 +211,22 @@
 
 @php
     $berkas = $calon->berkasCalonSiswa ?? null;
-    $berkasFields = [
-        'ijazah_path' => ['label' => 'Ijazah (PDF)', 'accept' => '.pdf', 'icon' => 'fa-file-pdf', 'hint' => 'PDF maksimal 5MB'],
-        'kk_path' => ['label' => 'Kartu Keluarga (PDF)', 'accept' => '.pdf', 'icon' => 'fa-file-pdf', 'hint' => 'PDF maksimal 5MB'],
-        'akta_path' => ['label' => 'Akta Kelahiran (PDF)', 'accept' => '.pdf', 'icon' => 'fa-file-pdf', 'hint' => 'PDF maksimal 5MB'],
-        'foto_path' => ['label' => 'Pas Foto (JPG/PNG)', 'accept' => 'image/*', 'icon' => 'fa-image', 'hint' => 'JPG/PNG maksimal 2MB'],
-        'skl_path' => ['label' => 'SKL (PDF)', 'accept' => '.pdf', 'icon' => 'fa-file-pdf', 'hint' => 'PDF maksimal 5MB'],
-        'krm_path' => ['label' => 'KRM (opsional)', 'accept' => '.pdf,image/*', 'icon' => 'fa-file-pdf', 'hint' => 'PDF/JPG 5MB (opsional)'],
-        'kip_path' => ['label' => 'KIP (opsional)', 'accept' => '.pdf,image/*', 'icon' => 'fa-file-pdf', 'hint' => 'PDF/JPG 5MB (opsional)'],
+    // Label diambil dari konstanta model; yang di sini hanya metadata upload.
+    $berkasMeta = [
+        'ijazah_path' => ['accept' => '.pdf', 'icon' => 'fa-file-pdf', 'hint' => 'PDF maksimal 5MB'],
+        'kk_path' => ['accept' => '.pdf', 'icon' => 'fa-file-pdf', 'hint' => 'PDF maksimal 5MB'],
+        'akta_path' => ['accept' => '.pdf', 'icon' => 'fa-file-pdf', 'hint' => 'PDF maksimal 5MB'],
+        'foto_path' => ['accept' => 'image/*', 'icon' => 'fa-image', 'hint' => 'JPG/PNG maksimal 2MB'],
+        'skl_path' => ['accept' => '.pdf', 'icon' => 'fa-file-pdf', 'hint' => 'PDF maksimal 5MB'],
+        'krm_path' => ['accept' => '.pdf,image/*', 'icon' => 'fa-file-pdf', 'hint' => 'PDF/JPG 5MB (opsional)'],
+        'kip_path' => ['accept' => '.pdf,image/*', 'icon' => 'fa-file-pdf', 'hint' => 'PDF/JPG 5MB (opsional)'],
     ];
 @endphp
 
 <div class="row g-3">
-    @foreach ($berkasFields as $field => $meta)
+    @foreach ($berkasMeta as $field => $meta)
         <div class="col-12 col-md-6">
-            <label class="form-label" for="{{ $field }}">{{ $meta['label'] }}</label>
+            <label class="form-label" for="{{ $field }}">{{ \App\Models\BerkasCalonSiswa::LABELS[$field] ?? $field }}</label>
             @if ($berkas && $berkas->$field)
                 <div class="mb-1" style="font-size: 12px;">
                     Saat ini: <a href="{{ route('dokumen.berkas', [$berkas, $field]) }}" target="_blank" class="text-primary"><i class="fa-solid fa-eye"></i> Lihat file</a>

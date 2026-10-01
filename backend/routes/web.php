@@ -48,6 +48,7 @@ use App\Http\Controllers\Siswa\ProfilController;
 use App\Http\Controllers\Siswa\RiwayatController;
 use App\Http\Controllers\Siswa\TugasController as SiswaTugasController;
 use App\Http\Controllers\SpmbController;
+use App\Models\BerkasCalonSiswa;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [SpmbController::class, 'home'])->name('spmb.home');
@@ -68,7 +69,7 @@ Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')-
 // divalidasi controller agar tidak bisa jadi open redirect/arbitrary read.
 Route::middleware('auth')->group(function () {
     Route::get('/dokumen/berkas/{berkas}/{field}', [DokumenController::class, 'berkas'])
-        ->whereIn('field', ['ijazah_path', 'kk_path', 'akta_path', 'foto_path', 'skl_path', 'krm_path', 'kip_path'])
+        ->whereIn('field', BerkasCalonSiswa::UPLOADABLE)
         ->name('dokumen.berkas');
     Route::get('/dokumen/sertifikat/{sertifikat}', [DokumenController::class, 'sertifikat'])->name('dokumen.sertifikat');
     Route::get('/dokumen/pembayaran/{pembayaran}', [DokumenController::class, 'pembayaran'])->name('dokumen.pembayaran');

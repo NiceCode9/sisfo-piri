@@ -124,9 +124,35 @@ test('kolom berkas di luar daftar putih ditolak 404', function () {
     $calon = calonDenganUser();
     $berkas = $calon->berkasCalonSiswa()->create(['catatan_berkas' => 'rahasia', 'status_verifikasi' => true]);
 
+    // `catatan_berkas` bukan kolom berkas — DokumenController harus menolak.
     $this->actingAs(adminWith('berkas-calon-siswas.view'))
         ->get(route('dokumen.berkas', [$berkas, 'catatan_berkas']))
         ->assertNotFound();
+});
+
+test('daftar label berkas hidup di satu konstanta model', function () {
+    // Label dipakai bersama oleh form admin, dashboard siswa, dan pesan error.
+    expect(BerkasCalonSiswa::UPLOADABLE)->toHaveCount(7)
+        ->and(BerkasCalonSiswa::PERLU_PERBAIKAN)->toContain('sertifikat')
+        ->and(BerkasCalonSiswa::LABELS)->toHaveKeys(BerkasCalonSiswa::PERLU_PERBAIKAN)
+        ->and(BerkasCalonSiswa::LABELS['krm_path'])->toBe('Kartu Rencana Murid');
+
+    // Setiap kolom yang boleh diunggah punya label; tidak ada nama kolom mentah.
+    foreach (BerkasCalonSiswa::PERLU_PERBAIKAN as $field) {
+        expect(BerkasCalonSiswa::LABELS[$field])->not->toEndWith('_path');
+    }
+});
+
+test('berkas perlu perbaikan يترjemahkan kolom menjadi label ramah', function () {
+    $calon = calonDenganUser();
+    $berkas = $calon->berkasCalonSiswa()->create([
+        'berkas_perlu_perbaikan' => ['ijazah_path', 'kk_path', 'sertifikat'],
+    ]);
+
+    expect($berkas->labelYangPerluPerbaikan())->toBe(['Ijazah', 'Kartu Keluarga', 'Sertifikat Prestasi'])
+        ->and($berkas->perluPerbaikan())->toBeTrue()
+        // `sertifikat` tidak bisa diunggah ulang lewat form berkas biasa.
+        ->and($berkas->berkasPerluDiunggahUlang())->toBe(['ijazah_path', 'kk_path']);
 });
 
 test('sertifikat hanya untuk pemilik, wali, atau admin', function () {
