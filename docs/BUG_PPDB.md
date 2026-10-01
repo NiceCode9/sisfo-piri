@@ -61,7 +61,36 @@ Seluruh temuan **High** juga sudah diperbaiki (suites penuh hijau, 453 test / 14
 
 **Catatan H7:** bila admin belum menandai satu pun baris bertipe `pendaftaran`, pendaftaran **tetap dibuka** (sengaja permissive agar selisih tanggal tidak mengunci sekolah tanpa sengaja). Gate hanya aktif setelah ada baris `tipe = 'pendaftaran'`.
 
-Sisa temuan **Medium / Low** belum dikerjakan.
+### Tahap 3 — 11 temuan Medium
+
+Seluruh temuan **Medium** sudah diperbaiki (suites penuh hijau, 485 test / 1567 assertions):
+
+| ID | Commit | Perbaikan inti |
+|---|---|---|
+| M1 | `b18153e` | Teks "max 2MB" di `alur-pendaftaran.blade.php` diganti jadi "PDF maks 5MB, foto maks 2MB" sesuai validasi |
+| M2 | `0f50028` | Langkah "Buat Akun … dengan email dan password" diganti penjelasan sebenarnya: akun terbit otomatis, username = NISN, password ditampilkan sekali |
+| M3 | `e262cbe` | `CalonSiswa::AGAMA` jadi satu-satunya daftar baku; form publik memakai `<select>` yang sama dengan admin (sebelumnya free-text sehingga nilai seperti "islam" tertimpa saat diedit admin) |
+| M8 | `fcd074d` | Peta label berkas pindah ke konstanta `BerkasCalonSiswa::LABELS`/`UPLOADABLE`/`PERLU_PERBAIKAN`; nama kolom mentah tidak lagi bocor di 4 view sekaligus |
+| M4 | `4567293` | `withValidator` `wajib_sertifikat` dipindah ke trait dan dipakai form admin juga; helper `jalurWajibSertifikat()` yang mati sekarang terpakai. Form edit tidak mewajibkan upload ulang bila sertifikat sudah tersimpan |
+| M11 | `774e7ab` | Pendaftaran publik memakai `Rule::exists(...)->where('aktif', true)`. Admin tetap bebas memilih jalur non-aktif (walk-in/lupa jalan), diberi label "(non-aktif)" |
+| M12 | `eeffeee` | `$kuotaMap` yang dulu payload mati dipakai: nama opsi jalur menampilkan sisa kursi, jalur penuh otomatis `disabled`, dan ada baris info kuota di langkah pertama |
+| M5 | `cdf72e0` | Rate limiter bernama `pendaftaran` = 20/menit per IP (dari `throttle:5,1`), dengan pesan yang bisa dibaca pengguna |
+| M7 | `772db5f` | `App\Support\TagihanCalon` jadi satu-satunya definisi "lunas" untuk halaman detail **dan** pemilih pembayaran. `scopeBelumLunas()` (SQL) dihapus |
+| M10 | `deb5be8` | `updateStatus()` menolak `menunggu → diterima` bila berkas belum diverifikasi atau masih ada yang perlu perbaikan; pesan menyebut label berkasnya |
+| M9 | `1c6f1ab` | Route `PUT /siswa/berkas` + `Siswa\BerkasController` + form di dashboard. Siswa hanya boleh mengunggah field yang ditandai perlu perbaikan |
+
+**M6 sudah selesai di `a749301`** (Tahap 2) — kuota dipisah menjadi batas pendaftar dan batas penerimaan.
+
+### Koreksi terhadap audit awal
+
+1. **M5 — "gagal validasi membakar kuota" tidak benar.** Kuota hanya di-`increment` di dalam transaksi *setelah* validasi lolos, jadi percobaan gagal tidak menyentuh kuota. Yang terpakai hanya slot throttle.
+2. **M7 — mekanisme yang disebut audit menghasilkan gejala terbalik.** Selisih `wajib_bayar` tidak bisa membuat kandidat tampak "Lunas" di halaman detail sekaligus belum lunas di picker (karena `Σ semua biaya ≥ Σ biaya wajib`). Gejala aslinya ada tapi lewat jalur lain: halaman detail membaca `rencana_angsurans.dp_dibayar`, sementara `PembayaranController::updateStatus` masih bisa mengubah status baris DP ke `gagal` tanpa re-sync.
+3. **M8 — bagian dashboard siswa salah.** View itu sudah memetakan label; hanya `admin/calon-siswas/show.blade.php` yang mencetak nama kolom mentah.
+4. **M1 — `pendaftaran.blade.php` sudah benar**; teks basi hanya tersisa di `alur-pendaftaran.blade.php`.
+
+**Catatan M10:** gate hanya berlaku bila ada baris `BerkasCalonSiswa`. Calon tanpa berkas sama sekali tetap boleh diterima — tidak ada berkas yang perlu diverifikasi.
+
+Sisa temuan **Low** belum dikerjakan. `PpdbSeeder` juga masih tidak idempoten (pakai `create()`), sehingga `db:seed` gagal bila dijalankan dua kali.
 
 ---
 
