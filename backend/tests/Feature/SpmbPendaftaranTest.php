@@ -274,6 +274,44 @@ test('halaman pendaftaran menampilkan peringatan ketika ditutup', function () {
         ->assertSee('Pendaftaran Belum Dibuka');
 });
 
+test('wizard menampilkan sisa kuota pendaftaran dari database', function () {
+    $kuota = KuotaPendaftaran::whereNotNull('kuota_pendaftaran')->firstOrFail();
+    $jalur = JalurPendaftaran::findOrFail($kuota->jalur_pendaftaran_id);
+    $sisa = $kuota->kuota_pendaftaran - $kuota->terisi_pendaftaran;
+
+    $html = $this->get(route('spmb.pendaftaran'))->assertOk()->getContent();
+
+    // Sisa kuota ikut tampil di nama opsi (dari $kuotaMap yang sebelumnya mati).
+    expect($html)->toContain($jalur->nama_jalur.' — sisa '.$sisa.' kursi')
+        ->and($html)->toContain('data-sisa="'.$sisa.'"')
+        ->and($html)->toContain('data-kapasitas="'.$kuota->kuota_pendaftaran.'"')
+        ->and($html)->toContain('info-kuota');
+});
+
+test('jalur tanpa batas kuota tidak menampilkan angka sisa', function () {
+    $jalur = JalurPendaftaran::firstOrFail();
+    KuotaPendaftaran::where('jalur_pendaftaran_id', $jalur->id)
+        ->update(['kuota_pendaftaran' => null]);
+
+    $html = $this->get(route('spmb.pendaftaran'))->assertOk()->getContent();
+
+    // `data-kapasitas` kosong = tanpa batas; opsi tetap bisa dipilih.
+    expect($html)->toContain('data-sisa=""')
+        ->and($html)->not->toContain($jalur->nama_jalur.' — Penuh')
+        ->and($html)->not->toContain($jalur->nama_jalur.' — sisa');
+});
+
+test('jalur yang kuotanya penuh otomatis dinonaktifkan di wizard', function () {
+    $kuota = KuotaPendaftaran::whereNotNull('kuota_pendaftaran')->firstOrFail();
+    $jalur = JalurPendaftaran::findOrFail($kuota->jalur_pendaftaran_id);
+    $kuota->update(['terisi_pendaftaran' => $kuota->kuota_pendaftaran]);
+
+    $html = $this->get(route('spmb.pendaftaran'))->assertOk()->getContent();
+
+    expect($html)->toContain($jalur->nama_jalur.' — Penuh')
+        ->and($html)->toContain('disabled');
+});
+
 test('pendaftaran ke jalur non-aktif ditolak walau POST langsung', function () {
     $jalur = JalurPendaftaran::firstOrFail();
     $jalur->update(['aktif' => false]);

@@ -465,11 +465,29 @@
                                     class="w-full px-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white shadow-sm transition-all duration-200 @error('jalur_pendaftaran_id') border-red-500 ring-2 ring-red-200 @enderror">
                                 <option value="">🎯 Pilih Jalur Pendaftaran</option>
                                 @foreach ($jalurPendaftarans as $jalur)
-                                    @if ($jalur->aktif)
-                                        <option value="{{ $jalur->id }}" data-wajib-sertifikat="{{ $jalur->wajib_sertifikat ? 1 : 0 }}" {{ old('jalur_pendaftaran_id') == $jalur->id ? 'selected' : '' }}>{{ $jalur->nama_jalur }}</option>
+                                    @if (! $jalur->aktif)
+                                        @continue
                                     @endif
+                                    @php
+                                        $kuota = ($kuotaMap ?? collect())->get($jalur->id);
+                                        $kapasitas = $kuota?->kuota_pendaftaran;
+                                        $sisa = $kapasitas ? max(0, $kapasitas - $kuota->terisi_pendaftaran) : null;
+                                        $penuh = $kuota?->pendaftaranPenuh() ?? false;
+                                    @endphp
+                                    <option value="{{ $jalur->id }}"
+                                            data-wajib-sertifikat="{{ $jalur->wajib_sertifikat ? 1 : 0 }}"
+                                            data-sisa="{{ $sisa ?? '' }}"
+                                            data-kapasitas="{{ $kapasitas ?? '' }}"
+                                            @disabled($penuh)
+                                            @selected(old('jalur_pendaftaran_id') == $jalur->id)>
+                                        {{ $jalur->nama_jalur }}@if ($penuh) — Penuh @elseif ($sisa !== null) — sisa {{ $sisa }} kursi @endif
+                                    </option>
                                 @endforeach
                             </select>
+                            <p id="info-kuota" class="mt-2 text-sm text-gray-500"></p>
+                            <noscript>
+                                <p class="mt-2 text-xs text-gray-500">Jalur bertanda "Penuh" sudah tidak menerima pendaftar baru.</p>
+                            </noscript>
                             @error('jalur_pendaftaran_id')
                                 <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                             @enderror
@@ -865,8 +883,35 @@
                 return !!(opt && opt.dataset.wajibSertifikat === '1');
             }
 
+            // Sisa kuota pendaftaran ikut ditampilkan agar pendaftar tahu
+            // kapasitas sebelum mengisi formulir panjang.
+            function updateInfoKuota() {
+                const info = document.getElementById('info-kuota');
+                const opt = jalurSelect.selectedOptions[0];
+
+                if (!info) return;
+
+                if (!opt || !opt.value) {
+                    info.textContent = 'Pilih jalur untuk melihat sisa kuota pendaftaran.';
+                    return;
+                }
+
+                if (opt.disabled) {
+                    info.textContent = 'Jalur ini sudah penuh dan tidak menerima pendaftar baru.';
+                    return;
+                }
+
+                const sisa = opt.dataset.sisa;
+                const kapasitas = opt.dataset.kapasitas;
+
+                info.textContent = (sisa === '' || kapasitas === '')
+                    ? 'Pendaftaran untuk jalur ini tidak dibatasi jumlahnya.'
+                    : `Sisa ${sisa} dari ${kapasitas} kursi pendaftaran.`;
+            }
+
             function toggleSertifikat() {
                 const wajib = sertifikatWajib();
+                updateInfoKuota();
                 sertSection.classList.toggle('hidden', !wajib);
                 sertRows.querySelectorAll('.sertifikat-row').forEach((row) => {
                     row.querySelectorAll('input').forEach((inp) => {
@@ -916,6 +961,7 @@
             jalurSelect.addEventListener('change', toggleSertifikat);
             toggleSertifikat();
             refreshSertifikatButtons();
+            updateInfoKuota();
 
             // Preview file upload
             form.querySelectorAll('input[type="file"]').forEach((input) => {
