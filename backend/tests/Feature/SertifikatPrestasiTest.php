@@ -2,6 +2,7 @@
 
 use App\Models\CalonSiswa;
 use App\Models\JalurPendaftaran;
+use App\Models\TahunAjaran;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\PpdbSeeder;
@@ -213,5 +214,83 @@ test('admin dapat menambah calon beserta sertifikat', function () {
     $response->assertRedirect(route('admin.calon-siswas.index'));
     $calon = CalonSiswa::where('nik', '9900000000000007')->first();
     expect($calon)->not->toBeNull()
+        ->and($calon->sertifikatPrestasis)->toHaveCount(1);
+});
+
+test('admin ditolak menambah calon ke jalur wajib sertifikat tanpa sertifikat', function () {
+    $jalur = JalurPendaftaran::where('nama_jalur', 'Jalur Prestasi Olahraga')->firstOrFail();
+    $tahun = $jalur->kuotaPendaftaran->first()->tahun_ajaran_id;
+
+    // Dulunya hanya JavaScript yang menahan; POST langsung tetap diterima.
+    $response = $this->actingAs(superAdmin())->post(route('admin.calon-siswas.store'), [
+        'jalur_pendaftaran_id' => $jalur->id,
+        'tahun_ajaran_id' => $tahun,
+        'nama_lengkap' => 'Tanpa Sertifikat',
+        'jenis_kelamin' => 'L',
+        'nik' => '9900000000000008',
+        'tempat_lahir' => 'Sleman',
+        'tanggal_lahir' => '2010-01-01',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Tanpa Sertifikat',
+    ]);
+
+    $response->assertSessionHasErrors('sertifikat');
+    expect(CalonSiswa::where('nik', '9900000000000008')->exists())->toBeFalse();
+});
+
+test('admin boleh menambah calon ke jalur reguler tanpa sertifikat', function () {
+    $jalur = JalurPendaftaran::where('nama_jalur', 'Jalur Reguler')->firstOrFail();
+    $tahun = $jalur->kuotaPendaftaran->first()->tahun_ajaran_id;
+
+    $this->actingAs(superAdmin())->post(route('admin.calon-siswas.store'), [
+        'jalur_pendaftaran_id' => $jalur->id,
+        'tahun_ajaran_id' => $tahun,
+        'nama_lengkap' => 'Reguler Tanpa Sertifikat',
+        'jenis_kelamin' => 'L',
+        'nik' => '9900000000000009',
+        'tempat_lahir' => 'Sleman',
+        'tanggal_lahir' => '2010-01-01',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Reguler',
+    ])->assertSessionHasNoErrors();
+
+    expect(CalonSiswa::where('nik', '9900000000000009')->exists())->toBeTrue();
+});
+
+test('edit calon jalur wajib yang sudah punya sertifikat tidak wajib upload ulang', function () {
+    $jalur = JalurPendaftaran::where('nama_jalur', 'Jalur Prestasi Olahraga')->firstOrFail();
+    $calon = CalonSiswa::create([
+        'jalur_pendaftaran_id' => $jalur->id,
+        'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
+        'no_pendaftaran' => 'PPDB-2026-2000',
+        'nik' => '9900000000000010',
+        'nama_lengkap' => 'Sudah Punya Sertifikat',
+        'jenis_kelamin' => 'L',
+        'tempat_lahir' => 'Sleman',
+        'tanggal_lahir' => '2010-01-01',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Lama',
+        'status_pendaftaran' => 'menunggu',
+    ]);
+    $calon->sertifikatPrestasis()->create([
+        'nama_sertifikat' => 'Juara 1',
+        'file_path' => UploadedFile::fake()->create('s.pdf', 100, 'application/pdf')->store('berkas/sertifikat', 'berkas'),
+    ]);
+
+    // Admin hanya mau memperbaiki ketikan nama, tidak ada file baru dikirim.
+    $this->actingAs(superAdmin())->put(route('admin.calon-siswas.update', $calon), [
+        'jalur_pendaftaran_id' => $jalur->id,
+        'tahun_ajaran_id' => $calon->tahun_ajaran_id,
+        'nik' => $calon->nik,
+        'nama_lengkap' => 'Nama Sudah Dikoreksi',
+        'jenis_kelamin' => 'L',
+        'tempat_lahir' => 'Sleman',
+        'tanggal_lahir' => '2010-01-01',
+        'agama' => 'Islam',
+        'alamat' => 'Jl Baru',
+    ])->assertSessionHasNoErrors();
+
+    expect($calon->fresh())
+        ->nama_lengkap->toBe('Nama Sudah Dikoreksi')
         ->and($calon->sertifikatPrestasis)->toHaveCount(1);
 });

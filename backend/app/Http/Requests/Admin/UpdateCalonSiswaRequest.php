@@ -63,4 +63,19 @@ class UpdateCalonSiswaRequest extends FormRequest
             'sertifikat.*.file' => ['required_with:sertifikat', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
         ];
     }
+
+    /**
+     * Kandidat yang sudah punya sertifikat tidak wajib mengunggah ulang saat
+     * admin mengoreksi data lain (mis. NIK yang salah ketik).
+     */
+    protected function sertifikatTersimpan(): bool
+    {
+        $calon = $this->route('calon_siswa') ?? $this->route('calonSiswa');
+
+        if (! $calon) {
+            return false;
+        }
+
+        return $calon->sertifikatPrestasis()->exists();
+    }
 }

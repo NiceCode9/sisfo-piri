@@ -69,4 +69,45 @@ trait BersihkanSertifikatKosong
     {
         return (bool) JalurPendaftaran::find($this->input('jalur_pendaftaran_id'))?->wajib_sertifikat;
     }
+
+    /**
+     * Tegakkan `wajib_sertifikat` di server.
+     *
+     * Sebelumnya aturan ini hanya berjalan di form publik, sementara form admin
+     * bergantung pada JavaScript toggle — sehingga POST langsung bisa menyimpan
+     * jalur prestasi tanpa sertifikat sama sekali.
+     */
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            if (! $this->jalurWajibSertifikat() || $this->sertifikatTerkirim() || $this->sertifikatTersimpan()) {
+                return;
+            }
+
+            $jalur = JalurPendaftaran::find($this->input('jalur_pendaftaran_id'));
+
+            $validator->errors()->add('sertifikat', 'Jalur '
+                .($jalur?->nama_jalur ?? 'ini')
+                .' mewajibkan minimal 1 sertifikat prestasi.');
+        });
+    }
+
+    /**
+     * Apakah request ini menyertakan minimal satu file sertifikat?
+     */
+    protected function sertifikatTerkirim(): bool
+    {
+        return ! empty($this->file('sertifikat'));
+    }
+
+    /**
+     * Apakah sudah ada sertifikat tersimpan untuk kandidat ini?
+     * Form create selalu salah karena belum ada sertifikat tersimpan; form edit
+     * meng-override agar kandidat yang sudah punya sertifikat tidak wajib
+     * mengunggah ulang.
+     */
+    protected function sertifikatTersimpan(): bool
+    {
+        return false;
+    }
 }
