@@ -1,4 +1,5 @@
-{{-- TODO: ganti dengan data asli sekolah --}}
+{{-- Keunggulan sekolah. Angka pada kartu kuota berasal dari data nyata
+     (SpmbController::ringkasanKuota), bukan hardcoded. --}}
 
 <section id="tentang" class="py-20 bg-white">
     <div class="container mx-auto px-4">
@@ -96,23 +97,30 @@
                     </svg>
                 </div>
                 <h3 class="text-xl font-bold text-gray-800 mb-3">Kuota Terbatas</h3>
+                @php $kuota = $ringkasanKuota ?? ['kapasitas' => 0, 'terisi' => 0, 'persen' => 0, 'jumlah_kelas' => 0]; @endphp
                 <div class="space-y-4">
                     <div>
                         <div class="flex items-baseline justify-between mb-2">
-                            <span class="text-4xl font-extrabold text-accent-700">180</span>
+                            <span class="text-4xl font-extrabold text-accent-700">{{ $kuota['kapasitas'] ?: '—' }}</span>
                             <span class="text-sm text-gray-600">siswa</span>
                         </div>
                         <p class="text-sm text-gray-700">Total kuota yang tersedia</p>
                     </div>
                     <div class="pt-4 border-t border-accent-200">
                         <div class="flex justify-between text-sm mb-2">
-                            <span class="text-gray-700">6 Kelas Tersedia</span>
-                            <span class="font-bold text-accent-700">@30 siswa</span>
+                            <span class="text-gray-700">{{ $kuota['jumlah_kelas'] ?: '—' }} Kelas Tersedia</span>
+                            <span class="font-bold text-accent-700">
+                                @if ($kuota['kapasitas'])
+                                    {{ $kuota['terisi'] }}/{{ $kuota['kapasitas'] }} terisi
+                                @else
+                                    Kuota belum diatur
+                                @endif
+                            </span>
                         </div>
                         <div class="w-full bg-accent-200 rounded-full h-2">
-                            <div class="bg-accent-600 h-2 rounded-full" style="width: 45%"></div>
+                            <div class="bg-accent-600 h-2 rounded-full" style="width: {{ min($kuota['persen'], 100) }}%"></div>
                         </div>
-                        <p class="text-xs text-gray-600 mt-2">45% kuota terisi</p>
+                        <p class="text-xs text-gray-600 mt-2">{{ $kuota['persen'] }}% kuota pendaftaran terisi</p>
                     </div>
                 </div>
             </div>

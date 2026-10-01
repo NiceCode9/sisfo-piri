@@ -634,3 +634,47 @@ test('tahun ajaran aktif tidak ada ditolak', function () {
 
     $response->assertSessionHasErrors(['jalur_pendaftaran_id']);
 });
+
+test('kartu kuota terbatas memakai angka nyata dari database, bukan hardcoded', function () {
+    $tahun = TahunAjaran::aktif()->firstOrFail();
+
+    // Semua jalur berbatas diseragamkan; jalur tanpa batas (NULL) tidak boleh
+    // ikut dihitung. Ekspektasi dihitung dari database, bukan angka tetap,
+    // supaya test tidak bergantung pada jumlah baris hasil seeder.
+    $berbatas = KuotaPendaftaran::where('tahun_ajaran_id', $tahun->id)
+        ->whereNotNull('kuota_pendaftaran')
+        ->get();
+    $tanpaBatas = KuotaPendaftaran::where('tahun_ajaran_id', $tahun->id)
+        ->whereNull('kuota_pendaftaran')
+        ->get();
+
+    expect($berbatas)->not->toBeEmpty();
+    $berbatas->each(fn ($k) => $k->update(['kuota_pendaftaran' => 100, 'terisi_pendaftaran' => 25]));
+    $tanpaBatas->each(fn ($k) => $k->update(['terisi_pendaftaran' => 999]));
+
+    $kapasitas = $berbatas->count() * 100;
+    $terisi = $berbatas->count() * 25;
+    $persen = (int) round($terisi / $kapasitas * 100);
+
+    $html = $this->get(route('spmb.home'))->assertOk()->getContent();
+
+    expect($html)->toContain('>'.$kapasitas.'</span>')
+        ->and($html)->toContain('width: '.$persen.'%')
+        ->and($html)->toContain($persen.'% kuota pendaftaran terisi')
+        ->and($html)->toContain($terisi.'/'.$kapasitas.' terisi')
+        // Jalur tanpa batas tidak boleh menambah kapasitas maupun terisi.
+        ->and($html)->not->toContain('>'.($kapasitas + 999).'</span>');
+});
+
+test('kartu kuota terbatas tidak menampilkan angka palsu saat belum ada data', function () {
+    TahunAjaran::query()->update(['status_aktif' => false]);
+    KuotaPendaftaran::query()->delete();
+
+    $html = $this->get(route('spmb.home'))->assertOk()->getContent();
+
+    // Angka lama (180 siswa / 6 kelas / 45%) tidak boleh muncul sebagai
+    // cadangan ketika sumber datanya kosong.
+    expect($html)->not->toContain('>180</span>')
+        ->and($html)->not->toContain('6 Kelas Tersedia')
+        ->and($html)->toContain('—</span>');
+});

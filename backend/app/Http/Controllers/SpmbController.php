@@ -14,6 +14,7 @@ use App\Models\JalurPendaftaran;
 use App\Models\KuotaPendaftaran;
 use App\Models\LogStatusPendaftaran;
 use App\Models\Pengumuman;
+use App\Models\Rombel;
 use App\Models\TahunAjaran;
 use App\Models\User;
 use App\Support\Penomor;
@@ -52,7 +53,51 @@ class SpmbController extends Controller
             'brosurs' => $brosurs,
             'galeriFotos' => $galeriFotos,
             'prestasis' => $prestasis,
+            'ringkasanKuota' => $this->ringkasanKuota($tahunAjaranAktif),
         ]);
+    }
+
+    /**
+     * Agregat kuota untuk kartu "Kuota Terbatas" di landing page.
+     *
+     * Sebelumnya kartu tersebut menampilkan angka hardcoded (180 siswa, 6 kelas,
+     * 45% terisi) yang bertentangan dengan data asli. Sekarang:
+     *  - `kapasitas` = jumlah kursi yang bisa didaftarkan,
+     *  - `persen` memakai `terisi_pendaftaran` — satu-satunya angka yang
+     *    benar-benar bergerak di sistem.
+     *
+     * Jalur tanpa batas (`kuota_pendaftaran` NULL) diabaikan agar tidak
+     * ikut dihitung sebagai kapasitas.
+     */
+    private function ringkasanKuota(?TahunAjaran $tahun): array
+    {
+        if (! $tahun) {
+            return ['kapasitas' => 0, 'terisi' => 0, 'persen' => 0, 'jumlah_kelas' => 0];
+        }
+
+        $kuota = KuotaPendaftaran::where('tahun_ajaran_id', $tahun->id)
+            ->whereNotNull('kuota_pendaftaran')
+            ->get(['kuota_pendaftaran', 'terisi_pendaftaran']);
+
+        $kapasitas = (int) $kuota->sum('kuota_pendaftaran');
+        $terisi = (int) $kuota->sum('terisi_pendaftaran');
+
+        // Tabel `kelas` hanya katalog nama kelas (7A, 7B, ...) tanpa tahun
+        // ajaran. Kelas yang benar-benar berjalan pada tahun ini dihitung dari
+        // rombel, karena `rombels` punya unique (kelas_id, tahun_ajaran_id).
+        //
+        // Angka ini sengaja TIDAK dibagi dengan kapasitas menjadi "kuota per
+        // kelas": kapasitas berlaku untuk angkatan yang baru masuk, sedangkan
+        // kelas yang berjalan mencakup kelas atas, jadi pembaginya tidak
+        // sebanding.
+        $jumlahKelas = Rombel::where('tahun_ajaran_id', $tahun->id)->distinct()->count('kelas_id');
+
+        return [
+            'kapasitas' => $kapasitas,
+            'terisi' => $terisi,
+            'persen' => $kapasitas > 0 ? (int) round($terisi / $kapasitas * 100) : 0,
+            'jumlah_kelas' => $jumlahKelas,
+        ];
     }
 
     public function create(): View
