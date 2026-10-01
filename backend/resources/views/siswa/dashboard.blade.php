@@ -99,6 +99,41 @@
                         @if($b->catatan_berkas)
                             <div style="font-size: 12px; color: var(--text-muted);">Catatan: {{ $b->catatan_berkas }}</div>
                         @endif
+
+                        {{-- Upload ulang: hanya muncul kalau admin memang
+                             menandai ada berkas yang perlu diperbaiki. --}}
+                        @php $perluDiunggah = $b->berkasPerluDiunggahUlang(); @endphp
+                        @if (count($perluDiunggah))
+                            <form method="POST" action="{{ route('siswa.berkas.update') }}" enctype="multipart/form-data" class="mt-3 p-3 border rounded-3" style="border-color: var(--border-color)!important;">
+                                @csrf @method('PUT')
+                                <div class="fw-bold mb-1" style="font-size:13px;">
+                                    <i class="fa-solid fa-cloud-arrow-up me-1"></i>Unggah Ulang Berkas
+                                </div>
+                                <p style="font-size:11.5px; color: var(--text-muted);" class="mb-2">
+                                    Ganti berkas yang ditandai perlu perbaikan di bawah ini.
+                                    Setelah diunggah, berkas menunggu verifikasi admin kembali.
+                                </p>
+                                <div class="d-flex flex-column gap-2">
+                                    @foreach ($perluDiunggah as $field)
+                                        <div>
+                                            <label for="ulang-{{ $field }}" style="font-size:12px;">
+                                                {{ \App\Models\BerkasCalonSiswa::LABELS[$field] ?? $field }}
+                                            </label>
+                                            <input type="file"
+                                                   id="ulang-{{ $field }}"
+                                                   name="{{ $field }}"
+                                                   accept="{{ $field === 'foto_path' ? 'image/*' : '.pdf' }}"
+                                                   class="form-control form-control-sm @error($field) is-invalid @enderror"
+                                                   required />
+                                            @error($field)<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                        </div>
+                                    @endforeach
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-sm mt-3">
+                                    <i class="fa-solid fa-upload me-1"></i>Kirim Berkas
+                                </button>
+                            </form>
+                        @endif
                     @else
                         <p style="font-size: 13px; color: var(--text-muted);">Belum ada berkas.</p>
                     @endif

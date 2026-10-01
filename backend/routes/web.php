@@ -42,6 +42,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DokumenController;
 use App\Http\Controllers\Ortu\DashboardController as OrtuDashboardController;
 use App\Http\Controllers\Ortu\ProfilController as OrtuProfilController;
+use App\Http\Controllers\Siswa\BerkasController;
 use App\Http\Controllers\Siswa\DashboardController;
 use App\Http\Controllers\Siswa\MateriController as SiswaMateriController;
 use App\Http\Controllers\Siswa\ProfilController;
@@ -88,6 +89,8 @@ Route::prefix('siswa')->name('siswa.')->middleware(['auth', 'role:siswa'])->grou
     Route::get('/tugas/rekap', [SiswaTugasController::class, 'rekap'])->name('tugas.rekap');
     Route::get('/tugas/{tugas}', [SiswaTugasController::class, 'show'])->name('tugas.show');
     Route::post('/tugas/{tugas}/kumpul', [SiswaTugasController::class, 'kumpul'])->name('tugas.kumpul');
+    // Upload ulang berkas yang diminta admin untuk diperbaiki (M9).
+    Route::put('/berkas', [BerkasController::class, 'update'])->name('berkas.update');
 });
 
 Route::prefix('ortu')->name('ortu.')->middleware(['auth', 'role:orang-tua'])->group(function () {
