@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\CalonSiswa;
+use App\Models\JadwalPpdb;
 use App\Models\JalurPendaftaran;
 use App\Models\KuotaPendaftaran;
 use App\Models\TahunAjaran;
@@ -18,7 +19,49 @@ beforeEach(function () {
     $this->seed(PpdbSeeder::class);
     Storage::fake('public');
     Storage::fake('berkas');
+
+    // Jadwal seed bertanggal Mei 2026 (sudah lewat). Gate jadwal memakai
+    // rentang ini, jadi dibuat melatari "hari ini" supaya test tidak bergantung
+    // pada kalender. Test khusus gate mengatur rentangnya sendiri.
+    JadwalPpdb::where('tipe', 'pendaftaran')->update([
+        'tanggal_mulai' => now()->subMonth()->toDateString(),
+        'tanggal_selesai' => now()->addMonth()->toDateString(),
+    ]);
 });
+
+/**
+ * Payload pendaftaran publik yang valid; test cukup menimpa field yang relevan.
+ *
+ * @param  array<string, mixed>  $ubah
+ * @return array<string, mixed>
+ */
+function payloadSpmb(array $ubah = []): array
+{
+    return array_merge([
+        'jalur_pendaftaran_id' => JalurPendaftaran::first()->id,
+        'nama_lengkap' => 'Siswa Uji Gate',
+        'jenis_kelamin' => 'L',
+        'nik' => '1234567890123456',
+        'nisn' => '1234567890',
+        'tempat_lahir' => 'Sleman',
+        'tanggal_lahir' => '2010-05-10',
+        'agama' => 'Islam',
+        'asal_sekolah' => 'SMP 1',
+        'alamat' => 'Jl Gate 1',
+        'no_hp' => '081234567890',
+        'email' => 'gate@example.com',
+        'nama_ayah' => 'Ayah',
+        'pekerjaan_ayah' => 'Petani',
+        'nama_ibu' => 'Ibu',
+        'pekerjaan_ibu' => 'IRT',
+        'no_hp_orang_tua' => '081234567891',
+        'ijazah_path' => UploadedFile::fake()->create('ijazah.pdf', 100, 'application/pdf'),
+        'kk_path' => UploadedFile::fake()->create('kk.pdf', 100, 'application/pdf'),
+        'akta_path' => UploadedFile::fake()->create('akta.pdf', 100, 'application/pdf'),
+        'foto_path' => UploadedFile::fake()->image('foto.jpg'),
+        'skl_path' => UploadedFile::fake()->create('skl.pdf', 100, 'application/pdf'),
+    ], $ubah);
+}
 
 test('halaman pendaftaran dapat ditampilkan', function () {
     $response = $this->get(route('spmb.pendaftaran'));
@@ -186,6 +229,59 @@ test('kuota pendaftaran kosong berarti pendaftaran tidak dibatasi', function () 
     expect($kuota->fresh()->terisi_pendaftaran)->toBe(100);
 });
 
+test('pendaftaran ditolak sebelum jadwal pendaftaran dimulai', function () {
+    JadwalPpdb::where('tipe', 'pendaftaran')->update([
+        'tanggal_mulai' => now()->addWeek()->toDateString(),
+        'tanggal_selesai' => now()->addMonth()->toDateString(),
+    ]);
+
+    $this->post(route('spmb.store'), payloadSpmb([
+        'nik' => '1234567890123800',
+        'nisn' => '1234567380',
+        'email' => 'belum@example.com',
+    ]))->assertSessionHasErrors('jalur_pendaftaran_id');
+
+    expect(CalonSiswa::where('nik', '1234567890123800')->exists())->toBeFalse();
+});
+
+test('pendaftaran ditolak setelah jadwal pendaftaran berakhir', function () {
+    JadwalPpdb::where('tipe', 'pendaftaran')->update([
+        'tanggal_mulai' => now()->subMonths(2)->toDateString(),
+        'tanggal_selesai' => now()->subDay()->toDateString(),
+    ]);
+
+    $this->post(route('spmb.store'), payloadSpmb([
+        'nik' => '1234567890123900',
+        'nisn' => '1234567390',
+        'email' => 'selesai@example.com',
+    ]))->assertSessionHasErrors('jalur_pendaftaran_id');
+
+    expect(CalonSiswa::where('nik', '1234567890123900')->exists())->toBeFalse();
+});
+
+test('tanpa baris jadwal bertipe pendaftaran, pendaftaran tetap dibuka', function () {
+    JadwalPpdb::query()->delete();
+
+    $this->post(route('spmb.store'), payloadSpmb([
+        'nik' => '1234567890124000',
+        'nisn' => '1234567400',
+        'email' => 'tanpa-jadwal@example.com',
+    ]))->assertSessionHasNoErrors();
+
+    expect(CalonSiswa::where('nik', '1234567890124000')->exists())->toBeTrue();
+});
+
+test('halaman pendaftaran menampilkan peringatan ketika ditutup', function () {
+    JadwalPpdb::where('tipe', 'pendaftaran')->update([
+        'tanggal_mulai' => now()->addWeek()->toDateString(),
+        'tanggal_selesai' => now()->addMonth()->toDateString(),
+    ]);
+
+    $this->get(route('spmb.pendaftaran'))
+        ->assertOk()
+        ->assertSee('Pendaftaran Belum Dibuka');
+});
+
 test('timeline pendaftaran memakai data JadwalPpdb dari database', function () {
     $this->get(route('spmb.pendaftaran'))
         ->assertOk()
@@ -194,12 +290,16 @@ test('timeline pendaftaran memakai data JadwalPpdb dari database', function () {
         ->assertSee('Verifikasi Berkas')
         ->assertSee('Tes Seleksi')
         ->assertSee('Daftar Ulang')
-        // Tanggal asli (1 Mei 2026 - 31 Mei 2026) dengan nama bulan Indonesia.
-        ->assertSee('1 Mei 2026')
-        ->assertSee('31 Mei 2026')
-        // Tanggal hardcoded lama tidak boleh muncul lagi.
-        ->assertDontSee('1 Nov 2026')
-        ->assertDontSee('31 Des 2026');
+        // Tanggal dari database, bukan dummy hardcoded. Jadwal non-pendaftaran
+        // masih memakai tanggal seed; baris pendaftaran sudah di-override beforeEach.
+        ->assertSee('15 Jun 2026')
+        ->assertSee('30 Jun 2026')
+        ->assertSee(now()->subMonth()->translatedFormat('d M Y'))
+        // Tanggal dummy lama (Tes Masuk 5 Des, Verifikasi 12 Des) tidak boleh muncul.
+        ->assertDontSee('Tes Masuk')
+        ->assertDontSee('5 Des 2026')
+        ->assertDontSee('12 Des 2026')
+        ->assertDontSee('21 Des 2026');
 });
 
 test('email yang sudah dipakai akun lain ditolak tanpa membocorkan pesan SQL', function () {

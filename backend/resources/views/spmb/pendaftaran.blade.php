@@ -392,7 +392,31 @@
                 </div>
             @endif
 
-            <div class="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
+            @unless ($pendaftaranDibuka)
+                <div class="max-w-3xl mx-auto bg-amber-50 border-2 border-amber-300 rounded-3xl p-8 text-center shadow-lg mb-8">
+                    <div class="inline-flex items-center justify-center w-14 h-14 bg-amber-500 rounded-full text-white mb-4">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5.07 19h13.86a2 2 0 001.74-3L13.74 4a2 2 0 00-3.48 0l-7 12a2 2 0 001.74 3z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-extrabold text-amber-900 mb-2">Pendaftaran Belum Dibuka</h3>
+                    @if ($jendelaPendaftaran)
+                        <p class="text-amber-800 mb-1">
+                            Periode pendaftaran berlangsung
+                            <strong>{{ $jendelaPendaftaran->tanggal_mulai->translatedFormat('d M Y') }}</strong>
+                            sampai
+                            <strong>{{ $jendelaPendaftaran->tanggal_selesai->translatedFormat('d M Y') }}</strong>.
+                        </p>
+                        @if ($jendelaPendaftaran->keterangan)
+                            <p class="text-amber-700 text-sm">{{ $jendelaPendaftaran->keterangan }}</p>
+                        @endif
+                    @else
+                        <p class="text-amber-800 mb-1">Tahun ajaran aktif belum diatur, sehingga pendaftaran belum dapat dibuka.</p>
+                    @endif
+                </div>
+            @endunless
+
+            <div class="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden {{ $pendaftaranDibuka ? '' : 'opacity-60 pointer-events-none' }}">
                 <form method="POST" action="{{ route('spmb.store') }}" enctype="multipart/form-data" id="form-wizard" class="p-6 md:p-10">
                     @csrf
 

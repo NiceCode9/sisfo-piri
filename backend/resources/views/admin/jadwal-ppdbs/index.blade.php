@@ -40,11 +40,17 @@
     <div class="card-body-nexus p-0">
         <div class="table-responsive">
             <table class="table-nexus w-100">
-                <thead><tr><th>Nama Fase</th><th>Tahun Ajaran</th><th>Periode</th><th>Keterangan</th><th>Aksi</th></tr></thead>
+                <thead><tr><th>Nama Fase</th><th>Tipe</th><th>Tahun Ajaran</th><th>Periode</th><th>Keterangan</th><th>Aksi</th></tr></thead>
                 <tbody>
                     @forelse($jadwals as $j)
                         <tr>
                             <td style="font-weight:600;font-size:13px;">{{ $j->nama_jadwal }}</td>
+                            <td>
+                                <span class="badge-nexus {{ $j->tipe === 'pendaftaran' ? 'badge-info' : 'badge-neutral' }}">{{ $j->label_tipe }}</span>
+                                @if ($j->tipe === 'pendaftaran')
+                                    <div style="font-size:11px;color:var(--text-muted);">{{ $j->sedangBerlangsung() ? 'berlangsung' : 'di luar periode' }}</div>
+                                @endif
+                            </td>
                             <td><span class="badge-nexus badge-info">{{ $j->tahunAjaran->nama_tahun_ajaran ?? '-' }}</span></td>
                             <td style="font-size:12.5px;">{{ \Carbon\Carbon::parse($j->tanggal_mulai)->format('d M Y') }} → {{ \Carbon\Carbon::parse($j->tanggal_selesai)->format('d M Y') }}</td>
                             <td style="font-size:12.5px;color:var(--text-secondary);max-width:240px;">{{ \Illuminate\Support\Str::limit($j->keterangan, 60) ?? '-' }}</td>
@@ -56,7 +62,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="5" class="text-center py-4" style="color:var(--text-muted);">Belum ada jadwal PPDB.</td></tr>
+                        <tr><td colspan="6" class="text-center py-4" style="color:var(--text-muted);">Belum ada jadwal PPDB.</td></tr>
                     @endforelse
                 </tbody>
             </table>

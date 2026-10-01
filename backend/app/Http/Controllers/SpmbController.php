@@ -72,6 +72,8 @@ class SpmbController extends Controller
             'jalurPendaftarans' => $jalurPendaftarans,
             'jadwalPpdbs' => $jadwalPpdbs,
             'kuotaMap' => $kuotaMap,
+            'jendelaPendaftaran' => $jendela = JadwalPpdb::jendelaPendaftaran($tahunAjaranAktif),
+            'pendaftaranDibuka' => $tahunAjaranAktif !== null && ($jendela === null || $jendela->sedangBerlangsung()),
         ]);
     }
 
@@ -83,6 +85,21 @@ class SpmbController extends Controller
 
         if (! $tahunAjaranAktif) {
             return back()->withErrors(['jalur_pendaftaran_id' => 'Pendaftaran belum dibuka (tahun ajaran aktif belum diatur).'])->withInput();
+        }
+
+        // Gate jadwal: baris bertipe `pendaftaran` menentukan periode pendaftaran.
+        // Tanpa baris tersebut pendaftaran tetap dibuka (lihat jendelaPendaftaran()).
+        $jendela = JadwalPpdb::jendelaPendaftaran($tahunAjaranAktif);
+
+        if ($jendela && ! $jendela->sedangBerlangsung()) {
+            $mulai = $jendela->tanggal_mulai->translatedFormat('d M Y');
+            $selesai = $jendela->tanggal_selesai->translatedFormat('d M Y');
+
+            $pesan = now()->lt($jendela->tanggal_mulai->startOfDay())
+                ? "Pendaftaran belum dibuka. Pendaftaran dibuka mulai {$mulai}."
+                : "Pendaftaran sudah ditutup. Pendaftaran berlangsung {$mulai} sampai {$selesai}.";
+
+            return back()->withErrors(['jalur_pendaftaran_id' => $pesan])->withInput();
         }
 
         $passwordPlain = null;

@@ -184,6 +184,7 @@ class PpdbSeeder extends Seeder
             [
                 'tahun_ajaran_id' => $tahunAjaranAktif->id,
                 'nama_jadwal' => 'Pendaftaran Online',
+                'tipe' => 'pendaftaran',
                 'tanggal_mulai' => '2026-05-01',
                 'tanggal_selesai' => '2026-05-31',
                 'keterangan' => 'Periode pendaftaran online untuk calon siswa baru',
@@ -191,6 +192,7 @@ class PpdbSeeder extends Seeder
             [
                 'tahun_ajaran_id' => $tahunAjaranAktif->id,
                 'nama_jadwal' => 'Verifikasi Berkas',
+                'tipe' => 'verifikasi',
                 'tanggal_mulai' => '2026-06-01',
                 'tanggal_selesai' => '2026-06-10',
                 'keterangan' => 'Periode verifikasi berkas pendaftaran',
@@ -198,6 +200,7 @@ class PpdbSeeder extends Seeder
             [
                 'tahun_ajaran_id' => $tahunAjaranAktif->id,
                 'nama_jadwal' => 'Tes Seleksi',
+                'tipe' => 'tes',
                 'tanggal_mulai' => '2026-06-15',
                 'tanggal_selesai' => '2026-06-20',
                 'keterangan' => 'Pelaksanaan tes seleksi untuk calon siswa',
@@ -205,6 +208,7 @@ class PpdbSeeder extends Seeder
             [
                 'tahun_ajaran_id' => $tahunAjaranAktif->id,
                 'nama_jadwal' => 'Pengumuman Hasil',
+                'tipe' => 'pengumuman',
                 'tanggal_mulai' => '2026-06-25',
                 'tanggal_selesai' => '2026-06-25',
                 'keterangan' => 'Pengumuman hasil seleksi PPDB',
@@ -212,6 +216,7 @@ class PpdbSeeder extends Seeder
             [
                 'tahun_ajaran_id' => $tahunAjaranAktif->id,
                 'nama_jadwal' => 'Daftar Ulang',
+                'tipe' => 'daftar_ulang',
                 'tanggal_mulai' => '2026-06-26',
                 'tanggal_selesai' => '2026-06-30',
                 'keterangan' => 'Periode daftar ulang untuk siswa yang diterima',

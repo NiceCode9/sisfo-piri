@@ -44,13 +44,16 @@ test('super-admin dapat menambah jadwal', function () {
     $response = $this->actingAs(superAdmin())->post(route('admin.jadwal-ppdbs.store'), [
         'tahun_ajaran_id' => $tahun->id,
         'nama_jadwal' => 'Fase Test',
+        'tipe' => 'tes',
         'tanggal_mulai' => '2026-09-01',
         'tanggal_selesai' => '2026-09-30',
         'keterangan' => 'Test',
     ]);
 
     $response->assertRedirect(route('admin.jadwal-ppdbs.index'));
-    expect(JadwalPpdb::where('nama_jadwal', 'Fase Test')->first())->not->toBeNull();
+    expect(JadwalPpdb::where('nama_jadwal', 'Fase Test')->first())
+        ->not->toBeNull()
+        ->tipe->toBe('tes');
 });
 
 test('validasi menolak tanggal selesai sebelum mulai', function () {
@@ -59,11 +62,24 @@ test('validasi menolak tanggal selesai sebelum mulai', function () {
     $response = $this->actingAs(superAdmin())->post(route('admin.jadwal-ppdbs.store'), [
         'tahun_ajaran_id' => $tahun->id,
         'nama_jadwal' => 'Fase Test',
+        'tipe' => 'tes',
         'tanggal_mulai' => '2026-09-01',
         'tanggal_selesai' => '2026-08-31',
     ]);
 
     $response->assertSessionHasErrors('tanggal_selesai');
+});
+
+test('validasi menolak tipe jadwal yang tidak dikenal', function () {
+    $tahun = TahunAjaran::aktif()->first();
+
+    $this->actingAs(superAdmin())->post(route('admin.jadwal-ppdbs.store'), [
+        'tahun_ajaran_id' => $tahun->id,
+        'nama_jadwal' => 'Fase Ngawur',
+        'tipe' => 'entah',
+        'tanggal_mulai' => '2026-09-01',
+        'tanggal_selesai' => '2026-09-30',
+    ])->assertSessionHasErrors('tipe');
 });
 
 test('super-admin dapat memperbarui jadwal', function () {
@@ -72,13 +88,16 @@ test('super-admin dapat memperbarui jadwal', function () {
     $response = $this->actingAs(superAdmin())->put(route('admin.jadwal-ppdbs.update', $jadwal), [
         'tahun_ajaran_id' => $jadwal->tahun_ajaran_id,
         'nama_jadwal' => $jadwal->nama_jadwal,
+        'tipe' => 'pengumuman',
         'tanggal_mulai' => $jadwal->tanggal_mulai,
         'tanggal_selesai' => $jadwal->tanggal_selesai,
         'keterangan' => 'Diperbarui',
     ]);
 
     $response->assertRedirect(route('admin.jadwal-ppdbs.index'));
-    expect($jadwal->fresh()->keterangan)->toBe('Diperbarui');
+    expect($jadwal->fresh())
+        ->keterangan->toBe('Diperbarui')
+        ->tipe->toBe('pengumuman');
 });
 
 test('super-admin dapat menghapus jadwal tanpa dependen', function () {
@@ -86,6 +105,7 @@ test('super-admin dapat menghapus jadwal tanpa dependen', function () {
     $jadwal = JadwalPpdb::create([
         'tahun_ajaran_id' => $tahun->id,
         'nama_jadwal' => 'Fase Hapus',
+        'tipe' => 'lainnya',
         'tanggal_mulai' => '2026-09-01',
         'tanggal_selesai' => '2026-09-30',
     ]);

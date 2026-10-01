@@ -16,6 +16,18 @@
             @error('nama_jadwal')<div class="invalid-feedback">{{ $message }}</div>@enderror
         </div>
     </div>
+    <div class="col-12 col-sm-6">
+        <div class="form-floating">
+            <select name="tipe" class="form-select @error('tipe') is-invalid @enderror" id="tipe" required>
+                @foreach(\App\Models\JadwalPpdb::TIPE as $value => $label)
+                    <option value="{{ $value }}" @selected(old('tipe', $jadwal->tipe ?? 'lainnya') === $value)>{{ $label }}</option>
+                @endforeach
+            </select>
+            <label for="tipe">Tipe Jadwal <span class="text-danger">*</span></label>
+            @error('tipe')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            <div class="form-text">Tipe <strong>Pendaftaran</strong> menjadi gate: form pendaftaran hanya bisa diisi di dalam rentang tanggalnya.</div>
+        </div>
+    </div>
 </div>
 
 <div class="row g-3 mb-3">

@@ -23,6 +23,7 @@ class UpdateJadwalPpdbRequest extends FormRequest
         return [
             'tahun_ajaran_id' => ['required', 'integer', 'exists:tahun_ajarans,id'],
             'nama_jadwal' => ['required', 'string', 'max:100'],
+            'tipe' => ['required', 'string', 'in:pendaftaran,verifikasi,tes,pengumuman,daftar_ulang,lainnya'],
             'tanggal_mulai' => ['required', 'date'],
             'tanggal_selesai' => ['required', 'date', 'after_or_equal:tanggal_mulai'],
             'keterangan' => ['nullable', 'string', 'max:1000'],
