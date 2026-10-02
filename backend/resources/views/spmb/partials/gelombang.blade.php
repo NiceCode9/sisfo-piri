@@ -41,31 +41,30 @@
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                             </svg>
-                            <span class="font-semibold">{{ \Carbon\Carbon::parse($g->tanggal_buka)->format('M Y') }} - {{ \Carbon\Carbon::parse($g->tanggal_tutup)->format('M Y') }}</span>
+                            @if ($p = $g->tahapPendaftaran())
+                            <span class="font-semibold">{{ $p->tanggal_mulai->format('M Y') }} - {{ $p->tanggalAkhir()->format('M Y') }}</span>
+                        @else
+                            <span class="font-semibold">Jadwal belum ditetapkan</span>
+                        @endif
                         </div>
                     </div>
                     
                     <div class="p-6 space-y-4">
-                        <div class="flex items-center justify-between pb-3 border-b">
-                            <span class="text-sm font-medium text-gray-600">Pendaftaran Dibuka</span>
-                            <span class="text-sm font-bold text-gray-800">{{ \Carbon\Carbon::parse($g->tanggal_buka)->format('d M Y') }}</span>
-                        </div>
-                        <div class="flex items-center justify-between pb-3 border-b">
-                            <span class="text-sm font-medium text-gray-600">Pendaftaran Ditutup</span>
-                            <span class="text-sm font-bold text-gray-800">{{ \Carbon\Carbon::parse($g->tanggal_tutup)->format('d M Y') }}</span>
-                        </div>
-                        @if($g->tanggal_tes)
+                        {{-- Tahapan diambil dari baris `gelombang_tahapan`. Tahap
+                             satu hari (tes, pengumuman) hanya menampilkan satu
+                             tanggal; yang berjendela menampilkan rentang. --}}
+                        @foreach ($g->tahapan as $t)
                             <div class="flex items-center justify-between pb-3 border-b">
-                                <span class="text-sm font-medium text-gray-600">Tes Seleksi</span>
-                                <span class="text-sm font-bold text-gray-800">{{ \Carbon\Carbon::parse($g->tanggal_tes)->format('d M Y') }}</span>
+                                <span class="text-sm font-medium text-gray-600">{{ $t->nama_tahap }}</span>
+                                <span class="text-sm font-bold text-gray-800">
+                                    @if ($t->punyaJendela())
+                                        {{ $t->tanggal_mulai->format('d M Y') }} &ndash; {{ $t->tanggalAkhir()->format('d M Y') }}
+                                    @else
+                                        {{ $t->tanggal_mulai->format('d M Y') }}
+                                    @endif
+                                </span>
                             </div>
-                        @endif
-                        @if($g->tanggal_pengumuman)
-                            <div class="flex items-center justify-between pb-3">
-                                <span class="text-sm font-medium text-gray-600">Pengumuman</span>
-                                <span class="text-sm font-bold text-gray-800">{{ \Carbon\Carbon::parse($g->tanggal_pengumuman)->format('d M Y') }}</span>
-                            </div>
-                        @endif
+                        @endforeach
 
                         <div class="bg-accent-50 rounded-2xl p-4 mt-6">
                             <h4 class="font-bold text-gray-800 mb-2 text-sm flex items-center">

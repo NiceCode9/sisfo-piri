@@ -171,15 +171,20 @@ test('biaya default tahun aktif, semua tampil', function () {
 });
 
 test('gelombang default tahun aktif, semua tampil', function () {
-    Gelombang::create([
+    $gelombang = Gelombang::create([
         'tahun_ajaran_id' => tahunLampauFilter()->id,
         'nama_gelombang' => 'Gelombang Lampau',
         'nomor_urut' => 77,
-        'tanggal_buka' => '2025-09-01',
-        'tanggal_tutup' => '2025-09-30',
         'kuota' => 50,
         'terisi' => 0,
         'is_aktif' => true,
+    ]);
+    $gelombang->tahapan()->create([
+        'tipe' => 'pendaftaran',
+        'nama_tahap' => 'Pendaftaran Online',
+        'urutan' => 1,
+        'tanggal_mulai' => '2025-09-01',
+        'tanggal_selesai' => '2025-09-30',
     ]);
 
     $this->actingAs(superAdmin())->get(route('admin.gelombangs.index'))

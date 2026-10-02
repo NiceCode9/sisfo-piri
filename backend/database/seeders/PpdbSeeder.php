@@ -4,12 +4,14 @@ namespace Database\Seeders;
 
 use App\Models\BiayaPendaftaran;
 use App\Models\Gelombang;
+use App\Models\GelombangTahap;
 use App\Models\JadwalPpdb;
 use App\Models\JalurPendaftaran;
 use App\Models\KuotaPendaftaran;
 use App\Models\Pengumuman;
 use App\Models\TahunAjaran;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Carbon;
 
 class PpdbSeeder extends Seeder
 {
@@ -463,24 +465,14 @@ class PpdbSeeder extends Seeder
         ];
 
         foreach ($gelombangs as $g) {
-            $buka = $g['buka'];
-            $tutup = $g['tutup'];
-
-            Gelombang::updateOrCreate(
+            $gelombang = Gelombang::updateOrCreate(
                 [
                     'tahun_ajaran_id' => $tahun->id,
                     'nomor_urut' => $g['nomor_urut'],
                 ],
                 [
-                    'tahun_ajaran_id' => $tahun->id,
                     'nama_gelombang' => $g['nama_gelombang'],
-                    'nomor_urut' => $g['nomor_urut'],
                     'badge' => $g['badge'],
-                    'tanggal_buka' => $buka->toDateString(),
-                    'tanggal_tutup' => $tutup->toDateString(),
-                    // Tes & pengumuman diletakkan di tengah-tengah jendela.
-                    'tanggal_tes' => $buka->copy()->addDays(10)->toDateString(),
-                    'tanggal_pengumuman' => $buka->copy()->addDays(20)->toDateString(),
                     'kuota' => $g['kuota'],
                     'terisi' => $g['terisi'],
                     'diskon_persen' => $g['diskon_persen'],
@@ -489,6 +481,82 @@ class PpdbSeeder extends Seeder
                     'warna_border' => $g['warna_border'],
                     'is_aktif' => $g['is_aktif'],
                 ]
+            );
+
+            $this->seedTahapan($gelombang, $g['buka'], $g['tutup']);
+        }
+    }
+
+    /**
+     * Tahapan tiap gelombang, diturunkan dari tanggal buka & tutup.
+     *
+     * Semua tahap setelah pendaftaran dihitung dari `tanggal_tutup`, bukan dari
+     * `tanggal_buka`. Versi lama memakai `buka + 10 hari` untuk tanggal tes, yang
+     * justru membuat Gelombang 1 (sedang dibuka hari ini) punya tes 3 minggu lalu
+     * dan pengumuman 2 minggu lalu - keduanya sudah lewat, dan tampil ke publik.
+     *
+     * Menurunkan dari `tutup` juga membuat kelas bug itu mustahil terulang:
+     * tidak ada tahap yang bisa jatuh sebelum pendaftaran ditutup.
+     *
+     * @param  Carbon  $buka
+     * @param  Carbon  $tutup
+     */
+    private function seedTahapan(Gelombang $gelombang, $buka, $tutup): void
+    {
+        $tes = $tutup->copy()->addDays(15);
+        $pengumuman = $tes->copy()->addDays(7);
+
+        $tahapan = [
+            [
+                'tipe' => 'pendaftaran',
+                'nama_tahap' => 'Pendaftaran Online',
+                'urutan' => 1,
+                'tanggal_mulai' => $buka->toDateString(),
+                'tanggal_selesai' => $tutup->toDateString(),
+                'keterangan' => 'Pendaftaran pendaftar baru untuk gelombang ini',
+            ],
+            [
+                'tipe' => 'verifikasi',
+                'nama_tahap' => 'Verifikasi Berkas',
+                'urutan' => 2,
+                'tanggal_mulai' => $tutup->copy()->addDay()->toDateString(),
+                'tanggal_selesai' => $tutup->copy()->addDays(10)->toDateString(),
+                'keterangan' => 'Calon siswa menyerahkan berkas dan pemeriksaan berkas',
+            ],
+            [
+                'tipe' => 'tes',
+                'nama_tahap' => 'Tes Seleksi',
+                'urutan' => 3,
+                'tanggal_mulai' => $tes->toDateString(),
+                // Satu hari: NULL berarti sama dengan tanggal_mulai.
+                'tanggal_selesai' => null,
+                'keterangan' => 'Pelaksanaan tes seleksi',
+            ],
+            [
+                'tipe' => 'pengumuman',
+                'nama_tahap' => 'Pengumuman Hasil',
+                'urutan' => 4,
+                'tanggal_mulai' => $pengumuman->toDateString(),
+                'tanggal_selesai' => null,
+                'keterangan' => 'Pengumuman hasil seleksi gelombang ini',
+            ],
+            [
+                'tipe' => 'daftar_ulang',
+                'nama_tahap' => 'Daftar Ulang',
+                'urutan' => 5,
+                'tanggal_mulai' => $pengumuman->copy()->addDay()->toDateString(),
+                'tanggal_selesai' => $pengumuman->copy()->addDays(7)->toDateString(),
+                'keterangan' => 'Daftar ulang calon yang dinyatakan diterima',
+            ],
+        ];
+
+        foreach ($tahapan as $tahap) {
+            GelombangTahap::updateOrCreate(
+                [
+                    'gelombang_id' => $gelombang->id,
+                    'urutan' => $tahap['urutan'],
+                ],
+                $tahap + ['gelombang_id' => $gelombang->id]
             );
         }
     }

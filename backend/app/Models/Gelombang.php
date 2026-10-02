@@ -17,10 +17,6 @@ class Gelombang extends Model
         'nama_gelombang',
         'nomor_urut',
         'badge',
-        'tanggal_buka',
-        'tanggal_tutup',
-        'tanggal_tes',
-        'tanggal_pengumuman',
         'kuota',
         'terisi',
         'diskon_persen',
@@ -31,10 +27,6 @@ class Gelombang extends Model
     ];
 
     protected $casts = [
-        'tanggal_buka' => 'date',
-        'tanggal_tutup' => 'date',
-        'tanggal_tes' => 'date',
-        'tanggal_pengumuman' => 'date',
         'keuntungan' => 'array',
         'is_aktif' => 'boolean',
     ];
@@ -66,17 +58,32 @@ class Gelombang extends Model
         return $this->tahapan->firstWhere('tipe', 'pendaftaran');
     }
 
+    /**
+     * Tanpa tahap pendaftaran, gelombang tidak punya jadwal dan tidak akan
+     * pernah bisa dipilih.
+     */
+    public function punyaJadwalPendaftaran(): bool
+    {
+        return $this->tahapan->contains('tipe', 'pendaftaran');
+    }
+
     public function scopeAktif($query)
     {
         return $query->where('is_aktif', true);
     }
 
+    /**
+     * Gelombang yang tahap pendaftarannya sedang berlangsung.
+     *
+     * Diimplementasikan lewat `whereHas` ke tabel tahap, bukan perbandingan
+     * kolom tanggal langsung, supaya tanggal hanya ada di satu tempat.
+     */
     public function scopeSedangBerlangsung($query)
     {
-        $hari = now()->startOfDay();
-
-        return $query->whereDate('tanggal_buka', '<=', $hari)
-            ->whereDate('tanggal_tutup', '>=', $hari);
+        return $query->whereHas(
+            'tahapan',
+            fn ($tahap) => $tahap->pendaftaran()->sedangBerlangsung()
+        );
     }
 
     /**
@@ -85,6 +92,10 @@ class Gelombang extends Model
      * Hanya ini yang boleh dipilih pendaftar. Gelombang yang belum mulai atau
      * sudah lewat tanggal tutup tidak ditampilkan, dan tidak dianggap tersedia
      * walau `is_aktif` masih true.
+     *
+     * `with('tahapan')` dipakai karena hampir setiap pemanggil butuh tahap
+     * pendaftaran (untuk tanggal) maupun semua tahap (untuk timeline) — tanpa
+     * eager load ini setiap gelombang memicu query sendiri.
      */
     public static function terbuka(?TahunAjaran $tahun): Collection
     {
@@ -95,6 +106,25 @@ class Gelombang extends Model
         return static::where('tahun_ajaran_id', $tahun->id)
             ->aktif()
             ->sedangBerlangsung()
+            ->with('tahapan')
+            ->orderBy('nomor_urut')
+            ->get();
+    }
+
+    /**
+     * Semua gelombang aktif untuk satu tahun ajaran, termasuk yang belum mulai
+     * dan yang sudah lewat. Dipakai untuk timeline publik, karena calon perlu
+     * tahu batch berikutnya kapan dibuka.
+     */
+    public static function semuaAktif(?TahunAjaran $tahun): Collection
+    {
+        if (! $tahun) {
+            return new Collection;
+        }
+
+        return static::where('tahun_ajaran_id', $tahun->id)
+            ->aktif()
+            ->with('tahapan')
             ->orderBy('nomor_urut')
             ->get();
     }
@@ -125,20 +155,28 @@ class Gelombang extends Model
      * Dipakai saat mengecek kuota: `KuotaPendaftaran` punya helper serupa, dan
      * tanpa lock dua pendaftar pada detik yang sama bisa sama-sama lolos
      * pemeriksaan kuota lalu membuat counter melewati batas.
+     *
+     * Tahap ikut di-eager-load supaya pengecekan tanggal di `bisaMasuk()`
+     * terjadi di dalam transaksi yang sama dengan lock baris induk.
      */
     public static function kunci(int $gelombangId): ?self
     {
-        return self::whereKey($gelombangId)->lockForUpdate()->first();
+        return self::whereKey($gelombangId)->with('tahapan')->lockForUpdate()->first();
     }
 
     /**
      * Apakah pendaftar boleh memilih gelombang ini.
+     *
+     * Gelombang tanpa tahap `pendaftaran` tidak punya jadwal sama sekali,
+     * jadi tidak bisa dipilih.
      */
     public function bisaMasuk(): bool
     {
+        $pendaftaran = $this->tahapPendaftaran();
+
         return $this->is_aktif
-            && $this->tanggal_buka->copy()->startOfDay()->lte(now()->startOfDay())
-            && $this->tanggal_tutup->copy()->endOfDay()->gte(now()->startOfDay())
+            && $pendaftaran !== null
+            && $pendaftaran->berlangsung()
             && ! $this->kuotaPenuh();
     }
 

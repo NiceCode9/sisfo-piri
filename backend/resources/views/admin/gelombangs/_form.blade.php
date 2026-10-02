@@ -53,36 +53,116 @@
     </div>
 </div>
 
-<div class="row g-3 mb-3">
-    <div class="col-12 col-sm-3">
-        <div class="form-floating">
-            <input type="date" name="tanggal_buka" value="{{ old('tanggal_buka', isset($gelombang->tanggal_buka) ? \Carbon\Carbon::parse($gelombang->tanggal_buka)->format('Y-m-d') : '') }}" class="form-control @error('tanggal_buka') is-invalid @enderror" id="tanggal_buka" required />
-            <label for="tanggal_buka">Tgl Buka <span class="text-danger">*</span></label>
-            @error('tanggal_buka')<div class="invalid-feedback">{{ $message }}</div>@enderror
-        </div>
-    </div>
-    <div class="col-12 col-sm-3">
-        <div class="form-floating">
-            <input type="date" name="tanggal_tutup" value="{{ old('tanggal_tutup', isset($gelombang->tanggal_tutup) ? \Carbon\Carbon::parse($gelombang->tanggal_tutup)->format('Y-m-d') : '') }}" class="form-control @error('tanggal_tutup') is-invalid @enderror" id="tanggal_tutup" required />
-            <label for="tanggal_tutup">Tgl Tutup <span class="text-danger">*</span></label>
-            @error('tanggal_tutup')<div class="invalid-feedback">{{ $message }}</div>@enderror
-        </div>
-    </div>
-    <div class="col-12 col-sm-3">
-        <div class="form-floating">
-            <input type="date" name="tanggal_tes" value="{{ old('tanggal_tes', isset($gelombang->tanggal_tes) ? \Carbon\Carbon::parse($gelombang->tanggal_tes)->format('Y-m-d') : '') }}" class="form-control @error('tanggal_tes') is-invalid @enderror" id="tanggal_tes" />
-            <label for="tanggal_tes">Tgl Tes</label>
-            @error('tanggal_tes')<div class="invalid-feedback">{{ $message }}</div>@enderror
-        </div>
-    </div>
-    <div class="col-12 col-sm-3">
-        <div class="form-floating">
-            <input type="date" name="tanggal_pengumuman" value="{{ old('tanggal_pengumuman', isset($gelombang->tanggal_pengumuman) ? \Carbon\Carbon::parse($gelombang->tanggal_pengumuman)->format('Y-m-d') : '') }}" class="form-control @error('tanggal_pengumuman') is-invalid @enderror" id="tanggal_pengumuman" />
-            <label for="tanggal_pengumuman">Tgl Pengumuman</label>
-            @error('tanggal_pengumuman')<div class="invalid-feedback">{{ $message }}</div>@enderror
-        </div>
+{{-- ============ TAHAPAN (satu baris per tahap) ============ --}}
+@php
+    // Baris tahap yang akan dirender. Prioritas: input yang gagal validasi
+    // (old), lalu tahap yang tersimpan, lalu satu baris default `pendaftaran`
+    // supaya admin tidak pernah menyimpan gelombang tanpa jadwal.
+    $tahapan = old('tahapan');
+    if (! is_array($tahapan) || $tahapan === []) {
+        $tahapan = $gelombang?->tahapan?->map(fn ($t) => [
+            'tipe' => $t->tipe,
+            'nama_tahap' => $t->nama_tahap,
+            'tanggal_mulai' => $t->tanggal_mulai->format('Y-m-d'),
+            'tanggal_selesai' => $t->tanggal_selesai?->format('Y-m-d'),
+        ])->all() ?? [];
+    }
+    if ($tahapan === []) {
+        $tahapan[] = ['tipe' => 'pendaftaran', 'nama_tahap' => 'Pendaftaran Online', 'tanggal_mulai' => '', 'tanggal_selesai' => ''];
+    }
+@endphp
+
+<div class="row g-3 mb-2">
+    <div class="col-12">
+        <label class="form-label mb-1">
+            Tahapan Gelombang
+            <span class="text-muted" style="font-size:12.5px; font-weight:400;">
+                — satu baris per tahap. Baris <strong>Pendaftaran</strong> wajib ada:
+                tanpa itu gelombang tidak akan pernah bisa dipilih pendaftar.
+            </span>
+        </label>
     </div>
 </div>
+
+<div id="wrapper-tahapan" data-tahapan="{{ json_encode(array_map(fn ($t) => $t['tipe'] ?? 'lainnya', $tahapan)) }}">
+    @foreach ($tahapan as $i => $t)
+        <div class="row g-2 mb-2 align-items-end tahap-row">
+            <div class="col-12 col-sm-3">
+                <select name="tahapan[{{ $i }}][tipe]" class="form-select @error('tahapan.'.$i.'.tipe') is-invalid @enderror">
+                    @foreach (\App\Models\GelombangTahap::TIPE as $value => $label)
+                        <option value="{{ $value }}" @selected(($t['tipe'] ?? 'lainnya') === $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+                @error('tahapan.'.$i.'.tipe')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            </div>
+            <div class="col-12 col-sm-3">
+                <input type="text" name="tahapan[{{ $i }}][nama_tahap]" value="{{ $t['nama_tahap'] ?? '' }}"
+                       class="form-control @error('tahapan.'.$i.'.nama_tahap') is-invalid @enderror" placeholder="Nama tahap" />
+                @error('tahapan.'.$i.'.nama_tahap')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            </div>
+            <div class="col-12 col-sm-2">
+                <input type="date" name="tahapan[{{ $i }}][tanggal_mulai]" value="{{ $t['tanggal_mulai'] ?? '' }}"
+                       class="form-control @error('tahapan.'.$i.'.tanggal_mulai') is-invalid @enderror" />
+                @error('tahapan.'.$i.'.tanggal_mulai')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            </div>
+            <div class="col-12 col-sm-2">
+                <input type="date" name="tahapan[{{ $i }}][tanggal_selesai]" value="{{ $t['tanggal_selesai'] ?? '' }}"
+                       class="form-control @error('tahapan.'.$i.'.tanggal_selesai') is-invalid @enderror" />
+                @error('tahapan.'.$i.'.tanggal_selesai')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            </div>
+            <div class="col-12 col-sm-2">
+                <button type="button" class="btn btn-outline-danger btn-sm w-100 h-38" onclick="hapusTahapan(this)">Hapus</button>
+            </div>
+        </div>
+    @endforeach
+</div>
+
+<div class="row g-2 mb-3">
+    <div class="col-12">
+        <button type="button" class="btn btn-outline-primary btn-sm" onclick="tambahTahapan()">+ Tambah Tahap</button>
+        <span class="text-muted" style="font-size:12.5px;">Tanggal selesai dikosongkan = tahap berlangsung satu hari.</span>
+    </div>
+</div>
+
+@error('tahapan')<div class="text-danger mb-3" style="font-size:12.5px;">{{ $message }}</div>@enderror
+
+@push('scripts')
+<script>
+    function tambahTahapan() {
+        const wrapper = document.getElementById('wrapper-tahapan');
+        const index = wrapper.querySelectorAll('.tahapan-row').length;
+        const tipe = ['pendaftaran', 'verifikasi', 'tes', 'pengumuman', 'daftar_ulang', 'lainnya'];
+        const nama = {
+            pendaftaran: 'Pendaftaran Online', verifikasi: 'Verifikasi Berkas',
+            tes: 'Tes Seleksi', pengumuman: 'Pengumuman Hasil',
+            daftar_ulang: 'Daftar Ulang', lainnya: 'Lainnya',
+        };
+        const row = document.createElement('div');
+        row.className = 'row g-2 mb-2 align-items-end tahap-row';
+        row.innerHTML = `
+            <div class="col-12 col-sm-3">
+                <select name="tahapan[${index}][tipe]" class="form-select">
+                    ${tipe.map(t => `<option value="${t}">${nama[t]}</option>`).join('')}
+                </select>
+            </div>
+            <div class="col-12 col-sm-3">
+                <input type="text" name="tahapan[${index}][nama_tahap]" class="form-control" placeholder="Nama tahap" value="Lainnya" />
+            </div>
+            <div class="col-12 col-sm-2"><input type="date" name="tahapan[${index}][tanggal_mulai]" class="form-control" /></div>
+            <div class="col-12 col-sm-2"><input type="date" name="tahapan[${index}][tanggal_selesai]" class="form-control" /></div>
+            <div class="col-12 col-sm-2">
+                <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="hapusTahapan(this)">Hapus</button>
+            </div>`;
+        wrapper.appendChild(row);
+    }
+
+    function hapusTahapan(button) {
+        const wrapper = document.getElementById('wrapper-tahapan');
+        if (wrapper.querySelectorAll('.tahapan-row').length <= 1) return;
+        button.closest('.tahapan-row').remove();
+    }
+</script>
+@endpush
 
 <div class="row g-3 mb-3">
     <div class="col-12 col-sm-3">

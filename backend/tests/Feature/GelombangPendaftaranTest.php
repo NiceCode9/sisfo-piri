@@ -26,22 +26,39 @@ beforeEach(function () {
  * Buat gelombang dengan jendela waktu yang sepenuhnya terkendali.
  *
  * Seeder membuat tanggal relatif terhadap hari ini, jadi test butuh cara
- * eksplisit untuk menguji gate tanggal.
+ * eksplisit untuk menguji gate tanggal. Tanggal diberikan sebagai baris tahap
+ * `pendaftaran`, karena itulah yang jadi gate.
  *
  * @param  array<string, mixed>  $ubah
  */
 function buatGelombang(array $ubah = []): Gelombang
 {
-    return Gelombang::create(array_merge([
-        'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
+    $tahun = TahunAjaran::aktif()->first()->id;
+    $urut = (int) Gelombang::max('nomor_urut') + 1;
+
+    $buka = $ubah['buka'] ?? now()->subWeek()->toDateString();
+    $tutup = $ubah['tutup'] ?? now()->addWeek()->toDateString();
+
+    unset($ubah['buka'], $ubah['tutup']);
+
+    $gelombang = Gelombang::create($ubah + [
+        'tahun_ajaran_id' => $tahun,
         'nama_gelombang' => 'Gelombang Uji',
-        'nomor_urut' => 90,
-        'tanggal_buka' => now()->subWeek()->toDateString(),
-        'tanggal_tutup' => now()->addWeek()->toDateString(),
+        'nomor_urut' => $urut,
         'kuota' => 30,
         'terisi' => 0,
         'is_aktif' => true,
-    ], $ubah));
+    ]);
+
+    $gelombang->tahapan()->create([
+        'tipe' => 'pendaftaran',
+        'nama_tahap' => 'Pendaftaran Online',
+        'urutan' => 1,
+        'tanggal_mulai' => $buka,
+        'tanggal_selesai' => $tutup,
+    ]);
+
+    return $gelombang->load('tahapan');
 }
 
 /**
@@ -134,10 +151,9 @@ test('daftar pendaftaran menampilkan gelombang terbuka beserta sisa kursi', func
 test('gelombang yang belum mulai tidak ditawarkan maupun diterima', function () {
     Gelombang::query()->delete();
     $belum = buatGelombang([
-        'nomor_urut' => 91,
         'nama_gelombang' => 'Belum Mulai',
-        'tanggal_buka' => now()->addWeek()->toDateString(),
-        'tanggal_tutup' => now()->addMonth()->toDateString(),
+        'buka' => now()->addWeek()->toDateString(),
+        'tutup' => now()->addMonth()->toDateString(),
     ]);
 
     $html = $this->get(route('spmb.pendaftaran'))->assertOk()->getContent();
@@ -153,10 +169,9 @@ test('gelombang yang belum mulai tidak ditawarkan maupun diterima', function () 
 test('gelombang yang sudah lewat tanggal tutup tidak ditawarkan maupun diterima', function () {
     Gelombang::query()->delete();
     $lewat = buatGelombang([
-        'nomor_urut' => 92,
         'nama_gelombang' => 'Sudah Lewat',
-        'tanggal_buka' => now()->subMonth()->toDateString(),
-        'tanggal_tutup' => now()->subDay()->toDateString(),
+        'buka' => now()->subMonth()->toDateString(),
+        'tutup' => now()->subDay()->toDateString(),
     ]);
 
     $html = $this->get(route('spmb.pendaftaran'))->assertOk()->getContent();
@@ -218,13 +233,12 @@ test('pendaftaran tetap jalan bila sekolah belum mengatur gelombang', function (
 
 test('landing page hanya menampilkan gelombang yang masih bisa dipilih', function () {
     Gelombang::query()->delete();
-    buatGelombang(['nama_gelombang' => 'Yang Dibuka', 'nomor_urut' => 80]);
-    buatGelombang(['nama_gelombang' => 'Sudah Penuh', 'nomor_urut' => 81, 'kuota' => 5, 'terisi' => 5]);
+    buatGelombang(['nama_gelombang' => 'Yang Dibuka']);
+    buatGelombang(['nama_gelombang' => 'Sudah Penuh', 'kuota' => 5, 'terisi' => 5]);
     buatGelombang([
         'nama_gelombang' => 'Sudah Lewat',
-        'nomor_urut' => 82,
-        'tanggal_buka' => now()->subMonth()->toDateString(),
-        'tanggal_tutup' => now()->subDay()->toDateString(),
+        'buka' => now()->subMonth()->toDateString(),
+        'tutup' => now()->subDay()->toDateString(),
     ]);
 
     $html = $this->get(route('spmb.home'))->assertOk()->getContent();
@@ -258,9 +272,9 @@ test('kuota nol berarti gelombang tidak dibatasi', function () {
 });
 
 test('diskon gelombang dijepit di rentang 0 sampai 100', function () {
-    expect(buatGelombang(['nama_gelombang' => 'D1', 'nomor_urut' => 70, 'diskon_persen' => 150])->diskon_efektif)->toBe(100)
-        ->and(buatGelombang(['nama_gelombang' => 'D2', 'nomor_urut' => 71, 'diskon_persen' => -20])->diskon_efektif)->toBe(0)
-        ->and(buatGelombang(['nama_gelombang' => 'D3', 'nomor_urut' => 72, 'diskon_persen' => 25])->diskon_efektif)->toBe(25);
+    expect(buatGelombang(['nama_gelombang' => 'D1', 'diskon_persen' => 150])->diskon_efektif)->toBe(100)
+        ->and(buatGelombang(['nama_gelombang' => 'D2', 'diskon_persen' => -20])->diskon_efektif)->toBe(0)
+        ->and(buatGelombang(['nama_gelombang' => 'D3', 'diskon_persen' => 25])->diskon_efektif)->toBe(25);
 });
 
 test('counter gelombang turun ketika kandidat dihapus', function () {

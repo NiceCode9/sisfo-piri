@@ -10,6 +10,7 @@ use App\Models\TahunAjaran;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class GelombangController extends Controller implements HasMiddleware
@@ -29,7 +30,7 @@ class GelombangController extends Controller implements HasMiddleware
         $tahunAktif = TahunAjaran::aktif()->first();
         $tahunMode = request()->query('tahun', 'aktif');
 
-        $gelombangs = Gelombang::with('tahunAjaran')
+        $gelombangs = Gelombang::with(['tahunAjaran', 'tahapan'])
             ->when(request('search'), fn ($q, $s) => $q->where('nama_gelombang', 'like', "%{$s}%"))
             ->when($tahunMode === 'aktif' && $tahunAktif, fn ($q) => $q->where('tahun_ajaran_id', $tahunAktif->id))
             ->when(is_numeric($tahunMode), fn ($q) => $q->where('tahun_ajaran_id', $tahunMode))
@@ -55,24 +56,58 @@ class GelombangController extends Controller implements HasMiddleware
 
     public function store(StoreGelombangRequest $request): RedirectResponse
     {
-        $gelombang = Gelombang::create($request->validated());
+        $this->simpanTahapan(
+            Gelombang::create($request->safe()->except('tahapan')),
+            $request->validated('tahapan')
+        );
 
-        return redirect()->route('admin.gelombangs.index')->with('success', "Gelombang {$gelombang->nama_gelombang} berhasil ditambahkan.");
+        return redirect()->route('admin.gelombangs.index')->with('success', 'Gelombang berhasil ditambahkan.');
     }
 
     public function edit(Gelombang $gelombang): View
     {
         return view('admin.gelombangs.edit', [
-            'gelombang' => $gelombang,
+            'gelombang' => $gelombang->load('tahapan'),
             'tahunAjarans' => TahunAjaran::orderByDesc('tanggal_mulai')->get(),
         ]);
     }
 
     public function update(UpdateGelombangRequest $request, Gelombang $gelombang): RedirectResponse
     {
-        $gelombang->update($request->validated());
+        $this->simpanTahapan(
+            tap($gelombang)->update($request->safe()->except('tahapan')),
+            $request->validated('tahapan')
+        );
 
         return redirect()->route('admin.gelombangs.index')->with('success', "Gelombang {$gelombang->nama_gelombang} diperbarui.");
+    }
+
+    /**
+     * Simpan baris tahap untuk sebuah gelombang.
+     *
+     * Tahap diperlakukan sebagai satu kesatuan: form admin mengirim seluruh
+     * daftar setiap kali disimpan, jadi baris yang tidak ada lagi di form ikut
+     * dihapus. Dideduplikasi per `urutan` karena `tahapan` punya unique
+     * (gelombang_id, urutan) dan index form bisa mengirim urutan yang sama dua
+     * kali.
+     *
+     * @param  array<int, array<string, mixed>>  $tahapan
+     */
+    private function simpanTahapan(Gelombang $gelombang, array $tahapan): void
+    {
+        DB::transaction(function () use ($gelombang, $tahapan) {
+            $gelombang->tahapan()->delete();
+
+            foreach ($tahapan as $index => $tahap) {
+                $gelombang->tahapan()->create([
+                    'tipe' => $tahap['tipe'],
+                    'nama_tahap' => $tahap['nama_tahap'],
+                    'urutan' => $index + 1,
+                    'tanggal_mulai' => $tahap['tanggal_mulai'],
+                    'tanggal_selesai' => $tahap['tanggal_selesai'] ?? null,
+                ]);
+            }
+        });
     }
 
     public function destroy(Gelombang $gelombang): RedirectResponse

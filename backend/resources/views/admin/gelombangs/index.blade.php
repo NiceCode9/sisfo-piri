@@ -47,7 +47,16 @@
                             <td style="font-size:13px;">{{ $g->nomor_urut }}</td>
                             <td style="font-weight:600;font-size:13px;">{{ $g->nama_gelombang }}<div style="font-size:11px;color:var(--text-muted);">{{ $g->tahunAjaran->nama_tahun_ajaran ?? '-' }}</div></td>
                             <td><span class="badge-nexus badge-info">{{ $g->badge ?? '-' }}</span></td>
-                            <td style="font-size:12.5px;">{{ \Carbon\Carbon::parse($g->tanggal_buka)->format('d M Y') }} → {{ \Carbon\Carbon::parse($g->tanggal_tutup)->format('d M Y') }}</td>
+                            <td style="font-size:12.5px;">
+                                @php $p = $g->tahapan->firstWhere('tipe', 'pendaftaran'); @endphp
+                                @if ($p)
+                                    {{ $p->tanggal_mulai->format('d M Y') }} → {{ $p->tanggalAkhir()->format('d M Y') }}
+                                @else
+                                    {{-- Tanpa tahap pendaftaran, gelombang ini tidak
+                                         akan pernah bisa dipilih pendaftar. --}}
+                                    <span class="badge-nexus badge-danger">tanpa jadwal daftar</span>
+                                @endif
+                            </td>
                             <td style="font-size:12.5px;">{{ $g->terisi }}/{{ $g->kuota }} ({{ $g->persentase }}%)</td>
                             <td style="font-size:13px;">{{ $g->diskon_persen ? $g->diskon_persen.'%' : '-' }}</td>
                             <td>{!! $g->is_aktif ? '<span class="badge-nexus badge-info">aktif</span>' : '<span class="badge-nexus badge-neutral">nonaktif</span>' !!}</td>
