@@ -49,6 +49,23 @@ class Gelombang extends Model
         return $this->hasMany(CalonSiswa::class);
     }
 
+    /**
+     * Tahapan (fase) gelombang ini, sudah terurut untuk ditampilkan.
+     */
+    public function tahapan(): HasMany
+    {
+        return $this->hasMany(GelombangTahap::class)->orderBy('urutan');
+    }
+
+    /**
+     * Tahap pendaftaran — satu-satunya yang menentukan apakah gelombang bisa
+     * dipilih pendaftar.
+     */
+    public function tahapPendaftaran(): ?GelombangTahap
+    {
+        return $this->tahapan->firstWhere('tipe', 'pendaftaran');
+    }
+
     public function scopeAktif($query)
     {
         return $query->where('is_aktif', true);
