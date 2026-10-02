@@ -16,20 +16,21 @@
 
             {{-- Left Content --}}
             <div class="text-white space-y-6 animate-fade-in-up">
-                @if ($tahunAjaranAktif)
-                    @if ($pendaftaranDibuka)
-                        <div class="inline-block px-4 py-2 bg-secondary-500 rounded-full text-sm font-semibold shadow-lg">
-                            🎉 Pendaftaran Dibuka!
-                        </div>
-                    @elseif ($jendelaPendaftaran?->tanggal_mulai?->startOfDay()->isFuture())
-                        <div class="inline-block px-4 py-2 bg-amber-400 rounded-full text-sm font-semibold shadow-lg text-amber-950">
-                            Pendaftaran dibuka {{ $jendelaPendaftaran->tanggal_mulai->translatedFormat('d M Y') }}
-                        </div>
-                    @else
-                        <div class="inline-block px-4 py-2 bg-white/25 rounded-full text-sm font-semibold shadow-lg">
-                            Pendaftaran Ditutup
-                        </div>
-                    @endif
+                {{-- Status pendaftaran dihitung sekali di App\Support\StatusPendaftaran dan
+     dipakai bersama oleh badge ini, peringatan di halaman pendaftaran, serta
+     gate di store(). Satu sumber, jadi ketiganya tidak bisa berbeda pendapat. --}}
+                @if ($statusPendaftaran?->tampilkanBadge())
+                    <div @class([
+                        'inline-block px-4 py-2 rounded-full text-sm font-semibold shadow-lg',
+                        'bg-secondary-500' => $statusPendaftaran->state === \App\Support\StatusPendaftaran::BUKA,
+                        'bg-amber-400 text-amber-950' => $statusPendaftaran->state === \App\Support\StatusPendaftaran::BELUM,
+                        'bg-white/25' => in_array($statusPendaftaran->state, [
+                            \App\Support\StatusPendaftaran::PENUH,
+                            \App\Support\StatusPendaftaran::TUTUP,
+                        ], true),
+                    ])>
+                        {{ $statusPendaftaran->state === \App\Support\StatusPendaftaran::BUKA ? '🎉 ' : '' }}{{ $statusPendaftaran->teksBadge() }}
+                    </div>
                 @endif
 
                 <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight">

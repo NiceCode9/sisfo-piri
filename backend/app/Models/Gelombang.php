@@ -67,6 +67,19 @@ class Gelombang extends Model
         return $this->tahapan->contains('tipe', 'pendaftaran');
     }
 
+    /**
+     * Apakah jendela pendaftaran gelombang ini sudah tertutup.
+     *
+     * Hanya tahap `pendaftaran` yang dipakai, bukan tahap mana pun: tahap
+     * verifikasi atau tes yang sudah lewat tidak menutup pendaftaran. Gelombang
+     * tanpa tahap pendaftaran dianggap sudah lewat karena tidak ada tanggal
+     * yang bisa ditampilkan.
+     */
+    public function pendaftaranTelahLewat(): bool
+    {
+        return $this->tahapPendaftaran()?->sudahLewat() ?? true;
+    }
+
     public function scopeAktif($query)
     {
         return $query->where('is_aktif', true);

@@ -6,6 +6,18 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Kalender fase PPDB milik sekolah.
+ *
+ * Catatan penting: kelas ini TIDAK lagi meng-gate pendaftaran. Gate itu
+ * sepenuhnya milik `Gelombang` (lihat `App\Support\StatusPendaftaran`).
+ * Tanpa ini ada dua sumber untuk satu fakta - "kapan pendaftaran dibuka" -
+ * dan keduanya bisa berbeda: form terbuka sementara landing page menulis
+ * "Pendaftaran Ditutup".
+ *
+ * Yang tersisa di sini murni penampil: kalender internal sekolah, tidak
+ * ditampilkan di halaman publik.
+ */
 class JadwalPpdb extends Model
 {
     public const TIPE = [
@@ -52,24 +64,5 @@ class JadwalPpdb extends Model
 
         return $this->tanggal_mulai->startOfDay()->lte($hari)
             && $this->tanggal_selesai->endOfDay()->gte($hari);
-    }
-
-    /**
-     * Jendela pendaftaran untuk satu tahun ajaran.
-     *
-     * Mengembalikan null bila admin belum menandai baris bertipe `pendaftaran`.
-     * Null berarti "tidak ada gate" — pendaftaran tetap dibuka supaya variation
-     * tanggal/tipe tidak bisa mengunci sekolah tanpa sengaja.
-     */
-    public static function jendelaPendaftaran(?TahunAjaran $tahun): ?self
-    {
-        if (! $tahun) {
-            return null;
-        }
-
-        return self::where('tahun_ajaran_id', $tahun->id)
-            ->tipe('pendaftaran')
-            ->orderBy('tanggal_mulai')
-            ->first();
     }
 }

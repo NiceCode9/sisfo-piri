@@ -28,6 +28,18 @@
                     $sisa = $g->sisa_kursi;
                     $barColor = $border === 'accent-600' ? 'bg-amber-500' : 'bg-accent-500';
                     $badgeBg = $border === 'accent-600' ? 'bg-amber-100 text-amber-700' : 'bg-accent-100 text-accent-700';
+
+                    // Status dihitung lewat objek yang sama dengan badge hero,
+                    // jadi kartu tidak bisa menampilkan "Dibuka" sementara hero
+                    // menulis "Pendaftaran Ditutup" untuk batch yang sama.
+                    $status = \App\Support\StatusPendaftaran::untuk($g);
+                    $kelasStatus = match ($status->state) {
+                        \App\Support\StatusPendaftaran::BUKA => 'bg-green-100 text-green-700',
+                        \App\Support\StatusPendaftaran::BELUM => 'bg-sky-100 text-sky-700',
+                        \App\Support\StatusPendaftaran::PENUH => 'bg-amber-100 text-amber-700',
+                        \App\Support\StatusPendaftaran::TUTUP => 'bg-gray-200 text-gray-600',
+                        default => 'bg-white/20 text-white',
+                    };
                 @endphp
                 <div class="bg-white rounded-3xl shadow-xl overflow-hidden card-hover border-t-8 {{ $borderClass }}">
                     <div class="bg-gradient-to-br {{ $gradient }} px-6 py-8 text-white text-center">
@@ -37,6 +49,9 @@
                             </div>
                         @endif
                         <h3 class="text-2xl font-extrabold mb-2">{{ $g->nama_gelombang }}</h3>
+                        <div class="flex flex-wrap items-center justify-center gap-2 mb-3">
+                            <span class="px-3 py-1 rounded-full text-xs font-bold {{ $kelasStatus }}">{{ $status->labelGelombang() }}</span>
+                        </div>
                         <div class="flex items-center justify-center space-x-2 text-sm">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>

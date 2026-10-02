@@ -25,7 +25,11 @@
             </select>
             <label for="tipe">Tipe Jadwal <span class="text-danger">*</span></label>
             @error('tipe')<div class="invalid-feedback">{{ $message }}</div>@enderror
-            <div class="form-text">Tipe <strong>Pendaftaran</strong> menjadi gate: form pendaftaran hanya bisa diisi di dalam rentang tanggalnya.</div>
+            <div class="form-text">
+                Catatan kalender internal sekolah — <strong>bukan</strong> yang membuka/menutup pendaftaran.
+                Gate pendaftaran sepenuhnya milik tahap pada
+                <a href="{{ route('admin.gelombangs.index') }}">Gelombang</a>.
+            </div>
         </div>
     </div>
 </div>

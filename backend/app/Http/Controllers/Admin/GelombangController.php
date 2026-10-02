@@ -56,10 +56,11 @@ class GelombangController extends Controller implements HasMiddleware
 
     public function store(StoreGelombangRequest $request): RedirectResponse
     {
-        $this->simpanTahapan(
-            Gelombang::create($request->safe()->except('tahapan')),
-            $request->validated('tahapan')
-        );
+        DB::transaction(function () use ($request) {
+            $gelombang = Gelombang::create($request->safe()->except('tahapan'));
+
+            $this->simpanTahapan($gelombang, $request->validated('tahapan'));
+        });
 
         return redirect()->route('admin.gelombangs.index')->with('success', 'Gelombang berhasil ditambahkan.');
     }
@@ -74,10 +75,11 @@ class GelombangController extends Controller implements HasMiddleware
 
     public function update(UpdateGelombangRequest $request, Gelombang $gelombang): RedirectResponse
     {
-        $this->simpanTahapan(
-            tap($gelombang)->update($request->safe()->except('tahapan')),
-            $request->validated('tahapan')
-        );
+        DB::transaction(function () use ($request, $gelombang) {
+            $gelombang->update($request->safe()->except('tahapan'));
+
+            $this->simpanTahapan($gelombang, $request->validated('tahapan'));
+        });
 
         return redirect()->route('admin.gelombangs.index')->with('success', "Gelombang {$gelombang->nama_gelombang} diperbarui.");
     }
@@ -90,6 +92,9 @@ class GelombangController extends Controller implements HasMiddleware
      * dihapus. Dideduplikasi per `urutan` karena `tahapan` punya unique
      * (gelombang_id, urutan) dan index form bisa mengirim urutan yang sama dua
      * kali.
+     *
+     * Transaksi di dalamnya bersifat nested (savepoint) supaya pemanggil tetap
+     * bisa membungkus baris induk dan baris tahapnya jadi satu kesatuan.
      *
      * @param  array<int, array<string, mixed>>  $tahapan
      */
@@ -105,6 +110,7 @@ class GelombangController extends Controller implements HasMiddleware
                     'urutan' => $index + 1,
                     'tanggal_mulai' => $tahap['tanggal_mulai'],
                     'tanggal_selesai' => $tahap['tanggal_selesai'] ?? null,
+                    'keterangan' => $tahap['keterangan'] ?? null,
                 ]);
             }
         });

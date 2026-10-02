@@ -10,7 +10,6 @@ use App\Models\Brosur;
 use App\Models\CalonSiswa;
 use App\Models\Galeri;
 use App\Models\Gelombang;
-use App\Models\JadwalPpdb;
 use App\Models\JalurPendaftaran;
 use App\Models\KuotaPendaftaran;
 use App\Models\LogStatusPendaftaran;
@@ -19,6 +18,7 @@ use App\Models\Rombel;
 use App\Models\TahunAjaran;
 use App\Models\User;
 use App\Support\Penomor;
+use App\Support\StatusPendaftaran;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
@@ -31,25 +31,27 @@ class SpmbController extends Controller
     public function home(): View
     {
         $tahunAjaranAktif = TahunAjaran::aktif()->first();
-        $jadwalPpdbs = $tahunAjaranAktif
-            ? JadwalPpdb::where('tahun_ajaran_id', $tahunAjaranAktif->id)->orderBy('tanggal_mulai')->get()
-            : collect();
         $biayas = $tahunAjaranAktif
             ? BiayaPendaftaran::where('tahun_ajaran_id', $tahunAjaranAktif->id)->orderBy('jenis_biaya')->get()
             : collect();
         $pengumumans = Pengumuman::where('status_aktif', true)->orderByDesc('tanggal_pengumuman')->limit(3)->get();
-        // Landing page hanya menampilkan gelombang yang masih bisa dipilih supaya
-        // tidak ada tanggal atau kuota di halaman publik yang sudah kedaluwarsa.
-        $gelombangs = Gelombang::terbuka($tahunAjaranAktif)->filter(
-            fn (Gelombang $g) => ! $g->kuotaPenuh()
-        );
+
+        // Kartu gelombang menampilkan batch yang BELUM ditutup — termasuk yang
+        // masih akan datang, karena "batch berikutnya dibuka tanggal berapa" itu
+        // justru informasi yang dicari calon. Batch yang sudah lewat disembunyikan
+        // supaya halaman publik tidak menampilkan tanggal basi.
+        $gelombangs = Gelombang::semuaAktif($tahunAjaranAktif)
+            ->reject(fn (Gelombang $g) => $g->pendaftaranTelahLewat())
+            ->values();
+
         $brosurs = Brosur::aktif()->orderBy('order')->orderByDesc('created_at')->get();
         $galeriFotos = Galeri::aktif()->foto()->whereNotNull('image_path')->orderBy('order')->orderByDesc('created_at')->take(8)->get();
         $prestasis = Galeri::aktif()->prestasi()->orderByDesc('tanggal')->orderBy('order')->take(3)->get();
 
+        $status = StatusPendaftaran::tentukan($tahunAjaranAktif);
+
         return view('spmb.home', [
             'tahunAjaranAktif' => $tahunAjaranAktif,
-            'jadwalPpdbs' => $jadwalPpdbs,
             'biayas' => $biayas,
             'pengumumans' => $pengumumans,
             'gelombangs' => $gelombangs,
@@ -57,11 +59,9 @@ class SpmbController extends Controller
             'galeriFotos' => $galeriFotos,
             'prestasis' => $prestasis,
             'ringkasanKuota' => $this->ringkasanKuota($tahunAjaranAktif),
-            // Badge hero harus mencerminkan gate yang sama dengan form, kalau
-            // tidak landing page tetap Divecta "Pendaftaran Dibuka!" padahal
-            // form-nya sudah ditutup.
-            'jendelaPendaftaran' => $jendela = JadwalPpdb::jendelaPendaftaran($tahunAjaranAktif),
-            'pendaftaranDibuka' => $tahunAjaranAktif !== null && ($jendela === null || $jendela->sedangBerlangsung()),
+            // Badge hero dan form memakai satu keputusan yang sama.
+            'statusPendaftaran' => $status,
+            'pendaftaranDibuka' => $status->dibuka(),
         ]);
     }
 
@@ -112,26 +112,33 @@ class SpmbController extends Controller
     {
         $tahunAjaranAktif = TahunAjaran::aktif()->first();
         $jalurPendaftarans = JalurPendaftaran::where('aktif', true)->orderBy('nama_jalur')->get();
-        $jadwalPpdbs = $tahunAjaranAktif
-            ? JadwalPpdb::where('tahun_ajaran_id', $tahunAjaranAktif->id)->orderBy('tanggal_mulai')->get()
-            : collect();
 
         $kuotaMap = collect();
         if ($tahunAjaranAktif) {
             $kuotaMap = KuotaPendaftaran::where('tahun_ajaran_id', $tahunAjaranAktif->id)->get()->keyBy('jalur_pendaftaran_id');
         }
 
+        $status = StatusPendaftaran::tentukan($tahunAjaranAktif);
+
         return view('spmb.pendaftaran', [
             'tahunAjaranAktif' => $tahunAjaranAktif,
             'jalurPendaftarans' => $jalurPendaftarans,
-            'jadwalPpdbs' => $jadwalPpdbs,
             'kuotaMap' => $kuotaMap,
-            // Hanya gelombang yang jendelanya benar-benar terbuka yang
-            // ditawarkan. Gelombang yang lewat tanggal atau sudah penuh tidak
-            // bisa dipilih walau is_aktif masih true.
-            'gelombangs' => Gelombang::terbuka($tahunAjaranAktif),
-            'jendelaPendaftaran' => $jendela = JadwalPpdb::jendelaPendaftaran($tahunAjaranAktif),
-            'pendaftaranDibuka' => $tahunAjaranAktif !== null && ($jendela === null || $jendela->sedangBerlangsung()),
+            // Dropdown hanya boleh menawarkan gelombang yang benar-benar bisa
+            // dipilih — sudah lewat atau sudah penuh tidak bisa dipilih walau
+            // is_aktif masih true.
+            'gelombangs' => $status->tersedia,
+            // Timeline perlu semua gelombang yang belum ditutup, termasuk yang akan
+            // datang: calon perlu tahu batch berikutnya kapan dibuka. Gelombang
+            // yang sudah lewat disembunyikan supaya halaman publik tidak
+            // menampilkan tanggal basi. Gelombang yang penuh tetap tampil di
+            // sini dengan badge "Kuota Penuh" — informatif, selama tidak
+            // masuk dropdown.
+            'semuaGelombangs' => Gelombang::semuaAktif($tahunAjaranAktif)
+                ->reject(fn (Gelombang $g) => $g->pendaftaranTelahLewat())
+                ->values(),
+            'statusPendaftaran' => $status,
+            'pendaftaranDibuka' => $status->dibuka(),
         ]);
     }
 
@@ -143,21 +150,6 @@ class SpmbController extends Controller
 
         if (! $tahunAjaranAktif) {
             return back()->withErrors(['jalur_pendaftaran_id' => 'Pendaftaran belum dibuka (tahun ajaran aktif belum diatur).'])->withInput();
-        }
-
-        // Gate jadwal: baris bertipe `pendaftaran` menentukan periode pendaftaran.
-        // Tanpa baris tersebut pendaftaran tetap dibuka (lihat jendelaPendaftaran()).
-        $jendela = JadwalPpdb::jendelaPendaftaran($tahunAjaranAktif);
-
-        if ($jendela && ! $jendela->sedangBerlangsung()) {
-            $mulai = $jendela->tanggal_mulai->translatedFormat('d M Y');
-            $selesai = $jendela->tanggal_selesai->translatedFormat('d M Y');
-
-            $pesan = now()->lt($jendela->tanggal_mulai->startOfDay())
-                ? "Pendaftaran belum dibuka. Pendaftaran dibuka mulai {$mulai}."
-                : "Pendaftaran sudah ditutup. Pendaftaran berlangsung {$mulai} sampai {$selesai}.";
-
-            return back()->withErrors(['jalur_pendaftaran_id' => $pesan])->withInput();
         }
 
         $passwordPlain = null;

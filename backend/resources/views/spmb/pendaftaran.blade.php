@@ -4,17 +4,29 @@
 
 @php
     // ============================================================
-    // Fallback hanya untuk data yang belum ada di database. Jadwal TIDAK
-    // boleh di-fallback dengan tanggal hardcoded: dulu controller mengirim
-    // $jadwalPpdbs (jamak) sementara view membaca $jadwalPpdb (tunggal),
-    // sehingga timeline selalu menampilkan tanggal palsu Nov/Des 2026.
+    // Fallback hanya untuk data yang belum ada di database. Tanggal
+    // TIDAK boleh di-fallback dengan nilai hardcode: dulu controller
+    // mengirim $jadwalPpdbs (jamak) sementara view membaca $jadwalPpdb
+    // (tunggal), sehingga timeline selalu menampilkan tanggal palsu
+    // Nov/Des 2026.
+    //
+    // Timeline sekarang dibangun dari Gelombang + tahapnya, bukan JadwalPPDB,
+    // supaya tanggal yang tampil adalah satu-satunya tanggal yang dipakai gate
+    // pendaftaran.
     // ============================================================
     $jalurPendaftarans = $jalurPendaftarans ?? collect([
         (object) ['id' => 1, 'nama_jalur' => 'Reguler', 'aktif' => true],
         (object) ['id' => 2, 'nama_jalur' => 'Prestasi / Beasiswa', 'aktif' => true],
     ]);
 
-    $jadwalPpdbs = $jadwalPpdbs ?? collect();
+    $semuaGelombangs = $semuaGelombangs ?? collect();
+
+    // Satu daftar datar untuk layout bolak-balik. Urutannya mengikuti urutan
+    // gelombang lalu urutan tahap, jadi timeline dibaca seperti kronologi.
+    $timelineTahap = $semuaGelombangs
+        ->flatMap(fn ($gelombang) => $gelombang->tahapan
+            ->map(fn ($tahap) => ['gelombang' => $gelombang, 'tahap' => $tahap]))
+        ->values();
 
     // Nomor kontak asal template ("(022) 1234-5678",
     // "spmb@smpharapanbangsa.sch.id") sudah dihapus: bukan milik sekolah ini.
@@ -56,9 +68,9 @@
         'shield-check' => ['M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z'],
     ];
 
-    // Nama jadwal berasal dari database (bukan hardcode), jadi ikon dicocokkan
-    // dengan kemiripan kata agar tetap cocok walau admin memberi nama lain,
-    // mis. "Pendaftaran Online" atau "Pengumuman Hasil".
+    // Ikon diambil dari `tipe` tahap, yang sudah berupa enum dari database.
+    // Kalau admin memberi label sendiri, teksnya tetap dipakai sebagai cadangan
+    // supaya ikon tidak pernah hilang.
     $timelineIconKeywords = [
         'pendaftaran' => 'calendar',
         'tes' => 'clipboard',
@@ -67,11 +79,11 @@
         'daftar ulang' => 'check-circle',
     ];
 
-    $cariIkonJadwal = function (string $nama) use ($timelineIconKeywords): string {
-        $nama = mb_strtolower($nama);
+    $cariIkonTahap = function (string $tipe, string $nama) use ($timelineIconKeywords): string {
+        $teks = mb_strtolower($tipe.' '.$nama);
 
         foreach ($timelineIconKeywords as $kata => $ikon) {
-            if (str_contains($nama, $kata)) {
+            if (str_contains($teks, $kata)) {
                 return $ikon;
             }
         }
@@ -283,13 +295,27 @@
                 <div class="relative">
                     <div class="absolute left-1/2 -translate-x-1/2 h-full w-1 bg-gradient-to-b from-primary-500 to-accent-500 rounded-full"></div>
 
-                    @forelse ($jadwalPpdbs as $index => $jadwal)
-                        @php $iconKey = $cariIkonJadwal($jadwal->nama_jadwal); @endphp
+                    @forelse ($timelineTahap as $index => $item)
+                        @php
+                            $tahap = $item['tahap'];
+                            $gelombangTimeline = $item['gelombang'];
+                            $iconKey = $cariIkonTahap($tahap->tipe, $tahap->nama_tahap);
+                            $sedangBerlangsung = $tahap->berlangsung();
+                            // Status pakai objek yang sama dengan badge hero, jadi
+                            // timeline dan hero tidak pernah berbeda pendapat.
+                            $statusGelombang = \App\Support\StatusPendaftaran::untuk($gelombangTimeline);
+                            $kelasStatus = match ($statusGelombang->state) {
+                                \App\Support\StatusPendaftaran::BUKA => 'bg-green-100 text-green-700',
+                                \App\Support\StatusPendaftaran::BELUM => 'bg-sky-100 text-sky-700',
+                                \App\Support\StatusPendaftaran::PENUH => 'bg-amber-100 text-amber-700',
+                                default => 'bg-gray-200 text-gray-600',
+                            };
+                        @endphp
                         <div class="relative flex items-center mb-8 {{ $index % 2 == 0 ? 'flex-row' : 'flex-row-reverse' }}">
                             <div class="w-5/12 {{ $index % 2 == 0 ? 'text-right pr-8' : 'text-left pl-8' }}">
-                                <div class="bg-white rounded-2xl shadow-lg p-6 hover:shadow-2xl transition-all duration-300 border border-gray-100 card-hover">
+                                <div class="bg-white rounded-2xl shadow-lg p-6 hover:shadow-2xl transition-all duration-300 border {{ $sedangBerlangsung ? 'border-primary-300 ring-2 ring-primary-100' : 'border-gray-100' }} card-hover">
                                     <div class="flex items-center {{ $index % 2 == 0 ? 'justify-end' : 'justify-start' }} mb-3">
-                                        <div class="w-12 h-12 bg-gradient-primary rounded-full flex items-center justify-center text-white shadow-md">
+                                        <div class="w-12 h-12 {{ $sedangBerlangsung ? 'bg-gradient-to-br from-primary-500 to-accent-500' : 'bg-gradient-primary' }} rounded-full flex items-center justify-center text-white shadow-md">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                                 @foreach ($renderIcon($iconKey) as $d)
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
@@ -297,14 +323,26 @@
                                             </svg>
                                         </div>
                                     </div>
-                                    <h3 class="text-lg font-bold text-gray-800 mb-2">{{ $jadwal->nama_jadwal }}</h3>
-                                    <p class="text-sm text-gray-600 mb-2">{{ \Carbon\Carbon::parse($jadwal->tanggal_mulai)->locale('id')->translatedFormat('d M Y') }} &ndash; {{ \Carbon\Carbon::parse($jadwal->tanggal_selesai)->locale('id')->translatedFormat('d M Y') }}</p>
-                                    @if ($jadwal->keterangan)
-                                        <p class="text-sm text-gray-500">{{ $jadwal->keterangan }}</p>
+                                    <div class="mb-2 flex flex-wrap items-center gap-2 {{ $index % 2 == 0 ? 'justify-end' : 'justify-start' }}">
+                                        <span class="text-xs font-semibold text-primary-700 bg-primary-50 rounded-full px-2.5 py-0.5">{{ $gelombangTimeline->nama_gelombang }}</span>
+                                        <span class="text-xs font-semibold rounded-full px-2.5 py-0.5 {{ $kelasStatus }}">{{ $statusGelombang->labelGelombang() }}</span>
+                                        @if ($sedangBerlangsung)
+                                            <span class="text-xs font-semibold text-accent-700 bg-accent-50 rounded-full px-2.5 py-0.5">Tahap sedang berjalan</span>
+                                        @endif
+                                    </div>
+                                    <h3 class="text-lg font-bold text-gray-800 mb-2">{{ $tahap->nama_tahap }}</h3>
+                                    <p class="text-sm text-gray-600 mb-2">
+                                        {{ $tahap->tanggal_mulai->locale('id')->translatedFormat('d M Y') }}
+                                        @if ($tahap->punyaJendela())
+                                            &ndash; {{ $tahap->tanggalAkhir()->locale('id')->translatedFormat('d M Y') }}
+                                        @endif
+                                    </p>
+                                    @if ($tahap->keterangan)
+                                        <p class="text-sm text-gray-500">{{ $tahap->keterangan }}</p>
                                     @endif
                                 </div>
                             </div>
-                            <div class="absolute left-1/2 -translate-x-1/2 w-6 h-6 bg-white border-4 border-primary-500 rounded-full shadow-lg z-10"></div>
+                            <div class="absolute left-1/2 -translate-x-1/2 w-6 h-6 bg-white border-4 {{ $sedangBerlangsung ? 'border-accent-500' : 'border-primary-500' }} rounded-full shadow-lg z-10"></div>
                             <div class="w-5/12"></div>
                         </div>
                     @empty
@@ -402,19 +440,24 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5.07 19h13.86a2 2 0 001.74-3L13.74 4a2 2 0 00-3.48 0l-7 12a2 2 0 001.74 3z"/>
                         </svg>
                     </div>
-                    <h3 class="text-2xl font-extrabold text-amber-900 mb-2">Pendaftaran Belum Dibuka</h3>
-                    @if ($jendelaPendaftaran)
-                        <p class="text-amber-800 mb-1">
-                            Periode pendaftaran berlangsung
-                            <strong>{{ $jendelaPendaftaran->tanggal_mulai->translatedFormat('d M Y') }}</strong>
-                            sampai
-                            <strong>{{ $jendelaPendaftaran->tanggal_selesai->translatedFormat('d M Y') }}</strong>.
+                    {{-- Pesan berasal dari StatusPendaftaran, jadi menyebut batch
+                         yang konkret - bukan lagi tanggal global yang bisa
+                         bertentangan dengan daftar gelombang di bawah. --}}
+                    <h3 class="text-2xl font-extrabold text-amber-900 mb-2">
+                        {{ $statusPendaftaran->state === \App\Support\StatusPendaftaran::PENUH
+                            ? 'Kuota Gelombang Penuh'
+                            : 'Pendaftaran Belum Dibuka' }}
+                    </h3>
+                    <p class="text-amber-800 mb-1">{{ $statusPendaftaran->pesan }}</p>
+
+                    @if ($statusPendaftaran->gelombangBerikut)
+                        @php $tahap = $statusPendaftaran->gelombangBerikut->tahapPendaftaran(); @endphp
+                        <p class="text-amber-700 text-sm mt-2">
+                            {{ $statusPendaftaran->gelombangBerikut->nama_gelombang }}
+                            ({{ $tahap?->tanggal_mulai->translatedFormat('d M Y') }}
+                            &ndash;
+                            {{ $tahap?->tanggalAkhir()->translatedFormat('d M Y') }})
                         </p>
-                        @if ($jendelaPendaftaran->keterangan)
-                            <p class="text-amber-700 text-sm">{{ $jendelaPendaftaran->keterangan }}</p>
-                        @endif
-                    @else
-                        <p class="text-amber-800 mb-1">Tahun ajaran aktif belum diatur, sehingga pendaftaran belum dapat dibuka.</p>
                     @endif
                 </div>
             @endunless

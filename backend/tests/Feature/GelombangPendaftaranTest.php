@@ -41,14 +41,16 @@ function buatGelombang(array $ubah = []): Gelombang
 
     unset($ubah['buka'], $ubah['tutup']);
 
-    $gelombang = Gelombang::create($ubah + [
+    $payload = $ubah + [
         'tahun_ajaran_id' => $tahun,
         'nama_gelombang' => 'Gelombang Uji',
         'nomor_urut' => $urut,
         'kuota' => 30,
         'terisi' => 0,
         'is_aktif' => true,
-    ]);
+    ];
+
+    $gelombang = Gelombang::create($payload);
 
     $gelombang->tahapan()->create([
         'tipe' => 'pendaftaran',
@@ -148,7 +150,7 @@ test('daftar pendaftaran menampilkan gelombang terbuka beserta sisa kursi', func
         ->and($html)->toContain('sisa 18 kursi');
 });
 
-test('gelombang yang belum mulai tidak ditawarkan maupun diterima', function () {
+test('gelombang yang belum mulai tidak bisa dipilih maupun diterima', function () {
     Gelombang::query()->delete();
     $belum = buatGelombang([
         'nama_gelombang' => 'Belum Mulai',
@@ -157,7 +159,13 @@ test('gelombang yang belum mulai tidak ditawarkan maupun diterima', function () 
     ]);
 
     $html = $this->get(route('spmb.pendaftaran'))->assertOk()->getContent();
-    expect($html)->not->toContain('Belum Mulai');
+
+    // Gelombang yang belum dibuka TIDAK boleh jadi pilihan di dropdown.
+    // Namanya sendiri boleh muncul di peringatan "belum dibuka" - itu
+    // informasi yang justru dicari calon.
+    preg_match('/<select id="gelombang_id".*?<\/select>/s', $html, $m);
+    expect($m[0] ?? '')->not->toContain('Belum Mulai')
+        ->and($html)->toContain('Pendaftaran Belum Dibuka');
 
     // POST langsung juga ditolak.
     $this->post(route('spmb.store'), payloadWave(['gelombang_id' => $belum->id]))
@@ -175,7 +183,9 @@ test('gelombang yang sudah lewat tanggal tutup tidak ditawarkan maupun diterima'
     ]);
 
     $html = $this->get(route('spmb.pendaftaran'))->assertOk()->getContent();
-    expect($html)->not->toContain('Sudah Lewat');
+
+    // Bukan ditawarkan: tidak muncul sebagai <option> di dropdown gelombang.
+    expect(opsiGelombang($html))->not->toContain('value="'.$lewat->id.'"');
 
     $this->post(route('spmb.store'), payloadWave(['gelombang_id' => $lewat->id]))
         ->assertSessionHasErrors('gelombang_id');
@@ -201,7 +211,11 @@ test('kuota gelombang penuh menutup pendaftaran gelombang tersebut', function ()
     $penuh = buatGelombang(['nama_gelombang' => 'Penuh', 'kuota' => 2, 'terisi' => 2]);
 
     $html = $this->get(route('spmb.pendaftaran'))->assertOk()->getContent();
-    expect($html)->not->toContain('>Penuh<');
+
+    // Penuh berarti tidak boleh dipilih, tapi boleh dilihat: calon perlu tahu
+    // batch ini sudah penuh dan kapan batch berikutnya dibuka.
+    expect(opsiGelombang($html))->not->toContain('value="'.$penuh->id.'"')
+        ->and($html)->toContain('Kuota Penuh');
 
     $this->post(route('spmb.store'), payloadWave(['gelombang_id' => $penuh->id]))
         ->assertSessionHasErrors('gelombang_id');
@@ -231,7 +245,21 @@ test('pendaftaran tetap jalan bila sekolah belum mengatur gelombang', function (
         ->and(CalonSiswa::first()->gelombang_id)->toBeNull();
 });
 
-test('landing page hanya menampilkan gelombang yang masih bisa dipilih', function () {
+/**
+ * Isi dropdown gelombang saja.
+ *
+ * Halaman pendaftaran punya beberapa `<select>` (jalur, gelombang, kota, ...),
+ * jadi assertion harus seizing blok yang tepat. Kalau tidak, `value="1"` milik
+ * select lain membuat test lulus atau gagal tanpa alasan.
+ */
+function opsiGelombang(string $html): string
+{
+    preg_match('/<select id="gelombang_id".*?<\/select>/s', $html, $cocok);
+
+    return $cocok[0] ?? '';
+}
+
+test('landing page menampilkan gelombang yang belum ditutup dan menyembunyikan yang lewat', function () {
     Gelombang::query()->delete();
     buatGelombang(['nama_gelombang' => 'Yang Dibuka']);
     buatGelombang(['nama_gelombang' => 'Sudah Penuh', 'kuota' => 5, 'terisi' => 5]);
@@ -243,9 +271,34 @@ test('landing page hanya menampilkan gelombang yang masih bisa dipilih', functio
 
     $html = $this->get(route('spmb.home'))->assertOk()->getContent();
 
+    // Gelombang yang masih akan datang dan yang sedang dibuka sama-sama
+    // tampil - "batch berikutnya kapan dibuka" itu informasi yang dicari calon.
+    // Yang sudah lewat disembunyikan supaya halaman publik tidak menampilkan
+    // tanggal basi.
     expect($html)->toContain('Yang Dibuka')
-        ->and($html)->not->toContain('Sudah Penuh')
+        ->and($html)->toContain('Sudah Penuh')
         ->and($html)->not->toContain('Sudah Lewat');
+});
+
+test('timeline pendaftaran dibangun dari tahap tiap gelombang', function () {
+    Gelombang::query()->delete();
+
+    $gelombang = buatGelombang(['nama_gelombang' => 'Gelombang Unmarshal']);
+    $gelombang->tahapan()->create([
+        'tipe' => 'tes',
+        'nama_tahap' => 'Tes Seleksi Gelombang Unmarshal',
+        'urutan' => 2,
+        'tanggal_mulai' => now()->addWeek()->toDateString(),
+    ]);
+
+    $html = $this->get(route('spmb.pendaftaran'))->assertOk()->getContent();
+
+    // Setiap tahap jadi baris timeline sendiri, dan nama gelombang muncul
+    // sebagai label supaya tahap tidak terlihat melayang tanpa konteks.
+    expect($html)->toContain('Pendaftaran Online')
+        ->and($html)->toContain('Tes Seleksi Gelombang Unmarshal')
+        ->and($html)->toContain('Gelombang Unmarshal')
+        ->and($html)->toContain('Dibuka');
 });
 
 test('sisa kursi dan persentase memakai data nyata', function () {

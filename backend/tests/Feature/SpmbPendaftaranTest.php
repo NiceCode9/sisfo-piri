@@ -3,7 +3,6 @@
 use App\Models\CalonSiswa;
 use App\Models\Gelombang;
 use App\Models\Guru;
-use App\Models\JadwalPpdb;
 use App\Models\JalurPendaftaran;
 use App\Models\KuotaPendaftaran;
 use App\Models\ProfilSekolah;
@@ -242,8 +241,18 @@ test('kuota pendaftaran kosong berarti pendaftaran tidak dibatasi', function () 
     expect($kuota->fresh()->terisi_pendaftaran)->toBe(100);
 });
 
-test('pendaftaran ditolak sebelum jadwal pendaftaran dimulai', function () {
-    JadwalPpdb::where('tipe', 'pendaftaran')->update([
+test('pendaftaran ditolak sebelum gelombang dibuka', function () {
+    Gelombang::query()->delete();
+    Gelombang::create([
+        'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
+        'nama_gelombang' => 'Belum Mulai',
+        'nomor_urut' => 90,
+        'kuota' => 30,
+        'is_aktif' => true,
+    ])->tahapan()->create([
+        'tipe' => 'pendaftaran',
+        'nama_tahap' => 'Pendaftaran Online',
+        'urutan' => 1,
         'tanggal_mulai' => now()->addWeek()->toDateString(),
         'tanggal_selesai' => now()->addMonth()->toDateString(),
     ]);
@@ -252,28 +261,42 @@ test('pendaftaran ditolak sebelum jadwal pendaftaran dimulai', function () {
         'nik' => '1234567890123800',
         'nisn' => '1234567380',
         'email' => 'belum@example.com',
-    ]))->assertSessionHasErrors('jalur_pendaftaran_id');
+    ]))->assertSessionHasErrors('gelombang_id');
 
     expect(CalonSiswa::where('nik', '1234567890123800')->exists())->toBeFalse();
 });
 
-test('pendaftaran ditolak setelah jadwal pendaftaran berakhir', function () {
-    JadwalPpdb::where('tipe', 'pendaftaran')->update([
+test('pendaftaran ditolak setelah semua gelombang lewat', function () {
+    Gelombang::query()->delete();
+    Gelombang::create([
+        'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
+        'nama_gelombang' => 'Sudah Lewat',
+        'nomor_urut' => 90,
+        'kuota' => 30,
+        'is_aktif' => true,
+    ])->tahapan()->create([
+        'tipe' => 'pendaftaran',
+        'nama_tahap' => 'Pendaftaran Online',
+        'urutan' => 1,
         'tanggal_mulai' => now()->subMonths(2)->toDateString(),
         'tanggal_selesai' => now()->subDay()->toDateString(),
     ]);
 
+    // Tanpa memilih gelombang pun harus ditolak: pendaftaran yang sudah
+    // tutup tidak boleh lolos hanya karena field-nya tidak diisi.
     $this->post(route('spmb.store'), payloadSpmb([
         'nik' => '1234567890123900',
         'nisn' => '1234567390',
         'email' => 'selesai@example.com',
-    ]))->assertSessionHasErrors('jalur_pendaftaran_id');
+        'gelombang_id' => null,
+    ]))->assertSessionHasErrors('gelombang_id');
 
     expect(CalonSiswa::where('nik', '1234567890123900')->exists())->toBeFalse();
 });
 
-test('tanpa baris jadwal bertipe pendaftaran, pendaftaran tetap dibuka', function () {
-    JadwalPpdb::query()->delete();
+test('tanpa gelombang, pendaftaran tetap dibuka', function () {
+    // Sekolah yang belum mengatur batch tidak boleh terkunci.
+    Gelombang::query()->delete();
 
     $this->post(route('spmb.store'), payloadSpmb([
         'nik' => '1234567890124000',
@@ -284,15 +307,53 @@ test('tanpa baris jadwal bertipe pendaftaran, pendaftaran tetap dibuka', functio
     expect(CalonSiswa::where('nik', '1234567890124000')->exists())->toBeTrue();
 });
 
+test('kuota gelombang penuh menutup pendaftaran', function () {
+    Gelombang::query()->delete();
+    Gelombang::create([
+        'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
+        'nama_gelombang' => 'Penuh',
+        'nomor_urut' => 90,
+        'kuota' => 5,
+        'terisi' => 5,
+        'is_aktif' => true,
+    ])->tahapan()->create([
+        'tipe' => 'pendaftaran',
+        'nama_tahap' => 'Pendaftaran Online',
+        'urutan' => 1,
+        'tanggal_mulai' => now()->subWeek()->toDateString(),
+        'tanggal_selesai' => now()->addWeek()->toDateString(),
+    ]);
+
+    $this->post(route('spmb.store'), payloadSpmb([
+        'nik' => '1234567890124100',
+        'nisn' => '1234567410',
+        'email' => 'penuh@example.com',
+    ]))->assertSessionHasErrors('gelombang_id');
+
+    expect(CalonSiswa::where('nik', '1234567890124100')->exists())->toBeFalse();
+});
+
 test('halaman pendaftaran menampilkan peringatan ketika ditutup', function () {
-    JadwalPpdb::where('tipe', 'pendaftaran')->update([
+    Gelombang::query()->delete();
+    Gelombang::create([
+        'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
+        'nama_gelombang' => 'Akan Segera',
+        'nomor_urut' => 90,
+        'kuota' => 30,
+        'is_aktif' => true,
+    ])->tahapan()->create([
+        'tipe' => 'pendaftaran',
+        'nama_tahap' => 'Pendaftaran Online',
+        'urutan' => 1,
         'tanggal_mulai' => now()->addWeek()->toDateString(),
         'tanggal_selesai' => now()->addMonth()->toDateString(),
     ]);
 
     $this->get(route('spmb.pendaftaran'))
         ->assertOk()
-        ->assertSee('Pendaftaran Belum Dibuka');
+        ->assertSee('Pendaftaran Belum Dibuka')
+        // Pesan menyebut batch dan tanggalnya, bukan tanggal global.
+        ->assertSee('Akan Segera');
 });
 
 test('wizard menampilkan sisa kuota pendaftaran dari database', function () {
@@ -412,38 +473,41 @@ test('halaman publik tidak lagi menjanjikan batas 2MB untuk dokumen PDF', functi
         ->and($html)->toContain('pas foto JPG/PNG maks 2MB');
 });
 
-test('timeline pendaftaran memakai data JadwalPpdb dari database', function () {
-    // Seeder membuat jadwal relatif terhadap hari ini, jadi yang diuji adalah
-    // tanggal yang benar-benar tersimpan di database.
-    $verifikasi = JadwalPpdb::where('tipe', 'verifikasi')->firstOrFail();
-    $jumlahJadwal = JadwalPpdb::count();
+test('jadwal hasil seeder membuka satu gelombang dan punya tahap berurutan', function () {
+    $tersedia = Gelombang::terbuka(TahunAjaran::aktif()->first());
 
-    $html = $this->get(route('spmb.pendaftaran'))
-        ->assertOk()
-        // Nama fase dari seeder harus tampil.
-        ->assertSee('Pendaftaran Online')
-        ->assertSee('Verifikasi Berkas')
-        ->assertSee('Tes Seleksi')
-        ->assertSee('Daftar Ulang')
-        // Tanggal dari database, bukan dummy hardcoded. `locale('id')` meniru
-        // view yang memformat tanggal dengan nama bulan Indonesia.
-        ->assertSee($verifikasi->tanggal_mulai->locale('id')->translatedFormat('d M Y'))
-        ->assertSee($verifikasi->tanggal_selesai->locale('id')->translatedFormat('d M Y'))
-        ->getContent();
+    // Gate pendaftaran sekarang hanya dari Gelombang.
+    expect($tersedia)->not->toBeEmpty()
+        ->and($tersedia->first()->bisaMasuk())->toBeTrue();
 
-    // Satu kartu timeline per baris jadwal di database. `bg-gradient-primary
-    // rounded-full` hanya dipakai oleh ikon timeline.
-    expect(substr_count($html, 'bg-gradient-primary rounded-full'))->toBe($jumlahJadwal)
-        // Nama fase dummy lama tidak ada di database maupun view.
-        ->and($html)->not->toContain('Tes Masuk');
+    // Tahapan harus berurutan kronologis. Ini penjaga dari regresi: versi lama
+    // menghitung tanggal tes dari tanggal BUKA, sehingga Gelombang 1 yang baru
+    // dibuka punya tes di masa lalu.
+    foreach ($tersedia as $gelombang) {
+        $sebelumnya = null;
+
+        foreach ($gelombang->tahapan as $tahap) {
+            if ($sebelumnya !== null) {
+                expect($tahap->tanggal_mulai->toDateString())
+                    ->not->toBeLessThan($sebelumnya);
+            }
+
+            $sebelumnya = $tahap->tanggal_mulai->toDateString();
+        }
+    }
 });
 
-test('jadwal hasil seeder membuat pendaftaran sedang berlangsung', function () {
-    $jendela = JadwalPpdb::jendelaPendaftaran(TahunAjaran::aktif()->first());
+test('tidak ada tahap yang jatuh sebelum pendaftaran gelombang dibuka', function () {
+    foreach (Gelombang::with('tahapan')->get() as $gelombang) {
+        $pendaftaran = $gelombang->tahapan->firstWhere('tipe', 'pendaftaran');
 
-    expect($jendela)->not->toBeNull()
-        ->and($jendela->tipe)->toBe('pendaftaran')
-        ->and($jendela->sedangBerlangsung())->toBeTrue();
+        expect($pendaftaran)->not->toBeNull();
+
+        foreach ($gelombang->tahapan->where('tipe', '!=', 'pendaftaran') as $tahap) {
+            expect($tahap->tanggal_mulai->toDateString())
+                ->not->toBeLessThan($pendaftaran->tanggal_mulai->toDateString());
+        }
+    }
 });
 
 test('seeder mengisi kuota pendaftaran dan kuota penerimaan terpisah', function () {
@@ -740,26 +804,47 @@ test('tahun ajaran pada hero diambil dari tahun ajaran aktif', function () {
         ->and($hero)->not->toContain('2026/2027');
 });
 
-test('badge hero mencerminkan status jendela pendaftaran', function () {
+test('badge hero mencerminkan status pendaftaran dari gelombang', function () {
     // Dibuka: badge hijau.
     $hero = heroHtml($this->get(route('spmb.home'))->assertOk()->getContent());
     expect($hero)->toContain('Pendaftaran Dibuka!');
 
-    // Belum mulai: badge menampilkan tanggal mulai, bukan "Dibuka!".
-    JadwalPpdb::where('tipe', 'pendaftaran')->update([
+    // Belum mulai: badge menyebut batch berikutnya, bukan "Dibuka!".
+    Gelombang::query()->delete();
+    Gelombang::create([
+        'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
+        'nama_gelombang' => 'Gelombang Mendatang',
+        'nomor_urut' => 90,
+        'kuota' => 30,
+        'is_aktif' => true,
+    ])->tahapan()->create([
+        'tipe' => 'pendaftaran',
+        'nama_tahap' => 'Pendaftaran Online',
+        'urutan' => 1,
         'tanggal_mulai' => now()->addWeek()->toDateString(),
         'tanggal_selesai' => now()->addMonth()->toDateString(),
     ]);
 
-    $mulai = JadwalPpdb::where('tipe', 'pendaftaran')->firstOrFail()->tanggal_mulai->translatedFormat('d M Y');
+    $mulai = now()->addWeek()->translatedFormat('d M Y');
     $hero = heroHtml($this->get(route('spmb.home'))->assertOk()->getContent());
 
     expect($hero)->toContain('Pendaftaran dibuka '.$mulai)
+        ->and($hero)->toContain('Gelombang Mendatang')
         ->and($hero)->not->toContain('Pendaftaran Dibuka!');
 });
 
-test('badge hero menampilkan pendaftaran ditutup setelah jadwal berakhir', function () {
-    JadwalPpdb::where('tipe', 'pendaftaran')->update([
+test('badge hero menampilkan pendaftaran ditutup setelah semua gelombang lewat', function () {
+    Gelombang::query()->delete();
+    Gelombang::create([
+        'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
+        'nama_gelombang' => 'Gelombang Lewat',
+        'nomor_urut' => 90,
+        'kuota' => 30,
+        'is_aktif' => true,
+    ])->tahapan()->create([
+        'tipe' => 'pendaftaran',
+        'nama_tahap' => 'Pendaftaran Online',
+        'urutan' => 1,
         'tanggal_mulai' => now()->subMonths(2)->toDateString(),
         'tanggal_selesai' => now()->subDay()->toDateString(),
     ]);
@@ -768,6 +853,44 @@ test('badge hero menampilkan pendaftaran ditutup setelah jadwal berakhir', funct
 
     expect($hero)->toContain('Pendaftaran Ditutup')
         ->and($hero)->not->toContain('Pendaftaran Dibuka!');
+});
+
+test('badge hero menampilkan kuota penuh saat semua gelombang yang terbuka penuh', function () {
+    Gelombang::query()->delete();
+    Gelombang::create([
+        'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
+        'nama_gelombang' => 'Gelombang Penuh',
+        'nomor_urut' => 90,
+        'kuota' => 5,
+        'terisi' => 5,
+        'is_aktif' => true,
+    ])->tahapan()->create([
+        'tipe' => 'pendaftaran',
+        'nama_tahap' => 'Pendaftaran Online',
+        'urutan' => 1,
+        'tanggal_mulai' => now()->subWeek()->toDateString(),
+        'tanggal_selesai' => now()->addWeek()->toDateString(),
+    ]);
+
+    $hero = heroHtml($this->get(route('spmb.home'))->assertOk()->getContent());
+
+    expect($hero)->toContain('Kuota Gelombang Penuh')
+        ->and($hero)->not->toContain('Pendaftaran Dibuka!')
+        // Dan form-nya benar-benar tertutup, bukan cuma badge-nya.
+        ->and($this->get(route('spmb.pendaftaran'))->assertOk()->getContent())
+        ->toContain('Kuota Gelombang Penuh');
+});
+
+test('badge hero disembunyikan ketika sekolah belum punya gelombang', function () {
+    // Tanpa batch, tidak ada yang bisa dijanjikan - tapi pendaftaran tetap
+    // dibuka supaya sekolah tidak terkunci.
+    Gelombang::query()->delete();
+
+    $hero = heroHtml($this->get(route('spmb.home'))->assertOk()->getContent());
+
+    expect($hero)->not->toContain('Pendaftaran Dibuka')
+        ->and($hero)->not->toContain('Pendaftaran Ditutup')
+        ->and($hero)->not->toContain('Kuota Gelombang Penuh');
 });
 
 test('badge hero disembunyikan ketika tidak ada tahun ajaran aktif', function () {

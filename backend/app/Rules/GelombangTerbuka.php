@@ -2,9 +2,8 @@
 
 namespace App\Rules;
 
-use App\Models\Gelombang;
-use App\Models\JadwalPpdb;
 use App\Models\TahunAjaran;
+use App\Support\StatusPendaftaran;
 use Closure;
 use Illuminate\Contracts\Validation\ImplicitRule;
 
@@ -13,12 +12,14 @@ use Illuminate\Contracts\Validation\ImplicitRule;
  *
  * Validasi `exists` saja tidak cukup: `exists` tetap lolos untuk gelombang
  * yang `is_aktif` sudah dimatikan, kuotanya penuh, atau tanggal buka/tutup-nya
- * sudah lewat. Aturan ini juga menegakkan kewajiban memilih gelombang selama
- * masih ada gelombang yang terbuka.
+ * sudah lewat.
  *
  * Mengimplementasikan `ImplicitRule` karena field-nya `nullable`: tanpa itu,
  * Laravel berhenti memvalidasi begitu nilainya null dan kewajiban memilih
  * gelombang tidak akan pernah dicek.
+ *
+ * Status ditentukan oleh `StatusPendaftaran` — objek yang sama dipakai badge di
+ * landing page dan gate di form, supaya ketiganya tidak bisa berbeda pendapat.
  */
 class GelombangTerbuka implements ImplicitRule
 {
@@ -46,27 +47,17 @@ class GelombangTerbuka implements ImplicitRule
      */
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        $tahun = TahunAjaran::aktif()->first();
+        $status = StatusPendaftaran::tentukan(TahunAjaran::aktif()->first());
 
-        if (! $tahun) {
+        if (! $status->dibuka()) {
+            $fail($status->pesan);
+
             return;
         }
 
-        // Gelombang hanya relevan saat pendaftaran benar-benar dibuka. Kalau
-        // jadwal sudah ditutup, biarkan controller memberi pesan
-        // "pendaftaran sudah ditutup" daripada membingungkan pendaftar dengan
-        // error gelombang.
-        $jendela = JadwalPpdb::jendelaPendaftaran($tahun);
-
-        if ($jendela && ! $jendela->sedangBerlangsung()) {
-            return;
-        }
-
-        $tersedia = Gelombang::terbuka($tahun);
-
-        // Sekolah yang belum memakai gelombang sama sekali tetap bisa
-        // menerima pendaftaran seperti sebelumnya.
-        if ($tersedia->isEmpty()) {
+        // Sekolah yang belum mengatur gelombang sama sekali: pendaftaran tetap
+        // jalan seperti sebelumnya, tanpa kewajiban memilih batch.
+        if (! $status->wajibPilihGelombang()) {
             return;
         }
 
@@ -76,7 +67,7 @@ class GelombangTerbuka implements ImplicitRule
             return;
         }
 
-        if (! $tersedia->firstWhere('id', (int) $value)) {
+        if (! $status->tersedia->contains('id', (int) $value)) {
             $fail('Gelombang yang dipilih sudah penuh atau sudah lewat periodenya. Silakan pilih gelombang lain.');
         }
     }
