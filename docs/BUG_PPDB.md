@@ -469,8 +469,97 @@ Yang **tidak** berjalan sama sekali: gate waktu (H7), gate kuota publik (H1), ga
 
 | Item | Status |
 |---|---|
-| `PpdbSeeder` tidak idempoten (`create()`, bukan `upsert`) | Belum diperbaiki — di luar cakupan 31 temuan. `db:seed` gagal bila dijalankan dua kali |
 | Data profil sekolah belum diisi | Placeholder masih tersimpan sebagai pengingat; diisi lewat menu **Profil Sekolah** (nama resmi sudah diisi: SMP PIRI NGAGLIK) |
 | Domain email sekolah | Dikosongkan dengan sengaja, bukan dikarang. Isi lewat menu Profil Sekolah |
-| Statistik publik terlihat sangat kecil | Dev DB masih berisi data contoh (36 siswa, 2 guru). Bukan bug — konsekuensi dari memakai angka nyata |
+| Statistik publik terlihat kecil | Dev DB masih berisi data contoh (37 siswa, 2 guru). Bukan bug — konsekuensi dari memakai angka nyata |
 | `jalur-seleksi.blade.php` masih `TODO` | Copy di file itu masih perlu ditinjau oleh pihak sekolah (syarat jalur & warna kartu) |
+
+---
+
+# Perbaikan Seeder (`d8b76fb`, `ed62ca4`)
+
+Di luar 31 temuan, seeder PPDB diperbaiki karena `db:seed` tidak bisa dijalankan
+dua kali.
+
+## Penyebab
+
+`db:seed` kedua gagal **sebelum** PpdbSeeder sempat jalan:
+`DatabaseSeeder` memanggil `User::factory()->create(['email' => 'test@example.com'])`
+padahal `users.email` UNIQUE. Setelah itu PpdbSeeder akan gagal lagi di
+`gelombangs`, karena `create()` pada tabel yang punya unique constraint
+`(tahun_ajarans_id, nomor_urut)`.
+
+Yang membuatnya repot: seeder **tidak dibungkus transaksi**, jadi ketika
+langkah 7 gagal, langkah 1–6 sudah terlanjur ter-`commit`. Setiap percobaan
+`db:seed` yang gagal menambah satu salinan baru, bukan replaces yang lama.
+
+## Perbaikan
+
+- Semua tabel memakai `updateOrCreate` dengan kunci alami:
+
+  | Tabel | Kunci |
+  |---|---|
+  | `tahun_ajarans` | `nama_tahun_ajaran` |
+  | `jalur_pendaftarans` | `nama_jalur` |
+  | `kuota_pendaftarans` | (`tahun_ajaran_id`, `jalur_pendaftaran_id`) |
+  | `biaya_pendaftarans` | (`tahun_ajaran_id`, `jenis_biaya`) |
+  | `jadwal_ppdbs` | (`tahun_ajaran_id`, `tipe`) |
+  | `pengumuman` | (`tahun_ajaran_id`, `judul`) |
+  | `gelombangs` | (`tahun_ajaran_id`, `nomor_urut`) |
+
+  `jadwal_ppdbs` dikunci per `tipe`, bukan `nama_jadwal`, karena gate
+  pendaftaran mengambil satu baris bertipe `pendaftaran` — kuncinya menjamin
+  tidak akan pernah ada dua baris pendaftaran untuk satu tahun ajaran.
+
+- ID jalur diambil dari hasil `updateOrCreate` dan disimpan ber-key nama.
+  Versi lama memakai `pluck('id')[0..4]`, jadi begitu admin menonaktifkan satu
+  jalur, kuota bisa menempel ke jalur yang salah.
+- Guard `production`: `updateOrCreate` mengembalikan counter `terisi` ke angka
+  seed, yang berbahaya bila dijalankan di produksi.
+
+## Koreksi isi data
+
+- `keterangan` kuota bertuliskan "2024/2025" padahal menempel ke 2026/2027 →
+  diturunkan dari nama tahun ajaran.
+- TahunAjaran 2024/2025 punya tanggal identik dengan 2025/2026 → dikoreksi.
+- Pengumuman menjanjikan "dibuka mulai 1 Mei 2026" padahal jadwal berjalan
+  dari satu bulan lalu sampai dua bulan depan → isi & tanggal ikut relatif.
+- Tanggal gelombang dibuat relatif, seperti jadwal. Versi lama statis
+  (2026-10-01), padahal gate gelombang kini benar-benar ditegakkan: setelah
+  31 Nov 2026 semua gelombang tertutup permanen.
+
+## Skala kuota
+
+Angka lama (700 kursi daftar / 320 terima) tidak masuk akal untuk sekolah
+6 kelas dan membuat kartu kuota di landing page terlihat seperti sekolah
+raksasa. Diganti **240 kursi pendaftaran, 175 batas terima, 151 terisi**.
+
+Total kuota jalur disamakan dengan total kuota gelombang (240) dan total
+terisinya juga sama (151) — keduanya menghitung pendaftar yang sama dan
+keduanya tampil di halaman publik. Sebelum ini landing page bilang 700
+sementara kartu gelombang bilang 180.
+
+Jalur tanpa batas (`kuota_pendaftaran` NULL) ikut dihitung pada `terisi` tapi
+tidak pernah pada `kapasitas`, jadi `terisi` jalur itu harus 0; kalau tidak,
+total gelombang akan melebihi total jalur bounded.
+
+## Perbaikan database dev
+
+Dev DB sudah tercemar oleh `db:seed` yang gagal beberapa kali:
+
+| Tabel | Sebelum | Sesudah |
+|---|---|---|
+| `tahun_ajarans` | 13 | 5 |
+| `jalur_pendaftarans` | 15 | 5 |
+| `biaya_pendaftarans` | 15 | 5 |
+| `pengumuman` | 9 | 3 |
+| `status_aktif = true` | 3 | 1 |
+
+Tidak tersentuh: `users` (74), `siswas` (37), `calon_siswas` (1), `kuota_pendaftarans`,
+`gelombangs`, `jadwal_ppdbs`, dan `profil_sekolahs` tidak tersentuh.
+
+Backup diambil lebih dulu dengan `mysqldump` sebelum data diubah. Untuk
+menggulung balik, restore file itu.
+
+> **Penting:** jangan pernah menjalankan seeder versi lama (sebelum `d8b76fb`)
+> pada database yang sudah terisi. Kegagalannya tidak atomik.
