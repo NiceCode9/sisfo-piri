@@ -4,4 +4,6 @@ Before planning or editing, find the row whose globs match the file's path and r
 
 | Applies to | Rule file |
 | --- | --- |
+| app/**/*.php | .ai/rules/app.md |
 | app/Observers/SiswaObserver.php | .ai/rules/observers.md |
+| database/seeders/PpdbSeeder.php | .ai/rules/seeders.md |
