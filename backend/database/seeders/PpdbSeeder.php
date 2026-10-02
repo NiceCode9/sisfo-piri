@@ -14,11 +14,55 @@ use Illuminate\Database\Seeder;
 class PpdbSeeder extends Seeder
 {
     /**
+     * Jalur pendaftaran yang dirujuk by name, bukan by indeks.
+     *
+     * Versi lama memakai `pluck('id')[0..4]`, yang rapuh: begitu admin
+     * menonaktifkan satu jalur, `where('aktif', true)` mengembalikan ID yang
+     * berbeda dan kuota bisa menempel ke jalur yang salah.
+     *
+     * @var array<string, int>
+     */
+    private array $jalurId = [];
+
+    /**
      * Run the database seeds.
      */
     public function run(): void
     {
-        // 1. Seeder Tahun Ajaran
+        // Seeder ini memakai updateOrCreate, jadi counter `terisi` dan
+        // `terisi_pendaftaran` dikembalikan ke angka seed. Itu memang
+        // perilaku yang diharapkan untuk database demo, tapi berbahaya di
+        // produksi: satu `db:seed` bisa mengembalikan counter penerimaan dan
+        // pendaftaran yang sedang berjalan ke angka seed.
+        if (app()->environment('production')) {
+            return;
+        }
+
+        $this->seedTahunAjaran();
+        $this->seedJalurPendaftaran();
+
+        $tahunAjaranAktif = TahunAjaran::where('status_aktif', true)->first();
+
+        if (! $tahunAjaranAktif) {
+            $this->command?->error('Tidak ada tahun ajaran aktif. Seeder PPDB dihentikan.');
+
+            return;
+        }
+
+        $this->seedKuota($tahunAjaranAktif);
+        $this->seedBiaya($tahunAjaranAktif);
+        $this->seedJadwal($tahunAjaranAktif);
+        $this->seedPengumuman($tahunAjaranAktif);
+        $this->seedGelombang($tahunAjaranAktif);
+
+        $this->command?->info('Seeder PPDB selesai.');
+    }
+
+    /**
+     * Tahun ajaran. Kunci: `nama_tahun_ajaran`.
+     */
+    private function seedTahunAjaran(): void
+    {
         $tahunAjaran = [
             [
                 'nama_tahun_ajaran' => '2026/2027',
@@ -47,10 +91,18 @@ class PpdbSeeder extends Seeder
         ];
 
         foreach ($tahunAjaran as $ta) {
-            TahunAjaran::create($ta);
+            TahunAjaran::updateOrCreate(
+                ['nama_tahun_ajaran' => $ta['nama_tahun_ajaran']],
+                $ta
+            );
         }
+    }
 
-        // 2. Seeder Jalur Pendaftaran
+    /**
+     * Jalur pendaftaran. Kunci: `nama_jalur`.
+     */
+    private function seedJalurPendaftaran(): void
+    {
         $jalurPendaftaran = [
             [
                 'nama_jalur' => 'Jalur Reguler',
@@ -81,21 +133,28 @@ class PpdbSeeder extends Seeder
         ];
 
         foreach ($jalurPendaftaran as $jalur) {
-            JalurPendaftaran::create($jalur);
+            $row = JalurPendaftaran::updateOrCreate(
+                ['nama_jalur' => $jalur['nama_jalur']],
+                $jalur
+            );
+
+            $this->jalurId[$row->nama_jalur] = $row->id;
         }
+    }
 
-        // 3. Seeder Kuota Pendaftaran
-        $tahunAjaranAktif = TahunAjaran::where('status_aktif', true)->first();
-        $jalurIds = JalurPendaftaran::where('aktif', true)->pluck('id')->toArray();
-
-        // Kuota dipecah dua (lihat migrasi split_kuota_pendaftaran):
-        //   - kuota_pendaftaran / terisi_pendaftaran = batas JUMLAH pendaftar.
-        //     Dilewati `null` = tidak dibatasi.
-        //   - kuota / terisi = batas JUMLAH yang boleh DITERIMA.
+    /**
+     * Kuota pendaftaran. Kunci: (tahun_ajaran_id, jalur_pendaftaran_id).
+     *
+     * Kuota dipecah dua (lihat migrasi split_kuota_pendaftaran):
+     *   - kuota_pendaftaran / terisi_pendaftaran = batas JUMLAH pendaftar.
+     *     `null` = tidak dibatasi.
+     *   - kuota / terisi = batas JUMLAH yang boleh DITERIMA.
+     */
+    private function seedKuota(TahunAjaran $tahun): void
+    {
         $kuotaPendaftaran = [
             [
-                'tahun_ajaran_id' => $tahunAjaranAktif->id,
-                'jalur_pendaftaran_id' => $jalurIds[0], // Jalur Reguler
+                'jalur_pendaftaran_id' => $this->jalurId['Jalur Reguler'],
                 'kuota' => 200,
                 'terisi' => 150,
                 'kuota_pendaftaran' => 400,
@@ -103,8 +162,7 @@ class PpdbSeeder extends Seeder
                 'keterangan' => 'Kuota untuk jalur reguler tahun ajaran 2024/2025',
             ],
             [
-                'tahun_ajaran_id' => $tahunAjaranAktif->id,
-                'jalur_pendaftaran_id' => $jalurIds[1], // Jalur Prestasi
+                'jalur_pendaftaran_id' => $this->jalurId['Jalur Prestasi'],
                 'kuota' => 50,
                 'terisi' => 35,
                 'kuota_pendaftaran' => 150,
@@ -112,8 +170,7 @@ class PpdbSeeder extends Seeder
                 'keterangan' => 'Kuota untuk jalur prestasi tahun ajaran 2024/2025',
             ],
             [
-                'tahun_ajaran_id' => $tahunAjaranAktif->id,
-                'jalur_pendaftaran_id' => $jalurIds[2], // Jalur Afirmasi
+                'jalur_pendaftaran_id' => $this->jalurId['Jalur Afirmasi'],
                 'kuota' => 30,
                 'terisi' => 20,
                 'kuota_pendaftaran' => 90,
@@ -121,8 +178,7 @@ class PpdbSeeder extends Seeder
                 'keterangan' => 'Kuota untuk jalur afirmasi tahun ajaran 2024/2025',
             ],
             [
-                'tahun_ajaran_id' => $tahunAjaranAktif->id,
-                'jalur_pendaftaran_id' => $jalurIds[3], // Jalur Mutasi
+                'jalur_pendaftaran_id' => $this->jalurId['Jalur Mutasi'],
                 'kuota' => 20,
                 'terisi' => 5,
                 'kuota_pendaftaran' => 60,
@@ -130,8 +186,7 @@ class PpdbSeeder extends Seeder
                 'keterangan' => 'Kuota untuk jalur mutasi tahun ajaran 2024/2025',
             ],
             [
-                'tahun_ajaran_id' => $tahunAjaranAktif->id,
-                'jalur_pendaftaran_id' => $jalurIds[4], // Jalur Prestasi Olahraga
+                'jalur_pendaftaran_id' => $this->jalurId['Jalur Prestasi Olahraga'],
                 'kuota' => 20,
                 'terisi' => 0,
                 'kuota_pendaftaran' => null, // jalur kecil: biarkan tanpa batas
@@ -141,13 +196,23 @@ class PpdbSeeder extends Seeder
         ];
 
         foreach ($kuotaPendaftaran as $kuota) {
-            KuotaPendaftaran::create($kuota);
+            KuotaPendaftaran::updateOrCreate(
+                [
+                    'tahun_ajaran_id' => $tahun->id,
+                    'jalur_pendaftaran_id' => $kuota['jalur_pendaftaran_id'],
+                ],
+                $kuota + ['tahun_ajaran_id' => $tahun->id]
+            );
         }
+    }
 
-        // 4. Seeder Biaya Pendaftaran
+    /**
+     * Biaya pendaftaran. Kunci: (tahun_ajaran_id, jenis_biaya).
+     */
+    private function seedBiaya(TahunAjaran $tahun): void
+    {
         $biayaPendaftaran = [
             [
-                'tahun_ajaran_id' => $tahunAjaranAktif->id,
                 'jenis_biaya' => 'Biaya Pendaftaran',
                 'jumlah' => 100000,
                 'mata_uang' => 'IDR',
@@ -155,7 +220,6 @@ class PpdbSeeder extends Seeder
                 'keterangan' => 'Biaya administrasi pendaftaran PPDB',
             ],
             [
-                'tahun_ajaran_id' => $tahunAjaranAktif->id,
                 'jenis_biaya' => 'Uang Pangkal',
                 'jumlah' => 2500000,
                 'mata_uang' => 'IDR',
@@ -164,7 +228,6 @@ class PpdbSeeder extends Seeder
                 'keterangan' => 'Uang pangkal untuk siswa baru',
             ],
             [
-                'tahun_ajaran_id' => $tahunAjaranAktif->id,
                 'jenis_biaya' => 'Seragam',
                 'jumlah' => 500000,
                 'mata_uang' => 'IDR',
@@ -172,7 +235,6 @@ class PpdbSeeder extends Seeder
                 'keterangan' => 'Biaya pembelian seragam sekolah',
             ],
             [
-                'tahun_ajaran_id' => $tahunAjaranAktif->id,
                 'jenis_biaya' => 'Buku Paket',
                 'jumlah' => 750000,
                 'mata_uang' => 'IDR',
@@ -180,7 +242,6 @@ class PpdbSeeder extends Seeder
                 'keterangan' => 'Biaya pembelian buku paket pelajaran',
             ],
             [
-                'tahun_ajaran_id' => $tahunAjaranAktif->id,
                 'jenis_biaya' => 'Ekstrakurikuler',
                 'jumlah' => 200000,
                 'mata_uang' => 'IDR',
@@ -190,20 +251,35 @@ class PpdbSeeder extends Seeder
         ];
 
         foreach ($biayaPendaftaran as $biaya) {
-            BiayaPendaftaran::create($biaya);
+            BiayaPendaftaran::updateOrCreate(
+                [
+                    'tahun_ajaran_id' => $tahun->id,
+                    'jenis_biaya' => $biaya['jenis_biaya'],
+                ],
+                $biaya + ['tahun_ajaran_id' => $tahun->id]
+            );
         }
+    }
 
-        // 5. Seeder Jadwal PPDB
-        //
-        // Tanggal dibuat relatif terhadap hari ini supaya data hasil seed selalu
-        // bisa langsung dicoba: fase pendaftaran sedang berlangsung, fase
-        // berikutnya menyusul. Tanggal statis membuat gate pendaftaran (tipe
-        // `pendaftaran`) menutup form begitu tanggalnya lewat.
+    /**
+     * Jadwal PPDB. Kunci: (tahun_ajaran_id, tipe).
+     *
+     * Memakai `tipe` sebagai kunci, bukan `nama_jadwal`, karena gate pendaftaran
+     * di `JadwalPpdb::jendelaPendaftaran()` mengambil satu baris bertipe
+     * `pendaftaran`. Kunci ini menjamin tidak akan pernah ada dua baris
+     * pendaftaran untuk satu tahun ajaran.
+     *
+     * Tanggal dibuat relatif terhadap hari ini supaya data hasil seed selalu
+     * bisa langsung dicoba: fase pendaftaran sedang berlangsung, fase
+     * berikutnya menyusul. Tanggal statis membuat gate pendaftaran menutup
+     * form begitu tanggalnya lewat.
+     */
+    private function seedJadwal(TahunAjaran $tahun): void
+    {
         $hariIni = now()->startOfDay();
 
         $jadwalPpdb = [
             [
-                'tahun_ajaran_id' => $tahunAjaranAktif->id,
                 'nama_jadwal' => 'Pendaftaran Online',
                 'tipe' => 'pendaftaran',
                 'tanggal_mulai' => $hariIni->copy()->subMonth()->toDateString(),
@@ -211,7 +287,6 @@ class PpdbSeeder extends Seeder
                 'keterangan' => 'Periode pendaftaran online untuk calon siswa baru',
             ],
             [
-                'tahun_ajaran_id' => $tahunAjaranAktif->id,
                 'nama_jadwal' => 'Verifikasi Berkas',
                 'tipe' => 'verifikasi',
                 'tanggal_mulai' => $hariIni->copy()->addMonths(2)->addDay()->toDateString(),
@@ -219,7 +294,6 @@ class PpdbSeeder extends Seeder
                 'keterangan' => 'Periode verifikasi berkas pendaftaran',
             ],
             [
-                'tahun_ajaran_id' => $tahunAjaranAktif->id,
                 'nama_jadwal' => 'Tes Seleksi',
                 'tipe' => 'tes',
                 'tanggal_mulai' => $hariIni->copy()->addMonths(2)->addDays(15)->toDateString(),
@@ -227,7 +301,6 @@ class PpdbSeeder extends Seeder
                 'keterangan' => 'Pelaksanaan tes seleksi untuk calon siswa',
             ],
             [
-                'tahun_ajaran_id' => $tahunAjaranAktif->id,
                 'nama_jadwal' => 'Pengumuman Hasil',
                 'tipe' => 'pengumuman',
                 'tanggal_mulai' => $hariIni->copy()->addMonths(2)->addDays(25)->toDateString(),
@@ -235,7 +308,6 @@ class PpdbSeeder extends Seeder
                 'keterangan' => 'Pengumuman hasil seleksi PPDB',
             ],
             [
-                'tahun_ajaran_id' => $tahunAjaranAktif->id,
                 'nama_jadwal' => 'Daftar Ulang',
                 'tipe' => 'daftar_ulang',
                 'tanggal_mulai' => $hariIni->copy()->addMonths(2)->addDays(26)->toDateString(),
@@ -245,27 +317,35 @@ class PpdbSeeder extends Seeder
         ];
 
         foreach ($jadwalPpdb as $jadwal) {
-            JadwalPpdb::create($jadwal);
+            JadwalPpdb::updateOrCreate(
+                [
+                    'tahun_ajaran_id' => $tahun->id,
+                    'tipe' => $jadwal['tipe'],
+                ],
+                $jadwal + ['tahun_ajaran_id' => $tahun->id]
+            );
         }
+    }
 
-        // 6. Seeder Pengumuman
+    /**
+     * Pengumuman. Kunci: (tahun_ajaran_id, judul).
+     */
+    private function seedPengumuman(TahunAjaran $tahun): void
+    {
         $pengumumans = [
             [
-                'tahun_ajaran_id' => $tahunAjaranAktif->id,
                 'judul' => 'Jadwal PPDB 2026/2027 Telah Dibuka',
                 'isi' => 'Pendaftaran online PPDB tahun ajaran 2026/2027 resmi dibuka mulai 1 Mei 2026. Silakan daftar melalui menu Pendaftaran.',
                 'tanggal_pengumuman' => '2026-04-28',
                 'status_aktif' => true,
             ],
             [
-                'tahun_ajaran_id' => $tahunAjaranAktif->id,
                 'judul' => 'Pengumuman Hasil Seleksi Gelombang 1',
                 'isi' => 'Hasil seleksi gelombang 1 telah diumumkan. Calon yang dinyatakan diterima harap melakukan daftar ulang sesuai jadwal.',
                 'tanggal_pengumuman' => '2026-06-25',
                 'status_aktif' => true,
             ],
             [
-                'tahun_ajaran_id' => $tahunAjaranAktif->id,
                 'judul' => 'Informasi Biaya Pendidikan 2026/2027',
                 'isi' => 'Rincian biaya pendidikan tahun ajaran 2026/2027 dapat dilihat pada halaman Biaya. Siswa berprestasi berkesempatan mendapat beasiswa.',
                 'tanggal_pengumuman' => '2026-04-30',
@@ -274,13 +354,28 @@ class PpdbSeeder extends Seeder
         ];
 
         foreach ($pengumumans as $p) {
-            Pengumuman::create($p);
+            Pengumuman::updateOrCreate(
+                [
+                    'tahun_ajaran_id' => $tahun->id,
+                    'judul' => $p['judul'],
+                ],
+                $p + ['tahun_ajaran_id' => $tahun->id]
+            );
         }
+    }
 
-        // 7. Seeder Gelombang (terpisah dari jadwal_ppdbs)
+    /**
+     * Gelombang pendaftaran. Kunci: (tahun_ajaran_id, nomor_urut).
+     *
+     * Tabel `gelombangs` sudah punya unique constraint pada pasangan itu,
+     * jadi `create()` versi lama membuat `db:seed` kedua gagal dengan
+     * UniqueConstraintViolationException - dan karena tidak dibungkus transaksi,
+     * langkah 1-6 sudah terlanjur ter-*commit* saat itu.
+     */
+    private function seedGelombang(TahunAjaran $tahun): void
+    {
         $gelombangs = [
             [
-                'tahun_ajaran_id' => $tahunAjaranAktif->id,
                 'nama_gelombang' => 'Gelombang 1',
                 'nomor_urut' => 1,
                 'badge' => 'EARLY BIRD',
@@ -297,7 +392,6 @@ class PpdbSeeder extends Seeder
                 'is_aktif' => true,
             ],
             [
-                'tahun_ajaran_id' => $tahunAjaranAktif->id,
                 'nama_gelombang' => 'Gelombang 2',
                 'nomor_urut' => 2,
                 'badge' => 'RECOMMENDED',
@@ -314,7 +408,6 @@ class PpdbSeeder extends Seeder
                 'is_aktif' => true,
             ],
             [
-                'tahun_ajaran_id' => $tahunAjaranAktif->id,
                 'nama_gelombang' => 'Gelombang 3',
                 'nomor_urut' => 3,
                 'badge' => 'LAST CHANCE',
@@ -333,10 +426,13 @@ class PpdbSeeder extends Seeder
         ];
 
         foreach ($gelombangs as $g) {
-            Gelombang::create($g);
+            Gelombang::updateOrCreate(
+                [
+                    'tahun_ajaran_id' => $tahun->id,
+                    'nomor_urut' => $g['nomor_urut'],
+                ],
+                $g + ['tahun_ajaran_id' => $tahun->id]
+            );
         }
-
-        echo "Seeder PPDB berhasil dijalankan!\n";
-        echo "Data yang dibuat:\n";
     }
 }

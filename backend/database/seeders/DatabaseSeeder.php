@@ -12,12 +12,21 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        // firstOrCreate, bukan factory()->create(): `users.email` UNIQUE, jadi
+        // pemanggilan kedua akan gagal dengan UniqueConstraintViolationException
+        // sebelum seeder lain sempat jalan sama sekali. `username` juga UNIQUE dan
+        // NOT NULL, sedangkan factory mengisinya dengan `fake()->unique()` yang
+        // selalu berubah tiap pemanggilan, jadi keduanya harus ditulis eksplisit.
+        // Password di-*hash* oleh cast 'hashed' pada model User.
+        User::firstOrCreate(
+            ['email' => 'test@example.com'],
+            [
+                'username' => 'testuser',
+                'name' => 'Test User',
+                'password' => 'password',
+                'email_verified_at' => now(),
+            ],
+        );
 
         $this->call([
             RoleSeeder::class,
