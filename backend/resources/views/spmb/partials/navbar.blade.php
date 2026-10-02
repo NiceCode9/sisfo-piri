@@ -39,10 +39,10 @@
             {{-- CTA Buttons --}}
             <div class="hidden lg:flex items-center space-x-3">
                 <a href="{{ route('login') }}"
-                   class="px-4 py-2 text-sm font-medium rounded-xl border-2 transition navbar-text {{ $transparent ? 'text-white border-white hover:bg-white hover:text-primary-600' : 'text-primary-600 border-primary-600 hover:bg-primary-50' }}">
+                   class="px-4 py-2 text-sm font-medium rounded-soft border-2 transition navbar-text {{ $transparent ? 'text-white border-white hover:bg-white hover:text-primary-600' : 'text-primary-600 border-primary-600 hover:bg-primary-50' }}">
                     Login
                 </a>
-                <a href="{{ route('spmb.pendaftaran') }}" class="px-5 py-2 text-sm font-semibold text-white bg-secondary-500 rounded-xl hover:bg-secondary-600 transition shadow-lg">
+                <a href="{{ route('spmb.pendaftaran') }}" class="px-5 py-2 text-sm font-semibold text-white bg-secondary-500 rounded-soft hover:bg-secondary-600 transition shadow-sm">
                     Daftar Sekarang
                 </a>
             </div>
@@ -58,7 +58,7 @@
     </div>
 
     {{-- Mobile Menu --}}
-    <div id="mobile-menu" class="lg:hidden hidden bg-white shadow-lg">
+    <div id="mobile-menu" class="lg:hidden hidden bg-white shadow-sm">
         <div class="container mx-auto px-4 py-6 space-y-4">
             <a href="{{ route('spmb.home') }}#beranda" class="block text-sm font-medium text-gray-700 hover:text-primary-600 transition">Beranda</a>
             {{-- <a href="{{ route('spmb.home') }}#tentang" class="block text-sm font-medium text-gray-700 hover:text-primary-600 transition">Tentang SPMB</a>
@@ -67,10 +67,10 @@
             <a href="{{ route('spmb.pengumuman.index') }}" class="block text-sm font-medium text-gray-700 hover:text-primary-600 transition">Pengumuman</a>
             <a href="{{ route('spmb.about') }}" class="block text-sm font-medium text-gray-700 hover:text-primary-600 transition">Tentang</a>
             <div class="pt-4 space-y-2 border-t">
-                <a href="{{ route('login') }}" class="block w-full px-4 py-2.5 text-sm font-medium text-center text-primary-600 border-2 border-primary-600 rounded-xl hover:bg-primary-50 transition">
+                <a href="{{ route('login') }}" class="block w-full px-4 py-2.5 text-sm font-medium text-center text-primary-600 border-2 border-primary-600 rounded-soft hover:bg-primary-50 transition">
                     Login
                 </a>
-                <a href="{{ route('spmb.pendaftaran') }}" class="block w-full px-4 py-2.5 text-sm font-semibold text-center text-white bg-secondary-500 rounded-xl hover:bg-secondary-600 transition">
+                <a href="{{ route('spmb.pendaftaran') }}" class="block w-full px-4 py-2.5 text-sm font-semibold text-center text-white bg-secondary-500 rounded-soft hover:bg-secondary-600 transition">
                     Daftar Sekarang
                 </a>
             </div>

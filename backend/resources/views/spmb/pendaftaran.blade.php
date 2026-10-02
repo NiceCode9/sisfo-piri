@@ -180,14 +180,12 @@
 
     {{-- ============ HERO ============ --}}
     <section class="relative bg-gradient-primary py-24 overflow-hidden">
-        <div class="absolute top-16 right-10 w-64 h-64 bg-secondary-400/20 blob-shape animate-float"></div>
-        <div class="absolute bottom-10 left-10 w-72 h-72 bg-accent-400/20 blob-shape animate-float" style="animation-delay: 1s;"></div>
 
         <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid lg:grid-cols-2 gap-12 items-center">
 
                 <div class="text-white space-y-6 animate-fade-in-up">
-                    <div class="inline-flex items-center px-4 py-2 bg-secondary-500 rounded-full text-sm font-semibold shadow-lg">
+                    <div class="inline-flex items-center px-4 py-2 bg-secondary-500 rounded-full text-sm font-semibold shadow-sm">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             @foreach ($renderIcon('sparkles') as $d)
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
@@ -207,7 +205,7 @@
 
                     <div class="flex flex-col sm:flex-row gap-4 pt-2">
                         <a href="#form-pendaftaran"
-                           class="inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-primary-700 bg-white rounded-2xl hover:bg-gray-50 transition shadow-xl hover:shadow-2xl hover:scale-105 transform">
+                           class="inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-primary-700 bg-white rounded-soft hover:bg-gray-50 transition shadow-sm hover: hover:scale-105 transform">
                             <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 @foreach ($renderIcon('bolt') as $d)
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
@@ -216,7 +214,7 @@
                             Mulai Pendaftaran
                         </a>
                         <a href="#info-ppdb"
-                           class="inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white border-2 border-white/60 rounded-2xl hover:bg-white hover:text-primary-700 transition">
+                           class="inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white border-2 border-white/60 rounded-soft hover:bg-white hover:text-primary-700 transition">
                             Lihat Jadwal SPMB
                         </a>
                     </div>
@@ -224,15 +222,15 @@
 
                 {{-- Illustration + floating cards --}}
                 <div class="relative hidden lg:block animate-fade-in-up" style="animation-delay: 0.3s;">
-                    <div class="relative z-10 bg-white/10 backdrop-blur-sm rounded-3xl p-3 border border-white/20">
+                    <div class="relative z-10 bg-white/10 rounded-card p-3 border border-white/20">
                         <img src="https://via.placeholder.com/560x480?text=Siswa+Mengisi+Formulir"
                              alt="Ilustrasi pendaftaran siswa baru"
-                             class="rounded-2xl shadow-2xl w-full h-auto object-cover">
+                             class="rounded-soft w-full h-auto object-cover">
                     </div>
 
-                    <div class="absolute -top-6 -left-6 z-20 bg-white rounded-2xl p-4 shadow-xl animate-float">
+                    <div class="absolute -top-6 -left-6 z-20 bg-white rounded-soft p-4 shadow-sm">
                         <div class="flex items-center space-x-3">
-                            <div class="w-11 h-11 bg-accent-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <div class="w-11 h-11 bg-accent-600 rounded-soft flex items-center justify-center flex-shrink-0">
                                 <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     @foreach ($renderIcon('check-circle') as $d)
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
@@ -246,9 +244,9 @@
                         </div>
                     </div>
 
-                    <div class="absolute -bottom-6 -right-6 z-20 bg-white rounded-2xl p-4 shadow-xl animate-float" style="animation-delay: 1.5s;">
+                    <div class="absolute -bottom-6 -right-6 z-20 bg-white rounded-soft p-4 shadow-sm" style="animation-delay: 1.5s;">
                         <div class="flex items-center space-x-3">
-                            <div class="w-11 h-11 bg-secondary-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <div class="w-11 h-11 bg-secondary-500 rounded-soft flex items-center justify-center flex-shrink-0">
                                 <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     @foreach ($renderIcon('shield-check') as $d)
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
@@ -267,8 +265,8 @@
             {{-- Trust strip --}}
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-16">
                 @foreach ($trustStrip as $item)
-                    <div class="flex items-center gap-4 bg-white/10 backdrop-blur-sm border border-white/10 rounded-2xl p-5">
-                        <div class="w-12 h-12 bg-white/15 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <div class="flex items-center gap-4 bg-white/10 border border-white/10 rounded-soft p-5">
+                        <div class="w-12 h-12 bg-white/15 rounded-soft flex items-center justify-center flex-shrink-0">
                             <svg class="w-6 h-6 text-secondary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 @foreach ($renderIcon($item['icon']) as $d)
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
@@ -287,7 +285,7 @@
 
     @if ($errors->any())
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-10">
-            <div class="bg-red-50 border-l-4 border-red-500 p-6 rounded-2xl shadow-lg">
+            <div class="bg-red-50 border-l-4 border-red-500 p-6 rounded-soft shadow-sm">
                 <div class="flex items-start">
                     <svg class="w-6 h-6 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         @foreach ($renderIcon('exclamation-triangle') as $d)
@@ -308,7 +306,7 @@
     @endif
 
     {{-- ============ INFO PPDB ============ --}}
-    <section id="info-ppdb" class="py-20 bg-slate-50">
+    <section id="info-ppdb" class="py-20 bg-paper-alt">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
             <div class="mb-16">
@@ -346,8 +344,8 @@
                              lain tertutup. Halaman tetap ringkas, tapi tidak ada
                              informasi yang disembunyikan: <details> tetap
                              membloknya di dalam HTML. --}}
-                        <details @if ($sedangBuka) open @endif class="group bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                            <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden px-5 sm:px-6 py-5 hover:bg-slate-50 transition-colors flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
+                        <details @if ($sedangBuka) open @endif class="group bg-white rounded-soft shadow-sm border border-gray-100 overflow-hidden">
+                            <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden px-5 sm:px-6 py-5 hover:bg-paper-alt transition-colors flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
                                 <div class="flex-1 min-w-0">
                                     <div class="flex flex-wrap items-center gap-2">
                                         <h3 class="text-lg font-bold text-gray-800">{{ $gelombangTimeline->nama_gelombang }}</h3>
@@ -393,7 +391,7 @@
                                  layar. Versi lama memakai w-5/12 tanpa breakpoint
                                  sehingga di ponsel 375px tiap kartu hanya
                                  ~140px dan tanggalnya terpotong. --}}
-                            <div class="border-t border-gray-100 bg-slate-50 px-5 sm:px-6 py-6">
+                            <div class="border-t border-gray-100 bg-paper-alt px-5 sm:px-6 py-6">
                                 <ol class="relative border-l-2 border-primary-200 ml-2 space-y-4">
                                     @foreach ($gelombangTimeline->tahapan as $tahap)
                                         @php
@@ -402,7 +400,7 @@
                                         @endphp
                                         <li class="ml-5 relative">
                                             <span class="absolute -left-[27px] top-1 w-6 h-6 rounded-full bg-white border-4 {{ $sedangBerlangsung ? 'border-accent-500' : 'border-primary-400' }}"></span>
-                                            <div class="bg-white rounded-xl border p-4 {{ $sedangBerlangsung ? 'border-accent-300 ring-2 ring-accent-100' : 'border-gray-100' }}">
+                                            <div class="bg-white rounded-soft border p-4 {{ $sedangBerlangsung ? 'border-accent-300 ring-2 ring-accent-100' : 'border-gray-100' }}">
                                                 <div class="flex items-start gap-3">
                                                     {{-- Slot 600, bukan 500: teks putih di atas `bg-*-500` hanya
                                                              ~2-3.7:1 sehingga ikon praktiknya tak terlihat. --}}
@@ -436,7 +434,7 @@
                             </div>
                         </details>
                     @empty
-                        <div class="max-w-xl mx-auto text-center bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+                        <div class="max-w-xl mx-auto text-center bg-white rounded-soft shadow-sm p-8 border border-gray-100">
                             <p class="text-base font-semibold text-gray-700 mb-1">Jadwal PPDB belum dipublikasikan</p>
                             <p class="text-sm text-gray-500">Silakan cek kembali atau hubungi sekolah untuk informasi tanggal pendaftaran.</p>
                         </div>
@@ -445,9 +443,9 @@
             </div>
 
             <div class="grid md:grid-cols-2 gap-8">
-                <div class="bg-white rounded-3xl shadow-xl p-8 hover:shadow-2xl transition-all duration-300 border border-gray-100 card-hover">
+                <div class="bg-white rounded-card shadow-sm p-8 hover: transition-all duration-300 border border-gray-100 card-hover">
                     <div class="flex items-center mb-6">
-                        <div class="w-16 h-16 bg-gradient-to-r from-accent-500 to-accent-600 rounded-2xl flex items-center justify-center text-white mr-4 flex-shrink-0 shadow-md">
+                        <div class="w-16 h-16 bg-gradient-to-r from-accent-500 to-accent-600 rounded-soft flex items-center justify-center text-white mr-4 flex-shrink-0 shadow-md">
                             <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 @foreach ($renderIcon('clipboard') as $d)
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
@@ -458,7 +456,7 @@
                     </div>
                     <div class="space-y-4">
                         @foreach ($persyaratanList as $item)
-                            <div class="flex items-start p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors duration-200">
+                            <div class="flex items-start p-4 bg-gray-50 rounded-soft hover:bg-gray-100 transition-colors duration-200">
                                 {{-- `bg-accent-500` + teks putih hanya 2.54:1; pakai slot 600 (5.93:1) --}}
                                 <div class="w-8 h-8 bg-accent-600 rounded-full flex items-center justify-center text-white mr-4 mt-1 flex-shrink-0">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -471,9 +469,9 @@
                     </div>
                 </div>
 
-                <div class="bg-gradient-primary rounded-3xl shadow-xl p-8 text-white">
+                <div class="bg-gradient-primary rounded-card shadow-sm p-8 text-white">
                     <div class="flex items-center mb-6">
-                        <div class="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mr-4 flex-shrink-0">
+                        <div class="w-16 h-16 bg-white/20 rounded-soft flex items-center justify-center mr-4 flex-shrink-0">
                             <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 @foreach ($renderIcon('info-circle') as $d)
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
@@ -484,7 +482,7 @@
                     </div>
                     <div class="space-y-4">
                         @foreach ($infoPentingList as $info)
-                            <div class="flex items-start p-4 bg-white/10 backdrop-blur-sm rounded-xl">
+                            <div class="flex items-start p-4 bg-white/10 rounded-soft">
                                 <svg class="w-5 h-5 mt-1 mr-4 text-secondary-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     @foreach ($renderIcon($info['icon']) as $d)
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
@@ -512,7 +510,7 @@
             </div>
 
             @if (session('success'))
-                <div class="bg-green-50 border-l-4 border-green-500 p-6 rounded-2xl shadow-lg mb-8">
+                <div class="bg-green-50 border-l-4 border-green-500 p-6 rounded-soft shadow-sm mb-8">
                     <div class="flex items-center">
                         <svg class="w-6 h-6 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             @foreach ($renderIcon('check-circle') as $d)
@@ -525,7 +523,7 @@
             @endif
 
             @unless ($pendaftaranDibuka)
-                <div class="max-w-3xl mx-auto bg-amber-50 border-2 border-amber-300 rounded-3xl p-8 text-center shadow-lg mb-8">
+                <div class="max-w-3xl mx-auto bg-amber-50 border-2 border-amber-300 rounded-card p-8 text-center shadow-sm mb-8">
                     <div class="inline-flex items-center justify-center w-14 h-14 bg-amber-500 rounded-full text-white mb-4">
                         <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5.07 19h13.86a2 2 0 001.74-3L13.74 4a2 2 0 00-3.48 0l-7 12a2 2 0 001.74 3z"/>
@@ -553,13 +551,13 @@
                 </div>
             @endunless
 
-            <div class="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden {{ $pendaftaranDibuka ? '' : 'opacity-60 pointer-events-none' }}">
+            <div class="bg-white rounded-card border border-gray-100 overflow-hidden {{ $pendaftaranDibuka ? '' : 'opacity-60 pointer-events-none' }}">
                 <form method="POST" action="{{ route('spmb.store') }}" enctype="multipart/form-data" id="form-wizard" class="p-6 md:p-10">
                     @csrf
 
                     {{-- Progress Steps --}}
                     <div class="mb-12 sticky top-2 z-20">
-                        <div class="bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-sm">
+                        <div class="bg-white/90 rounded-soft p-4 shadow-sm">
                             <div class="flex items-center justify-between">
                                 @foreach ($stepLabels as $num => $label)
                                     <div class="flex items-center flex-1 {{ $num == count($stepLabels) ? 'flex-none' : '' }}" data-step-indicator="{{ $num }}">
@@ -580,9 +578,9 @@
 
                     {{-- Step 1: Jalur Pendaftaran --}}
                     <div data-step="1" class="animate-fade-in-up">
-                        <div class="bg-primary-50 rounded-2xl p-6 md:p-8 mb-8 border border-primary-100">
+                        <div class="bg-primary-50 rounded-soft p-6 md:p-8 mb-8 border border-primary-100">
                             <div class="flex items-center mb-6">
-                                <div class="w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center text-white mr-4 flex-shrink-0 shadow-md">
+                                <div class="w-12 h-12 bg-primary-600 rounded-soft flex items-center justify-center text-white mr-4 flex-shrink-0 shadow-md">
                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                         @foreach ($renderIcon('route') as $d)
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
@@ -599,7 +597,7 @@
                                 Jalur Pendaftaran <span class="text-red-500">*</span>
                             </label>
                             <select id="jalur_pendaftaran_id" name="jalur_pendaftaran_id" required
-                                    class="w-full px-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white shadow-sm transition-all duration-200 @error('jalur_pendaftaran_id') border-red-500 ring-2 ring-red-200 @enderror">
+                                    class="w-full px-4 py-4 border border-gray-300 rounded-soft focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white shadow-sm transition-all duration-200 @error('jalur_pendaftaran_id') border-red-500 ring-2 ring-red-200 @enderror">
                                 <option value="">🎯 Pilih Jalur Pendaftaran</option>
                                 @foreach ($jalurPendaftarans as $jalur)
                                     @if (! $jalur->aktif)
@@ -641,7 +639,7 @@
                                         Gelombang Pendaftaran <span class="text-red-500">*</span>
                                     </label>
                                     <select id="gelombang_id" name="gelombang_id" required
-                                            class="w-full px-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white shadow-sm transition-all duration-200 @error('gelombang_id') border-red-500 ring-2 ring-red-200 @enderror">
+                                            class="w-full px-4 py-4 border border-gray-300 rounded-soft focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white shadow-sm transition-all duration-200 @error('gelombang_id') border-red-500 ring-2 ring-red-200 @enderror">
                                         <option value="">Pilih Gelombang</option>
                                         @foreach ($gelombangs as $gelombang)
                                             <option value="{{ $gelombang->id }}"
@@ -660,7 +658,7 @@
 
                         <div class="flex justify-end">
                             <button type="button" data-next="2"
-                                    class="inline-flex items-center px-6 py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition shadow-md hover:shadow-lg">
+                                    class="inline-flex items-center px-6 py-3 bg-primary-600 text-white font-semibold rounded-soft hover:bg-primary-700 transition shadow-md hover: shadow-sm">
                                 Lanjut
                                 <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     @foreach ($renderIcon('arrow-right') as $d)
@@ -673,9 +671,9 @@
 
                     {{-- Step 2: Data Pribadi --}}
                     <div data-step="2" class="hidden">
-                        <div class="bg-accent-50 rounded-2xl p-6 md:p-8 mb-8 border border-accent-100">
+                        <div class="bg-accent-50 rounded-soft p-6 md:p-8 mb-8 border border-accent-100">
                             <div class="flex items-center mb-6">
-                                <div class="w-12 h-12 bg-accent-600 rounded-xl flex items-center justify-center text-white mr-4 flex-shrink-0 shadow-md">
+                                <div class="w-12 h-12 bg-accent-600 rounded-soft flex items-center justify-center text-white mr-4 flex-shrink-0 shadow-md">
                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                         @foreach ($renderIcon('user') as $d)
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
@@ -703,7 +701,7 @@
 
                                             @if ($field['type'] === 'select')
                                                 <select id="{{ $field['id'] }}" name="{{ $field['id'] }}" required
-                                                        class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-accent-500 focus:border-accent-500 bg-white shadow-sm transition-all duration-200 @error($field['id']) border-red-500 ring-2 ring-red-200 @enderror">
+                                                        class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-soft focus:ring-2 focus:ring-accent-500 focus:border-accent-500 bg-white shadow-sm transition-all duration-200 @error($field['id']) border-red-500 ring-2 ring-red-200 @enderror">
                                                     <option value="">{{ $field['placeholder'] }}</option>
                                                     @foreach ($field['options'] as $val => $optLabel)
                                                         <option value="{{ $val }}" {{ old($field['id']) == $val ? 'selected' : '' }}>{{ $optLabel }}</option>
@@ -711,12 +709,12 @@
                                                 </select>
                                             @elseif ($field['type'] === 'textarea')
                                                 <textarea id="{{ $field['id'] }}" name="{{ $field['id'] }}" required rows="3"
-                                                          class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-accent-500 focus:border-accent-500 bg-white shadow-sm transition-all duration-200 @error($field['id']) border-red-500 ring-2 ring-red-200 @enderror"
+                                                          class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-soft focus:ring-2 focus:ring-accent-500 focus:border-accent-500 bg-white shadow-sm transition-all duration-200 @error($field['id']) border-red-500 ring-2 ring-red-200 @enderror"
                                                           placeholder="{{ $field['placeholder'] }}">{{ old($field['id']) }}</textarea>
                                             @else
                                                 <input type="{{ $field['type'] }}" id="{{ $field['id'] }}" name="{{ $field['id'] }}" required
                                                        @if (isset($field['maxlength'])) maxlength="{{ $field['maxlength'] }}" @endif
-                                                       class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-accent-500 focus:border-accent-500 bg-white shadow-sm transition-all duration-200 @error($field['id']) border-red-500 ring-2 ring-red-200 @enderror"
+                                                       class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-soft focus:ring-2 focus:ring-accent-500 focus:border-accent-500 bg-white shadow-sm transition-all duration-200 @error($field['id']) border-red-500 ring-2 ring-red-200 @enderror"
                                                        value="{{ old($field['id']) }}" placeholder="{{ $field['placeholder'] ?? '' }}">
                                             @endif
                                         </div>
@@ -730,7 +728,7 @@
 
                         <div class="flex justify-between">
                             <button type="button" data-prev="1"
-                                    class="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition">
+                                    class="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-soft hover:bg-gray-200 transition">
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     @foreach ($renderIcon('arrow-left') as $d)
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
@@ -739,7 +737,7 @@
                                 Kembali
                             </button>
                             <button type="button" data-next="3"
-                                    class="inline-flex items-center px-6 py-3 bg-accent-600 text-white font-semibold rounded-xl hover:bg-accent-700 transition shadow-md hover:shadow-lg">
+                                    class="inline-flex items-center px-6 py-3 bg-accent-600 text-white font-semibold rounded-soft hover:bg-accent-700 transition shadow-md hover: shadow-sm">
                                 Lanjut
                                 <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     @foreach ($renderIcon('arrow-right') as $d)
@@ -752,9 +750,9 @@
 
                     {{-- Step 3: Data Orang Tua --}}
                     <div data-step="3" class="hidden">
-                        <div class="bg-secondary-50 rounded-2xl p-6 md:p-8 mb-8 border border-secondary-100">
+                        <div class="bg-secondary-50 rounded-soft p-6 md:p-8 mb-8 border border-secondary-100">
                             <div class="flex items-center mb-6">
-                                <div class="w-12 h-12 bg-secondary-600 rounded-xl flex items-center justify-center text-white mr-4 flex-shrink-0 shadow-md">
+                                <div class="w-12 h-12 bg-secondary-600 rounded-soft flex items-center justify-center text-white mr-4 flex-shrink-0 shadow-md">
                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                         @foreach ($renderIcon('users') as $d)
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
@@ -780,7 +778,7 @@
                                                 @endforeach
                                             </svg>
                                             <input type="{{ $field['type'] }}" id="{{ $field['id'] }}" name="{{ $field['id'] }}" required
-                                                   class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 bg-white shadow-sm transition-all duration-200 @error($field['id']) border-red-500 ring-2 ring-red-200 @enderror"
+                                                   class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-soft focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 bg-white shadow-sm transition-all duration-200 @error($field['id']) border-red-500 ring-2 ring-red-200 @enderror"
                                                    value="{{ old($field['id']) }}" placeholder="{{ $field['placeholder'] }}">
                                         </div>
                                         @error($field['id'])
@@ -793,7 +791,7 @@
 
                         <div class="flex justify-between">
                             <button type="button" data-prev="2"
-                                    class="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition">
+                                    class="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-soft hover:bg-gray-200 transition">
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     @foreach ($renderIcon('arrow-left') as $d)
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
@@ -802,7 +800,7 @@
                                 Kembali
                             </button>
                             <button type="button" data-next="4"
-                                    class="inline-flex items-center px-6 py-3 bg-secondary-500 text-white font-semibold rounded-xl hover:bg-secondary-600 transition shadow-md hover:shadow-lg">
+                                    class="inline-flex items-center px-6 py-3 bg-secondary-500 text-white font-semibold rounded-soft hover:bg-secondary-600 transition shadow-md hover: shadow-sm">
                                 Lanjut
                                 <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     @foreach ($renderIcon('arrow-right') as $d)
@@ -815,9 +813,9 @@
 
                     {{-- Step 4: Upload Berkas --}}
                     <div data-step="4" class="hidden">
-                        <div class="bg-orange-50 rounded-2xl p-6 md:p-8 mb-8 border border-orange-100">
+                        <div class="bg-orange-50 rounded-soft p-6 md:p-8 mb-8 border border-orange-100">
                             <div class="flex items-center mb-6">
-                                <div class="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center text-white mr-4 flex-shrink-0 shadow-md">
+                                <div class="w-12 h-12 bg-orange-500 rounded-soft flex items-center justify-center text-white mr-4 flex-shrink-0 shadow-md">
                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                         @foreach ($renderIcon('upload') as $d)
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
@@ -836,7 +834,7 @@
                                         <label for="{{ $field['id'] }}" class="block text-sm font-semibold text-gray-700">
                                             {{ $field['label'] }} @if($field['required'] ?? true)<span class="text-red-500">*</span>@else<span class="text-gray-400 font-normal">(opsional)</span>@endif
                                         </label>
-                                        <div class="relative border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-orange-500 transition-colors duration-200 bg-white">
+                                        <div class="relative border-2 border-dashed border-gray-300 rounded-soft p-6 hover:border-orange-500 transition-colors duration-200 bg-white">
                                             <div class="text-center pointer-events-none">
                                                 <svg class="w-9 h-9 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                                     @foreach ($renderIcon($field['icon']) as $d)
@@ -865,43 +863,43 @@
                                 <p class="text-sm text-gray-500 mb-4">Jalur yang dipilih mewajibkan minimal 1 sertifikat (maks 5). PDF/JPG, maks 5MB per file.</p>
                                 <div id="sertifikat-rows" class="space-y-4">
                                     @forelse ($oldSertifikat as $i => $row)
-                                        <div class="sertifikat-row grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-4 items-end bg-white border border-gray-200 rounded-xl p-4">
+                                        <div class="sertifikat-row grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-4 items-end bg-white border border-gray-200 rounded-soft p-4">
                                             <div>
                                                 <label class="block text-sm font-semibold text-gray-700 mb-2">Nama Kejuaraan <span class="text-red-500">*</span></label>
                                                 <input type="text" name="sertifikat[{{ $i }}][nama]" value="{{ $row['nama'] ?? '' }}" placeholder="cth: Juara 1 Pencak Silat Provinsi 2025"
-                                                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white shadow-sm transition-all duration-200" />
+                                                       class="w-full px-4 py-3 border border-gray-300 rounded-soft focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white shadow-sm transition-all duration-200" />
                                                 @error("sertifikat.{$i}.nama")<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
                                             </div>
                                             <div>
                                                 <label class="block text-sm font-semibold text-gray-700 mb-2">File Sertifikat <span class="text-red-500">*</span></label>
                                                 <input type="file" name="sertifikat[{{ $i }}][file]" accept=".pdf,.jpg,.jpeg,.png"
-                                                       class="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white shadow-sm text-sm text-gray-600" />
+                                                       class="w-full px-4 py-3 border border-gray-300 rounded-soft bg-white shadow-sm text-sm text-gray-600" />
                                                 @error("sertifikat.{$i}.file")<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
                                             </div>
-                                            <button type="button" class="sertifikat-remove inline-flex items-center justify-center w-11 h-11 bg-red-50 text-red-600 font-semibold rounded-xl hover:bg-red-100 transition" title="Hapus baris">
+                                            <button type="button" class="sertifikat-remove inline-flex items-center justify-center w-11 h-11 bg-red-50 text-red-600 font-semibold rounded-soft hover:bg-red-100 transition" title="Hapus baris">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                                             </button>
                                         </div>
                                     @empty
-                                        <div class="sertifikat-row grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-4 items-end bg-white border border-gray-200 rounded-xl p-4">
+                                        <div class="sertifikat-row grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-4 items-end bg-white border border-gray-200 rounded-soft p-4">
                                             <div>
                                                 <label class="block text-sm font-semibold text-gray-700 mb-2">Nama Kejuaraan <span class="text-red-500">*</span></label>
                                                 <input type="text" name="sertifikat[0][nama]" value="" placeholder="cth: Juara 1 Pencak Silat Provinsi 2025"
-                                                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white shadow-sm transition-all duration-200" />
+                                                       class="w-full px-4 py-3 border border-gray-300 rounded-soft focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white shadow-sm transition-all duration-200" />
                                             </div>
                                             <div>
                                                 <label class="block text-sm font-semibold text-gray-700 mb-2">File Sertifikat <span class="text-red-500">*</span></label>
                                                 <input type="file" name="sertifikat[0][file]" accept=".pdf,.jpg,.jpeg,.png"
-                                                       class="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white shadow-sm text-sm text-gray-600" />
+                                                       class="w-full px-4 py-3 border border-gray-300 rounded-soft bg-white shadow-sm text-sm text-gray-600" />
                                             </div>
-                                            <button type="button" class="sertifikat-remove inline-flex items-center justify-center w-11 h-11 bg-red-50 text-red-600 font-semibold rounded-xl hover:bg-red-100 transition" title="Hapus baris">
+                                            <button type="button" class="sertifikat-remove inline-flex items-center justify-center w-11 h-11 bg-red-50 text-red-600 font-semibold rounded-soft hover:bg-red-100 transition" title="Hapus baris">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                                             </button>
                                         </div>
                                     @endforelse
                                 </div>
                                 <button type="button" id="sertifikat-add"
-                                        class="mt-4 inline-flex items-center px-5 py-2.5 bg-white border-2 border-dashed border-orange-400 text-orange-600 font-semibold rounded-xl hover:bg-orange-50 transition">
+                                        class="mt-4 inline-flex items-center px-5 py-2.5 bg-white border-2 border-dashed border-orange-400 text-orange-600 font-semibold rounded-soft hover:bg-orange-50 transition">
                                     + Tambah Sertifikat (maks 5)
                                 </button>
                                 @error('sertifikat')<p class="text-sm text-red-600 mt-2">{{ $message }}</p>@enderror
@@ -910,7 +908,7 @@
 
                         <div class="flex justify-between items-center">
                             <button type="button" data-prev="3"
-                                    class="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition">
+                                    class="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-soft hover:bg-gray-200 transition">
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     @foreach ($renderIcon('arrow-left') as $d)
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
@@ -919,7 +917,7 @@
                                 Kembali
                             </button>
                             <button type="submit"
-                                    class="inline-flex items-center px-8 py-4 bg-gradient-primary text-white text-lg font-semibold rounded-full shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 focus:ring-4 focus:ring-primary-300">
+                                    class="inline-flex items-center px-8 py-4 bg-gradient-primary text-white text-lg font-semibold rounded-full shadow-sm hover: transform hover:scale-105 transition-all duration-300 focus:ring-4 focus:ring-primary-300">
                                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     @foreach ($renderIcon('paper-plane') as $d)
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
@@ -945,7 +943,7 @@
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
                 @if ($kontakTelpTel)
                 <a href="tel:{{ $kontakTelpTel }}"
-                   class="inline-flex items-center justify-center px-6 py-3 bg-white text-primary-600 rounded-xl font-semibold hover:bg-gray-100 transition-colors duration-200">
+                   class="inline-flex items-center justify-center px-6 py-3 bg-white text-primary-600 rounded-soft font-semibold hover:bg-gray-100 transition-colors duration-200">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         @foreach ($renderIcon('phone') as $d)
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
@@ -956,7 +954,7 @@
                 @endif
                 @if ($kontakEmail)
                 <a href="mailto:{{ $kontakEmail }}"
-                   class="inline-flex items-center justify-center px-6 py-3 bg-white/10 text-white rounded-xl font-semibold hover:bg-white/20 transition-colors duration-200 border border-white/20">
+                   class="inline-flex items-center justify-center px-6 py-3 bg-white/10 text-white rounded-soft font-semibold hover:bg-white/20 transition-colors duration-200 border border-white/20">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         @foreach ($renderIcon('envelope') as $d)
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
@@ -1107,13 +1105,13 @@
                 if (sertRows.querySelectorAll('.sertifikat-row').length >= 5) return;
                 const idx = sertIndex++;
                 const div = document.createElement('div');
-                div.className = 'sertifikat-row grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-4 items-end bg-white border border-gray-200 rounded-xl p-4';
+                div.className = 'sertifikat-row grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-4 items-end bg-white border border-gray-200 rounded-soft p-4';
                 div.innerHTML =
                     `<div><label class="block text-sm font-semibold text-gray-700 mb-2">Nama Kejuaraan <span class="text-red-500">*</span></label>` +
-                    `<input type="text" name="sertifikat[${idx}][nama]" placeholder="cth: Juara 1 Pencak Silat Provinsi 2025" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white shadow-sm transition-all duration-200" /></div>` +
+                    `<input type="text" name="sertifikat[${idx}][nama]" placeholder="cth: Juara 1 Pencak Silat Provinsi 2025" class="w-full px-4 py-3 border border-gray-300 rounded-soft focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white shadow-sm transition-all duration-200" /></div>` +
                     `<div><label class="block text-sm font-semibold text-gray-700 mb-2">File Sertifikat <span class="text-red-500">*</span></label>` +
-                    `<input type="file" name="sertifikat[${idx}][file]" accept=".pdf,.jpg,.jpeg,.png" class="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white shadow-sm text-sm text-gray-600" /></div>` +
-                    `<button type="button" class="sertifikat-remove inline-flex items-center justify-center w-11 h-11 bg-red-50 text-red-600 font-semibold rounded-xl hover:bg-red-100 transition" title="Hapus baris">` +
+                    `<input type="file" name="sertifikat[${idx}][file]" accept=".pdf,.jpg,.jpeg,.png" class="w-full px-4 py-3 border border-gray-300 rounded-soft bg-white shadow-sm text-sm text-gray-600" /></div>` +
+                    `<button type="button" class="sertifikat-remove inline-flex items-center justify-center w-11 h-11 bg-red-50 text-red-600 font-semibold rounded-soft hover:bg-red-100 transition" title="Hapus baris">` +
                     `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>`;
                 sertRows.appendChild(div);
                 if (sertifikatWajib()) div.querySelectorAll('input').forEach((inp) => { inp.required = true; });

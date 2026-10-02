@@ -11,17 +11,18 @@
 @endphp
 
 @if ($dokumenUnduhan->isNotEmpty())
-<section id="unduhan" class="py-20 bg-slate-50">
+<section id="unduhan" class="py-20 bg-paper-alt">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-12">
-            <span class="inline-block px-4 py-1.5 bg-primary-100 text-primary-700 rounded-full text-sm font-semibold mb-4">Unduh</span>
-            <h2 class="text-3xl md:text-4xl font-extrabold text-gray-800 mb-4">Brosur &amp; Alur Pendaftaran</h2>
-            <p class="text-lg text-gray-600 max-w-xl mx-auto">Lihat langsung isinya di sini, atau unduh untuk disimpan dan dibagikan</p>
-        </div>
+            @include('spmb.partials.section-head', [
+                'nomor' => '04',
+                'judulAwal' => 'Brosur &amp; Alur',
+                'judulAksen' => 'Pendaftaran',
+                'sub' => 'Lihat langsung isinya di sini, atau unduh untuk disimpan dan dibagikan',
+            ])
 
         <div class="grid sm:grid-cols-2 gap-8">
             @foreach ($dokumenUnduhan as $dokumen)
-                <div class="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden card-hover">
+                <div class="bg-white rounded-card shadow-sm border border-gray-100 overflow-hidden card-hover">
                     {{-- Preview gambar — klik untuk perbesar --}}
                     <button type="button"
                             class="js-open-preview relative block w-full aspect-[3/4] bg-gray-100 group overflow-hidden"
@@ -31,7 +32,7 @@
                         <img src="{{ $dokumen['image'] }}" alt="{{ $dokumen['title'] }}"
                              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                         <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-300 flex items-center justify-center">
-                            <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 px-4 py-2 bg-white/90 backdrop-blur-sm rounded-full text-sm font-semibold text-gray-800">
+                            <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 px-4 py-2 bg-white/90 rounded-full text-sm font-semibold text-gray-800">
                                 🔍 Lihat Penuh
                             </span>
                         </div>
@@ -43,7 +44,7 @@
                             <p class="text-sm text-gray-500 truncate">{{ $dokumen['desc'] }}</p>
                         </div>
                         <a href="{{ $dokumen['image'] }}" download
-                           class="inline-flex items-center gap-2 px-4 py-2.5 bg-primary-600 text-white text-sm font-semibold rounded-xl hover:bg-primary-700 transition shadow-md hover:shadow-lg flex-shrink-0">
+                           class="inline-flex items-center gap-2 px-4 py-2.5 bg-primary-600 text-white text-sm font-semibold rounded-soft hover:bg-primary-700 transition shadow-md hover: shadow-sm flex-shrink-0">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                             </svg>
@@ -56,7 +57,7 @@
     </div>
 
     {{-- Lightbox --}}
-    <div id="preview-lightbox" class="hidden fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm items-center justify-center p-4">
+    <div id="preview-lightbox" class="hidden fixed inset-0 z-[100] bg-black/80 items-center justify-center p-4">
         <button type="button" id="preview-close" aria-label="Tutup"
                 class="absolute top-5 right-5 w-11 h-11 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -65,11 +66,11 @@
         </button>
 
         <div class="max-w-3xl w-full max-h-[85vh] flex flex-col items-center">
-            <img id="preview-image" src="" alt="" class="max-h-[75vh] w-auto rounded-xl shadow-2xl object-contain">
+            <img id="preview-image" src="" alt="" class="max-h-[75vh] w-auto rounded-soft object-contain">
             <div class="flex items-center gap-4 mt-4">
                 <span id="preview-title" class="text-white font-semibold"></span>
                 <a id="preview-download" href="" download
-                   class="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-800 text-sm font-semibold rounded-xl hover:bg-gray-100 transition">
+                   class="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-800 text-sm font-semibold rounded-soft hover:bg-gray-100 transition">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                     </svg>

@@ -87,11 +87,9 @@
     {{-- ============ HERO ============ --}}
     <section class="relative bg-gradient-primary py-28 overflow-hidden">
         <div class="absolute inset-0 bg-black/10"></div>
-        <div class="absolute top-10 right-10 w-72 h-72 bg-secondary-400/20 blob-shape animate-float"></div>
-        <div class="absolute bottom-10 left-10 w-80 h-80 bg-accent-400/20 blob-shape animate-float" style="animation-delay: 1s;"></div>
 
         <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <div class="inline-flex items-center px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-white text-sm mb-6 border border-white/20">
+            <div class="inline-flex items-center px-4 py-2 bg-white/10 rounded-full text-white text-sm mb-6 border border-white/20">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     @foreach ($renderIcon('flag') as $d)
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
@@ -112,7 +110,7 @@
             {{-- Stats --}}
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                 @foreach ($stats as $stat)
-                    <div class="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl py-6 px-3">
+                    <div class="bg-white/10 border border-white/20 rounded-soft py-6 px-3">
                         <div class="text-3xl md:text-4xl font-extrabold text-secondary-300">{{ $stat['value'] }}</div>
                         <div class="text-sm text-white/80 mt-1">{{ $stat['label'] }}</div>
                     </div>
@@ -129,10 +127,10 @@
                     @if ($fotoGedung)
                         <img src="{{ $fotoGedung }}"
                              alt="Gedung {{ $namaSekolah }}"
-                             class="rounded-3xl shadow-2xl w-full h-auto object-cover">
+                             class="rounded-card w-full h-auto object-cover">
                     @endif
                     @if ($profileSekolah?->tahun_berdiri)
-                        <div class="absolute -bottom-6 -right-6 z-10 bg-white rounded-2xl p-5 shadow-xl hidden md:block">
+                        <div class="absolute -bottom-6 -right-6 z-10 bg-white rounded-soft p-5 shadow-sm hidden md:block">
                             <div class="text-3xl font-extrabold text-primary-600">{{ $profileSekolah->tahun_berdiri }}</div>
                             <div class="text-sm text-gray-500">Tahun Berdiri</div>
                         </div>
@@ -169,7 +167,7 @@
     </section>
 
     {{-- ============ VISI & MISI ============ --}}
-    <section class="py-20 bg-slate-50">
+    <section class="py-20 bg-paper-alt">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-14">
                 <span class="inline-block px-4 py-1.5 bg-accent-100 text-accent-700 rounded-full text-sm font-semibold mb-4">Arah Kami</span>
@@ -180,8 +178,8 @@
                 {{-- Visi & Misi. Seluruh bagian ini disembunyikan kalau profil belum diisi,
                      supaya halaman tidak menampilkan visi-misi karangan. --}}
                 @if ($visiSekolah)
-                    <div class="lg:col-span-2 bg-gradient-primary rounded-3xl p-8 md:p-10 text-white shadow-xl flex flex-col justify-center">
-                        <div class="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-6">
+                    <div class="lg:col-span-2 bg-gradient-primary rounded-card p-8 md:p-10 text-white shadow-sm flex flex-col justify-center">
+                        <div class="w-14 h-14 bg-white/20 rounded-soft flex items-center justify-center mb-6">
                             <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 @foreach ($renderIcon('target') as $d)
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
@@ -197,8 +195,8 @@
 
                 {{-- Misi --}}
                 @if (count($misiList))
-                <div class="lg:col-span-3 bg-white rounded-3xl p-8 md:p-10 shadow-xl border border-gray-100">
-                    <div class="w-14 h-14 bg-primary-100 rounded-2xl flex items-center justify-center mb-6">
+                <div class="lg:col-span-3 bg-white rounded-card p-8 md:p-10 shadow-sm border border-gray-100">
+                    <div class="w-14 h-14 bg-primary-100 rounded-soft flex items-center justify-center mb-6">
                         <svg class="w-7 h-7 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             @foreach ($renderIcon('flag') as $d)
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
@@ -233,8 +231,8 @@
 
             <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 @foreach ($nilaiList as $nilai)
-                    <div class="bg-slate-50 hover:bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-xl transition-all duration-300 card-hover">
-                        <div class="w-14 h-14 bg-gradient-primary rounded-2xl flex items-center justify-center text-white mb-4 shadow-md">
+                    <div class="bg-paper-alt hover:bg-white rounded-soft p-6 border border-gray-100 hover: shadow-sm transition-all duration-300 card-hover">
+                        <div class="w-14 h-14 bg-gradient-primary rounded-soft flex items-center justify-center text-white mb-4 shadow-md">
                             <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 @foreach ($renderIcon($nilai['icon']) as $d)
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
@@ -251,9 +249,9 @@
 
     {{-- ============ SAMBUTAN KEPALA SEKOLAH ============ --}}
     @if ($kepalaSekolah->sambutan || $kepalaSekolah->nama)
-    <section class="py-20 bg-slate-50">
+    <section class="py-20 bg-paper-alt">
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+            <div class="bg-white rounded-card shadow-sm border border-gray-100 overflow-hidden">
                 <div class="grid md:grid-cols-5">
                     @if ($kepalaSekolah->foto)
                         <div class="md:col-span-2 relative">
@@ -296,7 +294,7 @@
 
             <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 @foreach ($fasilitasList as $fasilitas)
-                    <div class="group relative rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 card-hover">
+                    <div class="group relative rounded-soft overflow-hidden shadow-sm hover: transition-all duration-300 card-hover">
                         <img src="{{ $fasilitas['image'] }}" alt="{{ $fasilitas['title'] }}"
                              class="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-500">
                         <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent"></div>
@@ -312,8 +310,6 @@
 
     {{-- ============ CTA ============ --}}
     <section class="relative bg-gradient-primary py-20 overflow-hidden">
-        <div class="absolute top-0 left-1/4 w-64 h-64 bg-secondary-400/20 blob-shape animate-float"></div>
-        <div class="absolute bottom-0 right-1/4 w-72 h-72 bg-accent-400/20 blob-shape animate-float" style="animation-delay: 1.2s;"></div>
 
         <div class="relative max-w-3xl mx-auto text-center px-4 sm:px-6 lg:px-8">
             <h2 class="text-3xl md:text-4xl font-extrabold text-white mb-4">Siap Bergabung Bersama Kami?</h2>
@@ -322,7 +318,7 @@
             </p>
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
                 <a href="{{ route('spmb.pendaftaran') }}"
-                   class="inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-primary-700 bg-white rounded-2xl hover:bg-gray-50 transition shadow-xl hover:shadow-2xl hover:scale-105 transform">
+                   class="inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-primary-700 bg-white rounded-soft hover:bg-gray-50 transition shadow-sm hover: hover:scale-105 transform">
                     <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         @foreach ($renderIcon('bolt') as $d)
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
@@ -331,7 +327,7 @@
                     Daftar Sekarang
                 </a>
                 <a href="{{ route('spmb.home') }}#kontak"
-                   class="inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white border-2 border-white/60 rounded-2xl hover:bg-white hover:text-primary-700 transition">
+                   class="inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white border-2 border-white/60 rounded-soft hover:bg-white hover:text-primary-700 transition">
                     Hubungi Kami
                 </a>
             </div>

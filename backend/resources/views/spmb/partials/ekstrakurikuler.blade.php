@@ -30,25 +30,22 @@
     ];
 @endphp
 
-<section id="ekskul" class="py-20 bg-slate-50">
+<section id="ekskul" class="py-20 bg-paper-alt">
     <div class="container mx-auto px-4">
         
-        {{-- Section Header --}}
-        <div class="text-center max-w-3xl mx-auto mb-16">
-            <h2 class="text-3xl md:text-4xl font-extrabold text-gray-800 mb-4">
-                Ekstrakurikuler & <span class="text-primary-600">Program Unggulan</span>
-            </h2>
-            <p class="text-lg text-gray-600">
-                Kembangkan bakat dan minat dengan berbagai pilihan kegiatan menarik
-            </p>
-        </div>
+            @include('spmb.partials.section-head', [
+                'nomor' => '08',
+                'judulAwal' => 'Ekstrakurikuler &',
+                'judulAksen' => 'Program Unggulan',
+                'sub' => 'Kembangkan bakat dan minat dengan berbagai pilihan kegiatan menarik',
+            ])
 
         {{-- Grid Cards --}}
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
             @forelse ($ekstrakurikulers as $ekskul)
                 @php $gradien = $gradienEkskul[$loop->index % count($gradienEkskul)]; @endphp
-                <div class="bg-white rounded-3xl p-8 shadow-lg card-hover">
-                    <div class="w-20 h-20 bg-gradient-to-br {{ $gradien }} rounded-2xl flex items-center justify-center mb-6 shadow-lg">
+                <div class="bg-white rounded-card p-8 shadow-sm card-hover">
+                    <div class="w-20 h-20 bg-gradient-to-br {{ $gradien }} rounded-soft flex items-center justify-center mb-6 shadow-sm">
                         <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             // `kode` di-uppercase supaya admin yang mengetik "pramuka" tetap dapat ikon.
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $ikonEkskul[strtoupper($ekskul->kode)] ?? 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2z' }}"/>
@@ -70,7 +67,7 @@
                     @endif
                 </div>
             @empty
-                <div class="sm:col-span-2 lg:col-span-3 text-center bg-white rounded-3xl p-10 shadow-lg">
+                <div class="sm:col-span-2 lg:col-span-3 text-center bg-white rounded-card p-10 shadow-sm">
                     <p class="text-base font-semibold text-gray-700 mb-1">Belum ada kegiatan ekstrakurikuler</p>
                     <p class="text-sm text-gray-500">Silakan cek kembali atau hubungi sekolah untuk informasi kegiatan yang tersedia.</p>
                 </div>
@@ -78,7 +75,7 @@
         </div>
 
         {{-- Info Box --}}
-        <div class="max-w-4xl mx-auto mt-16 bg-gradient-to-r from-primary-50 to-accent-50 rounded-3xl p-8 border-l-4 border-primary-600">
+        <div class="max-w-4xl mx-auto mt-16 bg-gradient-to-r from-primary-50 to-accent-50 rounded-card p-8 border-l-4 border-primary-600">
             <div class="flex items-start space-x-4">
                 <svg class="w-10 h-10 text-primary-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>

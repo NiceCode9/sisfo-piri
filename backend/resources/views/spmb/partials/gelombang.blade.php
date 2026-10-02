@@ -1,17 +1,14 @@
 @php $gelombangs = $gelombangs ?? collect(); @endphp
 
-<section id="gelombang" class="py-20 bg-slate-50">
+<section id="gelombang" class="py-20 bg-paper-alt">
     <div class="container mx-auto px-4">
         
-        {{-- Section Header --}}
-        <div class="text-center max-w-3xl mx-auto mb-16">
-            <h2 class="text-3xl md:text-4xl font-extrabold text-gray-800 mb-4">
-                Timeline <span class="text-primary-600">Gelombang Pendaftaran</span>
-            </h2>
-            <p class="text-lg text-gray-600">
-                Daftar sekarang dan dapatkan keuntungan dari setiap gelombang
-            </p>
-        </div>
+            @include('spmb.partials.section-head', [
+                'nomor' => '05',
+                'judulAwal' => 'Timeline',
+                'judulAksen' => 'Gelombang Pendaftaran',
+                'sub' => 'Daftar sekarang dan dapatkan keuntungan dari setiap gelombang',
+            ])
 
         {{-- Gelombang Cards --}}
         <div class="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
@@ -41,7 +38,7 @@
                         default => 'bg-white/20 text-white',
                     };
                 @endphp
-                <div class="bg-white rounded-3xl shadow-xl overflow-hidden card-hover border-t-8 {{ $borderClass }}">
+                <div class="bg-white rounded-card shadow-sm overflow-hidden card-hover border-t-8 {{ $borderClass }}">
                     <div class="bg-gradient-to-br {{ $gradient }} px-6 py-8 text-white text-center">
                         @if($g->badge)
                             <div class="inline-block px-4 py-1 bg-white/20 rounded-full text-xs font-bold mb-3">
@@ -81,7 +78,7 @@
                             </div>
                         @endforeach
 
-                        <div class="bg-accent-50 rounded-2xl p-4 mt-6">
+                        <div class="bg-accent-50 rounded-soft p-4 mt-6">
                             <h4 class="font-bold text-gray-800 mb-2 text-sm flex items-center">
                                 <svg class="w-5 h-5 text-accent-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/>
@@ -131,7 +128,7 @@
 
         {{-- Info Box --}}
         <div class="max-w-4xl mx-auto mt-12">
-            <div class="bg-gradient-to-r from-primary-600 to-accent-600 rounded-3xl p-8 text-white shadow-2xl">
+            <div class="bg-gradient-to-r from-primary-600 to-accent-600 rounded-card p-8 text-white">
                 <div class="flex items-start space-x-4">
                     <svg class="w-12 h-12 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>

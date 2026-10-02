@@ -53,18 +53,15 @@
     ];
 @endphp
 
-<section id="kontak" class="py-20 bg-slate-50">
+<section id="kontak" class="py-20 bg-paper-alt">
     <div class="container mx-auto px-4">
 
-        {{-- Section Header --}}
-        <div class="text-center max-w-3xl mx-auto mb-16">
-            <h2 class="text-3xl md:text-4xl font-extrabold text-gray-800 mb-4">
-                Hubungi <span class="text-primary-600">Panitia SPMB</span>
-            </h2>
-            <p class="text-lg text-gray-600">
-                Ada pertanyaan? Tim kami siap membantu Anda
-            </p>
-        </div>
+            @include('spmb.partials.section-head', [
+                'nomor' => '10',
+                'judulAwal' => 'Hubungi',
+                'judulAksen' => 'Panitia SPMB',
+                'sub' => 'Ada pertanyaan? Tim kami siap membantu Anda',
+            ])
 
         <div class="max-w-6xl mx-auto">
             {{-- items-start supaya kolom kiri & kanan tidak saling stretch/ketergantungan tinggi --}}
@@ -73,9 +70,9 @@
                 {{-- Left: Contact Info --}}
                 <div class="space-y-6">
                     @foreach ($kontakCards as $card)
-                        <div class="bg-white rounded-3xl p-6 md:p-8 shadow-lg card-hover">
+                        <div class="bg-white rounded-card p-6 md:p-8 shadow-sm card-hover">
                             <div class="flex items-start space-x-4">
-                                <div class="w-14 h-14 {{ $card['bg'] }} rounded-2xl flex items-center justify-center flex-shrink-0">
+                                <div class="w-14 h-14 {{ $card['bg'] }} rounded-soft flex items-center justify-center flex-shrink-0">
                                     <svg class="w-7 h-7 {{ $card['iconColor'] }}" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $card['icon'] }}"/>
                                     </svg>
@@ -167,8 +164,8 @@
                 {{-- Right: Map & Social --}}
                 <div class="space-y-6">
                     {{-- Map: tinggi tetap per breakpoint, bukan h-full (hindari circular height dependency) --}}
-                    <div class="bg-white rounded-3xl p-4 shadow-lg">
-                        <div class="w-full h-[300px] md:h-[400px] lg:h-[500px] rounded-2xl overflow-hidden">
+                    <div class="bg-white rounded-card p-4 shadow-sm">
+                        <div class="w-full h-[300px] md:h-[400px] lg:h-[500px] rounded-soft overflow-hidden">
                             <iframe
                                 src="{{ $profileSekolah->maps_embed_url ?? 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3960.798694104159!2d107.6191228!3d-6.914744!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNsKwNTQnNTMuMSJTIDEwN8KwMzcnMDguOCJF!5e0!3m2!1sen!2sid!4v1234567890123!5m2!1sen!2sid' }}"
                                 width="100%"
@@ -178,7 +175,7 @@
                                 loading="lazy"
                                 referrerpolicy="no-referrer-when-downgrade"
                                 title="Lokasi Sekolah"
-                                class="rounded-2xl">
+                                class="rounded-soft">
                             </iframe>
                         </div>
                     </div>
@@ -189,14 +186,14 @@
                     @php $socialLinks = array_values(array_filter($socialLinks, fn ($s) => filled($s['url']) && $s['url'] !== '#')); @endphp
 
                     @if (count($socialLinks))
-                        <div class="bg-gradient-to-br from-primary-600 to-accent-600 rounded-3xl p-6 md:p-8 text-white shadow-lg">
+                        <div class="bg-gradient-to-br from-primary-600 to-accent-600 rounded-card p-6 md:p-8 text-white shadow-sm">
                             <h3 class="text-xl font-bold mb-4">Ikuti Media Sosial Kami</h3>
                             <p class="text-white/90 mb-6 text-sm">Dapatkan update terbaru seputar SPMB dan kegiatan sekolah</p>
                             <div class="grid grid-cols-2 gap-4">
                                 @foreach ($socialLinks as $social)
                                     <a href="{{ $social['url'] }}" target="_blank" rel="noopener"
                                        aria-label="{{ $social['name'] }} sekolah"
-                                       class="flex items-center space-x-3 bg-white/10 hover:bg-white/20 rounded-xl p-4 transition">
+                                       class="flex items-center space-x-3 bg-white/10 hover:bg-white/20 rounded-soft p-4 transition">
                                         <svg class="w-6 h-6 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                             <path d="{{ $social['icon'] }}"/>
                                         </svg>

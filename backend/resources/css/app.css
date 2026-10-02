@@ -3,11 +3,29 @@
 /**
  * Tailwind CSS v4 Custom Theme
  * Styling untuk SPMB Landing Page
+ * Arah desain: "Editorial Heritage" - kertas hangat, teks gelap, aksen hijau
+ * sebagai penanda (bukan warna isi layar), garis rambut, dan tipografi serif
+ * untuk judul.
  */
 
 @theme {
     /* Typography */
-    --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+    --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+
+    /* Skala display. Leading rapat dan letter-spacing negatif supaya judul
+       besar terbaca sebagai satu blok, bukan Words yang berjajar. */
+    --text-display-xl: 4.5rem;
+    --text-display-xl--line-height: 0.95;
+    --text-display-xl--letter-spacing: -0.02em;
+
+    --text-display-lg: 3.25rem;
+    --text-display-lg--line-height: 1;
+    --text-display-lg--letter-spacing: -0.015em;
+
+    --text-display-md: 2.25rem;
+    --text-display-md--line-height: 1.1;
+    --text-display-md--letter-spacing: -0.01em;
 
     /*
      * Primary Colors - Hijau Imtaq
@@ -76,6 +94,28 @@
     --color-accent-700: #075985;
     --color-accent-800: #0c4a6e;
     --color-accent-900: #082f49;
+
+    /*
+     * Token semantik - Editorial Heritage
+     *
+     * Sebelumnya warna dipakai sebagai bidang yang luas: `bg-gradient-primary`
+     * menutup 9 section penuh. Warna sekarang turun jadi aksen (garis, nomor,
+     * badge, tautan), sedangkan permukaan yang menanggung kedalaman halaman.
+     */
+    --color-paper: #faf8f3;
+    --color-paper-alt: #f2efe6;
+    --color-ink: #1b1b17;
+    --color-ink-muted: #6b6862;
+    --color-line: #e2ddd1;
+
+    /* Radius kecil. Halaman lama memakai rounded-2xl (60x) dan rounded-3xl
+       (33x), sehingga semua sudut terasa sama lembutnya dan tidak ada yang
+       terlihat lebih penting dari yang lain. */
+    --radius-soft: 2px;
+    --radius-card: 3px;
+
+    /* Alur momentum untuk teks editorial. */
+    --spacing-section: 7.5rem;
 }
 
 /* Smooth scroll behavior */
@@ -83,11 +123,16 @@ html {
     scroll-behavior: smooth;
 }
 
-/* Custom animations */
+/*
+ * Animasi: sisakan yang memperkuat, buang yang berlebihan.
+ * Keyframe `float`, kelas `.blob-shape`, dan `backdrop-blur` dihapus: pola
+ * "blob gradient" itu penanda template tahun 2020 yang sekarang sudah
+ * terbaca sebagai generik.
+ */
 @keyframes fadeInUp {
     from {
         opacity: 0;
-        transform: translateY(30px);
+        transform: translateY(14px);
     }
     to {
         opacity: 1;
@@ -95,21 +140,38 @@ html {
     }
 }
 
-@keyframes float {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-20px);
-    }
-}
-
 .animate-fade-in-up {
-    animation: fadeInUp 0.6s ease-out;
+    animation: fadeInUp 0.5s ease-out both;
 }
 
-.animate-float {
-    animation: float 3s ease-in-out infinite;
+/* Judul serif dengan ukuran display */
+.font-display {
+    font-family: var(--font-display);
+}
+
+/* Garis rambut: alat kedalaman utama di desain ini, menggantikan shadow. */
+.hairline {
+    border: 1px solid var(--color-line);
+}
+
+/* Penanda aksen - untuk eyebrow/nomor section, menggantikan pil berwarna. */
+.rule-accent {
+    width: 2.5rem;
+    height: 2px;
+    background: var(--color-primary-600);
+}
+
+/* Garis bawah yang muncul saat tautan ditimpa */
+.link-underline {
+    background-image: linear-gradient(var(--color-primary-600), var(--color-primary-600));
+    background-size: 0% 1px;
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    transition: background-size 0.25s ease;
+}
+
+.link-underline:hover {
+    background-size: 100% 1px;
 }
 
 /* Custom gradient backgrounds */
@@ -125,19 +187,14 @@ html {
     background: linear-gradient(135deg, var(--color-accent-400) 0%, var(--color-accent-600) 100%);
 }
 
-/* Decorative shapes */
-.blob-shape {
-    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
-}
-
-/* Card hover effects */
+/* Efek kartu: tanpa melodic. Elevation datang dari garis dan jarak, bukan
+   dari kartu yang melompat ke atas. */
 .card-hover {
-    transition: all 0.3s ease;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
 .card-hover:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    border-color: var(--color-primary-600);
 }
 
 /* Custom scrollbar */
@@ -146,7 +203,7 @@ html {
 }
 
 ::-webkit-scrollbar-track {
-    background: #f1f5f9;
+    background: var(--color-paper-alt);
 }
 
 ::-webkit-scrollbar-thumb {

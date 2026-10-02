@@ -6,14 +6,9 @@
 
 <section id="beranda" class="relative min-h-screen flex items-center bg-gradient-primary overflow-hidden">
 
-    {{-- Decorative Background Shapes.
-     Blob hijau lama (`bg-accent-400/20`) jadi tak terlihat begitu primary
-     diganti hijau, jadi aksennya dipindah ke sky yang kontras dengan hijau.
-     Blob emas dipertahankan: hijau + emas adalah pasangan warna yang dipakai
-     identitas sekolah ini. --}}
-    <div class="absolute top-20 right-10 w-64 h-64 bg-secondary-400/20 blob-shape animate-float"></div>
-    <div class="absolute bottom-32 left-10 w-80 h-80 bg-accent-400/25 blob-shape animate-float" style="animation-delay: 1s;"></div>
-    <div class="absolute top-1/2 right-1/4 w-48 h-48 bg-white/10 blob-shape animate-float" style="animation-delay: 2s;"></div>
+    {{-- Dekorasi blob + animasi `float` dihapus pada phase editorial: pola
+     "blob gradient" itu penanda template 2020. Kedalaman sekarang datang dari
+     garis rambut dan jarak, bukan bentuk organik yang melayang. --}}
 
     <div class="container mx-auto px-4 py-20 relative z-10">
         <div class="grid lg:grid-cols-2 gap-12 items-center">
@@ -25,7 +20,7 @@
      gate di store(). Satu sumber, jadi ketiganya tidak bisa berbeda pendapat. --}}
                 @if ($statusPendaftaran?->tampilkanBadge())
                     <div @class([
-                        'inline-block px-4 py-2 rounded-full text-sm font-semibold shadow-lg',
+                        'inline-block px-4 py-2 rounded-full text-sm font-semibold shadow-sm',
                         'bg-secondary-500' => $statusPendaftaran->state === \App\Support\StatusPendaftaran::BUKA,
                         'bg-amber-400 text-amber-950' => $statusPendaftaran->state === \App\Support\StatusPendaftaran::BELUM,
                         'bg-white/25' => in_array($statusPendaftaran->state, [
@@ -33,33 +28,37 @@
                             \App\Support\StatusPendaftaran::TUTUP,
                         ], true),
                     ])>
-                        {{ $statusPendaftaran->state === \App\Support\StatusPendaftaran::BUKA ? '🎉 ' : '' }}{{ $statusPendaftaran->teksBadge() }}
+                        {{-- Emoji 🎉 dihapus: di halaman penerimaan murid ia terbaca amatir,
+             bukan seperti di halaman produk. --}}
+                        {{ $statusPendaftaran->teksBadge() }}
                     </div>
                 @endif
 
-                <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight">
+<h1 class="font-display text-display-lg text-white">
                     Wujudkan Impianmu<br/>
                     <span class="text-secondary-300">Bersama Kami!</span>
                 </h1>
 
-                <p class="text-lg md:text-xl text-white/90 leading-relaxed">
+                <p class="text-lg md:text-xl text-white/85 leading-relaxed max-w-xl">
                     Bergabunglah dalam Penerimaan Murid Baru
                     @if ($tahunAjaran)
-                        Tahun Ajaran <span class="font-bold">{{ $tahunAjaran }}</span>
+                        Tahun Ajaran <span class="font-medium text-white">{{ $tahunAjaran }}</span>
                     @endif.
                     Raih prestasi, kembangkan bakatmu, dan ciptakan masa depan cerah!
                 </p>
 
-                {{-- CTA Buttons --}}
+                {{-- CTA Buttons. Sudut sengaja kecil dan tanpa bayangan:
+                     tombol yang "melompat" (hover:scale-105 +) adalah
+                     tanda template, bukan tanda yang meyakinkan. --}}
                 <div class="flex flex-col sm:flex-row gap-4 pt-4">
-                    <a href="#alur" class="inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-primary-600 bg-white rounded-2xl hover:bg-gray-50 transition shadow-xl hover:shadow-2xl hover:scale-105 transform">
-                        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <a href="#alur" class="inline-flex items-center justify-center px-8 py-4 text-base font-medium text-ink bg-white rounded-soft hover:bg-paper-alt transition-colors">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                         </svg>
                         Mulai Pendaftaran
                     </a>
-                    <a href="{{ route('login') }}" class="inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white border-2 border-white rounded-2xl hover:bg-white hover:text-primary-600 transition">
-                        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <a href="{{ route('login') }}" class="inline-flex items-center justify-center px-8 py-4 text-base font-medium text-white border border-white/60 rounded-soft hover:bg-white hover:text-ink transition-colors">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                         </svg>
                         Login Calon Murid
@@ -70,18 +69,19 @@
                 {{-- Angka diambil dari database lewat view composer spmb.*.
                      Kosong berarti belum ada data, jadi tampilkan tanda pisah
                      dan bukan angka karangan. --}}
+                {{-- Angka memakai serif agar terbaca sebagai data, bukan badge. --}}
                 <div class="grid grid-cols-3 gap-4 pt-8">
-                    <div class="text-center">
-                        <div class="text-3xl md:text-4xl font-extrabold text-secondary-300">{{ $jumlahSiswaAktif ?: '—' }}</div>
-                        <div class="text-sm text-white/80">Siswa Aktif</div>
+                    <div>
+                        <div class="font-display text-display-md text-secondary-300">{{ $jumlahSiswaAktif ?: '—' }}</div>
+                        <div class="text-sm text-white/70">Siswa Aktif</div>
                     </div>
-                    <div class="text-center">
-                        <div class="text-3xl md:text-4xl font-extrabold text-secondary-300">{{ $jumlahGuruAktif ?: '—' }}</div>
-                        <div class="text-sm text-white/80">Guru Aktif</div>
+                    <div>
+                        <div class="font-display text-display-md text-secondary-300">{{ $jumlahGuruAktif ?: '—' }}</div>
+                        <div class="text-sm text-white/70">Guru Aktif</div>
                     </div>
-                    <div class="text-center">
-                        <div class="text-3xl md:text-4xl font-extrabold text-secondary-300">{{ $lamaBerdiri ?: '—' }}</div>
-                        <div class="text-sm text-white/80">Tahun Berdiri</div>
+                    <div>
+                        <div class="font-display text-display-md text-secondary-300">{{ $lamaBerdiri ?: '—' }}</div>
+                        <div class="text-sm text-white/70">Tahun Berdiri</div>
                     </div>
                 </div>
             </div>
@@ -103,7 +103,7 @@
                          sizes="(min-width: 1024px) 620px, 100vw"
                          width="1600" height="900"
                          alt="Gedung dan lapangan {{ $namaSekolah ?? 'sekolah' }}"
-                         class="rounded-3xl shadow-2xl w-full h-auto object-cover"
+                         class="w-full h-auto object-cover"
                          loading="eager" fetchpriority="high" decoding="async">
                 </div>
 
@@ -114,16 +114,16 @@
                      dicantumkan" - jadi halaman mengarang klaim yang
                      bersamaan menyangkal dirinya sendiri. --}}
                 @if ($profileSekolah?->akreditasi_bersih)
-                    <div class="absolute -bottom-8 -left-8 z-20 bg-white rounded-2xl p-4 shadow-xl animate-float hidden md:block">
+                    <div class="absolute -bottom-6 -left-6 z-20 bg-paper px-5 py-4 hairline hidden md:block">
                         <div class="flex items-center space-x-3">
-                            <div class="w-12 h-12 bg-accent-500 rounded-xl flex items-center justify-center">
-                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="w-9 h-9 bg-accent-600 rounded-soft flex items-center justify-center shrink-0">
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                 </svg>
                             </div>
                             <div>
-                                <div class="text-sm font-bold text-gray-800">Terakreditasi {{ $profileSekolah->akreditasi_bersih }}</div>
-                                <div class="text-xs text-gray-500">Standar Nasional</div>
+                                <div class="text-sm font-medium text-ink">Terakreditasi {{ $profileSekolah->akreditasi_bersih }}</div>
+                                <div class="text-xs text-ink-muted">Standar Nasional</div>
                             </div>
                         </div>
                     </div>
@@ -136,16 +136,16 @@
                      tahun ajaran aktif, yang benar-benar berasal dari database
                      dan selalu tersedia di halaman PPDB. --}}
                 @if ($tahunAjaran)
-                <div class="absolute -top-8 -right-8 z-20 bg-white rounded-2xl p-4 shadow-xl animate-float hidden md:block" style="animation-delay: 1.5s;">
+                <div class="absolute -top-6 -right-6 z-20 bg-paper px-5 py-4 hairline hidden md:block">
                     <div class="flex items-center space-x-3">
-                        <div class="w-12 h-12 bg-secondary-500 rounded-xl flex items-center justify-center">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="w-9 h-9 bg-secondary-500 rounded-soft flex items-center justify-center shrink-0">
+                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                             </svg>
                         </div>
                         <div>
-                            <div class="text-sm font-bold text-gray-800">Tahun Ajaran {{ $tahunAjaran }}</div>
-                            <div class="text-xs text-gray-500">Penerimaan Murid Baru</div>
+                            <div class="text-sm font-medium text-ink">Tahun Ajaran {{ $tahunAjaran }}</div>
+                            <div class="text-xs text-ink-muted">Penerimaan Murid Baru</div>
                         </div>
                     </div>
                 </div>
@@ -157,7 +157,7 @@
 
     {{-- Scroll Indicator --}}
     <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
         </svg>
     </div>

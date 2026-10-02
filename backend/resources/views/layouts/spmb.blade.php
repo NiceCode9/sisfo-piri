@@ -6,20 +6,13 @@
     <meta name="description" content="Sistem Penerimaan Murid Baru (SPMB) - Daftar sekarang dan bergabung bersama kami!">
     <title>{{ $title ?? 'SPMB - Penerimaan Murid Baru' }}</title>
 
-    {{-- Preconnect for performance --}}
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-    {{-- Google Fonts - Poppins --}}
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
-    {{-- Heroicons CDN --}}
-    <script defer src="https://cdn.jsdelivr.net/npm/@heroicons/vue@2.0.18/24/outline/index.js"></script>
-
-    {{-- Vite + Tailwind CSS --}}
+    {{-- Font (Instrument Sans + Instrument Serif) sudah di-self-host lewat
+         plugin Vite, jadi halaman ini tidak lagi memanggil Google Fonts.
+         Script Heroicons juga dihapus: tidak ada view yang memakainya,
+         semua ikon ditulis inline sebagai <path>. --}}
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="font-sans antialiased bg-slate-50">
+<body class="font-sans antialiased bg-paper text-ink">
 
     @yield('content')
 

@@ -293,32 +293,132 @@ test('tidak ada teks putih di atas background yang kontrasnya gagal', function (
             continue;
         }
 
-        foreach (file($file->getPathname()) as $index => $baris) {
-            if (! str_contains($baris, 'text-white')) {
-                continue;
-            }
+        // Atribut class sering terpotong baris, jadi isi file
+        // dijadikan satu baris dulu. Versi lama membaca per baris dan
+        // sehingga pasangan seperti
+        //     class="w-9 h-9 bg-accent-500 flex items-center">
+        //     <svg class="w-4 h-4 text-white">
+        // sama sekali tidak terlihat.
+        $isi = file_get_contents($file->getPathname());
 
-            // Hanya kalau warna teks putih DAN ada bg dari token yang sama.
-            if (! preg_match('/bg-(primary|secondary|accent)-(\d{3})/', $baris, $bg)) {
-                continue;
-            }
+        // Komentar Blade dibuang lebih dulu. Tanpa ini, kalimat di dalam
+        // komentar yang menjelaskan SLOT mana yang aman ikut terambil sebagai
+        // pelanggaran.
+        $isi = preg_replace('/\{\{\-\-.*?\-\-\}/s', '', $isi);
 
-            $kunci = $bg[1].'-'.$bg[2];
+        $rata = preg_replace_callback('/class="[^"]*"/', function ($m) {
+            return preg_replace('/\s+/', ' ', $m[0]);
+        }, $isi);
+
+        if (! preg_match_all('/bg-(?:primary|secondary|accent)-\d{3}/', $rata, $temuan, PREG_OFFSET_CAPTURE)) {
+            continue;
+        }
+
+        // Hanya yang dipadu dengan teks putih pada potongan class yang sama.
+        foreach ($temuan[0] as [$cocok, $offset]) {
+            $kunci = substr($cocok, 3);
 
             if (! isset($token[$kunci])) {
+                continue;
+            }
+
+            $sekitarnya = substr($rata, max(0, $offset - 200), 400);
+
+            if (! str_contains($sekitarnya, 'text-white')) {
                 continue;
             }
 
             $rasio = rasioKontras($token[$kunci], '#ffffff');
 
             if ($rasio < 4.5) {
+                $baris = substr_count(substr($rata, 0, $offset), "\n") + 1;
                 $relatif = str_replace($viewSpmb.DIRECTORY_SEPARATOR, '', $file->getPathname());
-                $gagal[] = sprintf('%s:%d  bg-%s (%s) = %s:1', $relatif, $index + 1, $kunci, $token[$kunci], $rasio);
+                $gagal[] = sprintf('%s:%d  bg-%s (%s) = %s:1', $relatif, $baris, $kunci, $token[$kunci], $rasio);
             }
         }
     }
 
     expect($gagal)->toBe([]);
+});
+
+test('halaman publik tidak memakai pola visual yang sudah basi', function () {
+    // `blob-shape`, `animate-float`, dan `backdrop-blur` adalah penanda template
+    // tahun 2020 yang sekarang justru membuat halaman terasa generik. Halaman
+    // publik sengaja dibangun ulang tanpa ketiganya.
+    $dilarang = ['blob-shape', 'animate-float', 'backdrop-blur'];
+    $ketemu = [];
+    $viewSpmb = resource_path('views/spmb');
+
+    $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($viewSpmb));
+
+    foreach ($files as $file) {
+        // getExtension() mengembalikan "php", bukan "blade.php".
+        if (! $file->isFile() || ! str_ends_with($file->getFilename(), '.blade.php')) {
+            continue;
+        }
+
+        // Komentar dibuang; menyebut pattern di komentar bukan pelanggaran.
+        $isi = preg_replace('/\{\{\-\-.*?\-\-\}/s', '', file_get_contents($file->getPathname()));
+
+        foreach ($dilarang as $pola) {
+            if (str_contains($isi, $pola)) {
+                $relatif = str_replace($viewSpmb.DIRECTORY_SEPARATOR, '', $file->getPathname());
+                $ketemu[] = $relatif.' -> '.$pola;
+            }
+        }
+    }
+
+    expect($ketemu)->toBe([]);
+});
+
+test('layout publik tidak memuat aset dari pihak ketiga', function () {
+    $layout = file_get_contents(resource_path('views/layouts/spmb.blade.php'));
+
+    // Font (Instrument Sans + Instrument Serif) sudah di-self-host lewat plugin
+    // Vite. Memanggil Google Fonts berarti menambah DNS + koneksi TLS pihak
+    // ketiga sebelum teks pertama tampil, dan handal Google Fonts-lah yang
+    // membuat halaman terasa seperti template.
+    expect($layout)->not->toContain('fonts.googleapis.com')
+        ->and($layout)->not->toContain('fonts.gstatic.com')
+        ->and($layout)->not->toContain('cdn.jsdelivr.net')
+        ->and($layout)->not->toContain('Poppins');
+
+    // Vite tetap harus ada, kalau tidak seluruh styling hilang.
+    expect($layout)->toContain('@vite(');
+});
+
+test('font tubuh halaman publik adalah Instrument Sans, bukan Poppins', function () {
+    $css = file_get_contents(resource_path('css/app.css'));
+
+    expect($css)->toContain('--font-sans: "Instrument Sans"')
+        ->and($css)->toContain('--font-display: "Instrument Serif"')
+        ->and($css)->not->toContain('Poppins');
+});
+
+test('setiap section publik memakai kepala section yang sama', function () {
+    // Septuluh-belas section sebelumnya punya kerangka identik yang ditulis
+    // tangan sepuluh kali. Sekarang semuanya lewat satu partial, jadi
+    // perubahan gaya cukup di satu tempat.
+    $partial = resource_path('views/spmb/partials/section-head.blade.php');
+
+    expect(is_file($partial))->toBeTrue();
+
+    $pemakai = 0;
+    $viewSpmb = resource_path('views/spmb/partials');
+    $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($viewSpmb));
+
+    foreach ($files as $file) {
+        if (! $file->isFile() || $file->getFilename() === 'section-head.blade.php') {
+            continue;
+        }
+
+        if (str_contains(file_get_contents($file->getPathname()), 'spmb.partials.section-head')) {
+            $pemakai++;
+        }
+    }
+
+    // Di landing page ada sepuluh section yang memakai kepala ini.
+    expect($pemakai)->toBeGreaterThanOrEqual(10);
 });
 
 test('pendaftaran tetap jalan dengan palet baru', function () {

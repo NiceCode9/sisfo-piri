@@ -1,25 +1,22 @@
 {{-- TODO: ganti dengan data asli jalur seleksi --}}
 
-<section id="jalur" class="py-20 bg-slate-50">
+<section id="jalur" class="py-20 bg-paper-alt">
     <div class="container mx-auto px-4">
         
-        {{-- Section Header --}}
-        <div class="text-center max-w-3xl mx-auto mb-16">
-            <h2 class="text-3xl md:text-4xl font-extrabold text-gray-800 mb-4">
-                Jalur <span class="text-primary-600">Pendaftaran</span>
-            </h2>
-            <p class="text-lg text-gray-600">
-                Pilih jalur pendaftaran yang sesuai dengan kemampuan dan prestasi Anda
-            </p>
-        </div>
+            @include('spmb.partials.section-head', [
+                'nomor' => '02',
+                'judulAwal' => 'Jalur',
+                'judulAksen' => 'Pendaftaran',
+                'sub' => 'Pilih jalur pendaftaran yang sesuai dengan kemampuan dan prestasi Anda',
+            ])
 
         {{-- Tab Navigation --}}
         <div class="flex justify-center mb-12">
-            <div class="inline-flex bg-white rounded-2xl p-2 shadow-lg">
-                <button onclick="switchTab('reguler')" id="tab-reguler" class="tab-button active px-8 py-3 rounded-xl font-semibold text-sm transition">
+            <div class="inline-flex bg-white rounded-soft p-2 shadow-sm">
+                <button onclick="switchTab('reguler')" id="tab-reguler" class="tab-button active px-8 py-3 rounded-soft font-semibold text-sm transition">
                     Jalur Reguler
                 </button>
-                <button onclick="switchTab('prestasi')" id="tab-prestasi" class="tab-button px-8 py-3 rounded-xl font-semibold text-sm transition">
+                <button onclick="switchTab('prestasi')" id="tab-prestasi" class="tab-button px-8 py-3 rounded-soft font-semibold text-sm transition">
                     Jalur Prestasi/Beasiswa
                 </button>
             </div>
@@ -27,9 +24,9 @@
 
         {{-- Tab Content: Reguler --}}
         <div id="content-reguler" class="tab-content">
-            <div class="max-w-4xl mx-auto bg-white rounded-3xl shadow-xl p-8 md:p-12">
+            <div class="max-w-4xl mx-auto bg-white rounded-card shadow-sm p-8 md:p-12">
                 <div class="flex items-start space-x-4 mb-8">
-                    <div class="w-16 h-16 bg-primary-100 rounded-2xl flex items-center justify-center flex-shrink-0">
+                    <div class="w-16 h-16 bg-primary-100 rounded-soft flex items-center justify-center flex-shrink-0">
                         <svg class="w-8 h-8 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                         </svg>
@@ -107,7 +104,7 @@
                         </ul>
                     </div>
 
-                    <div class="bg-primary-50 rounded-2xl p-6 border-l-4 border-primary-600">
+                    <div class="bg-primary-50 rounded-soft p-6 border-l-4 border-primary-600">
                         <div class="flex items-start">
                             <svg class="w-6 h-6 text-primary-600 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
@@ -124,9 +121,9 @@
 
         {{-- Tab Content: Prestasi --}}
         <div id="content-prestasi" class="tab-content hidden">
-            <div class="max-w-4xl mx-auto bg-white rounded-3xl shadow-xl p-8 md:p-12">
+            <div class="max-w-4xl mx-auto bg-white rounded-card shadow-sm p-8 md:p-12">
                 <div class="flex items-start space-x-4 mb-8">
-                    <div class="w-16 h-16 bg-secondary-100 rounded-2xl flex items-center justify-center flex-shrink-0">
+                    <div class="w-16 h-16 bg-secondary-100 rounded-soft flex items-center justify-center flex-shrink-0">
                         <svg class="w-8 h-8 text-secondary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
                         </svg>
@@ -210,7 +207,7 @@
                             Kategori Prestasi yang Diterima
                         </h4>
                         <div class="ml-11 grid md:grid-cols-2 gap-4">
-                            <div class="bg-accent-50 rounded-xl p-4">
+                            <div class="bg-accent-50 rounded-soft p-4">
                                 <h5 class="font-bold text-gray-800 mb-2">Akademik</h5>
                                 <ul class="text-sm text-gray-700 space-y-1">
                                     <li>• Olimpiade Sains/Matematika</li>
@@ -218,7 +215,7 @@
                                     <li>• Lomba Karya Ilmiah</li>
                                 </ul>
                             </div>
-                            <div class="bg-accent-50 rounded-xl p-4">
+                            <div class="bg-accent-50 rounded-soft p-4">
                                 <h5 class="font-bold text-gray-800 mb-2">Non-Akademik</h5>
                                 <ul class="text-sm text-gray-700 space-y-1">
                                     <li>• Olahraga (minimal Kabupaten)</li>
@@ -229,7 +226,7 @@
                         </div>
                     </div>
 
-                    <div class="bg-secondary-50 rounded-2xl p-6 border-l-4 border-secondary-600">
+                    <div class="bg-secondary-50 rounded-soft p-6 border-l-4 border-secondary-600">
                         <div class="flex items-start">
                             <svg class="w-6 h-6 text-secondary-600 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
