@@ -301,6 +301,103 @@ test('timeline pendaftaran dibangun dari tahap tiap gelombang', function () {
         ->and($html)->toContain('Dibuka');
 });
 
+/**
+ * Blok `<details>` milik satu gelombang.
+ *
+ * Nama gelombang juga muncul di dropdown form, jadi potongan halaman dipecah
+ * per `<details>` lebih dulu supaya assertion tidak salah sasaran.
+ */
+function blokDetail(string $html, string $namaGelombang): string
+{
+    foreach (explode('<details', $html) as $potongan) {
+        if (str_contains($potongan, $namaGelombang)) {
+            return '<details'.$potongan;
+        }
+    }
+
+    return '';
+}
+
+test('timeline dikelompokkan per gelombang, bukan satu kartu per tahap', function () {
+    Gelombang::query()->delete();
+
+    // Tiga gelombang, masing-masing dengan dua tahap, akan jadi 3 x 2 = 6
+    // kartu kalau diratakan. Taupe satu blok per gelombang supaya halaman
+    // tidak memanjang tanpa batas saat jumlah gelombang bertambah.
+    foreach ([['Batch Alpha', now()->subWeek()], ['Batch Beta', now()->addMonth()], ['Batch Gamma', now()->addMonths(4)]] as [$nama, $buka]) {
+        $gelombang = buatGelombang([
+            'nama_gelombang' => $nama,
+            'buka' => $buka->toDateString(),
+            'tutup' => $buka->copy()->addWeeks(2)->toDateString(),
+        ]);
+        $gelombang->tahapan()->create([
+            'tipe' => 'tes',
+            'nama_tahap' => 'Tes '.$nama,
+            'urutan' => 2,
+            'tanggal_mulai' => $buka->copy()->addWeeks(3)->toDateString(),
+        ]);
+    }
+
+    $html = $this->get(route('spmb.pendaftaran'))->assertOk()->getContent();
+
+    expect(substr_count($html, '<details'))->toBe(3);
+
+    // Satu blok berisi semua tahap gelombangnya, bukan satu blok per tahap.
+    $blok = blokDetail($html, 'Batch Alpha');
+
+    expect($blok)->toContain('Pendaftaran Online')
+        ->and($blok)->toContain('Tes Batch Alpha')
+        ->and(blokDetail($html, 'Batch Beta'))->toContain('Tes Batch Beta')
+        ->and(blokDetail($html, 'Batch Gamma'))->not->toContain('Tes Batch Alpha');
+});
+
+test('gelombang yang sedang dibuka otomatis terbuka, yang lain tertutup', function () {
+    Gelombang::query()->delete();
+
+    buatGelombang(['nama_gelombang' => 'Batch Terbuka']);
+    buatGelombang([
+        'nama_gelombang' => 'Batch Mendatang',
+        'buka' => now()->addMonth()->toDateString(),
+        'tutup' => now()->addMonths(3)->toDateString(),
+    ]);
+
+    $html = $this->get(route('spmb.pendaftaran'))->assertOk()->getContent();
+
+    // Atribut `open` ditulis pada tag <details>, jadi cukup cek awal baris.
+    $terbuka = substr(blokDetail($html, 'Batch Terbuka'), 0, 200);
+    $mendatang = substr(blokDetail($html, 'Batch Mendatang'), 0, 200);
+
+    expect($terbuka)->toContain(' open')
+        ->and($mendatang)->not->toContain(' open');
+
+    // Konten tahap tetap ada di HTML walau tertutup, jadi tidak ada informasi
+    // yang hilang untuk mesin pencari maupun pengguna yang tidak menjalankan JS.
+    expect(blokDetail($html, 'Batch Mendatang'))->toContain('Pendaftaran Online');
+});
+
+test('header gelombang menyebut tahap yang sedang berjalan atau berikutnya', function () {
+    Gelombang::query()->delete();
+
+    buatGelombang(['nama_gelombang' => 'Batch Jalan']);
+    buatGelombang([
+        'nama_gelombang' => 'Batch Nanti',
+        'buka' => now()->addMonth()->toDateString(),
+        'tutup' => now()->addMonths(3)->toDateString(),
+    ]);
+
+    $html = $this->get(route('spmb.pendaftaran'))->assertOk()->getContent();
+
+    // Gelombang yang jendelanya terbuka = tahap sedang berjalan. Yang belum
+    // dibuka = tahap berikutnya. Ditulis sebagai teks, bukan hanya ditunjukkan
+    // titik, karena di layar sempit titiknya tidak bisa dibaca.
+    expect(blokDetail($html, 'Batch Jalan'))->toContain('Tahap sekarang')
+        ->and(blokDetail($html, 'Batch Jalan'))->toContain('Pendaftaran Online')
+        ->and(blokDetail($html, 'Batch Nanti'))->toContain('Tahap berikutnya');
+
+    // Strip tahap tetap membawa nama + tanggal lewat title.
+    expect($html)->toContain('title="Pendaftaran Online ·');
+});
+
 test('sisa kursi dan persentase memakai data nyata', function () {
     Gelombang::query()->delete();
     $gelombang = buatGelombang(['kuota' => 40, 'terisi' => 10]);

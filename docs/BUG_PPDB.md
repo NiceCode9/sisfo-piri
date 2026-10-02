@@ -582,6 +582,41 @@ Timeline dibangun dari tahap tiap gelombang, bukan dari `jadwal_ppdbs`:
   masuk dropdown.
 - Tahap yang sedang berjalan diberi sorotan.
 
+### Dikelompokkan per gelombang
+
+Versi pertama meratakan semua tahap dari semua gelombang jadi satu daftar
+(`flatMap`), lalu menampilkannya sebagai kartu bolak-balik. Dengan 3 gelombang
+x 5 tahap itu jadi **15 kartu setinggi ~3000px**, dan nama gelombang hanya
+tampil sebagai pil kecil di tiap kartu. Akibatnya batch yang sedang dibuka
+dipakai untuk lookahead tidak terlihat berbeda dari batch yang baru dibuka 8
+bulan lagi — calon harus membaca seluruh halaman untuk menemukan yang
+relevan.
+
+Sekarang tiap gelombang jadi satu blok `<details>`:
+
+| Bagian | Isi | Tinggi |
+|---|---|---|
+| Header (selalu terlihat) | Nama, badge status, jendela pendaftaran, tahap yang sedang berjalan/berikutnya, strip titik | ~110px |
+| Detail (on demand) | Timeline lengkap: nama tahap, tanggal, keterangan | — |
+
+Tiga keputusan yang menyertainya:
+
+1. **Buka otomatis hanya untuk gelombang yang sedang dibuka.** Gelombang yang
+   belum dibuka tetap tertutup, tapi isinya tetap ada di HTML, jadi tidak ada
+   informasi yang hilang untuk pengguna tanpa JS maupun untuk mesin pencari.
+2. **`<details>`/`<summary>` instead of JS.** natively dapat keyboard dan
+   screen reader; tidak perlu handler yang harus dirawat.
+3. **Rail di kiri, satu kolom di semua ukuran layar.** Versi lama memakai
+   `w-5/12` **tanpa breakpoint**, jadi di ponsel 375px tiap kartu hanya
+   ~140px dan tanggalnya terpotong. Baris `w-5/12` + `w-5/12` kosong juga
+   membuang setengah lebar baris; rail kiri memakai ~90%.
+
+Titik pada strip diwarnai dari predikat yang sudah ada di model
+(`berlangsung()`, `sudahLewat()`, `belumMulai()`), jadi strip dan timeline
+detail tidak mungkin berbeda pendapat. Strip sengaja tidak mencetak nama tahap
+— lima nama plus lima tanggal tidak muat di 375px — dan maknanya ditulis sebagai
+teks ("Tahap sekarang: ...") supaya tetap terbaca, bukan hanya di-hover.
+
 ---
 
 # Perbaikan Seeder (`d8b76fb`, `ed62ca4`)

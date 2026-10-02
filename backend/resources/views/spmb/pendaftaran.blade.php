@@ -21,12 +21,15 @@
 
     $semuaGelombangs = $semuaGelombangs ?? collect();
 
-    // Satu daftar datar untuk layout bolak-balik. Urutannya mengikuti urutan
-    // gelombang lalu urutan tahap, jadi timeline dibaca seperti kronologi.
-    $timelineTahap = $semuaGelombangs
-        ->flatMap(fn ($gelombang) => $gelombang->tahapan
-            ->map(fn ($tahap) => ['gelombang' => $gelombang, 'tahap' => $tahap]))
-        ->values();
+    // Timeline dikelompokkan per gelombang, bukan diratakan jadi satu daftar
+    // tahap. Versi lama melakukan flatMap sehingga 3 gelombang x 5 tahap
+    // menjadi 15 kartu bolak-balik setinggi ~3000px, dan nama gelombang hanya
+    // muncul sebagai pil kecil di tiap kartu sehingga calon harus membaca
+    // seluruh halaman untuk menemukan batch yang sedang dibuka.
+    //
+    // Sekarang tiap gelombang jadi satu blok <details>: header-nya selalu
+    // terlihat (nama, status, jendela pendaftaran, strip tahap), detailnya
+    // dibuka on demand.
 
     // Nomor kontak asal template ("(022) 1234-5678",
     // "spmb@smpharapanbangsa.sch.id") sudah dihapus: bukan milik sekolah ini.
@@ -89,6 +92,29 @@
         }
 
         return 'calendar';
+    };
+
+    // Warna strip tahap memakai predikat yang sudah ada di model, jadi strip
+    // dan timeline detail tidak mungkin berbeda pendapat soal "tahap mana yang
+    // sudah lewat".
+    $kelasTitikTahap = fn ($tahap) => match (true) {
+        $tahap->berlangsung() => 'bg-accent-500 ring-4 ring-accent-100',
+        $tahap->sudahLewat() => 'bg-gray-300',
+        default => 'bg-white border-2 border-primary-300',
+    };
+
+    $kelasGarisTahap = fn ($tahap) => $tahap->sudahLewat() ? 'bg-gray-300' : 'bg-primary-200';
+
+    // Label untuk strip. Strip sengaja tidak mencetak nama tahap karena lima
+    // nama + lima tanggal tidak muat di layar 375px, jadi informasinya
+    // dibawa lewat title (hover) dan screen reader.
+    $judulTahap = function ($tahap) {
+        $rentang = $tahap->punyaJendela()
+            ? $tahap->tanggal_mulai->locale('id')->translatedFormat('d M Y')
+                .' - '.$tahap->tanggalAkhir()->locale('id')->translatedFormat('d M Y')
+            : $tahap->tanggal_mulai->locale('id')->translatedFormat('d M Y');
+
+        return $tahap->nama_tahap.' · '.$rentang;
     };
 
     $persyaratanList = [
@@ -289,62 +315,124 @@
                 <div class="text-center mb-12">
                     <span class="inline-block px-4 py-1.5 bg-primary-100 text-primary-700 rounded-full text-sm font-semibold mb-4">Jadwal</span>
                     <h2 class="text-3xl md:text-4xl font-extrabold text-gray-800 mb-4">Timeline SPMB</h2>
-                    <p class="text-lg text-gray-600 max-w-2xl mx-auto">Ikuti setiap tahapan pendaftaran dengan cermat</p>
+                    <p class="text-lg text-gray-600 max-w-2xl mx-auto">Pilih batch, lalu buka tahapannya untuk melihat jadwal lengkap</p>
                 </div>
 
-                <div class="relative">
-                    <div class="absolute left-1/2 -translate-x-1/2 h-full w-1 bg-gradient-to-b from-primary-500 to-accent-500 rounded-full"></div>
-
-                    @forelse ($timelineTahap as $index => $item)
+                <div class="space-y-4 max-w-4xl mx-auto">
+                    @forelse ($semuaGelombangs as $gelombangTimeline)
                         @php
-                            $tahap = $item['tahap'];
-                            $gelombangTimeline = $item['gelombang'];
-                            $iconKey = $cariIkonTahap($tahap->tipe, $tahap->nama_tahap);
-                            $sedangBerlangsung = $tahap->berlangsung();
-                            // Status pakai objek yang sama dengan badge hero, jadi
-                            // timeline dan hero tidak pernah berbeda pendapat.
+                            // Status memakai objek yang sama dengan badge hero, jadi
+                            // kartu dan hero tidak pernah berbeda pendapat.
                             $statusGelombang = \App\Support\StatusPendaftaran::untuk($gelombangTimeline);
+                            $sedangBuka = $statusGelombang->state === \App\Support\StatusPendaftaran::BUKA;
+                            $tahapPendaftaran = $gelombangTimeline->tahapPendaftaran();
                             $kelasStatus = match ($statusGelombang->state) {
                                 \App\Support\StatusPendaftaran::BUKA => 'bg-green-100 text-green-700',
                                 \App\Support\StatusPendaftaran::BELUM => 'bg-sky-100 text-sky-700',
                                 \App\Support\StatusPendaftaran::PENUH => 'bg-amber-100 text-amber-700',
                                 default => 'bg-gray-200 text-gray-600',
                             };
+
+                            // Tahap yang sedang berjalan, atau yang paling dekat
+                            // akan datang. Ini yang dicari calon ("saya harus
+                            // siapkan apa sekarang?"), jadi ditulis sebagai teks
+                            // dan bukan cuma ditunjukkan oleh titik.
+                            $tahapSekarang = $gelombangTimeline->tahapan->first(
+                                fn ($t) => $t->berlangsung() || $t->belumMulai()
+                            );
                         @endphp
-                        <div class="relative flex items-center mb-8 {{ $index % 2 == 0 ? 'flex-row' : 'flex-row-reverse' }}">
-                            <div class="w-5/12 {{ $index % 2 == 0 ? 'text-right pr-8' : 'text-left pl-8' }}">
-                                <div class="bg-white rounded-2xl shadow-lg p-6 hover:shadow-2xl transition-all duration-300 border {{ $sedangBerlangsung ? 'border-primary-300 ring-2 ring-primary-100' : 'border-gray-100' }} card-hover">
-                                    <div class="flex items-center {{ $index % 2 == 0 ? 'justify-end' : 'justify-start' }} mb-3">
-                                        <div class="w-12 h-12 {{ $sedangBerlangsung ? 'bg-gradient-to-br from-primary-500 to-accent-500' : 'bg-gradient-primary' }} rounded-full flex items-center justify-center text-white shadow-md">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                                @foreach ($renderIcon($iconKey) as $d)
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
-                                                @endforeach
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div class="mb-2 flex flex-wrap items-center gap-2 {{ $index % 2 == 0 ? 'justify-end' : 'justify-start' }}">
-                                        <span class="text-xs font-semibold text-primary-700 bg-primary-50 rounded-full px-2.5 py-0.5">{{ $gelombangTimeline->nama_gelombang }}</span>
+
+                        {{-- Gelombang yang sedang dibuka otomatis terbuka, yang
+                             lain tertutup. Halaman tetap ringkas, tapi tidak ada
+                             informasi yang disembunyikan: <details> tetap
+                             membloknya di dalam HTML. --}}
+                        <details @if ($sedangBuka) open @endif class="group bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                            <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden px-5 sm:px-6 py-5 hover:bg-slate-50 transition-colors flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <h3 class="text-lg font-bold text-gray-800">{{ $gelombangTimeline->nama_gelombang }}</h3>
                                         <span class="text-xs font-semibold rounded-full px-2.5 py-0.5 {{ $kelasStatus }}">{{ $statusGelombang->labelGelombang() }}</span>
-                                        @if ($sedangBerlangsung)
-                                            <span class="text-xs font-semibold text-accent-700 bg-accent-50 rounded-full px-2.5 py-0.5">Tahap sedang berjalan</span>
-                                        @endif
                                     </div>
-                                    <h3 class="text-lg font-bold text-gray-800 mb-2">{{ $tahap->nama_tahap }}</h3>
-                                    <p class="text-sm text-gray-600 mb-2">
-                                        {{ $tahap->tanggal_mulai->locale('id')->translatedFormat('d M Y') }}
-                                        @if ($tahap->punyaJendela())
-                                            &ndash; {{ $tahap->tanggalAkhir()->locale('id')->translatedFormat('d M Y') }}
+                                    <p class="text-sm text-gray-600 mt-1">
+                                        @if ($tahapPendaftaran)
+                                            Pendaftaran
+                                            {{ $tahapPendaftaran->tanggal_mulai->locale('id')->translatedFormat('d M Y') }}
+                                            @if ($tahapPendaftaran->punyaJendela())
+                                                &ndash; {{ $tahapPendaftaran->tanggalAkhir()->locale('id')->translatedFormat('d M Y') }}
+                                            @endif
+                                        @else
+                                            Jadwal pendaftaran belum ditetapkan
                                         @endif
                                     </p>
-                                    @if ($tahap->keterangan)
-                                        <p class="text-sm text-gray-500">{{ $tahap->keterangan }}</p>
+                                    @if ($tahapSekarang)
+                                        <p class="text-xs text-gray-500 mt-1">
+                                            {{ $tahapSekarang->berlangsung() ? 'Tahap sekarang' : 'Tahap berikutnya' }}:
+                                            {{ $tahapSekarang->nama_tahap }}
+                                        </p>
                                     @endif
                                 </div>
+
+                                {{-- Strip tahap: menunjukkan posisi batch ini tanpa
+                                     harus membuka detail. Hiasan saja, maknanya
+                                     sudah ditulis sebagai teks di sebelahnya. --}}
+                                <div class="flex items-center gap-1.5 shrink-0" aria-hidden="true">
+                                    @foreach ($gelombangTimeline->tahapan as $titik)
+                                        @if (! $loop->first)
+                                            <span class="w-4 h-0.5 rounded {{ $kelasGarisTahap($titik) }}"></span>
+                                        @endif
+                                        <span class="w-3 h-3 rounded-full {{ $kelasTitikTahap($titik) }}" title="{{ $judulTahap($titik) }}"></span>
+                                    @endforeach
+                                </div>
+
+                                <svg class="w-5 h-5 text-gray-400 shrink-0 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </summary>
+
+                            {{-- Detail: rail di kiri, satu kolom di semua ukuran
+                                 layar. Versi lama memakai w-5/12 tanpa breakpoint
+                                 sehingga di ponsel 375px tiap kartu hanya
+                                 ~140px dan tanggalnya terpotong. --}}
+                            <div class="border-t border-gray-100 bg-slate-50 px-5 sm:px-6 py-6">
+                                <ol class="relative border-l-2 border-primary-200 ml-2 space-y-4">
+                                    @foreach ($gelombangTimeline->tahapan as $tahap)
+                                        @php
+                                            $iconKey = $cariIkonTahap($tahap->tipe, $tahap->nama_tahap);
+                                            $sedangBerlangsung = $tahap->berlangsung();
+                                        @endphp
+                                        <li class="ml-5 relative">
+                                            <span class="absolute -left-[27px] top-1 w-6 h-6 rounded-full bg-white border-4 {{ $sedangBerlangsung ? 'border-accent-500' : 'border-primary-400' }}"></span>
+                                            <div class="bg-white rounded-xl border p-4 {{ $sedangBerlangsung ? 'border-accent-300 ring-2 ring-accent-100' : 'border-gray-100' }}">
+                                                <div class="flex items-start gap-3">
+                                                    <div class="w-9 h-9 shrink-0 rounded-lg flex items-center justify-center text-white {{ $sedangBerlangsung ? 'bg-accent-500' : 'bg-primary-500' }}">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                            @foreach ($renderIcon($iconKey) as $d)
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                                                            @endforeach
+                                                        </svg>
+                                                    </div>
+                                                    <div class="min-w-0 flex-1">
+                                                        <h4 class="font-bold text-gray-800 text-sm">{{ $tahap->nama_tahap }}</h4>
+                                                        <p class="text-sm text-gray-600">
+                                                            {{ $tahap->tanggal_mulai->locale('id')->translatedFormat('d M Y') }}
+                                                            @if ($tahap->punyaJendela())
+                                                                &ndash; {{ $tahap->tanggalAkhir()->locale('id')->translatedFormat('d M Y') }}
+                                                            @endif
+                                                        </p>
+                                                        @if ($tahap->keterangan)
+                                                            <p class="text-xs text-gray-500 mt-1">{{ $tahap->keterangan }}</p>
+                                                        @endif
+                                                    </div>
+                                                    @if ($sedangBerlangsung)
+                                                        <span class="shrink-0 text-xs font-semibold text-accent-700 bg-accent-50 rounded-full px-2.5 py-0.5">Berlangsung</span>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </li>
+                                    @endforeach
+                                </ol>
                             </div>
-                            <div class="absolute left-1/2 -translate-x-1/2 w-6 h-6 bg-white border-4 {{ $sedangBerlangsung ? 'border-accent-500' : 'border-primary-500' }} rounded-full shadow-lg z-10"></div>
-                            <div class="w-5/12"></div>
-                        </div>
+                        </details>
                     @empty
                         <div class="max-w-xl mx-auto text-center bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
                             <p class="text-base font-semibold text-gray-700 mb-1">Jadwal PPDB belum dipublikasikan</p>
