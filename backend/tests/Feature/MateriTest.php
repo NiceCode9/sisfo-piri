@@ -54,7 +54,7 @@ test('tamu tidak dapat membuka materi', function () {
 });
 
 test('guru dapat menambah materi dokumen', function () {
-    Storage::fake('public');
+    Storage::fake(Materi::DISK);
     $guru = Guru::firstOrFail();
     $user = $guru->user;
     $user->assignRole('guru');
@@ -70,7 +70,7 @@ test('guru dapat menambah materi dokumen', function () {
     $response->assertRedirect(route('admin.materis.index'));
     $materi = Materi::where('judul', 'Materi Dokumen')->first();
     expect($materi)->not->toBeNull()->and($materi->file_path)->not->toBeNull();
-    Storage::disk('public')->assertExists($materi->file_path);
+    Storage::disk(Materi::DISK)->assertExists($materi->file_path);
 });
 
 test('materi link tanpa url ditolak', function () {

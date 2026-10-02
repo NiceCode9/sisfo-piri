@@ -4,6 +4,7 @@
 @section('breadcrumb', 'Profil')
 
 @section('content')
+@include('ortu._nav', ['tabAktif' => 'profil'])
 <div class="page-header d-flex flex-wrap align-items-start justify-content-between gap-3">
     <div>
         <h1 class="page-title">Ganti Password</h1>

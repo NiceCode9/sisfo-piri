@@ -8,7 +8,7 @@
 @include('layouts.partials.alert')
 <div class="card-nexus"><div class="card-body-nexus">
     <p style="font-size:13px;">{{ $materi->deskripsi ?? '—' }}</p>
-    @if($materi->file_path)<p><a href="{{ Storage::disk('public')->url($materi->file_path) }}" target="_blank" class="btn btn-nexus-outline btn-sm">Download File</a></p>@endif
+    @if($materi->file_path)<p><a href="{{ route('elearning.materi.berkas', $materi) }}" target="_blank" class="btn btn-nexus-outline btn-sm">Download File</a></p>@endif
     @if($materi->url)<p><a href="{{ $materi->url }}" target="_blank" class="text-primary">{{ $materi->url }}</a></p>@endif
 </div></div>
 @endsection

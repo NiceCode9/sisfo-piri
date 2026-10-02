@@ -4,6 +4,7 @@
 @section('breadcrumb', 'Tugas')
 
 @section('content')
+@include('ortu._nav', ['tabAktif' => 'tugas'])
 <div class="page-header"><h1 class="page-title">Tugas Anak</h1><p class="page-subtitle mb-0">Tugas untuk rombel anak Anda</p></div>
 @include('layouts.partials.alert')
 <div class="card-nexus"><div class="card-body-nexus p-0">

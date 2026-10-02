@@ -12,7 +12,7 @@ class MateriController extends Controller
     public function index(): View
     {
         $siswa = auth()->user()->siswa;
-        $rombels = $siswa ? Rombel::where('kelas_id', $siswa->kelas_id)->where('tahun_ajaran_id', $siswa->tahun_ajaran_id)->pluck('id') : collect();
+        $rombels = Rombel::untukSiswa($siswa);
 
         $materis = Materi::with(['mataPelajaran', 'guru', 'rombel.kelas'])
             ->whereIn('rombel_id', $rombels)
@@ -26,7 +26,9 @@ class MateriController extends Controller
     public function show(Materi $materi): View
     {
         $siswa = auth()->user()->siswa;
-        abort_unless($siswa && $materi->rombel_id === Rombel::where('kelas_id', $siswa->kelas_id)->where('tahun_ajaran_id', $siswa->tahun_ajaran_id)->first()?->id, 403);
+
+        abort_unless($siswa && in_array($materi->rombel_id, Rombel::untukSiswa($siswa), true), 403);
+        abort_unless($materi->is_aktif, 404);
 
         $materi->load(['mataPelajaran', 'guru', 'rombel.kelas']);
 

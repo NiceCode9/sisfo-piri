@@ -43,6 +43,7 @@ class TugasController extends Controller implements HasMiddleware
         $tahunMode = request()->query('tahun', 'aktif');
 
         $tugas = Tugas::with(['rombel.kelas', 'rombel.tahunAjaran', 'mataPelajaran', 'guru'])
+            ->whereHas('rombel', fn ($qq) => $qq->terjangkauUser(request()->user()))
             ->when($tahunMode === 'aktif' && $tahunAktif, fn ($q) => $q->whereHas('rombel', fn ($qq) => $qq->where('tahun_ajaran_id', $tahunAktif->id)))
             ->when(is_numeric($tahunMode), fn ($q) => $q->whereHas('rombel', fn ($qq) => $qq->where('tahun_ajaran_id', $tahunMode)))
             ->when(request('rombel'), fn ($q, $v) => $q->where('rombel_id', $v))
@@ -53,9 +54,7 @@ class TugasController extends Controller implements HasMiddleware
 
         return view('admin.tugas.index', [
             'tugas' => $tugas,
-            'rombels' => Rombel::with(['kelas', 'tahunAjaran'])
-                ->when($tahunAktif, fn ($q) => $q->orderByRaw('tahun_ajaran_id = ? desc', [$tahunAktif->id]))
-                ->orderByDesc('tahun_ajaran_id')->orderBy('kelas_id')->get(),
+            'rombels' => $this->rombels(),
             'tahunAjarans' => TahunAjaran::orderByDesc('tanggal_mulai')->get(),
             'tahunAktif' => $tahunAktif,
             'tahunMode' => $tahunMode,
@@ -70,7 +69,11 @@ class TugasController extends Controller implements HasMiddleware
     public function store(StoreTugasRequest $request): RedirectResponse
     {
         $validated = $request->validated();
-        $validated['guru_id'] = Guru::where('user_id', auth()->id())->first()?->id;
+
+        // Admin tidak punya baris `gurus`, jadi guru_id sengaja dibiarkan null
+        // daripada diisi wali rombel: atribusi harus menunjuk orang yang
+        // benar-benar membuat tugas, bukan pengganti yang menyesatkan.
+        $validated['guru_id'] = Guru::where('user_id', $request->user()->id)->first()?->id;
         $validated['is_aktif'] = $request->boolean('is_aktif', true);
         $tugas = Tugas::create($validated);
 
@@ -79,6 +82,8 @@ class TugasController extends Controller implements HasMiddleware
 
     public function show(Tugas $tuga): View
     {
+        $this->authorize('view', $tuga);
+
         $tuga->load(['rombel.kelas', 'rombel.tahunAjaran', 'mataPelajaran', 'guru', 'pengumpulans.siswa.user']);
 
         return view('admin.tugas.show', ['tugas' => $tuga]);
@@ -86,11 +91,15 @@ class TugasController extends Controller implements HasMiddleware
 
     public function edit(Tugas $tuga): View
     {
+        $this->authorize('update', $tuga);
+
         return view('admin.tugas.edit', array_merge(['tugas' => $tuga], $this->formData()));
     }
 
     public function update(UpdateTugasRequest $request, Tugas $tuga): RedirectResponse
     {
+        $this->authorize('update', $tuga);
+
         $validated = $request->validated();
         $validated['is_aktif'] = $request->boolean('is_aktif');
         $tuga->update($validated);
@@ -100,6 +109,8 @@ class TugasController extends Controller implements HasMiddleware
 
     public function destroy(Tugas $tuga): RedirectResponse
     {
+        $this->authorize('delete', $tuga);
+
         $tuga->delete();
 
         return redirect()->route('admin.tugas.index')->with('success', 'Tugas dihapus.');
@@ -107,6 +118,8 @@ class TugasController extends Controller implements HasMiddleware
 
     public function nilai(Tugas $tuga): View
     {
+        $this->authorize('nilai', $tuga);
+
         $tuga->load(['rombel', 'mataPelajaran']);
         $pengumpulans = $tuga->pengumpulans()->with('siswa.user')->latest()->get();
 
@@ -115,6 +128,8 @@ class TugasController extends Controller implements HasMiddleware
 
     public function simpanNilai(Request $request, Tugas $tuga): RedirectResponse
     {
+        $this->authorize('nilai', $tuga);
+
         $request->validate([
             'nilai' => ['required', 'array'],
             'nilai.*' => ['nullable', 'integer', 'min:0', 'max:100'],
@@ -244,31 +259,45 @@ class TugasController extends Controller implements HasMiddleware
         return compact('rombel', 'tugasList', 'siswas', 'matriks', 'rataPerSiswa', 'mapelId');
     }
 
+    /**
+     * Rombel milik user yang sedang login, untuk dropdown dan rekap.
+     *
+     * Versi lama mengembalikan SELURUH rombel bila user tidak punya kelas wali
+     * (termasuk user yang bukan guru sama sekali), sehingga rekap nilai dan
+     * dropdown kelas bisa dibuka untuk kelas milik guru lain. Sekarang
+     * kekosongan tidak lagi berarti "buka semua".
+     *
+     * @return array{semua: Collection, terkunci: bool}
+     */
     protected function rombelTerjangkau(): array
     {
+        return [
+            'semua' => $this->rombels(),
+            'terkunci' => ! request()->user()->hasRole(Rombel::ROLE_UNIVERSAL),
+        ];
+    }
+
+    /**
+     * Rombel yang boleh dikelola user, terurut dari tahun ajaran aktif.
+     *
+     * @return Collection<int, Rombel>
+     */
+    protected function rombels(): Collection
+    {
         $tahunAktif = TahunAjaran::aktif()->first();
-        $semua = Rombel::with(['kelas', 'tahunAjaran'])
+
+        return Rombel::with(['kelas', 'tahunAjaran'])
+            ->terjangkauUser(request()->user())
             ->when($tahunAktif, fn ($q) => $q->orderByRaw('tahun_ajaran_id = ? desc', [$tahunAktif->id]))
-            ->orderByDesc('tahun_ajaran_id')->orderBy('kelas_id')->get();
-
-        $guruId = Guru::where('user_id', auth()->id())->first()?->id;
-        $ampuan = $guruId ? $semua->where('wali_guru_id', $guruId)->values() : collect();
-
-        if ($ampuan->isNotEmpty()) {
-            return ['semua' => $ampuan, 'terkunci' => true];
-        }
-
-        return ['semua' => $semua, 'terkunci' => false];
+            ->orderByDesc('tahun_ajaran_id')
+            ->orderBy('kelas_id')
+            ->get();
     }
 
     protected function formData(): array
     {
-        $tahunAktif = TahunAjaran::aktif()->first();
-
         return [
-            'rombels' => Rombel::with(['kelas', 'tahunAjaran'])
-                ->when($tahunAktif, fn ($q) => $q->orderByRaw('tahun_ajaran_id = ? desc', [$tahunAktif->id]))
-                ->orderByDesc('tahun_ajaran_id')->orderBy('kelas_id')->get(),
+            'rombels' => $this->rombels(),
             'mapels' => MataPelajaran::aktif()->orderBy('kode')->get(),
         ];
     }

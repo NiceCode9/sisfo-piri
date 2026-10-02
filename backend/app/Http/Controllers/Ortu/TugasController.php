@@ -12,13 +12,38 @@ use Illuminate\View\View;
 
 class TugasController extends Controller
 {
+    /**
+     * ID anak-anak milik wali murid yang sedang login.
+     *
+     * @return array<int>
+     */
+    protected function anakIds(): array
+    {
+        return WaliMurid::where('user_id', auth()->id())->pluck('siswa_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+    }
+
+    /**
+     * Rombel anak-anak, dirangkum dari kelas + tahun berjalan masing-masing.
+     *
+     * @return array<int>
+     */
+    protected function rombelAnakIds(): array
+    {
+        $anakIds = $this->anakIds();
+
+        return Siswa::whereIn('id', $anakIds)->get()
+            ->flatMap(fn (Siswa $s) => Rombel::untukSiswa($s))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
     public function index(): View
     {
-        $anakIds = WaliMurid::where('user_id', auth()->id())->pluck('siswa_id');
-        $rombels = Siswa::whereIn('id', $anakIds)->get()->map(fn ($s) => Rombel::where('kelas_id', $s->kelas_id)->where('tahun_ajaran_id', $s->tahun_ajaran_id)->first()?->id)->filter();
-
         $tugas = Tugas::with(['mataPelajaran', 'rombel.kelas'])
-            ->whereIn('rombel_id', $rombels)
+            ->whereIn('rombel_id', $this->rombelAnakIds())
             ->where('is_aktif', true)
             ->latest()
             ->paginate(10);
@@ -28,18 +53,26 @@ class TugasController extends Controller
 
     public function show(Tugas $tugas): View
     {
-        $anakIds = WaliMurid::where('user_id', auth()->id())->pluck('siswa_id');
-        $rombels = Siswa::whereIn('id', $anakIds)->get()->map(fn ($s) => Rombel::where('kelas_id', $s->kelas_id)->where('tahun_ajaran_id', $s->tahun_ajaran_id)->first()?->id)->filter();
-        abort_unless($rombels->contains($tugas->rombel_id), 403);
+        abort_unless(in_array($tugas->rombel_id, $this->rombelAnakIds(), true), 403);
 
-        $tugas->load(['mataPelajaran', 'rombel.kelas', 'pengumpulans.siswa.user']);
+        $tugas->load(['mataPelajaran', 'rombel.kelas']);
 
-        return view('ortu.tugas.show', compact('tugas'));
+        // Hanya pengumpulan milik anak sendiri. Versi lama memuat relasi
+        // `pengumpulans` tanpa filter, sehingga halaman ini menampilkan
+        // nama, berkas, nilai, dan catatan guru milik seluruh teman
+        // sekelas anak.
+        $pengumpulans = PengumpulanTugas::where('tugas_id', $tugas->id)
+            ->whereIn('siswa_id', $this->anakIds())
+            ->with('siswa.user')
+            ->latest()
+            ->get();
+
+        return view('ortu.tugas.show', compact('tugas', 'pengumpulans'));
     }
 
     public function rekap(): View
     {
-        $anakIds = WaliMurid::where('user_id', auth()->id())->pluck('siswa_id');
+        $anakIds = $this->anakIds();
         $anak = Siswa::with('user')->whereIn('id', $anakIds)->get();
         $rekap = [];
         foreach ($anak as $siswa) {

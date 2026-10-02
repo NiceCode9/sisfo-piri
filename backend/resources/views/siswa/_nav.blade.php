@@ -1,4 +1,4 @@
-{{-- Tab navigasi area siswa. $tabAktif: dashboard|profil|kelas|absensi --}}
+{{-- Tab navigasi area siswa. $tabAktif: dashboard|profil|kelas|absensi|materi|tugas --}}
 <div class="d-flex gap-2 flex-wrap mb-3">
     @php
         $tabs = [

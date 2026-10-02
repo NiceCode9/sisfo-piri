@@ -13,6 +13,7 @@ use App\Models\TahunAjaran;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
@@ -25,6 +26,7 @@ class MateriController extends Controller implements HasMiddleware
             new Middleware('permission:materis.create', only: ['create', 'store']),
             new Middleware('permission:materis.edit', only: ['edit', 'update']),
             new Middleware('permission:materis.delete', only: ['destroy']),
+            new Middleware('throttle:elearning-kumpul', only: ['store']),
         ];
     }
 
@@ -34,6 +36,7 @@ class MateriController extends Controller implements HasMiddleware
         $tahunMode = request()->query('tahun', 'aktif');
 
         $materis = Materi::with(['rombel.kelas', 'rombel.tahunAjaran', 'mataPelajaran', 'guru'])
+            ->whereHas('rombel', fn ($qq) => $qq->terjangkauUser(request()->user()))
             ->when($tahunMode === 'aktif' && $tahunAktif, fn ($q) => $q->whereHas('rombel', fn ($qq) => $qq->where('tahun_ajaran_id', $tahunAktif->id)))
             ->when(is_numeric($tahunMode), fn ($q) => $q->whereHas('rombel', fn ($qq) => $qq->where('tahun_ajaran_id', $tahunMode)))
             ->when(request('rombel'), fn ($q, $v) => $q->where('rombel_id', $v))
@@ -45,9 +48,7 @@ class MateriController extends Controller implements HasMiddleware
 
         return view('admin.materis.index', [
             'materis' => $materis,
-            'rombels' => Rombel::with(['kelas', 'tahunAjaran'])
-                ->when($tahunAktif, fn ($q) => $q->orderByRaw('tahun_ajaran_id = ? desc', [$tahunAktif->id]))
-                ->orderByDesc('tahun_ajaran_id')->orderBy('kelas_id')->get(),
+            'rombels' => $this->rombels(),
             'tahunAjarans' => TahunAjaran::orderByDesc('tanggal_mulai')->get(),
             'tahunAktif' => $tahunAktif,
             'tahunMode' => $tahunMode,
@@ -62,11 +63,15 @@ class MateriController extends Controller implements HasMiddleware
     public function store(StoreMateriRequest $request): RedirectResponse
     {
         $validated = $request->validated();
-        $validated['guru_id'] = Guru::where('user_id', auth()->id())->first()?->id;
+
+        // Admin tidak punya baris `gurus`, jadi guru_id sengaja dibiarkan null
+        // daripada diisi wali rombel: atribusi harus menunjuk orang yang
+        // benar-benar membuat materi, bukan pengganti yang menyesatkan.
+        $validated['guru_id'] = Guru::where('user_id', $request->user()->id)->first()?->id;
         $validated['is_aktif'] = $request->boolean('is_aktif', true);
 
         if ($request->hasFile('file')) {
-            $validated['file_path'] = $request->file('file')->store('materi', 'public');
+            $validated['file_path'] = $request->file('file')->store('materi', Materi::DISK);
         }
 
         unset($validated['file']);
@@ -77,6 +82,8 @@ class MateriController extends Controller implements HasMiddleware
 
     public function show(Materi $materi): View
     {
+        $this->authorize('view', $materi);
+
         $materi->load(['rombel.kelas', 'rombel.tahunAjaran', 'mataPelajaran', 'guru']);
 
         return view('admin.materis.show', compact('materi'));
@@ -84,19 +91,23 @@ class MateriController extends Controller implements HasMiddleware
 
     public function edit(Materi $materi): View
     {
+        $this->authorize('update', $materi);
+
         return view('admin.materis.edit', array_merge(['materi' => $materi], $this->formData()));
     }
 
     public function update(UpdateMateriRequest $request, Materi $materi): RedirectResponse
     {
+        $this->authorize('update', $materi);
+
         $validated = $request->validated();
         $validated['is_aktif'] = $request->boolean('is_aktif');
 
         if ($request->hasFile('file')) {
             if ($materi->file_path) {
-                Storage::disk('public')->delete($materi->file_path);
+                Storage::disk(Materi::DISK)->delete($materi->file_path);
             }
-            $validated['file_path'] = $request->file('file')->store('materi', 'public');
+            $validated['file_path'] = $request->file('file')->store('materi', Materi::DISK);
         }
 
         unset($validated['file']);
@@ -107,8 +118,10 @@ class MateriController extends Controller implements HasMiddleware
 
     public function destroy(Materi $materi): RedirectResponse
     {
+        $this->authorize('delete', $materi);
+
         if ($materi->file_path) {
-            Storage::disk('public')->delete($materi->file_path);
+            Storage::disk(Materi::DISK)->delete($materi->file_path);
         }
 
         $materi->delete();
@@ -116,14 +129,27 @@ class MateriController extends Controller implements HasMiddleware
         return redirect()->route('admin.materis.index')->with('success', 'Materi dihapus.');
     }
 
-    protected function formData(): array
+    /**
+     * Rombel yang boleh dikelola user, terurut dari tahun ajaran aktif.
+     *
+     * @return Collection<int, Rombel>
+     */
+    protected function rombels(): Collection
     {
         $tahunAktif = TahunAjaran::aktif()->first();
 
+        return Rombel::with(['kelas', 'tahunAjaran'])
+            ->terjangkauUser(request()->user())
+            ->when($tahunAktif, fn ($q) => $q->orderByRaw('tahun_ajaran_id = ? desc', [$tahunAktif->id]))
+            ->orderByDesc('tahun_ajaran_id')
+            ->orderBy('kelas_id')
+            ->get();
+    }
+
+    protected function formData(): array
+    {
         return [
-            'rombels' => Rombel::with(['kelas', 'tahunAjaran'])
-                ->when($tahunAktif, fn ($q) => $q->orderByRaw('tahun_ajaran_id = ? desc', [$tahunAktif->id]))
-                ->orderByDesc('tahun_ajaran_id')->orderBy('kelas_id')->get(),
+            'rombels' => $this->rombels(),
             'mapels' => MataPelajaran::aktif()->orderBy('kode')->get(),
         ];
     }

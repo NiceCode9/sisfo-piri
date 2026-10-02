@@ -15,7 +15,7 @@
                 @forelse($pengumpulans as $p)
                     <tr>
                         <td style="font-weight:600;">{{ $p->siswa->user->name ?? '-' }} @if($p->is_terlambat)<span class="badge-nexus badge-warning">Terlambat</span>@endif</td>
-                        <td>@if($p->file_path)<a href="{{ Storage::disk('public')->url($p->file_path) }}" target="_blank" class="text-primary">Download</a>@else — @endif</td>
+                        <td>@if($p->file_path)<a href="{{ route('elearning.pengumpulan.berkas', $p) }}" target="_blank" class="text-primary">Download</a>@else — @endif</td>
                         <td style="min-width:100px;"><input type="number" name="nilai[{{ $p->id }}]" value="{{ old('nilai.'.$p->id, $p->nilai) }}" min="0" max="100" class="form-control form-control-sm @error('nilai.'.$p->id) is-invalid @enderror" />@error('nilai.'.$p->id)<div class="invalid-feedback">{{ $message }}</div>@enderror</td>
                         <td><input type="text" name="catatan_guru[{{ $p->id }}]" value="{{ old('catatan_guru.'.$p->id, $p->catatan_guru) }}" class="form-control form-control-sm" /></td>
                     </tr>

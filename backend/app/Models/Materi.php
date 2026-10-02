@@ -2,11 +2,20 @@
 
 namespace App\Models;
 
+use App\Http\Controllers\Elearning\BerkasController;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Materi extends Model
 {
+    /**
+     * Berkas materi tidak disimpan di disk `public`: URL `/storage/...`
+     * bisa dibuka siapa pun tanpa login, termasuk berkas kelas yang belum
+     * diumumkan. Penyajiannya lewat route terotorisasi di
+     * {@see BerkasController}.
+     */
+    public const DISK = 'berkas';
+
     protected $fillable = [
         'rombel_id',
         'mata_pelajaran_id',
