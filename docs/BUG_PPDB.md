@@ -13,7 +13,7 @@
 | **High** | 8 | Fungsional inti tidak bekerja / tidak konsisten antar-subsistem |
 | **Medium** | 12 | Salah tampilan, validasi tak simetris, deadlock UX, data slander |
 | **Low** | 6 | Teks/angka hardcoded, N+1, placeholder bocor, konsistensi-copy |
-| **TOTAL** | **31** | |
+| **TOTAL** | **31** | Semua sudah diperbaiki |
 
 Temuan paling Struktural: **dokumen identitas anak terekspos lewat URL publik tanpa autentikasi** (C1), dan **tiga subsistem — kuota, log audit, tagihan — dapat dilewati hanya dengan satu field** (C2).
 
@@ -26,7 +26,9 @@ Legend verifikasi:
 
 # Status Perbaikan
 
-Kelima temuan Critical dan seluruh 8 temuan High sudah diperbaiki pada `main`:
+Seluruh 31 temuan sudah diperbaiki di 4 tahap: Critical, High, Medium, lalu Low.
+
+### Tahap 1 — 5 temuan Critical
 
 | ID | Commit | Perbaikan inti |
 |---|---|---|
@@ -81,6 +83,29 @@ Seluruh temuan **Medium** sudah diperbaiki (suites penuh hijau, 485 test / 1567 
 
 **M6 sudah selesai di `a749301`** (Tahap 2) — kuota dipisah menjadi batas pendaftar dan batas penerimaan.
 
+### Tahap 4 — 6 temuan Low
+
+Seluruh temuan **Low** sudah diperbaiki (suites penuh hijau, 519 test / 1744 assertions):
+
+| ID | Commit | Perbaikan inti |
+|---|---|---|
+| L1 | `24fa86a` | Kartu "Kuota Terbatas" memakai agregat nyata. Jalur tanpa batas (`kuota_pendaftaran` NULL) tidak ikut dihitung. Jumlah kelas dihitung dari `rombels`, bukan tabel `kelas` (tabel itu hanya katalog nama kelas tanpa tahun ajaran). Angka "siswa per kelas" dihapus: kapasitas berlaku untuk angkatan baru, sedangkan kelas berjalan mencakup kelas atas, jadi pembaginya tidak sebanding |
+| L2 + L4 | `1e42645` | Statistik hero memakai jumlah siswa/guru aktif dan usia sekolah dari `tahun_berdiri` (dipasang di view composer `spmb.*` agar `about` memakai sumber sama). Badge "Pendaftaran Dibuka!" mengikuti jendela pendaftaran yang sama dengan form: dibuka / belum mulai (menampilkan tanggal) / ditutup / disembunyikan saat tak ada tahun ajaran aktif. Tahun ajaran bukan lagi literal `2026/2027` |
+| L3 | `5054680` | Accessor `*Bersih` di `ProfilSekolah` menyaring placeholder (`GANTI`/`TODO`/`ISI`/`DUMMY`) dan nilai kosong jadi `null`, plus `telp_tel`/`whatsapp` supaya `href="tel:GANTI: ..."` tidak mungkin terjadi. Data karangan di `about.blade.php` (5 misi, 1 visi, nama kepala sekolah + gelar, 1 paragraf sambutan) dihapus. `partials/kontak.blade.php` yang orphan dihapus |
+| L5 | `aab1494` | Nama resmi jadi `ProfilSekolahSeeder::NAMA_SEKOLAH` = **SMP PIRI NGAGLIK**. Nama sekolah kini satu sumber (`$namaSekolah` dari view composer) untuk navbar, footer, about, kartu-siswa, dan kwitansi. Email profil dikosongkan, bukan dikarang |
+| L6 | `774b381` | `calon_siswas.gelombang_id` (nullable, nullOnDelete) + gate tanggal/kuota, counter otomatis, dan `diskon_persen` yang akhirnya terpakai |
+
+**Koreksi terhadap audit awal — L5 salah menyalahkan landing page.** Nama sekolahnya yang keliru, bukan teks persyaratannya. Sekolah ini jenjang **SMP**, sehingga "lulusan kelas 6 SD/MI", "rapor SD semester 1-5", dan "usia maksimal 15 tahun" memang syarat yang benar dan tidak diubah. Yang dibetulkan adalah nama sekolah yang muncul di 4 tempat berbeda.
+
+**Catatan L3/L5:** placeholder di database **tetap ada** sebagai pengingat ke admin — isinya diisi lewat menu Profil Sekolah. Yang berubah adalah view tidak lagi menampilkannya.
+
+**Catatan L6 (asumsi):** diskon gelombang hanya memotong **Biaya Pendaftaran**, bukan seluruh biaya wajib. Bulat ke bawah ke ribuan terdekat, tidak retroactive ke tagihan yang sudah terlanjur dibuat, dan tidak memotong biaya wajib lain (uang pangkal, seragam, buku paket).
+
+**Dua jebakan yang sempat muncul saat mengerjakan L6 dan perlu dijaga:**
+
+1. `StorePendaftaranRequest` **tidak boleh** menambah method `withValidator()`. Trait `BersihkanSertifikatKosong` sudah memakainya untuk menegakkan `wajib_sertifikat`, dan method kelas akan menimpanya — kewajiban sertifikat jadi hilang tanpa error. Karena itu pengecekan gelombang memakai rule class `App\Rules\GelombangTerbuka`, bukan `withValidator()`.
+2. Field `gelombang_id` berstatus `nullable`, sehingga Laravel berhenti memvalidasi begitu nilainya null dan kewajiban memilih gelombang tidak pernah dicek. Solusinya rule tersebut mengimplementasikan `ImplicitRule`.
+
 ### Koreksi terhadap audit awal
 
 1. **M5 — "gagal validasi membakar kuota" tidak benar.** Kuota hanya di-`increment` di dalam transaksi *setelah* validasi lolos, jadi percobaan gagal tidak menyentuh kuota. Yang terpakai hanya slot throttle.
@@ -90,7 +115,7 @@ Seluruh temuan **Medium** sudah diperbaiki (suites penuh hijau, 485 test / 1567 
 
 **Catatan M10:** gate hanya berlaku bila ada baris `BerkasCalonSiswa`. Calon tanpa berkas sama sekali tetap boleh diterima — tidak ada berkas yang perlu diverifikasi.
 
-Sisa temuan **Low** belum dikerjakan. `PpdbSeeder` juga masih tidak idempoten (pakai `create()`), sehingga `db:seed` gagal bila dijalankan dua kali.
+`PpdbSeeder` masih tidak idempoten (pakai `create()`), sehingga `db:seed` gagal bila dijalankan dua kali. Ini di luar cakupan 31 temuan dan masih terbuka.
 
 ---
 
@@ -375,18 +400,27 @@ Pindahkan operasi file setelah commit transaksi (atau compensating), dan s compr
 
 # LOW
 
-| ID | Temuan | Lokasi |
-|---|---|---|
-| **L1** | Angka hardcoded kontradiktif: "Kuota Terbatas — 180 siswa" & "6 Kelas @30" vs data asli kuota 320 | `keunggulan.blade.php:98-116` vs `PpdbSeeder.php:91-127` |
-| **L2** | "500+ Siswa Aktif" di hero, tapi halaman about memakai data asli — dua angka berbeda di satu halaman | `hero.blade.php:52-62` vs `about.blade.php:23` |
-| **L3** | Placeholder `GANTI: (0274) ...` tercetak di halaman publik + `href="tel:GANTI: ..."` rusak | `ProfilSekolahSeeder.php` → `pendaftaran.blade.php:79,723,730` |
-| **L4** | `Pendaftaran Dibuka!` hardcoded, tidak pernah bisa dimatikan admin | `hero.blade.php:20` |
-| **L5** | Identitas sekolah tidak konsisten: `SMKN Ngaglik` (seeder) vs fallback `"SMP Harapan Bangsa"`, deskripsi "kelas 6 SD" & "usia 15" | `ProfilSekolahSeeder`, `navbar.blade.php:3`, `footer.blade.php:3`, `jalur-seleksi.blade.php:54,60` |
-| **L6** | Gelombang: `terisi`/`kuota` statis (tidak ada `gelombang_id` di `calon_siswas`), `tanggal_buka`/`tutup` tidak ditegakkan | `gelombang.blade.php:27,53-54,99-104`; migrasi `calon_siswas` |
+Semua sudah diperbaiki (lihat "Tahap 4" di atas).
+
+| ID | Temuan | Lokasi | Commit |
+|---|---|---|---|
+| **L1** | Angka hardcoded kontradiktif: "Kuota Terbatas — 180 siswa" & "6 Kelas @30" vs data asli kuota 320 | `keunggulan.blade.php:98-116` vs `PpdbSeeder.php:91-127` | `24fa86a` |
+| **L2** | "500+ Siswa Aktif" di hero, tapi halaman about memakai data asli — dua angka berbeda di satu halaman | `hero.blade.php:52-62` vs `about.blade.php:23` | `1e42645` |
+| **L3** | Placeholder `GANTI: (0274) ...` tercetak di halaman publik + `href="tel:GANTI: ..."` rusak | `ProfilSekolahSeeder.php` → `pendaftaran.blade.php:79,723,730` | `5054680` |
+| **L4** | `Pendaftaran Dibuka!` hardcoded, tidak pernah bisa dimatikan admin | `hero.blade.php:20` | `1e42645` |
+| **L5** | Identitas sekolah tidak konsisten: `SMKN Ngaglik` (seeder) vs fallback `"SMP Harapan Bangsa"`, deskripsi "kelas 6 SD" & "usia 15" | `ProfilSekolahSeeder`, `navbar.blade.php:3`, `footer.blade.php:3`, `jalur-seleksi.blade.php:54,60` | `aab1494` |
+| **L6** | Gelombang: `terisi`/`kuota` statis (tidak ada `gelombang_id` di `calon_siswas`), `tanggal_buka`/`tutup` tidak ditegakkan | `gelombang.blade.php:27,53-54,99-104`; migrasi `calon_siswas` | `774b381` |
+
+> **L5 dikoreksi:** sekolah ini **SMP**, jadi nama sekolahnya yang salah dan teks persyaratannya ("kelas 6 SD/MI", "usia maksimal 15 tahun") justru benar untuk SMP. Nama resmi: **SMP PIRI NGAGLIK**. Audit awal juga terlewat satu sumber identitas keempat: kwitansi pembayaran mencetak `SMK Negeri 1 Ngaglik` beserta alamat & telepon karangan pada dokumen resmi.
 
 ---
 
 # Kesimpulan Alur Kerja (alur yang berjalan saat ini)
+
+> ⚠️ **Bagian ini, dan bagian "Cakupan Test yang Tidak Tercakup" di bawah,
+> menggambarkan kondisi pada saat audit (2026-09-29) — sebelum ada
+> perbaikan.** Keduanya sengaja dibiarkan apa adanya sebagai catatan kondisi
+> awal. Untuk alur dan cakupan test saat ini, lihat bagian "Status Perbaikan".
 
 ```
 Publik:  Landing → [CTA MATI] → /pendaftaran (form 4 langkah)
@@ -428,3 +462,15 @@ Yang **tidak** berjalan sama sekali: gate waktu (H7), gate kuota publik (H1), ga
 | **Tahap 4** | L1–L6 | Polish teks publik & konsistensi |
 
 *Catatan: beberapa temuan (terutama C1 dan C3) bersifat struktural dan menyentuh storage/security — perlu hatian khusus saat memperbaiki agar tidak merusak alur yang sudah berjalan.*
+
+---
+
+# Yang Masih Terbuka
+
+| Item | Status |
+|---|---|
+| `PpdbSeeder` tidak idempoten (`create()`, bukan `upsert`) | Belum diperbaiki — di luar cakupan 31 temuan. `db:seed` gagal bila dijalankan dua kali |
+| Data profil sekolah belum diisi | Placeholder masih tersimpan sebagai pengingat; diisi lewat menu **Profil Sekolah** (nama resmi sudah diisi: SMP PIRI NGAGLIK) |
+| Domain email sekolah | Dikosongkan dengan sengaja, bukan dikarang. Isi lewat menu Profil Sekolah |
+| Statistik publik terlihat sangat kecil | Dev DB masih berisi data contoh (36 siswa, 2 guru). Bukan bug — konsekuensi dari memakai angka nyata |
+| `jalur-seleksi.blade.php` masih `TODO` | Copy di file itu masih perlu ditinjau oleh pihak sekolah (syarat jalur & warna kartu) |
