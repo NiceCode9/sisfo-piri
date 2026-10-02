@@ -404,7 +404,9 @@
                                             <span class="absolute -left-[27px] top-1 w-6 h-6 rounded-full bg-white border-4 {{ $sedangBerlangsung ? 'border-accent-500' : 'border-primary-400' }}"></span>
                                             <div class="bg-white rounded-xl border p-4 {{ $sedangBerlangsung ? 'border-accent-300 ring-2 ring-accent-100' : 'border-gray-100' }}">
                                                 <div class="flex items-start gap-3">
-                                                    <div class="w-9 h-9 shrink-0 rounded-lg flex items-center justify-center text-white {{ $sedangBerlangsung ? 'bg-accent-500' : 'bg-primary-500' }}">
+                                                    {{-- Slot 600, bukan 500: teks putih di atas `bg-*-500` hanya
+                                                             ~2-3.7:1 sehingga ikon praktiknya tak terlihat. --}}
+                                                    <div class="w-9 h-9 shrink-0 rounded-lg flex items-center justify-center text-white {{ $sedangBerlangsung ? 'bg-accent-600' : 'bg-primary-600' }}">
                                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                                             @foreach ($renderIcon($iconKey) as $d)
                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
@@ -457,7 +459,8 @@
                     <div class="space-y-4">
                         @foreach ($persyaratanList as $item)
                             <div class="flex items-start p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors duration-200">
-                                <div class="w-8 h-8 bg-accent-500 rounded-full flex items-center justify-center text-white mr-4 mt-1 flex-shrink-0">
+                                {{-- `bg-accent-500` + teks putih hanya 2.54:1; pakai slot 600 (5.93:1) --}}
+                                <div class="w-8 h-8 bg-accent-600 rounded-full flex items-center justify-center text-white mr-4 mt-1 flex-shrink-0">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                                     </svg>

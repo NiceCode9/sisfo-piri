@@ -9,42 +9,73 @@
     /* Typography */
     --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
 
-    /* Primary Colors - Sesuaikan dengan identitas sekolah */
-    --color-primary-50: #eff6ff;
-    --color-primary-100: #dbeafe;
-    --color-primary-200: #bfdbfe;
-    --color-primary-300: #93c5fd;
-    --color-primary-400: #60a5fa;
-    --color-primary-500: #3b82f6;
-    --color-primary-600: #2563eb;
-    --color-primary-700: #1d4ed8;
-    --color-primary-800: #1e40af;
-    --color-primary-900: #1e3a8a;
-    --color-primary-950: #172554;
+    /*
+     * Primary Colors - Hijau Imtaq
+     *
+     * SMP PIRI NGAGLIK bernaung di bawah Yayasan Perguruan Islam Republik
+     * Indonesia, dan visinya "Unggul dalam prestasi dan iptek berlandaskan
+     * Imtaq". Warna hijau dipilih karena itu identitas sekolah, bukan pilihan
+     * dekoratif.
+     *
+     * PENTING - kenapa slot 600 dan seterusnya lebih gelap dari ramp hijau
+     * bawaan Tailwind: view memakai `bg-primary-600 text-white` di 6 tempat
+     * (tombol CTA, ikon langkah, dsb). Hijau bawaan `#059669` hanya 3.77:1
+     * terhadap teks putih - di bawah ambang WCAG AA 4.5:1. Slot 500 di sini
+     * tetap terang dan hanya untuk dekoratif. Test "tidak ada teks putih di
+     * atas background yang kontrasnya gagal" menghitung rasio aslinya, jadi
+     * slot 500 pun tetap boleh selama warnanya cukup gelap.
+     */
+    --color-primary-50: #f0fdf4;
+    --color-primary-100: #dcfce7;
+    --color-primary-200: #bbf7d0;
+    --color-primary-300: #86efac;
+    --color-primary-400: #4ade80;
+    --color-primary-500: #16a34a;
+    --color-primary-600: #15803d;
+    --color-primary-700: #166534;
+    --color-primary-800: #14532d;
+    --color-primary-900: #052e16;
+    --color-primary-950: #041407;
 
-    /* Secondary Colors - Aksen hangat */
+    /*
+     * Secondary Colors - Emas, digelapkan
+     *
+     * Emas adalah pasangan tradisional hijau pada identitas sekolah islami,
+     * jadi tetap dipertahankan. Hanya nilainya yang digelapkan: `--color-secondary-500`
+     * dipakai 6 kali sebagai background teks putih (termasuk tombol "Daftar"
+     * di navbar), dan amber terang `#f59e0b` cuma 2.15:1 - praktis tidak
+     * terbaca. Slot 400 tetap terang karena hanya dipakai untuk blob
+     * dekoratif beropasitas rendah, bukan teks di atas putih.
+     */
     --color-secondary-50: #fffbeb;
     --color-secondary-100: #fef3c7;
     --color-secondary-200: #fde68a;
     --color-secondary-300: #fcd34d;
     --color-secondary-400: #fbbf24;
-    --color-secondary-500: #f59e0b;
-    --color-secondary-600: #d97706;
-    --color-secondary-700: #b45309;
-    --color-secondary-800: #92400e;
-    --color-secondary-900: #78350f;
+    --color-secondary-500: #b45309;
+    --color-secondary-600: #92400e;
+    --color-secondary-700: #78350f;
+    --color-secondary-800: #451a03;
+    --color-secondary-900: #1c1917;
 
-    /* Accent Colors - Hijau ceria */
-    --color-accent-50: #ecfdf5;
-    --color-accent-100: #d1fae5;
-    --color-accent-200: #a7f3d0;
-    --color-accent-300: #6ee7b7;
-    --color-accent-400: #34d399;
-    --color-accent-500: #10b981;
-    --color-accent-600: #059669;
-    --color-accent-700: #047857;
-    --color-accent-800: #065f46;
-    --color-accent-900: #064e3b;
+    /*
+     * Accent Colors - Sky
+     *
+     * Dulu hijau, sekarang biru langit. Setelah primary jadi hijau, accent
+     * tidak boleh tetap hijau juga - dua hijau di satu halaman membuat
+     * `--color-accent-*` tidak bisa dibedakan dari primary dan merusak hierarki
+     * warna. Sky dipakai sebagai aksen untuk penanda "sedang berlangsung".
+     */
+    --color-accent-50: #f0f9ff;
+    --color-accent-100: #e0f2fe;
+    --color-accent-200: #bae6fd;
+    --color-accent-300: #7dd3fc;
+    --color-accent-400: #38bdf8;
+    --color-accent-500: #0ea5e9;
+    --color-accent-600: #0369a1;
+    --color-accent-700: #075985;
+    --color-accent-800: #0c4a6e;
+    --color-accent-900: #082f49;
 }
 
 /* Smooth scroll behavior */

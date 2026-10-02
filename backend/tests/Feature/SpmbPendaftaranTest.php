@@ -133,6 +133,204 @@ test('halaman publik tidak punya tautan mati dan CTA mengarah ke tujuan yang ben
         ->assertSee(route('spmb.pendaftaran'), escape: false);
 });
 
+/**
+ * Rasio kontras WCAG antara dua warna hex.
+ *
+ * Dipakai test kontras untuk menghitung nilai aslinya, bukan menebak dari
+ * nama kelas Tailwind - terang/ gelapnya warna tidak selalu sesuai dengan
+ * nomor slotnya.
+ */
+function rasioKontras(string $hexA, string $hexB): float
+{
+    $luminansi = function (string $hex): float {
+        $hex = ltrim($hex, '#');
+        $kanal = [];
+
+        foreach ([0, 2, 4] as $i) {
+            $c = hexdec(substr($hex, $i, 2)) / 255;
+            $kanal[] = $c <= 0.03928 ? $c / 12.92 : (($c + 0.055) / 1.055) ** 2.4;
+        }
+
+        return 0.2126 * $kanal[0] + 0.7152 * $kanal[1] + 0.0722 * $kanal[2];
+    };
+
+    $a = $luminansi($hexA);
+    $b = $luminansi($hexB);
+
+    return round((max($a, $b) + 0.05) / (min($a, $b) + 0.05), 2);
+}
+
+/**
+ * Isi blok hero saja.
+ *
+ * Halaman beranda punya banyak section; assertion tentang hero harus dipisah
+ * dari section lain supaya tidak salah sasaran.
+ */
+function blokHero(string $html): string
+{
+    preg_match('/<section id="beranda".*?<\/section>/s', $html, $cocok);
+
+    return $cocok[0] ?? '';
+}
+
+test('hero memakai foto sekolah lokal, bukan foto stok', function () {
+    $html = $this->get(route('spmb.home'))->assertOk()->getContent();
+    $hero = blokHero($html);
+
+    // Foto stok dari Unsplash dulu dipakai di sini, padahal sekolah punya foto
+    // sendiri. Selain tidak jujur, foto stok juga menambah satu host pihak
+    // ketiga ke jalur render pertama.
+    expect($hero)->toContain('/images/sekolah/gedung-')
+        ->and($hero)->not->toContain('unsplash');
+
+    // Tiga ukuran supaya ponsel tidak ikut mengunduh versi desktop.
+    expect($hero)->toContain('gedung-480w.jpg 480w')
+        ->and($hero)->toContain('gedung-960w.jpg 960w')
+        ->and($hero)->toContain('gedung-1600w.jpg 1600w');
+
+    // width/height mencegah halaman bergeser (CLS) tepat di bagian pertama
+    // yang dilihat calon.
+    expect($hero)->toContain('width="1600" height="900"')
+        ->and($hero)->toContain('fetchpriority="high"');
+
+    // alt harus menyebut isi gambarnya, bukan label generik.
+    expect($hero)->toContain('Gedung dan lapangan');
+
+    // referenced file harus benar-benar ada, supaya path rusak ketahuan di
+    // test dan bukan baru saat calon membuka halaman.
+    $src = base_path('public/images/sekolah/gedung-960w.jpg');
+
+    expect(is_file($src))->toBeTrue()
+        ->and(filesize($src))->toBeLessThan(1024 * 1024);
+});
+
+test('kartu akreditasi hero tidak muncul sebelum data akreditasi diisi', function () {
+    // Tanpa profil sama sekali.
+    expect(ProfilSekolah::count())->toBe(0);
+
+    $tanpa = blokHero($this->get(route('spmb.home'))->assertOk()->getContent());
+
+    // Versi lama selalu menulis "Sekolah Terakreditasi" walau kolomnya kosong,
+    // sementara sub-teksnya sendiri mengakui status belum dicantumkan.
+    expect($tanpa)->not->toContain('Sekolah Terakreditasi')
+        ->and($tanpa)->not->toContain('Status belum dicantumkan');
+
+    ProfilSekolah::create(['nama_sekolah' => 'SMP PIRI NGAGLIK', 'akreditasi' => 'A']);
+
+    $dengan = blokHero($this->get(route('spmb.home'))->assertOk()->getContent());
+
+    expect($dengan)->toContain('Terakreditasi A');
+
+    // Kalau lalu dikosongkan lagi, kartu harus hilang lagi - bukan tertinggal
+    // menulis klaim. `akreditasi` berupa enum('A','B','C') jadi tidak mungkin
+    // menyimpan placeholder; accessor `*Bersih` tetap dipakai sebagai pengaman
+    // kalau someday kolomnya diubah jadi teks bebas.
+    ProfilSekolah::aktif()->update(['akreditasi' => null]);
+
+    $dikosongkan = blokHero($this->get(route('spmb.home'))->assertOk()->getContent());
+
+    expect($dikosongkan)->not->toContain('Terakreditasi')
+        ->and($dikosongkan)->not->toContain('Sekolah Terakreditasi');
+});
+
+test('hero tidak lagi menulis klaim yang tidak punya sumber data', function () {
+    $hero = blokHero($this->get(route('spmb.home'))->assertOk()->getContent());
+
+    // "Kurikulum Merdeka / Update & Inovatif" ditulis sebagai teks mati di
+    // kartu melayang: tidak ada kolom, tidak ada sumber, dan tidak bisa
+    // dibantah kalau ternyata tidak berlaku.
+    expect($hero)->not->toContain('Kurikulum Merdeka')
+        ->and($hero)->not->toContain('Update & Inovatif');
+
+    // Diganti tahun ajaran aktif, yang benar-benar dari database.
+    expect($hero)->toContain('Tahun Ajaran')
+        ->and($hero)->toContain('Penerimaan Murid Baru');
+});
+
+test('palet publik memakai hijau Imtaq dan bukan biru lama', function () {
+    $css = file_get_contents(resource_path('css/app.css'));
+
+    expect($css)->toContain('--color-primary-600: #15803d')
+        ->and($css)->toContain('--color-primary-700: #166534')
+        ->and($css)->toContain('--color-accent-600: #0369a1')
+        ->and($css)->toContain('--color-secondary-500: #b45309');
+
+    // Warna biru lama harus hilang total, kalau tidak ada bagian halaman
+    // yang somehow masih pakai token lama.
+    foreach (['#eff6ff', '#dbeafe', '#bfdbfe', '#93c5fd', '#60a5fa', '#3b82f6', '#2563eb', '#1d4ed8', '#1e40af', '#1e3a8a', '#172554'] as $biru) {
+        expect($css)->not->toContain($biru);
+    }
+});
+
+test('tidak ada teks putih di atas background yang kontrasnya gagal', function () {
+    // Tombol "Daftar" di navbar pernah `bg-secondary-500` + teks putih dengan
+    // rasio 2.15:1 - praktis tidak terbaca. Test ini menghitung kontrasnya
+    // secara nyata, bukan cuma melarang pola kelas tertentu, karena aturan
+    // "jangan pakai 500" terlalu kasar: setelah palet digelapkan, `secondary-500`
+    // "jangan pakai 500" terlalu kasar: setelah palet digelapkan,
+    // secondary-500 sudah 5.02:1 dan aman.
+    $css = file_get_contents(resource_path('css/app.css'));
+
+    // Ambil nilai hex setiap token dari blok @theme.
+    $token = [];
+
+    if (preg_match_all('/--color-(primary|secondary|accent)-(\d{3}):\s*(#[0-9a-f]{6})/i', $css, $cocok, PREG_SET_ORDER)) {
+        foreach ($cocok as $m) {
+            $token[$m[1].'-'.$m[2]] = $m[3];
+        }
+    }
+
+    expect($token)->not->toBeEmpty();
+
+    $viewSpmb = resource_path('views/spmb');
+    $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($viewSpmb));
+    $gagal = [];
+
+    foreach ($files as $file) {
+        // getExtension() mengembalikan "php", bukan "blade.php" - filter ini
+        // pernah membuat test-nya lolos tanpa menyisir satu file pun.
+        if (! $file->isFile() || ! str_ends_with($file->getFilename(), '.blade.php')) {
+            continue;
+        }
+
+        foreach (file($file->getPathname()) as $index => $baris) {
+            if (! str_contains($baris, 'text-white')) {
+                continue;
+            }
+
+            // Hanya kalau warna teks putih DAN ada bg dari token yang sama.
+            if (! preg_match('/bg-(primary|secondary|accent)-(\d{3})/', $baris, $bg)) {
+                continue;
+            }
+
+            $kunci = $bg[1].'-'.$bg[2];
+
+            if (! isset($token[$kunci])) {
+                continue;
+            }
+
+            $rasio = rasioKontras($token[$kunci], '#ffffff');
+
+            if ($rasio < 4.5) {
+                $relatif = str_replace($viewSpmb.DIRECTORY_SEPARATOR, '', $file->getPathname());
+                $gagal[] = sprintf('%s:%d  bg-%s (%s) = %s:1', $relatif, $index + 1, $kunci, $token[$kunci], $rasio);
+            }
+        }
+    }
+
+    expect($gagal)->toBe([]);
+});
+
+test('pendaftaran tetap jalan dengan palet baru', function () {
+    // Pengaman: pergantian palet tidak boleh merusak alur pendaftaran, karena
+    // `bg-primary-600 text-white` dipakai di tombol submit dan ikon langkah.
+    $this->post(route('spmb.store'), payloadSpmb())
+        ->assertRedirect(route('spmb.pendaftaran'))
+        ->assertSessionHas('success');
+
+    expect(CalonSiswa::count())->toBe(1);
+});
+
 test('pendaftaran publik menambah kuota pendaftaran, bukan kuota penerimaan', function () {
     $tahun = TahunAjaran::aktif()->first();
     $jalur = JalurPendaftaran::first();
