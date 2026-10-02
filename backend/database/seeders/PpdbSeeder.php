@@ -53,9 +53,10 @@ class PpdbSeeder extends Seeder
 
         $this->seedKuota($tahunAjaranAktif);
         $this->seedBiaya($tahunAjaranAktif);
+        // Gelombang harus lebih dulu: JadwalPpdb diturunkan dari tahapnya.
+        $this->seedGelombang($tahunAjaranAktif);
         $this->seedJadwal($tahunAjaranAktif);
         $this->seedPengumuman($tahunAjaranAktif);
-        $this->seedGelombang($tahunAjaranAktif);
 
         $this->command?->info('Seeder PPDB selesai.');
     }
@@ -280,59 +281,42 @@ class PpdbSeeder extends Seeder
     }
 
     /**
-     * Jadwal PPDB. Kunci: (tahun_ajaran_id, tipe).
+     * Kalender internal sekolah. Kunci: (tahun_ajaran_id, tipe).
      *
-     * Memakai `tipe` sebagai kunci, bukan `nama_jadwal`, karena gate pendaftaran
-     * di `JadwalPpdb::jendelaPendaftaran()` mengambil satu baris bertipe
-     * `pendaftaran`. Kunci ini menjamin tidak akan pernah ada dua baris
-     * pendaftaran untuk satu tahun ajaran.
+     * Jadwal PPDB TIDAK lagi menjadi gate pendaftaran (lihat
+     * `App\Support\StatusPendaftaran`), jadi isinya diturunkan dari tahap
+     * gelombang pertama, bukan dari daftar tanggal yang ditulis ulang di sini.
+     * Sebelumnya kedua tabel punya daftar tanggal sendiri yang bisa berbeda
+     * satu sama lain, sehingga kalender internal pernah menjanjikan tanggal
+     * yang tidak ada di halaman publik.
      *
-     * Tanggal dibuat relatif terhadap hari ini supaya data hasil seed selalu
-     * bisa langsung dicoba: fase pendaftaran sedang berlangsung, fase
-     * berikutnya menyusul. Tanggal statis membuat gate pendaftaran menutup
-     * form begitu tanggalnya lewat.
+     * Gelombang pertama dipakai karena kalender ini hanya mewakili satu tahun
+     * ajaran, sementara tiap gelombang punya jadwal sendiri. Kalau sekolah ingin
+     * kalender berbeda per batch, admin menyesuaikan lewat menu Jadwal PPDB.
+     *
+     * Tahap tanpa `tanggal_selesai` (tahap satu hari) ditulis apa adanya;
+     * kolom JadwalPpdb tetap NOT NULL karena di sana satu hari ditulis dengan
+     * tanggal yang sama.
      */
     private function seedJadwal(TahunAjaran $tahun): void
     {
-        $hariIni = now()->startOfDay();
+        $gelombang = Gelombang::where('tahun_ajaran_id', $tahun->id)
+            ->orderBy('nomor_urut')
+            ->first();
 
-        $jadwalPpdb = [
-            [
-                'nama_jadwal' => 'Pendaftaran Online',
-                'tipe' => 'pendaftaran',
-                'tanggal_mulai' => $hariIni->copy()->subMonth()->toDateString(),
-                'tanggal_selesai' => $hariIni->copy()->addMonths(2)->toDateString(),
-                'keterangan' => 'Periode pendaftaran online untuk calon siswa baru',
-            ],
-            [
-                'nama_jadwal' => 'Verifikasi Berkas',
-                'tipe' => 'verifikasi',
-                'tanggal_mulai' => $hariIni->copy()->addMonths(2)->addDay()->toDateString(),
-                'tanggal_selesai' => $hariIni->copy()->addMonths(2)->addDays(10)->toDateString(),
-                'keterangan' => 'Periode verifikasi berkas pendaftaran',
-            ],
-            [
-                'nama_jadwal' => 'Tes Seleksi',
-                'tipe' => 'tes',
-                'tanggal_mulai' => $hariIni->copy()->addMonths(2)->addDays(15)->toDateString(),
-                'tanggal_selesai' => $hariIni->copy()->addMonths(2)->addDays(20)->toDateString(),
-                'keterangan' => 'Pelaksanaan tes seleksi untuk calon siswa',
-            ],
-            [
-                'nama_jadwal' => 'Pengumuman Hasil',
-                'tipe' => 'pengumuman',
-                'tanggal_mulai' => $hariIni->copy()->addMonths(2)->addDays(25)->toDateString(),
-                'tanggal_selesai' => $hariIni->copy()->addMonths(2)->addDays(25)->toDateString(),
-                'keterangan' => 'Pengumuman hasil seleksi PPDB',
-            ],
-            [
-                'nama_jadwal' => 'Daftar Ulang',
-                'tipe' => 'daftar_ulang',
-                'tanggal_mulai' => $hariIni->copy()->addMonths(2)->addDays(26)->toDateString(),
-                'tanggal_selesai' => $hariIni->copy()->addMonths(3)->toDateString(),
-                'keterangan' => 'Periode daftar ulang untuk siswa yang diterima',
-            ],
-        ];
+        if (! $gelombang) {
+            return;
+        }
+
+        $jadwalPpdb = $gelombang->tahapan
+            ->map(fn (GelombangTahap $tahap) => [
+                'nama_jadwal' => $tahap->nama_tahap,
+                'tipe' => $tahap->tipe,
+                'tanggal_mulai' => $tahap->tanggal_mulai->toDateString(),
+                'tanggal_selesai' => $tahap->tanggalAkhir()->toDateString(),
+                'keterangan' => $tahap->keterangan,
+            ])
+            ->all();
 
         foreach ($jadwalPpdb as $jadwal) {
             JadwalPpdb::updateOrCreate(
@@ -342,6 +326,17 @@ class PpdbSeeder extends Seeder
                 ],
                 $jadwal + ['tahun_ajaran_id' => $tahun->id]
             );
+        }
+
+        // Tahap yang dihapus dari gelombang harus mengubah kalender juga.
+        // Kalau tidak, `db:seed` kedua kalinya meninggalkan baris lama yang
+        // tidak lagi punya tahapnya di tabel `gelombang_tahapan`.
+        $tipeTersedia = array_column($jadwalPpdb, 'tipe');
+
+        if ($tipeTersedia !== []) {
+            JadwalPpdb::where('tahun_ajaran_id', $tahun->id)
+                ->whereNotIn('tipe', $tipeTersedia)
+                ->delete();
         }
     }
 

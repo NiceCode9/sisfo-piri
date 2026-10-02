@@ -85,7 +85,7 @@ Seluruh temuan **Medium** sudah diperbaiki (suites penuh hijau, 485 test / 1567 
 
 ### Tahap 4 — 6 temuan Low
 
-Seluruh temuan **Low** sudah diperbaiki (suites penuh hijau, 519 test / 1744 assertions):
+Seluruh temuan **Low** sudah diperbaiki (suites penuh hijau, 526 test / 1792 assertions):
 
 | ID | Commit | Perbaikan inti |
 |---|---|---|
@@ -115,7 +115,8 @@ Seluruh temuan **Low** sudah diperbaiki (suites penuh hijau, 519 test / 1744 ass
 
 **Catatan M10:** gate hanya berlaku bila ada baris `BerkasCalonSiswa`. Calon tanpa berkas sama sekali tetap boleh diterima — tidak ada berkas yang perlu diverifikasi.
 
-`PpdbSeeder` masih tidak idempoten (pakai `create()`), sehingga `db:seed` gagal bila dijalankan dua kali. Ini di luar cakupan 31 temuan dan masih terbuka.
+> Catatan lama di sini berbunyi "`PpdbSeeder` masih tidak idempoten". Sudah tidak
+> berlaku sejak `d8b76fb` — lihat bagian [Perbaikan Seeder](#perbaikan-seeder-d8b76fb-ed62ca4).
 
 ---
 
@@ -277,10 +278,11 @@ Tambahkan `unique:users,email` (dan `username`/NISN uniqueness) di FormRequest, 
 Selisih nama variabel_plural vs _singgal_ → variabel selalu `null` di view → fallback `?? collect([...])` aktif → timeline menampilkan lima baris hardcoded: `1 Nov 2026`, `15 Nov 2026`, `1 Des 2026`, `15 Des 2026`, `31 Des 2026` dengan `keterangan => null`. Data `JadwalPpdb` asli (seeded di `PpdbSeeder.php:183-223`) tidak pernah tampil.
 
 **Dampak**
-Bagian "Timeline Pendaftaran" di halaman pendaftaran publik Entirely fictional. Pendaftar melihat tanggal yang salah.
+Bagian "Timeline Pendaftaran" di halaman publik seluruhnya fiktif. Pendaftar melihat tanggal yang salah.
 
 **Perbaikan**
-Samakan nama variabel di controller/view.
+Timeline sekarang dibangun dari tahap tiap gelombang (`$semuaGelombangs`), bukan
+dari `JadwalPpdb`. Bandingkan [Arsitektur Tahapan Gelombang](#arsitektur-tahapan-gelombang).
 
 ---
 
@@ -358,7 +360,14 @@ Normalisasi tipe sebelum perbandingan (`(int)` keduanya), atau gunakan `where` s
 Pendaftaran publik terbuka 24/7, bahkan sudah lewat periode "Pendaftaran Online" yang ditampilkan di halaman publik. Jadwal PPDB tidak pernah ditegakkan di sisi server.
 
 **Perbaikan**
-Tambahkan gate server-side di `create()` dan `store()` berdasarkan `JadwalPpdb` aktif + tanggal hari ini.
+Gate ditambahkan — lalu **dipindah** lagi. Gate pertama membaca `JadwalPpdb`,
+yang membuat dua sumber untuk satu fakta "kapan pendaftaran dibuka" dan
+menimbulkan konflik badge-vs-form (lihat
+[Arsitektur Tahapan Gelombang](#arsitektur-tahapan-gelombang)).
+
+Bentuk finalnya `App\Support\StatusPendaftaran`: gate memakai tanggal tahap
+`pendaftaran` milik `Gelombang`, dihitung sekali dan dipakai bersama oleh
+badge hero, peringatan form, `App\Rules\GelombangTerbuka`, dan `store()`.
 
 ---
 
@@ -476,6 +485,83 @@ Yang **tidak** berjalan sama sekali: gate waktu (H7), gate kuota publik (H1), ga
 
 ---
 
+# Arsitektur Tahapan Gelombang (`b814135`, `40d1974`, `25c8349`)
+
+## Masalah
+
+Tanggal PPDB tercatat di **dua** tempat sekaligus:
+
+1. `gelombangs.tanggal_buka` / `tanggal_tutup` — gate pemilihan gelombang.
+2. `jadwal_ppdbs` — kalender fase yang tampil di timeline publik.
+
+Keduanya diisi terpisah, jadi bisa berbeda. Akibatnya pertanyaan "apakah
+pendaftaran dibuka?" punya **tiga** pembaca dengan dua sumber berbeda:
+
+| Pembaca | Sumber |
+|---|---|
+| Badge di hero landing page | `JadwalPpdb::jendelaPendaftaran()` |
+| Peringatan di halaman pendaftaran | `JadwalPpdb::jendelaPendaftaran()` |
+| Validasi + gate di `store()` | `Gelombang::bisaMasuk()` |
+
+Gejalanya nyata dan pernah terlihat: saat baris jadwal `pendaftaran` kosong,
+gate-nya permissive sehingga form **terbuka**, sementara hero menulis
+"Pendaftaran Ditutup".
+
+## Keputusan
+
+`Gelombang` beserta tahapnya jadi satu-satunya sumber. `JadwalPpdb` tetap ada
+tetapi turun kelas menjadi **kalender internal sekolah** — tidak lagi
+meng-gate, tidak lagi tampil di halaman publik.
+
+| |\| |
+|---|---|
+| Sumber tanggal | `gelombang_tahapan` (satu baris per tahap per gelombang) |
+| Penentu status | `App\Support\StatusPendaftaran` |
+| Pemakai status | badge hero, peringatan form, `GelombangTerbuka`, gate `store()`, badge kartu gelombang, timeline |
+| `jadwal_ppdbs` | diturunkan seeder dari tahap Gelombang 1; admin boleh menyesuaikan lewat menu Jadwal PPDB |
+
+`App\Support\StatusPendaftaran` sengaja dibuat supaya tidak ada lagi tempat
+kedua yang memutuskan status pendaftaran. State yang mungkin:
+
+| State | Arti | Badge |
+|---|---|---|
+| `BUKA` | ada gelombang terbuka yang belum penuh | "Pendaftaran Dibuka!" |
+| `BELUM` | semua ada, belum ada yang dibuka | "Pendaftaran dibuka <tanggal> pada <gelombang>" |
+| `PENUH` | ada yang terbuka tapi semuanya penuh | "Kuota Gelombang Penuh" |
+| `TUTUP` | semua sudah lewat | "Pendaftaran Ditutup" |
+| `TANPA_JADWAL` | belum ada tahun ajaran aktif / belum ada gelombang | disembunyikan |
+
+`TANPA_JADWAL` sengaja **tidak** menutup pendaftaran: sekolah yang belum
+mengatur batch tidak boleh terkunci tanpa sengaja. Badge-nya disembunyikan
+karena tidak ada yang bisa dijanjikan.
+
+## Migrasi
+
+| Commit | Isi |
+|---|---|
+| `b814135` | tabel `gelombang_tahapan` + model + backfill dari kolom lama |
+| `40d1974` | semua pembacaan tanggal pindah ke tabel tahap, empat kolom tanggal lama di-drop, admin CRUD + seeder ikut |
+| `25c8349` | `JadwalPpdb` lepas dari gate, `StatusPendaftaran` jadi sumber tunggal, timeline publik dibangun dari tahap |
+
+Tiap baris tahap punya `tipe` (`pendaftaran`, `verifikasi`, `tes`,
+`pengumuman`, `daftar_ulang`, `lainnya`). `tanggal_selesai` NULL berarti tahap
+satu hari — konvensi itu ditahan `GelombangTahap::tanggalAkhir()` supaya view
+tidak perlu memeriksa NULL satu per satu. Tahap yang tidak diisi berarti tidak
+ada baris, bukan error.
+
+## Timeline publik
+
+Timeline dibangun dari tahap tiap gelombang, bukan dari `jadwal_ppdbs`:
+
+- Gelombang yang **sudah lewat** disembunyikan supaya halaman publik tidak
+  menampilkan tanggal basi.
+- Gelombang yang **penuh** tetap tampil dengan badge "Kuota Penuh" — calon
+  perlu tahu batch ini penuh dan kapan batch berikutnya dibuka — tapi tidak
+  masuk dropdown.
+- Tahap yang sedang berjalan diberi sorotan.
+
+---
+
 # Perbaikan Seeder (`d8b76fb`, `ed62ca4`)
 
 Di luar 31 temuan, seeder PPDB diperbaiki karena `db:seed` tidak bisa dijalankan
@@ -507,9 +593,9 @@ langkah 7 gagal, langkah 1–6 sudah terlanjur ter-`commit`. Setiap percobaan
   | `pengumuman` | (`tahun_ajaran_id`, `judul`) |
   | `gelombangs` | (`tahun_ajaran_id`, `nomor_urut`) |
 
-  `jadwal_ppdbs` dikunci per `tipe`, bukan `nama_jadwal`, karena gate
-  pendaftaran mengambil satu baris bertipe `pendaftaran` — kuncinya menjamin
-  tidak akan pernah ada dua baris pendaftaran untuk satu tahun ajaran.
+  `jadwal_ppdbs` dikunci per `tipe` supaya tidak akan pernah ada dua baris untuk
+  tipe yang sama dalam satu tahun ajaran. Isinya sekarang **diturunkan** dari
+  tahap gelombang pertama — lihat [Arsitektur Tahapan Gelombang](#arsitektur-tahapan-gelombang).
 
 - ID jalur diambil dari hasil `updateOrCreate` dan disimpan ber-key nama.
   Versi lama memakai `pluck('id')[0..4]`, jadi begitu admin menonaktifkan satu
@@ -559,7 +645,28 @@ Tidak tersentuh: `users` (74), `siswas` (37), `calon_siswas` (1), `kuota_pendaft
 `gelombangs`, `jadwal_ppdbs`, dan `profil_sekolahs` tidak tersentuh.
 
 Backup diambil lebih dulu dengan `mysqldump` sebelum data diubah. Untuk
-menggulung balik, restore file itu.
+menggulung balik, restore file itu:
+
+```
+C:\Users\rsijo\AppData\Local\Temp\opencode\backup-dev\backend-20261002-085810.sql
+```
 
 > **Penting:** jangan pernah menjalankan seeder versi lama (sebelum `d8b76fb`)
 > pada database yang sudah terisi. Kegagalannya tidak atomik.
+
+## Tahap sebagai sumber tunggal
+
+Sejak `40d1974`, tanggal gelombang tidak lagi hidup di kolom `gelombangs`.
+Tabel `gelombang_tahapan` memegang lima tahap per gelombang, dan
+`seedTahapan()` menurunkannya dari `tanggal_tutup` pendaftaran — bukan dari
+`tanggal_buka`.
+
+Menurunkan dari `tutup` membuat kelas bug lama mustahil terulang: versi
+sebelumnya memakai `buka + 10 hari` untuk tanggal tes, sehingga Gelombang 1
+(sedang dibuka hari ini) punya tes 3 minggu lalu dan pengumuman 2 minggu lalu.
+Keduanya sudah lewat, dan tetap tampil ke publik.
+
+Seeder sekarang menjalankan `seedGelombang()` **sebelum** `seedJadwal()`,
+karena kalender internal diturunkan dari tahapnya. Dev DB terverifikasi:
+`jadwal_ppdbs` berisi 5 baris yang nilainya identik dengan tahap Gelombang 1,
+dan `db:seed` dua kali berturut-turut tidak menambah apa pun.
