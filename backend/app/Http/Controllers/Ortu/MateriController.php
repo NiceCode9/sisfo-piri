@@ -11,13 +11,32 @@ use Illuminate\View\View;
 
 class MateriController extends Controller
 {
+    /**
+     * @return array<int>
+     */
+    protected function anakIds(): array
+    {
+        return WaliMurid::where('user_id', auth()->id())->pluck('siswa_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+    }
+
+    /**
+     * @return array<int>
+     */
+    protected function rombelAnakIds(): array
+    {
+        return Siswa::whereIn('id', $this->anakIds())->get()
+            ->flatMap(fn (Siswa $s) => Rombel::untukSiswa($s))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
     public function index(): View
     {
-        $anakIds = WaliMurid::where('user_id', auth()->id())->pluck('siswa_id');
-        $rombels = Siswa::whereIn('id', $anakIds)->get()->map(fn ($s) => Rombel::where('kelas_id', $s->kelas_id)->where('tahun_ajaran_id', $s->tahun_ajaran_id)->first()?->id)->filter();
-
         $materis = Materi::with(['mataPelajaran', 'guru', 'rombel.kelas'])
-            ->whereIn('rombel_id', $rombels)
+            ->whereIn('rombel_id', $this->rombelAnakIds())
             ->where('is_aktif', true)
             ->latest()
             ->paginate(10);
@@ -27,9 +46,8 @@ class MateriController extends Controller
 
     public function show(Materi $materi): View
     {
-        $anakIds = WaliMurid::where('user_id', auth()->id())->pluck('siswa_id');
-        $rombels = Siswa::whereIn('id', $anakIds)->get()->map(fn ($s) => Rombel::where('kelas_id', $s->kelas_id)->where('tahun_ajaran_id', $s->tahun_ajaran_id)->first()?->id)->filter();
-        abort_unless($rombels->contains($materi->rombel_id), 403);
+        abort_unless(in_array($materi->rombel_id, $this->rombelAnakIds(), true), 403);
+        abort_unless($materi->is_aktif, 404);
 
         $materi->load(['mataPelajaran', 'guru', 'rombel.kelas']);
 

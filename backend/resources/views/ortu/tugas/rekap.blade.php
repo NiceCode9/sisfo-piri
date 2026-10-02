@@ -4,6 +4,7 @@
 @section('breadcrumb', 'Rekap')
 
 @section('content')
+@include('ortu._nav', ['tabAktif' => 'tugas'])
 <div class="page-header"><h1 class="page-title">Rekap Tugas Anak</h1><p class="page-subtitle mb-0">Nilai per anak</p></div>
 @include('layouts.partials.alert')
 <div class="row g-3">

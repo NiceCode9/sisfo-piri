@@ -54,7 +54,7 @@ test('guru dapat membuat tugas', function () {
 });
 
 test('siswa dapat mengumpulkan tugas dan terlambat ditandai', function () {
-    Storage::fake('public');
+    Storage::fake(PengumpulanTugas::DISK);
     $rombel = Rombel::firstOrFail();
     $mapel = MataPelajaran::aktif()->firstOrFail();
     $tugas = Tugas::create([
@@ -84,7 +84,7 @@ test('siswa dapat mengumpulkan tugas dan terlambat ditandai', function () {
 
     $kumpul = PengumpulanTugas::where('tugas_id', $tugas->id)->where('siswa_id', $siswa->id)->first();
     expect($kumpul)->not->toBeNull()->and($kumpul->is_terlambat)->toBeTrue();
-    Storage::disk('public')->assertExists($kumpul->file_path);
+    Storage::disk(PengumpulanTugas::DISK)->assertExists($kumpul->file_path);
 });
 
 test('guru dapat memberi nilai', function () {

@@ -40,6 +40,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\WhatsappController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DokumenController;
+use App\Http\Controllers\Elearning\BerkasController as ElearningBerkasController;
 use App\Http\Controllers\Ortu\DashboardController as OrtuDashboardController;
 use App\Http\Controllers\Ortu\ProfilController as OrtuProfilController;
 use App\Http\Controllers\Siswa\BerkasController;
@@ -75,6 +76,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/dokumen/sertifikat/{sertifikat}', [DokumenController::class, 'sertifikat'])->name('dokumen.sertifikat');
     Route::get('/dokumen/pembayaran/{pembayaran}', [DokumenController::class, 'pembayaran'])->name('dokumen.pembayaran');
     Route::get('/dokumen/pembayaran-lainnya/{pembayaranLainnya}', [DokumenController::class, 'pembayaranLainnya'])->name('dokumen.pembayaran-lainnya');
+
+    // Lampiran materi dan berkas tugas siswa tidak berada di disk publik,
+    // jadi penyajiannya harus lewat route yang memeriksa hak akses.
+    Route::get('/elearning/materi/{materi}/berkas', [ElearningBerkasController::class, 'materi'])->name('elearning.materi.berkas');
+    Route::get('/elearning/pengumpulan/{pengumpulan}/berkas', [ElearningBerkasController::class, 'pengumpulan'])->name('elearning.pengumpulan.berkas');
 });
 
 Route::prefix('siswa')->name('siswa.')->middleware(['auth', 'role:siswa'])->group(function () {

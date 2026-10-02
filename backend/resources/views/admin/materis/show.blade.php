@@ -21,7 +21,7 @@
     <div class="card-body-nexus">
         <p style="font-size:13px;"><strong>Deskripsi:</strong> {{ $materi->deskripsi ?? '—' }}</p>
         @if($materi->file_path)
-            <p style="font-size:13px;"><strong>File:</strong> <a href="{{ Storage::disk('public')->url($materi->file_path) }}" target="_blank" class="text-primary">Download</a> ({{ $materi->file_path }})</p>
+            <p style="font-size:13px;"><strong>File:</strong> <a href="{{ route('elearning.materi.berkas', $materi) }}" target="_blank" class="text-primary">Download</a> ({{ $materi->file_path }})</p>
         @endif
         @if($materi->url)
             <p style="font-size:13px;"><strong>Link:</strong> <a href="{{ $materi->url }}" target="_blank" class="text-primary">{{ $materi->url }}</a></p>

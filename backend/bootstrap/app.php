@@ -35,6 +35,13 @@ return Application::configure(basePath: dirname(__DIR__))
                         ->withInput()
                         ->withErrors(['jalur_pendaftaran_id' => 'Terlalu banyak permintaan pendaftaran. Silakan coba lagi beberapa saat lagi.']));
             });
+
+            // Unggah E-Learning menerima berkas 10 MB per percobaan, jadi batas
+            // throttle bawaan terlalu longgar: satu akun bisa mengulang unggahan
+            // dan memaksa penyimpanan penuh tanpa ada validation yang menolak.
+            RateLimiter::for('elearning-kumpul', function (Request $request) {
+                return Limit::perMinute(12)->by($request->user()?->id ?: $request->ip());
+            });
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
