@@ -483,6 +483,11 @@ Yang **tidak** berjalan sama sekali: gate waktu (H7), gate kuota publik (H1), ga
 | Statistik publik terlihat kecil | Dev DB masih berisi data contoh (37 siswa, 2 guru). Bukan bug — konsekuensi dari memakai angka nyata |
 | **`jalur-seleksi.blade.php` masih hardcoded** | Halaman publik hanya memuat 2 tab (Reguler, Prestasi/Beasiswa) padahal DB punya **5 jalur aktif**: Reguler, Prestasi, Afirmasi, Mutasi, Prestasi Olahraga. Prestasi Olahraga punya `wajib_sertifikat = 1` tapi tidak disebut di halaman mana pun. **Ditunda dengan sengaja**: `jalur_pendaftarans` tidak punya kolom untuk daftar syarat detail, jadi Fontaine dari DB akan membuat halaman lebih tipis. perbaikannya perlu kolom `syarat` + field admin, bukan sekadar ganti `@foreach` |
 | Ketentuan ekskul di landing page | Copy kebijakan sekolah ("Pramuka wajib", "wajib pilih minimal 1 ekskul", "kehadiran minimal 75%", "biaya sudah termasuk SPP") **dibiarkan apa adanya** — ini teks milik sekolah, bukan data karangan. Perlu dicatat: tidak ada fitur pendaftaran ekskul di sistem sama sekali (tidak ada pivot antara siswa dan ekskul), jadi ketentuan itu belum bisa ditegakkan otomatis |
+| **`keunggulan.blade.php` mengarang prestasi & akreditasi** | **Paling serius dari daftar ini.** Section "Keunggulan" mencetak klaim yang tidak ada sumbernya sama sekali: "Terakreditasi A", "Juara Olimpiade Sains", "Sekolah Adiwiyata", "Tingkat Kelulusan 100%", "Kurikulum Merdeka", "Lab Komputer & Sains", "Aula Serbaguna". Padahal `profil_sekolahs.akreditasi` = NULL di database. semua itu hardcoded di Blade. Perlu konfirmasi sekolah mana yang benar sebelum dipertahankan; yang tidak bisa dibuktikan sebaiknya dihapus, bukan diganti |
+| `about.blade.php` baris akreditasi | `Terakreditasi {{ $profileSekolah->akreditasi }}` tercetak tanpa penjaga, jadi kolom kosong akan menghasilkan "Terakreditasi " dengan spasi menggantung. Perlu diperbaiki seperti kartu hero |
+| Foto sekolah belum dipakai sebagai galeri | Tiga foto asli ada di `public/assets/`, sudah diturunkan ke `public/images/sekolah/` untuk hero. Tabel `galeris` masih kosong sehingga section "Galeri & Prestasi" tidak pernah tampil. Butuh `storage/app/public/.gitignore` diubah dulu supaya fotonya bisa ikut ter-commit |
+| Asal foto asli masih web-served | `public/assets/PXL_*.jpg` (5,3–5,9 MB) masih bisa diunduh siapa pun lewat `/assets/PXL_....jpg`, sudah dicegah masuk git tapi belum dipindah keluar folder publik |
+| Data kontak di spanduk | Alamat, email, dan nomor telepon terbaca di foto spanduk. Dicatat di `storage/app/private/kontak-dari-spanduk.txt` (file gitignored, tidak dilayani web) untuk diisi sendiri lewat menu Profil Sekolah. Nomor telepon tidak terbaca dengan yakin dari foto, jadi jangan diambil dari sana |
 
 ---
 
@@ -504,6 +509,61 @@ Tiga hal sengaja dibuang karena tidak ada kolom pendukungnya:
 | Badge "Wajib" / "Pilihan" | Tabel tidak punya kolom penentu wajib atau pilihan |
 | Nama pembina | Nilai seed masih placeholder ("Guru A", "Guru D") dan 3 dari 5 baris `NULL` |
 | Deskripsi wajib | PMR dan Rohani Islam belum punya deskripsi, jadi bloknya pakai `@if` — halaman tidak boleh mengarang kalimat |
+
+---
+
+# Foto Sekolah di Hero
+
+Hero sebelumnya memakai foto stok Unsplash (kelas bahasa Inggris generik),
+padahal sekolah punya foto sendiri. `hero.blade.php` bahkan sudah punya
+TODO-nya sendiri: *"ganti dengan foto asli sekolah"*.
+
+## Penskalaan
+
+Foto asli dari kamera: **4032x2268, 5,3 MB**. Tidak bisa dilayani apa adanya.
+
+| Berkas | Ukuran | Untuk |
+|---|---|---|
+| `public/images/sekolah/gedung-480w.jpg` | 26 KB | ponsel |
+| `public/images/sekolah/gedung-960w.jpg` | 93 KB | tablet |
+| `public/images/sekolah/gedung-1600w.jpg` | 234 KB | desktop |
+
+Aturannya: resize saja tanpa crop (slot hero sudah 16:9 lewat `w-full h-auto`),
+JPEG q78 progressive, `stripImage()` membuang EXIF. Dari 5,3 MB jadi 353 KB
+total untuk ketiga ukuran. EXIF GPS sudah kosong di file aslinya, tapi tetap
+dibuang supaya file handset tidak ikut terkirim.
+
+## Yang diperbaiki di markup
+
+| Perubahan | Alasan |
+|---|---|
+| `src` + `srcset`/`sizes` lokal | menutupi host pihak ketiga dan memberi 3 ukuran supaya ponsel tidak mengunduh versi desktop |
+| `width="1600" height="900"` | mencegah pergeseran layout (CLS) di bagian pertama yang dilihat |
+| `loading="eager"` + `fetchpriority="high"` | ini elemen LCP halaman |
+| `alt="Gedung dan lapangan {{ $namaSekolah }}"` |entional isi gambarnya, bukan label generik "Siswa SMP" |
+
+## Dua kartu melayang yang sebelumnya mengarang
+
+Hero punya dua kartu kecil. Keduanya tidak punya sumber data:
+
+| Sebelum | Sesudah | Alasan |
+|---|---|---|
+| "Sekolah Terakreditasi" / "Status belum dicantuman" | disembunyikan sampai `akreditasi` diisi | Versi lama **mENGUMUMKAN** akreditasi walau kolomnya NULL, sementara sub-teksnya sendiri mengakui status belum dicantumkan — klaim yang menyangkal dirinya sendiri |
+| "Kurikulum Merdeka" / "Update & Inovatif" | "Tahun Ajaran {aktif}" / "Penerimaan Murid Baru" | Teks mati: tidak ada kolom, tidak bisa dibantah kalau ternyata tidak berlaku. Tahun ajaran aktif benar-benar dari database |
+
+Butuh accessor baru `ProfilSekolah::akreditasi_bersih` untuk Decide apakah
+kartu pertama boleh dirender.
+
+> ** Jebakan yang sudah sekali hampir lolos:** accessor itu harus ditulis
+> `getAkreditasiBersihAttribute` — huruf **k**, mengikuti `Str::studly('akreditasi_bersih')`
+> = `AkreditasiBersih`. Tertulis `Acreditasi` (huruf **c**) method-nya tetap
+> ada dan bisa dipanggil langsung, tapi `__get` tidak pernah menemukannya dan
+> kartu akreditasi tidak akan pernah muncul walau datanya sudah diisi. Test
+> `kartu akreditasi hero tidak muncul sebelum data akreditasi diisi` sengaja
+> dibikin gagal kalau nama accessor-nya salah lagi.
+
+Foto asal (`public/assets/PXL_*.jpg`) sengaja **tidak** di-commit — sudah
+dimasukkkan ke `.gitignore` supaya 17 MB tidak ikut masuk repo.
 
 ---
 

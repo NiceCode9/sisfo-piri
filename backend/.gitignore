@@ -18,6 +18,12 @@
 /public/fonts-manifest.dev.json
 /public/hot
 /public/storage
+
+# Foto asli dari kamera (5-6 MB, 4032x2268). Yang dipakai web sudah
+# diturunkan ukurannya dan ada di public/images/sekolah - jangan commit
+# file aslinya.
+/public/assets/PXL_*
+
 /storage/*.key
 /storage/pail
 /vendor

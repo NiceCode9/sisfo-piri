@@ -54,6 +54,18 @@ class ProfilSekolah extends Model
         return $this->bersih($this->alamat);
     }
 
+    /**
+     * Akreditasi yang siap ditampilkan.
+     *
+     * Dipakai untuk memutuskan apakah kartu "Terakreditasi" di hero boleh
+     * dirender. Tanpa accessor ini, kartu itu akan menampilkan klaim
+     * akreditasi walau kolomnya masih kosong.
+     */
+    public function getAkreditasiBersihAttribute(): ?string
+    {
+        return $this->bersih($this->akreditasi);
+    }
+
     public function getTelpBersihAttribute(): ?string
     {
         return $this->bersih($this->telp);

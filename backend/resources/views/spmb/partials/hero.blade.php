@@ -6,9 +6,13 @@
 
 <section id="beranda" class="relative min-h-screen flex items-center bg-gradient-primary overflow-hidden">
 
-    {{-- Decorative Background Shapes --}}
+    {{-- Decorative Background Shapes.
+     Blob hijau lama (`bg-accent-400/20`) jadi tak terlihat begitu primary
+     diganti hijau, jadi aksennya dipindah ke sky yang kontras dengan hijau.
+     Blob emas dipertahankan: hijau + emas adalah pasangan warna yang dipakai
+     identitas sekolah ini. --}}
     <div class="absolute top-20 right-10 w-64 h-64 bg-secondary-400/20 blob-shape animate-float"></div>
-    <div class="absolute bottom-32 left-10 w-80 h-80 bg-accent-400/20 blob-shape animate-float" style="animation-delay: 1s;"></div>
+    <div class="absolute bottom-32 left-10 w-80 h-80 bg-accent-400/25 blob-shape animate-float" style="animation-delay: 1s;"></div>
     <div class="absolute top-1/2 right-1/4 w-48 h-48 bg-white/10 blob-shape animate-float" style="animation-delay: 2s;"></div>
 
     <div class="container mx-auto px-4 py-20 relative z-10">
@@ -82,36 +86,56 @@
                 </div>
             </div>
 
-            {{-- Right Illustration --}}
+            {{-- Right Photo --}}
             <div class="relative animate-fade-in-up" style="animation-delay: 0.3s;">
-                {{-- ganti dengan foto asli sekolah - siswa SMP yang ceria, bukan foto stok formal --}}
+                {{-- Foto asli sekolah, bukan foto stok. Sumber aslinya 4032x2268
+                     (5,4 MB) hanya diturunkan ukuran dan dibuang EXIF-nya; versi
+                     web ada di public/images/sekolah. --}}
                 <div class="relative z-10">
-                    <img src="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-                         alt="Siswa SMP"
-                         class="rounded-3xl shadow-2xl w-full h-auto object-cover">
+                    {{-- `width`/`height` wajib ada supaya browser bisa
+                         menyediakan ruang gambar sebelum file selesai dimuat.
+                         Tanpa itu halaman bergeser (CLS) tepat di bagian yang
+                         paling pertama dilihat calon. --}}
+                    <img src="/images/sekolah/gedung-960w.jpg"
+                         srcset="/images/sekolah/gedung-480w.jpg 480w,
+                                 /images/sekolah/gedung-960w.jpg 960w,
+                                 /images/sekolah/gedung-1600w.jpg 1600w"
+                         sizes="(min-width: 1024px) 620px, 100vw"
+                         width="1600" height="900"
+                         alt="Gedung dan lapangan {{ $namaSekolah ?? 'sekolah' }}"
+                         class="rounded-3xl shadow-2xl w-full h-auto object-cover"
+                         loading="eager" fetchpriority="high" decoding="async">
                 </div>
 
-                {{-- Floating Card 1 --}}
-                <div class="absolute -bottom-8 -left-8 z-20 bg-white rounded-2xl p-4 shadow-xl animate-float hidden md:block">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-12 h-12 bg-accent-500 rounded-xl flex items-center justify-center">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                        </div>
-                        <div>
-                            @if ($profileSekolah?->akreditasi)
-                                <div class="text-sm font-bold text-gray-800">Terakreditasi {{ $profileSekolah->akreditasi }}</div>
+                {{-- Floating Card 1: akreditasi.
+                     Dirender hanya kalau nilainya benar-benar diisi. Versi lama
+                     selalu menulis "Sekolah Terakreditasi" walau kolomnya kosong,
+                     sementara sub-teksnya sendiri mengakui "Status belum
+                     dicantumkan" - jadi halaman mengarang klaim yang
+                     bersamaan menyangkal dirinya sendiri. --}}
+                @if ($profileSekolah?->akreditasi_bersih)
+                    <div class="absolute -bottom-8 -left-8 z-20 bg-white rounded-2xl p-4 shadow-xl animate-float hidden md:block">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-accent-500 rounded-xl flex items-center justify-center">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="text-sm font-bold text-gray-800">Terakreditasi {{ $profileSekolah->akreditasi_bersih }}</div>
                                 <div class="text-xs text-gray-500">Standar Nasional</div>
-                            @else
-                                <div class="text-sm font-bold text-gray-800">Sekolah Terakreditasi</div>
-                                <div class="text-xs text-gray-500">Status belum dicantumkan</div>
-                            @endif
+                            </div>
                         </div>
                     </div>
-                </div>
+                @endif
 
-                {{-- Floating Card 2 --}}
+                {{-- Floating Card 2.
+                     Versi lama menulis "Kurikulum Merdeka / Update & Inovatif"
+                     sebagai teks mati: tidak ada kolom, tidak ada sumber, dan
+                     tidak bisa dibantah kalau ternyata tidak berlaku. Diganti
+                     tahun ajaran aktif, yang benar-benar berasal dari database
+                     dan selalu tersedia di halaman PPDB. --}}
+                @if ($tahunAjaran)
                 <div class="absolute -top-8 -right-8 z-20 bg-white rounded-2xl p-4 shadow-xl animate-float hidden md:block" style="animation-delay: 1.5s;">
                     <div class="flex items-center space-x-3">
                         <div class="w-12 h-12 bg-secondary-500 rounded-xl flex items-center justify-center">
@@ -120,11 +144,12 @@
                             </svg>
                         </div>
                         <div>
-                            <div class="text-sm font-bold text-gray-800">Kurikulum Merdeka</div>
-                            <div class="text-xs text-gray-500">Update & Inovatif</div>
+                            <div class="text-sm font-bold text-gray-800">Tahun Ajaran {{ $tahunAjaran }}</div>
+                            <div class="text-xs text-gray-500">Penerimaan Murid Baru</div>
                         </div>
                     </div>
                 </div>
+                @endif
             </div>
 
         </div>
