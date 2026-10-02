@@ -481,7 +481,29 @@ Yang **tidak** berjalan sama sekali: gate waktu (H7), gate kuota publik (H1), ga
 | Data profil sekolah belum diisi | Placeholder masih tersimpan sebagai pengingat; diisi lewat menu **Profil Sekolah** (nama resmi sudah diisi: SMP PIRI NGAGLIK) |
 | Domain email sekolah | Dikosongkan dengan sengaja, bukan dikarang. Isi lewat menu Profil Sekolah |
 | Statistik publik terlihat kecil | Dev DB masih berisi data contoh (37 siswa, 2 guru). Bukan bug — konsekuensi dari memakai angka nyata |
-| `jalur-seleksi.blade.php` masih `TODO` | Copy di file itu masih perlu ditinjau oleh pihak sekolah (syarat jalur & warna kartu) |
+| **`jalur-seleksi.blade.php` masih hardcoded** | Halaman publik hanya memuat 2 tab (Reguler, Prestasi/Beasiswa) padahal DB punya **5 jalur aktif**: Reguler, Prestasi, Afirmasi, Mutasi, Prestasi Olahraga. Prestasi Olahraga punya `wajib_sertifikat = 1` tapi tidak disebut di halaman mana pun. **Ditunda dengan sengaja**: `jalur_pendaftarans` tidak punya kolom untuk daftar syarat detail, jadi Fontaine dari DB akan membuat halaman lebih tipis. perbaikannya perlu kolom `syarat` + field admin, bukan sekadar ganti `@foreach` |
+| Ketentuan ekskul di landing page | Copy kebijakan sekolah ("Pramuka wajib", "wajib pilih minimal 1 ekskul", "kehadiran minimal 75%", "biaya sudah termasuk SPP") **dibiarkan apa adanya** — ini teks milik sekolah, bukan data karangan. Perlu dicatat: tidak ada fitur pendaftaran ekskul di sistem sama sekali (tidak ada pivot antara siswa dan ekskul), jadi ketentuan itu belum bisa ditegakkan otomatis |
+
+---
+
+# Kartu Ekstrakurikuler Publik
+
+`spmb/partials/ekstrakurikuler.blade.php` menulis **sembilan kartu hardcoded**
+(Pramuka, Futsal, Basket, English Club, Robotika & Coding, Seni Musik, Tari
+Tradisional, KIR, Jurnalistik) sementara tabel `ekstrakurikulers` berisi 5 baris
+yang hampir tidak beririsan — hanya Pramuka yang kebetulan cocok. Akibatnya
+landing page mengiklankan kegiatan yang **tidak bisa dikelola** dari
+`admin/ekstrakurikulers`, sementara empat kegiatan yang benar-benar ada
+(Paskibra, PMR, Rohani Islam, Futsal) tidak pernah disebut.
+
+Kartu sekarang dibaca dari database, dengan `kode` sebagai kunci pemetaan ikon.
+Tiga hal sengaja dibuang karena tidak ada kolom pendukungnya:
+
+| Dibuang | Alasan |
+|---|---|
+| Badge "Wajib" / "Pilihan" | Tabel tidak punya kolom penentu wajib atau pilihan |
+| Nama pembina | Nilai seed masih placeholder ("Guru A", "Guru D") dan 3 dari 5 baris `NULL` |
+| Deskripsi wajib | PMR dan Rohani Islam belum punya deskripsi, jadi bloknya pakai `@if` — halaman tidak boleh mengarang kalimat |
 
 ---
 

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\CalonSiswa;
+use App\Models\Ekstrakurikuler;
 use App\Models\Gelombang;
 use App\Models\Guru;
 use App\Models\JalurPendaftaran;
@@ -1010,6 +1011,55 @@ test('visi misi dan sambutan profil yang sudah terisi tetap tampil', function ()
         ->and($html)->toContain('Misi resmi kedua')
         ->and($html)->toContain('Budi Santoso, S.Pd.')
         ->and($html)->toContain('Sambutan resmi kepala sekolah.');
+});
+
+test('kartu ekstrakurikuler di landing page membaca data yang benar-benar ada', function () {
+    Ekstrakurikuler::query()->delete();
+
+    Ekstrakurikuler::create([
+        'kode' => 'PMR',
+        'nama' => 'Palang Merah Remaja',
+        'jadwal' => 'Kamis 15:00-16:30',
+        'deskripsi' => 'Latihan pertolongan pertama.',
+        'is_aktif' => true,
+    ]);
+
+    Ekstrakurikuler::create([
+        'kode' => 'ROHIS',
+        'nama' => 'Rohani Islam',
+        'is_aktif' => true,
+    ]);
+
+    Ekstrakurikuler::create([
+        'kode' => 'LAMA',
+        'nama' => 'Klub Sudah Dimatikan',
+        'is_aktif' => false,
+    ]);
+
+    $html = $this->get(route('spmb.home'))->assertOk()->getContent();
+
+    // Yang tampil harus yang ada di database.
+    expect($html)->toContain('Palang Merah Remaja')
+        ->and($html)->toContain('Latihan pertolongan pertama.')
+        ->and($html)->toContain('Kamis 15:00-16:30')
+        ->and($html)->toContain('Rohani Islam');
+
+    // Baris non-aktif tidak boleh diiklankan.
+    expect($html)->not->toContain('Klub Sudah Dimatikan');
+
+    // Sembilan kartu versi lama hampir semuanya tidak punya baris di tabel,
+    // jadi tidak boleh muncul sebagai kegiatan yang diiklankan.
+    foreach (['Basket', 'English Club', 'Robotika &amp; Coding', 'Seni Musik', 'Tari Tradisional', 'Jurnalistik'] as $karangan) {
+        expect($html)->not->toContain($karangan);
+    }
+});
+
+test('landing page menampilkan empty state saat belum ada ekstrakurikuler', function () {
+    Ekstrakurikuler::query()->delete();
+
+    $html = $this->get(route('spmb.home'))->assertOk()->getContent();
+
+    expect($html)->toContain('Belum ada kegiatan ekstrakurikuler');
 });
 
 test('nama sekolah konsisten di semua halaman publik', function () {

@@ -8,6 +8,7 @@ use App\Models\BerkasCalonSiswa;
 use App\Models\BiayaPendaftaran;
 use App\Models\Brosur;
 use App\Models\CalonSiswa;
+use App\Models\Ekstrakurikuler;
 use App\Models\Galeri;
 use App\Models\Gelombang;
 use App\Models\JalurPendaftaran;
@@ -48,6 +49,12 @@ class SpmbController extends Controller
         $galeriFotos = Galeri::aktif()->foto()->whereNotNull('image_path')->orderBy('order')->orderByDesc('created_at')->take(8)->get();
         $prestasis = Galeri::aktif()->prestasi()->orderByDesc('tanggal')->orderBy('order')->take(3)->get();
 
+        // Diekspos lewat admin/ekstrakurikulers, jadi landing page menampilkan
+        // kegiatan yang benar-benar ada di sistem. Versi lama menulis sembilan
+        // kartu hardcoded yang hampir tidak ada di database, sementara Paskibra,
+        // PMR, dan Rohani Islam yang nyata tidak pernah disebut.
+        $ekstrakurikulers = Ekstrakurikuler::aktif()->orderBy('nama')->get();
+
         $status = StatusPendaftaran::tentukan($tahunAjaranAktif);
 
         return view('spmb.home', [
@@ -56,6 +63,7 @@ class SpmbController extends Controller
             'pengumumans' => $pengumumans,
             'gelombangs' => $gelombangs,
             'brosurs' => $brosurs,
+            'ekstrakurikulers' => $ekstrakurikulers,
             'galeriFotos' => $galeriFotos,
             'prestasis' => $prestasis,
             'ringkasanKuota' => $this->ringkasanKuota($tahunAjaranAktif),
