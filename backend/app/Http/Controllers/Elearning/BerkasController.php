@@ -83,7 +83,7 @@ class BerkasController extends Controller
             Siswa::where('user_id', $user->id)->pluck('id')
         );
 
-        return $anakIds->intersect($rombel->anggotaIds())->isNotEmpty();
+        return $anakIds->intersect($rombel->anggotaIdsAktif())->isNotEmpty();
     }
 
     private function bolehLihatPengumpulan(?User $user, PengumpulanTugas $pengumpulan): bool

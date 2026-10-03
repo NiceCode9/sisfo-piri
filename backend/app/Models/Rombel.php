@@ -56,8 +56,49 @@ class Rombel extends Model
         return $this->hasMany(Materi::class);
     }
 
+    public function tugas(): HasMany
+    {
+        return $this->hasMany(Tugas::class);
+    }
+
+    public function absensis(): HasMany
+    {
+        return $this->hasMany(Absensi::class);
+    }
+
     /**
-     * ID siswa anggota rombel (diturunkan dari riwayat kelas+tahun).
+     * Data historis yang menempel pada rombel ini, dipakai {@see
+     * \App\Http\Controllers\Admin\RombelController::destroy()} untuk
+     * menolak penghapusan yang akan menghapus histori secara cascade.
+     *
+     * Setiap relasi di sini memakai `cascadeOnDelete`, jadi "hapus rombel"
+     * sama artinya "hapus seluruh kehadiran, materi, tugas, dan nilai ujian
+     * kelas ini". Karena itu relasi ini bukan sekadar informasi.
+     *
+     * @return array<string, string>
+     */
+    public function historiAttached(): array
+    {
+        return [
+            'pengampus' => 'penugasan guru',
+            'absensis' => 'data kehadiran',
+            'materis' => 'materi',
+            'tugas' => 'tugas',
+            'exams' => 'ujian CBT',
+        ];
+    }
+
+    /**
+     * ID siswa yang pernah menjadi anggota rombel ini.
+     *
+     * Sengaja tanpa filter `status`: pemanggilan ini dipakai untuk menyusun
+     * rekap historis (kehadiran, nilai tugas, nilai ujian), dan siswa yang sudah
+     * pindah kelas tetap punya catatan di kelas yang ditinggalkan. Menghilang
+     * dari sana akan menghapus jejaknya.
+     *
+     * Untuk keperluan operasional — siapa yang boleh dicatat hadir hari ini,
+     * siapa yang boleh dinilai — pakai {@see anggotaIdsAktif()} supaya siswa
+     * yang sudah pindah tidak ikut terhitung di kelas barunya.
      *
      * @return array<int>
      */
@@ -65,6 +106,25 @@ class Rombel extends Model
     {
         return RiwayatKelas::where('kelas_id', $this->kelas_id)
             ->where('tahun_ajaran_id', $this->tahun_ajaran_id)
+            ->pluck('siswa_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+    }
+
+    /**
+     * ID siswa yang sedang menjadi anggota rombel ini.
+     *
+     * Sama dengan {@see anggotaIds()} tetapi hanya baris `aktif`. Dipakai
+     * wherever pencatatan harus jatuh pada kelas yang sedang berjalan: grid
+     * absensi, validasi batch, gate scan QR, dan otorisasi berkas.
+     *
+     * @return array<int>
+     */
+    public function anggotaIdsAktif(): array
+    {
+        return RiwayatKelas::where('kelas_id', $this->kelas_id)
+            ->where('tahun_ajaran_id', $this->tahun_ajaran_id)
+            ->where('status', 'aktif')
             ->pluck('siswa_id')
             ->map(fn ($id) => (int) $id)
             ->all();

@@ -24,6 +24,7 @@ class DashboardController extends Controller
         $hari = now()->toDateString();
         $statusHariIni = Absensi::whereIn('siswa_id', $anak->pluck('siswa_id'))
             ->where('tanggal', $hari)
+            ->orderBy('id')
             ->get()
             ->keyBy('siswa_id');
 
@@ -42,7 +43,7 @@ class DashboardController extends Controller
 
                 $rekap = Absensi::where('siswa_id', $siswa->id)
                     ->where('tanggal', 'like', $bulan.'%')
-                    ->selectRaw('status, COUNT(*) as jumlah')
+                    ->selectRaw('status, COUNT(DISTINCT tanggal) as jumlah')
                     ->groupBy('status')
                     ->pluck('jumlah', 'status')
                     ->all();
@@ -86,7 +87,7 @@ class DashboardController extends Controller
 
         $rekap = Absensi::where('siswa_id', $waliMurid->siswa_id)
             ->whereBetween('tanggal', [$rentang['mulai'], $rentang['selesai']])
-            ->selectRaw('status, COUNT(*) as jumlah')
+            ->selectRaw('status, COUNT(DISTINCT tanggal) as jumlah')
             ->groupBy('status')
             ->pluck('jumlah', 'status')
             ->all();

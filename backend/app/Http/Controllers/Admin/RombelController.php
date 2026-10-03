@@ -128,8 +128,25 @@ class RombelController extends Controller implements HasMiddleware
 
     public function destroy(Rombel $rombel): RedirectResponse
     {
-        if ($rombel->pengampus()->exists()) {
-            return back()->with('error', 'Rombel masih memiliki penugasan dan tidak dapat dihapus.');
+        // Setiap relasi historis memakai cascadeOnDelete, jadi menghapus
+        // rombel berarti menghapus seluruh kehadiran, materi, tugas, dan
+        // nilai ujian kelas itu tanpa jejak. Sebelumnya hanya penugasan guru
+        // yang diperiksa, sehingga rombel berisi nilai siswa bisa dihapus
+        // diam-diam.
+        $terisi = [];
+
+        foreach ($rombel->historiAttached() as $relasi => $label) {
+            if ($rombel->{$relasi}()->exists()) {
+                $terisi[] = $label;
+            }
+        }
+
+        if ($terisi !== []) {
+            return back()->with(
+                'error',
+                'Rombel masih memiliki '.implode(', ', $terisi).' dan tidak dapat dihapus. '
+                    .'Menghapus rombel akan ikut menghapus data tersebut secara permanen.'
+            );
         }
 
         $rombel->delete();

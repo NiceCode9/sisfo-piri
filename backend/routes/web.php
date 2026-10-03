@@ -31,6 +31,7 @@ use App\Http\Controllers\Admin\PengaturanController;
 use App\Http\Controllers\Admin\PengumumanController;
 use App\Http\Controllers\Admin\ProfilSekolahController;
 use App\Http\Controllers\Admin\RencanaAngsuranController;
+use App\Http\Controllers\Admin\RiwayatKelasController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\RombelController;
 use App\Http\Controllers\Admin\SiswaController;
@@ -174,6 +175,10 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::put('profil-sekolah', [ProfilSekolahController::class, 'update'])->name('profil-sekolah.update');
     Route::get('kenaikan-kelas', [KenaikanKelasController::class, 'index'])->name('kenaikan.index');
     Route::post('kenaikan-kelas/proses', [KenaikanKelasController::class, 'proses'])->name('kenaikan.proses');
+    Route::get('riwayat-kelas', [RiwayatKelasController::class, 'index'])->name('riwayat-kelas.index');
+    Route::get('riwayat-kelas/{siswa}', [RiwayatKelasController::class, 'show'])->name('riwayat-kelas.show');
+    Route::put('riwayat-kelas/{riwayatKelas}', [RiwayatKelasController::class, 'update'])->name('riwayat-kelas.update');
+    Route::delete('riwayat-kelas/{riwayatKelas}', [RiwayatKelasController::class, 'destroy'])->name('riwayat-kelas.destroy');
     Route::get('siswas/template', [SiswaController::class, 'template'])->name('siswas.template');
     Route::post('siswas/import', [SiswaController::class, 'import'])->name('siswas.import');
     Route::get('siswas/{siswa}/kartu', [SiswaController::class, 'kartu'])->name('siswas.kartu');

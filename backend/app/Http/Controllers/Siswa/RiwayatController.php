@@ -36,7 +36,7 @@ class RiwayatController extends Controller
 
             $rekapBulan = Absensi::where('siswa_id', $siswa->id)
                 ->where('tanggal', 'like', $bulan.'%')
-                ->selectRaw('status, COUNT(*) as jumlah')
+                ->selectRaw('status, COUNT(DISTINCT tanggal) as jumlah')
                 ->groupBy('status')
                 ->pluck('jumlah', 'status')
                 ->all();
@@ -46,7 +46,7 @@ class RiwayatController extends Controller
             if ($tahunAktif) {
                 $rekapTahun = Absensi::where('siswa_id', $siswa->id)
                     ->whereHas('rombel', fn ($q) => $q->where('tahun_ajaran_id', $tahunAktif->id))
-                    ->selectRaw('status, COUNT(*) as jumlah')
+                    ->selectRaw('status, COUNT(DISTINCT tanggal) as jumlah')
                     ->groupBy('status')
                     ->pluck('jumlah', 'status')
                     ->all();
