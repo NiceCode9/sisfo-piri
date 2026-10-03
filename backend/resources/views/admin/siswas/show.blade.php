@@ -12,6 +12,7 @@
     <div class="d-flex gap-2 flex-wrap">
         <a href="{{ route('admin.siswas.index') }}" class="btn btn-nexus-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Kembali</a>
         <a href="{{ route('admin.siswas.kartu', $siswa) }}" class="btn btn-nexus-outline btn-sm" target="_blank"><i class="fa-solid fa-id-card"></i> Kartu Siswa</a>
+        <a href="{{ route('admin.siswas.riwayat', $siswa) }}" class="btn btn-nexus-outline btn-sm"><i class="fa-solid fa-timeline"></i> Riwayat</a>
         @can('siswas.edit')
             <a href="{{ route('admin.siswas.edit', $siswa) }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-pencil"></i> Ubah</a>
         @endcan

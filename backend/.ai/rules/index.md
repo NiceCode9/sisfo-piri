@@ -12,4 +12,5 @@ Before planning or editing, find the row whose globs match the file's path and r
 | database/seeders/PpdbSeeder.php | .ai/rules/seeders.md |
 | app/Http/Controllers/{Siswa,Ortu}/** | .ai/rules/siswa-ortu.md |
 | database/migrations/*riwayat_kelas* | .ai/rules/rombel-riwayat.md |
+| app/Services/RiwayatSiswa.php | .ai/rules/riwayat-terpadu.md |
 | database/migrations/*absensis* | .ai/rules/rombel-riwayat.md |

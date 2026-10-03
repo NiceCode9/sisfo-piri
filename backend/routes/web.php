@@ -32,6 +32,7 @@ use App\Http\Controllers\Admin\PengumumanController;
 use App\Http\Controllers\Admin\ProfilSekolahController;
 use App\Http\Controllers\Admin\RencanaAngsuranController;
 use App\Http\Controllers\Admin\RiwayatKelasController;
+use App\Http\Controllers\Admin\RiwayatSiswaController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\RombelController;
 use App\Http\Controllers\Admin\SiswaController;
@@ -89,6 +90,7 @@ Route::prefix('siswa')->name('siswa.')->middleware(['auth', 'role:siswa'])->grou
     Route::get('/profil', [ProfilController::class, 'show'])->name('profil');
     Route::put('/profil', [ProfilController::class, 'update'])->name('profil.update');
     Route::get('/kelas', [RiwayatController::class, 'kelas'])->name('kelas');
+    Route::get('/riwayat', [RiwayatController::class, 'riwayat'])->name('riwayat');
     Route::get('/absensi', [RiwayatController::class, 'absensi'])->name('absensi');
     Route::get('/materi', [SiswaMateriController::class, 'index'])->name('materi.index');
     Route::get('/materi/{materi}', [SiswaMateriController::class, 'show'])->name('materi.show');
@@ -105,6 +107,7 @@ Route::prefix('ortu')->name('ortu.')->middleware(['auth', 'role:orang-tua'])->gr
     Route::get('/profil', [OrtuProfilController::class, 'show'])->name('profil');
     Route::put('/profil', [OrtuProfilController::class, 'update'])->name('profil.update');
     Route::get('/anak/{waliMurid}', [OrtuDashboardController::class, 'show'])->name('anak');
+    Route::get('/anak/{waliMurid}/riwayat', [App\Http\Controllers\Ortu\RiwayatController::class, 'show'])->name('anak.riwayat');
     Route::get('/materi', [App\Http\Controllers\Ortu\MateriController::class, 'index'])->name('materi.index');
     Route::get('/materi/{materi}', [App\Http\Controllers\Ortu\MateriController::class, 'show'])->name('materi.show');
     Route::get('/tugas', [App\Http\Controllers\Ortu\TugasController::class, 'index'])->name('tugas.index');
@@ -184,6 +187,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::get('siswas/{siswa}/kartu', [SiswaController::class, 'kartu'])->name('siswas.kartu');
     Route::post('siswas/{siswa}/qr', [SiswaController::class, 'regenerateQr'])->name('siswas.qr');
     Route::resource('siswas', SiswaController::class);
+    Route::get('siswas/{siswa}/riwayat', [RiwayatSiswaController::class, 'show'])->name('siswas.riwayat');
     Route::get('absensis', [AbsensiController::class, 'index'])->name('absensis.index');
     Route::post('absensis/batch', [AbsensiController::class, 'storeBatch'])->name('absensis.batch');
     Route::get('absensis/scan', [AbsensiController::class, 'scan'])->name('absensis.scan');

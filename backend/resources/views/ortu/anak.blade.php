@@ -11,6 +11,7 @@
     </div>
     <div class="d-flex gap-2 flex-wrap">
         <a href="{{ route('ortu.dashboard') }}" class="btn btn-nexus-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> Kembali</a>
+        <a href="{{ route('ortu.anak.riwayat', $tautan) }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-timeline"></i> Riwayat Lengkap</a>
     </div>
 </div>
 
