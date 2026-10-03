@@ -36,6 +36,7 @@ use App\Http\Controllers\Admin\RiwayatSiswaController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\RombelController;
 use App\Http\Controllers\Admin\SiswaController;
+use App\Http\Controllers\Admin\TahunAjaranBaruController;
 use App\Http\Controllers\Admin\TahunAjaranController;
 use App\Http\Controllers\Admin\TugasController;
 use App\Http\Controllers\Admin\UserController;
@@ -178,6 +179,8 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::put('profil-sekolah', [ProfilSekolahController::class, 'update'])->name('profil-sekolah.update');
     Route::get('kenaikan-kelas', [KenaikanKelasController::class, 'index'])->name('kenaikan.index');
     Route::post('kenaikan-kelas/proses', [KenaikanKelasController::class, 'proses'])->name('kenaikan.proses');
+    Route::get('tahun-ajaran-baru', [TahunAjaranBaruController::class, 'index'])->name('tahun-ajaran-baru.index');
+    Route::post('tahun-ajaran-baru/proses', [TahunAjaranBaruController::class, 'proses'])->name('tahun-ajaran-baru.proses');
     Route::get('riwayat-kelas', [RiwayatKelasController::class, 'index'])->name('riwayat-kelas.index');
     Route::get('riwayat-kelas/{siswa}', [RiwayatKelasController::class, 'show'])->name('riwayat-kelas.show');
     Route::put('riwayat-kelas/{riwayatKelas}', [RiwayatKelasController::class, 'update'])->name('riwayat-kelas.update');

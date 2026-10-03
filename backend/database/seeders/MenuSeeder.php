@@ -36,6 +36,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Pengampu', 'icon' => 'fa-solid fa-clipboard-user', 'route' => 'admin.pengampus.index', 'permission' => 'pengampus.view', 'order' => 25],
             ['name' => 'Rombel', 'icon' => 'fa-solid fa-users', 'route' => 'admin.rombels.index', 'permission' => 'rombels.view', 'order' => 26],
             ['name' => 'Kenaikan Kelas', 'icon' => 'fa-solid fa-arrow-up-right-dots', 'route' => 'admin.kenaikan.index', 'permission' => 'kenaikan-kelas.view', 'order' => 27],
+            ['name' => 'Tahun Ajaran Baru', 'icon' => 'fa-solid fa-calendar-plus', 'route' => 'admin.tahun-ajaran-baru.index', 'permission' => 'tahun-ajaran-baru.view', 'order' => 27],
             ['name' => 'Riwayat Kelas', 'icon' => 'fa-solid fa-timeline', 'route' => 'admin.riwayat-kelas.index', 'permission' => 'riwayat-kelas.manage', 'order' => 27],
             ['name' => 'Siswa', 'icon' => 'fa-solid fa-graduation-cap', 'route' => 'admin.siswas.index', 'permission' => 'siswas.view', 'order' => 28],
             ['name' => 'Absensi', 'icon' => 'fa-solid fa-clipboard-check', 'route' => 'admin.absensis.index', 'permission' => 'absensis.view', 'order' => 29],

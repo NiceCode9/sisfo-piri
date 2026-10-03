@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Rombel\SalinRombelAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StorePengampuBatchRequest;
 use App\Http\Requests\Admin\StoreRombelRequest;
@@ -175,43 +176,19 @@ class RombelController extends Controller implements HasMiddleware
      * Bentuk rombel tahun tujuan dari tahun sumber beserta penugasannya.
      * Idempoten: yang sudah ada dilewati dan dilaporkan.
      */
-    public function prosesSalin(Request $request): RedirectResponse
+    public function prosesSalin(Request $request, SalinRombelAction $salin): RedirectResponse
     {
         $request->validate([
             'tahun_sumber_id' => ['required', 'integer', 'exists:tahun_ajarans,id', 'different:tahun_tujuan_id'],
             'tahun_tujuan_id' => ['required', 'integer', 'exists:tahun_ajarans,id'],
         ]);
 
-        $hasil = DB::transaction(function () use ($request) {
-            $rombelDisalin = 0;
-            $rombelDilewati = 0;
-            $tugasDisalin = 0;
-            $tugasDilewati = 0;
+        $hasil = $salin->jalankan(
+            $request->integer('tahun_sumber_id'),
+            $request->integer('tahun_tujuan_id')
+        );
 
-            $sumber = Rombel::with('pengampus')->where('tahun_ajaran_id', $request->integer('tahun_sumber_id'))->get();
-
-            foreach ($sumber as $r) {
-                $baru = Rombel::firstOrCreate(
-                    ['kelas_id' => $r->kelas_id, 'tahun_ajaran_id' => $request->integer('tahun_tujuan_id')],
-                    ['wali_guru_id' => $r->wali_guru_id]
-                );
-
-                $baru->wasRecentlyCreated ? $rombelDisalin++ : $rombelDilewati++;
-
-                foreach ($r->pengampus as $p) {
-                    $tugas = Pengampu::firstOrCreate(
-                        ['mata_pelajaran_id' => $p->mata_pelajaran_id, 'rombel_id' => $baru->id],
-                        ['guru_id' => $p->guru_id]
-                    );
-
-                    $tugas->wasRecentlyCreated ? $tugasDisalin++ : $tugasDilewati++;
-                }
-            }
-
-            return compact('rombelDisalin', 'rombelDilewati', 'tugasDisalin', 'tugasDilewati');
-        });
-
-        return redirect()->route('admin.rombels.index', ['tahun' => request('tahun_tujuan_id')])
+        return redirect()->route('admin.rombels.index', ['tahun' => $request->integer('tahun_tujuan_id')])
             ->with('success', "Salin selesai: {$hasil['rombelDisalin']} rombel + {$hasil['tugasDisalin']} penugasan disalin, {$hasil['rombelDilewati']} rombel + {$hasil['tugasDilewati']} penugasan dilewati (sudah ada).");
     }
 

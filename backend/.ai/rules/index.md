@@ -13,4 +13,6 @@ Before planning or editing, find the row whose globs match the file's path and r
 | app/Http/Controllers/{Siswa,Ortu}/** | .ai/rules/siswa-ortu.md |
 | database/migrations/*riwayat_kelas* | .ai/rules/rombel-riwayat.md |
 | app/Services/RiwayatSiswa.php | .ai/rules/riwayat-terpadu.md |
+| app/Actions/** | .ai/rules/tahun-ajaran-baru.md |
+| app/Http/Controllers/Admin/TahunAjaranBaruController.php | .ai/rules/tahun-ajaran-baru.md |
 | database/migrations/*absensis* | .ai/rules/rombel-riwayat.md |
