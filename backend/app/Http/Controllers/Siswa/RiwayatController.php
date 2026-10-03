@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Siswa;
 use App\Http\Controllers\Controller;
 use App\Models\Absensi;
 use App\Models\TahunAjaran;
+use App\Services\RiwayatSiswa;
 use Illuminate\View\View;
 
 class RiwayatController extends Controller
@@ -15,6 +16,25 @@ class RiwayatController extends Controller
 
         return view('siswa.kelas', [
             'riwayat' => $siswa?->riwayatKelas->sortByDesc('created_at') ?? collect(),
+        ]);
+    }
+
+    /**
+     * Riwayat terpadu: kehadiran, e-learning, dan nilai CBT per rombel.
+     *
+     * Halaman ini menggantikan kebutuhan membuka tiga rekap terpisah hanya untuk
+     * melihat satu potret murid. Read-only, bukan rapor.
+     */
+    public function riwayat(): View
+    {
+        $siswa = auth()->user()->siswa()->first();
+
+        $baris = $siswa ? RiwayatSiswa::untukSiswa($siswa) : [];
+
+        return view('siswa.riwayat', [
+            'siswa' => $siswa,
+            'baris' => $baris,
+            'ringkas' => RiwayatSiswa::ringkas($baris),
         ]);
     }
 
