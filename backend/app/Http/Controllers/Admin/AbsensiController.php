@@ -59,7 +59,7 @@ class AbsensiController extends Controller implements HasMiddleware
 
         if ($rombel) {
             $siswas = Siswa::with('user')
-                ->whereIn('id', $rombel->anggotaIds())
+                ->whereIn('id', $rombel->anggotaIdsAktif())
                 ->orderBy('nis')
                 ->get();
             $tercatat = Absensi::where('rombel_id', $rombel->id)
@@ -89,8 +89,13 @@ class AbsensiController extends Controller implements HasMiddleware
             $count = 0;
 
             foreach ($validated['status'] as $siswaId => $status) {
+                // Kunci baris harus memuat rombel_id, bukan hanya
+                // (siswa_id, tanggal). Tanpa rombel_id, siswa yang pindah kelas
+                // di tengah hariin memakai baris kelas lamanya lalu menimpa
+                // absensi kelas lama dengan rombel yang baru.
                 $absensi = Absensi::firstOrNew([
                     'siswa_id' => $siswaId,
+                    'rombel_id' => $validated['rombel_id'],
                     'tanggal' => $validated['tanggal'],
                 ]);
                 $absensi->rombel_id = $validated['rombel_id'];
@@ -189,7 +194,7 @@ class AbsensiController extends Controller implements HasMiddleware
 
         $rombel = Rombel::find($data['rombel_id']);
 
-        if (! in_array($siswa->id, $rombel->anggotaIds(), true)) {
+        if (! in_array($siswa->id, $rombel->anggotaIdsAktif(), true)) {
             return response()->json(['message' => 'Siswa bukan anggota rombel ini.'], 422);
         }
 
@@ -198,9 +203,15 @@ class AbsensiController extends Controller implements HasMiddleware
         $status = $sekarang->format('H:i') > $batas ? 'terlambat' : 'hadir';
 
         $absensi = Absensi::updateOrCreate(
-            ['siswa_id' => $siswa->id, 'tanggal' => $sekarang->toDateString()],
+            // rombel_id masuk kunci, bukan hanya atribut. Tanpa itu, scan
+            // untuk kelas yang berbeda pada tanggal sama akan menimpa baris
+            // kelas lama alih-alih membuat baris sendiri.
             [
+                'siswa_id' => $siswa->id,
                 'rombel_id' => $rombel->id,
+                'tanggal' => $sekarang->toDateString(),
+            ],
+            [
                 'status' => $status,
                 'jam_datang' => $sekarang->format('H:i:s'),
                 'metode' => 'qr',
@@ -254,28 +265,32 @@ class AbsensiController extends Controller implements HasMiddleware
     }
 
     /**
-     * Rombel yang boleh dilihat user. Wali dikunci ke rombel ampuan;
-     * lainnya bebas memilih.
+     * Rombel yang boleh dilihat user.
+     *
+     * Versi lama hanya menghitung rombel yang diwali lalu jatuh ke
+     * "kalau kosong, semua rombel" saat hasilnya kosong. Pola fail-open
+     * seperti itu sama dengan yang sudah dihapus di modul tugas: guru
+     * tanpa kelas wali bisa membuka rekap kehadiran kelas mana pun.
+     * Sekarang memakai {@see Rombel::terjangkauUser()} sehingga cekunya
+     * adalah wali ATAU pengampu mapel, dan kosong berarti nol.
      *
      * @return array{semua: Collection, terkunci: bool}
      */
     protected function rombelTerjangkau(): array
     {
         $tahunAktif = TahunAjaran::aktif()->first();
+
         $semua = Rombel::with(['kelas', 'tahunAjaran'])
+            ->terjangkauUser(request()->user())
             ->when($tahunAktif, fn ($q) => $q->orderByRaw('tahun_ajaran_id = ? desc', [$tahunAktif->id]))
             ->orderByDesc('tahun_ajaran_id')
             ->orderBy('kelas_id')
             ->get();
 
-        $guruId = Guru::where('user_id', auth()->id())->first()?->id;
-        $ampuan = $guruId ? $semua->where('wali_guru_id', $guruId)->values() : collect();
-
-        if ($ampuan->isNotEmpty()) {
-            return ['semua' => $ampuan, 'terkunci' => true];
-        }
-
-        return ['semua' => $semua, 'terkunci' => false];
+        return [
+            'semua' => $semua,
+            'terkunci' => ! request()->user()->hasRole(Rombel::ROLE_UNIVERSAL),
+        ];
     }
 
     /**
@@ -335,13 +350,18 @@ class AbsensiController extends Controller implements HasMiddleware
         ['semua' => $rombels, 'terkunci' => $terkunci] = $this->rombelTerjangkau();
 
         $rombelId = request()->query('rombel_id', $rombels->first()?->id);
+        $rombelDiminta = request()->query('rombel_id');
         $periode = request()->query('periode', 'bulan');
         $acuan = request()->query('acuan', now()->toDateString());
         $tahunAjaranId = request()->query('tahun_ajaran_id', TahunAjaran::aktif()->first()?->id) ?: null;
 
         $rombel = $rombels->firstWhere('id', (int) $rombelId);
 
-        if ($terkunci && ! $rombel) {
+        // 403 hanya bila rombel tertentu memang diminta dan bukan ampuan.
+        // Tanpa ini, guru yang belum punya kelas sama sekali mendapat
+        // halaman error alih-alih tampilan kosong yang wajar, karena daftar
+        // ampuan kosong sehingga tidak ada rombel yang terpilih.
+        if ($terkunci && $rombelDiminta && ! $rombel) {
             abort(403, 'Rombel ini bukan ampuan Anda.');
         }
 

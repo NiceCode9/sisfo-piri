@@ -61,7 +61,11 @@
         </div>
 
         <div class="card-nexus mb-3">
-            <div class="card-header-nexus"><h5 class="card-title">Riwayat Kelas</h5></div>
+            <div class="card-header-nexus d-flex justify-content-between align-items-center gap-2"><h5 class="card-title mb-0">Riwayat Kelas</h5>
+                @can('riwayat-kelas.manage')
+                    <a href="{{ route('admin.riwayat-kelas.show', $siswa) }}" class="btn btn-nexus-outline btn-sm"><i class="fa-solid fa-pen"></i> Koreksi</a>
+                @endcan
+            </div>
             <div class="card-body-nexus p-0">
                 <div class="table-responsive">
                     <table class="table-nexus w-100" style="font-size: 13px;">

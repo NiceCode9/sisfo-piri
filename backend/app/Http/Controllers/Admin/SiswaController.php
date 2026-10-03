@@ -131,8 +131,11 @@ class SiswaController extends Controller implements HasMiddleware
     {
         $validated = $request->validated();
         $kelasLama = $siswa->kelas_id;
+        $tahunLama = $siswa->tahun_ajaran_id;
+        $tahunBaru = $validated['tahun_ajaran_id'] ?? $tahunLama;
+        $kelasBaru = $validated['kelas_id'] ?? $kelasLama;
 
-        DB::transaction(function () use ($validated, $siswa, $kelasLama) {
+        DB::transaction(function () use ($validated, $siswa, $kelasLama, $tahunLama, $kelasBaru, $tahunBaru) {
             $siswa->user?->update([
                 'username' => $validated['nisn'],
                 'name' => $validated['nama'],
@@ -152,14 +155,30 @@ class SiswaController extends Controller implements HasMiddleware
                 'no_hp_orang_tua' => $validated['no_hp_orang_tua'] ?? null,
             ]);
 
-            // Ganti kelas otomatis catat riwayat baru
-            if (($validated['kelas_id'] ?? null) !== $kelasLama) {
-                RiwayatKelas::create([
-                    'siswa_id' => $siswa->id,
-                    'kelas_id' => $siswa->kelas_id,
-                    'tahun_ajaran_id' => $siswa->tahun_ajaran_id,
-                    'status' => 'aktif',
-                ]);
+            // Ganti kelas atau tahun ajaran: tutup baris riwayat lama dan
+            // buka yang baru.
+            //
+            // Sebelumnya baris lama dibiarkan `aktif` begitu saja. Karena
+            // Rombel::anggotaIds() sengaja mengabaikan `status` (agar riwayat
+            // utuh), siswa itu tetap terhitung anggota kelas lamanya SEKALIGUS
+            // anggota kelas baru — muncul di dua grid absensi sekaligus.
+            // Menutup baris lama sekaligus menghidupkan enum `pindah` yang
+            // selama ini tidak pernah ditulis kode mana pun.
+            if ($kelasBaru !== $kelasLama || $tahunBaru !== $tahunLama) {
+                RiwayatKelas::where('siswa_id', $siswa->id)
+                    ->where('kelas_id', $kelasLama)
+                    ->where('tahun_ajaran_id', $tahunLama)
+                    ->where('status', 'aktif')
+                    ->update(['status' => 'pindah']);
+
+                RiwayatKelas::updateOrCreate(
+                    [
+                        'siswa_id' => $siswa->id,
+                        'kelas_id' => $kelasBaru,
+                        'tahun_ajaran_id' => $tahunBaru,
+                    ],
+                    ['status' => 'aktif']
+                );
             }
         });
 

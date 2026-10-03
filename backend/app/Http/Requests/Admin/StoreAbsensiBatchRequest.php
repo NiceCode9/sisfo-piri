@@ -38,7 +38,10 @@ class StoreAbsensiBatchRequest extends FormRequest
                 return;
             }
 
-            $anggota = $rombel->anggotaIds();
+            // Hanya siswa yang masih aktif di rombel ini. Siswa yang sudah
+            // pindah kelas punya baris riwayat di sini dengan status non-aktif
+            // dan tidak boleh dicatat hadir lagi.
+            $anggota = $rombel->anggotaIdsAktif();
 
             foreach ((array) $this->input('status', []) as $siswaId => $status) {
                 if (! in_array((int) $siswaId, $anggota, true)) {

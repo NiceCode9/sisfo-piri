@@ -48,7 +48,7 @@ class CekBelumHadir extends Command
 
         foreach ($rombels as $rombel) {
             $siswas = Siswa::with(['user', 'waliMurids'])
-                ->whereIn('id', $rombel->anggotaIds())
+                ->whereIn('id', $rombel->anggotaIdsAktif())
                 ->whereNotIn('id', $sudahAda)
                 ->where('is_aktif', true)
                 ->get();
