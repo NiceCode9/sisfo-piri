@@ -2,19 +2,41 @@
 paths:
   - 'app/Actions/**'
   - 'app/Http/Controllers/Admin/TahunAjaranBaruController.php'
-  - 'app/Http/Controllers/Admin/KenaikanKelasController.php'
   - 'app/Http/Controllers/Admin/RombelController.php'
+  - 'database/seeders/MenuSeeder.php'
 ---
 
 # Tahun Ajaran Baru
+
+## Satu menu, satu endpoint
+
+Wizard "Tahun Ajaran Baru" adalah satu-satunya cara menjalankan kenaikan kelas.
+Menu dan route `Kenaikan Kelas` lama sudah dilebur ke sini; `GET /kenaikan-kelas`
+hanya redirect, dan `POST kenaikan-kelas/proses` **sudah dihapus** — jangan
+dibuatkan ulang.
+
+Kenapa dilebur: endpoint lama punya override per siswa tapi tidak menyalin rombel
+dan tidak pernah memanggil `kelasTujuanTanpaRombel()`. Tombol "Atur Kenaikan
+Detail" menuju ke sana membuka jalan memindahkan siswa ke kelas tanpa rombel —
+persis kebalikan dari urutan wajib di bawah. Menggabungkan tidak cuma merapikan
+menu, tapi menutup jalur itu secara struktural.
+
+Kalau nanti butuh menjalankan kenaikan dari tempat lain, tambahkan ACTION-nya — jangan
+buat endpoint yang memanggil `ProsesKenaikanAction` tanpa `SalinRombelAction`.
+
+## Permission
+
+Gerbang hanya `tahun-ajaran-baru.view` dan `tahun-ajaran-baru.execute`.
+Permission `kenaikan-kelas.view/execute` sengaja **dibiarkan ada** di tabel dan
+tetap diberikan ke admin supaya role yang sudah dikonfigurasi di produksi tidak
+berubah — jangan pakai lagi sebagai gerbang, jangan hapus tanpa migration.
 
 ## Logika ada di Action, bukan controller
 
 `SalinRombelAction` (salin rombel + wali + penugasan) dan
 `ProsesKenaikanAction` (naik / tinggal / lulus) adalah satu-satunya
-implementasi. `RombelController::prosesSalin()`,
-`KenaikanKelasController::proses()`, dan wizard `Tahun AjaranBaruController`
-semuanya memanggilnya.
+implementasi. `RombelController::prosesSalin()` dan
+`TahunAjaranBaruController` semuanya memanggilnya.
 
 Kalau butuh mengubah cara rombel disalin atau cara kenaikan memindahkan siswa,
 ubah di Action — jangan di salah satu controller. Kalau aturan yang sama ditulis

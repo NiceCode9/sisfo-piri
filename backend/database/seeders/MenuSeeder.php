@@ -32,29 +32,31 @@ class MenuSeeder extends Seeder
             ['name' => 'Guru', 'icon' => 'fa-solid fa-chalkboard-user', 'route' => 'admin.gurus.index', 'permission' => 'gurus.view', 'order' => 22],
             ['name' => 'Mata Pelajaran', 'icon' => 'fa-solid fa-book-open', 'route' => 'admin.mata-pelajarans.index', 'permission' => 'mata-pelajarans.view', 'order' => 23],
             ['name' => 'Ekstrakurikuler', 'icon' => 'fa-solid fa-futbol', 'route' => 'admin.ekstrakurikulers.index', 'permission' => 'ekstrakurikulers.view', 'order' => 24],
-            ['name' => 'Kelas', 'icon' => 'fa-solid fa-school-flag', 'route' => 'admin.kelas.index', 'permission' => 'kelas.view', 'order' => 24],
-            ['name' => 'Pengampu', 'icon' => 'fa-solid fa-clipboard-user', 'route' => 'admin.pengampus.index', 'permission' => 'pengampus.view', 'order' => 25],
-            ['name' => 'Rombel', 'icon' => 'fa-solid fa-users', 'route' => 'admin.rombels.index', 'permission' => 'rombels.view', 'order' => 26],
-            ['name' => 'Kenaikan Kelas', 'icon' => 'fa-solid fa-arrow-up-right-dots', 'route' => 'admin.kenaikan.index', 'permission' => 'kenaikan-kelas.view', 'order' => 27],
-            ['name' => 'Tahun Ajaran Baru', 'icon' => 'fa-solid fa-calendar-plus', 'route' => 'admin.tahun-ajaran-baru.index', 'permission' => 'tahun-ajaran-baru.view', 'order' => 27],
-            ['name' => 'Riwayat Kelas', 'icon' => 'fa-solid fa-timeline', 'route' => 'admin.riwayat-kelas.index', 'permission' => 'riwayat-kelas.manage', 'order' => 27],
-            ['name' => 'Siswa', 'icon' => 'fa-solid fa-graduation-cap', 'route' => 'admin.siswas.index', 'permission' => 'siswas.view', 'order' => 28],
-            ['name' => 'Absensi', 'icon' => 'fa-solid fa-clipboard-check', 'route' => 'admin.absensis.index', 'permission' => 'absensis.view', 'order' => 29],
-            ['name' => 'Rekap Absensi', 'icon' => 'fa-solid fa-chart-column', 'route' => 'admin.absensis.rekap', 'permission' => 'absensis.view', 'order' => 30],
-            ['name' => 'E-Learning', 'is_header' => true, 'order' => 31],
-            ['name' => 'Materi', 'icon' => 'fa-solid fa-book-open-reader', 'route' => 'admin.materis.index', 'permission' => 'materis.view', 'order' => 32],
-            ['name' => 'Tugas', 'icon' => 'fa-solid fa-clipboard-question', 'route' => 'admin.tugas.index', 'permission' => 'tugas.view', 'order' => 33],
-            ['name' => 'CBT', 'is_header' => true, 'order' => 34],
-            ['name' => 'Bank Soal', 'icon' => 'fa-solid fa-database', 'route' => 'admin.cbt.banks.index', 'permission' => 'cbt.view', 'order' => 35],
-            ['name' => 'Ujian', 'icon' => 'fa-solid fa-laptop', 'route' => 'admin.cbt.exams.index', 'permission' => 'cbt.view', 'order' => 36],
+            ['name' => 'Kelas', 'icon' => 'fa-solid fa-school-flag', 'route' => 'admin.kelas.index', 'permission' => 'kelas.view', 'order' => 25],
+            ['name' => 'Pengampu', 'icon' => 'fa-solid fa-clipboard-user', 'route' => 'admin.pengampus.index', 'permission' => 'pengampus.view', 'order' => 26],
+            ['name' => 'Rombel', 'icon' => 'fa-solid fa-users', 'route' => 'admin.rombels.index', 'permission' => 'rombels.view', 'order' => 27],
+            // "Kenaikan Kelas" lama sudah dilebur ke wizard ini — override per
+            // siswa pindah ke halaman yang sama supaya tidak ada lagi jalur
+            // memindahkan siswa tanpa menyalin rombel lebih dulu.
+            ['name' => 'Tahun Ajaran Baru', 'icon' => 'fa-solid fa-calendar-plus', 'route' => 'admin.tahun-ajaran-baru.index', 'permission' => 'tahun-ajaran-baru.view', 'order' => 28],
+            ['name' => 'Riwayat Kelas', 'icon' => 'fa-solid fa-timeline', 'route' => 'admin.riwayat-kelas.index', 'permission' => 'riwayat-kelas.manage', 'order' => 29],
+            ['name' => 'Siswa', 'icon' => 'fa-solid fa-graduation-cap', 'route' => 'admin.siswas.index', 'permission' => 'siswas.view', 'order' => 30],
+            ['name' => 'Absensi', 'icon' => 'fa-solid fa-clipboard-check', 'route' => 'admin.absensis.index', 'permission' => 'absensis.view', 'order' => 31],
+            ['name' => 'Rekap Absensi', 'icon' => 'fa-solid fa-chart-column', 'route' => 'admin.absensis.rekap', 'permission' => 'absensis.view', 'order' => 32],
+            ['name' => 'E-Learning', 'is_header' => true, 'order' => 33],
+            ['name' => 'Materi', 'icon' => 'fa-solid fa-book-open-reader', 'route' => 'admin.materis.index', 'permission' => 'materis.view', 'order' => 34],
+            ['name' => 'Tugas', 'icon' => 'fa-solid fa-clipboard-question', 'route' => 'admin.tugas.index', 'permission' => 'tugas.view', 'order' => 35],
+            ['name' => 'CBT', 'is_header' => true, 'order' => 36],
+            ['name' => 'Bank Soal', 'icon' => 'fa-solid fa-database', 'route' => 'admin.cbt.banks.index', 'permission' => 'cbt.view', 'order' => 37],
+            ['name' => 'Ujian', 'icon' => 'fa-solid fa-laptop', 'route' => 'admin.cbt.exams.index', 'permission' => 'cbt.view', 'order' => 38],
 
-            ['name' => 'Sistem', 'is_header' => true, 'order' => 35],
-            ['name' => 'Role', 'icon' => 'fa-solid fa-user-tie', 'route' => 'admin.roles.index', 'permission' => 'roles.view', 'order' => 36],
-            ['name' => 'Menu', 'icon' => 'fa-solid fa-bars', 'route' => 'admin.menus.index', 'permission' => 'menus.view', 'order' => 37],
-            ['name' => 'Pengguna & Role', 'icon' => 'fa-solid fa-users-gear', 'route' => 'admin.users.index', 'permission' => 'users.view', 'order' => 38],
-            ['name' => 'Profil Sekolah', 'icon' => 'fa-solid fa-school', 'route' => 'admin.profil-sekolah.edit', 'permission' => 'profil-sekolahs.view', 'order' => 39],
-            ['name' => 'Pengaturan', 'icon' => 'fa-solid fa-gear', 'route' => 'admin.pengaturans.index', 'permission' => 'pengaturans.view', 'order' => 40],
-            ['name' => 'WhatsApp', 'icon' => 'fa-brands fa-whatsapp', 'route' => 'admin.whatsapp.index', 'permission' => 'whatsapp.view', 'order' => 41],
+            ['name' => 'Sistem', 'is_header' => true, 'order' => 39],
+            ['name' => 'Role', 'icon' => 'fa-solid fa-user-tie', 'route' => 'admin.roles.index', 'permission' => 'roles.view', 'order' => 40],
+            ['name' => 'Menu', 'icon' => 'fa-solid fa-bars', 'route' => 'admin.menus.index', 'permission' => 'menus.view', 'order' => 41],
+            ['name' => 'Pengguna & Role', 'icon' => 'fa-solid fa-users-gear', 'route' => 'admin.users.index', 'permission' => 'users.view', 'order' => 42],
+            ['name' => 'Profil Sekolah', 'icon' => 'fa-solid fa-school', 'route' => 'admin.profil-sekolah.edit', 'permission' => 'profil-sekolahs.view', 'order' => 43],
+            ['name' => 'Pengaturan', 'icon' => 'fa-solid fa-gear', 'route' => 'admin.pengaturans.index', 'permission' => 'pengaturans.view', 'order' => 44],
+            ['name' => 'WhatsApp', 'icon' => 'fa-brands fa-whatsapp', 'route' => 'admin.whatsapp.index', 'permission' => 'whatsapp.view', 'order' => 45],
         ];
 
         foreach ($menus as $menu) {
@@ -63,5 +65,15 @@ class MenuSeeder extends Seeder
                 array_merge(['is_active' => true, 'is_header' => false], $menu),
             );
         }
+
+        // Menu yang sudah dilebur harus hilang dari database, bukan hanya
+        // berhenti di daftar di atas — `updateOrCreate` tidak pernah menghapus.
+        //
+        // Efek samping yang disengaja: baris `menus` ini ikut terhapus saat
+        // `migrate --force --seed` jalan di produksi, sesuai keputusan
+        // menggabungkan "Kenaikan Kelas" ke dalam wizard "Tahun Ajaran Baru".
+        // `menu_permission.menu_id` sudah cascade, jadi pivot ikut bersih dan
+        // tidak ada grant permission yang menggantung.
+        Menu::where('name', 'Kenaikan Kelas')->delete();
     }
 }

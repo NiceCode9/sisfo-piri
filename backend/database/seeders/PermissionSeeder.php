@@ -112,6 +112,11 @@ class PermissionSeeder extends Seeder
             'rombels.create',
             'rombels.edit',
             'rombels.delete',
+            // `kenaikan-kelas.*` sengaja TETAP ADA meski menu dan route-nya
+            // sudah dilebur ke wizard Tahun Ajaran Baru. Permission tidak
+            // dihapus supaya role yang sudah dikonfigurasi di produksi tidak
+            // ikut berubah, dan grant yang menggantung tidak jadi masalah —
+            // middleware sudah tidak memakainya sebagai gerbang.
             'kenaikan-kelas.view',
             'kenaikan-kelas.execute',
             'tahun-ajaran-baru.view',

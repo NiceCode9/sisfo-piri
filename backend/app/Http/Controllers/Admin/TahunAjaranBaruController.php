@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Actions\Rombel\SalinRombelAction;
 use App\Actions\Siswa\ProsesKenaikanAction;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\ProsesKenaikanWizardRequest;
 use App\Models\Kelas;
 use App\Models\Pengampu;
 use App\Models\Rombel;
@@ -29,6 +30,14 @@ use Illuminate\View\View;
  *
  * Wizard ini menjalankan salin lebih dulu, baru kenaikan, lalu memverifikasi
  * setiap kelas tujuan benar-benar punya rombel sebelum memindahkan siapa pun.
+ *
+ * Menu "Kenaikan Kelas" lama sudah dilebur ke sini. Alasannya bukan sekadar
+ * satu menu: halaman lama itu punya override per siswa tapi TIDAK menyalin
+ * rombel dan tidak pernah memanggil `kelasTujuanTanpaRombel()`, sehingga
+ * tombol "Atur Kenaikan Detail" yang menuju ke sana justru membuka jalan
+ * memindahkan siswa ke kelas tanpa rombel. Sekarang override per siswa ada di
+ * halaman ini dan submit ke endpoint yang sama, jadi urutan salah tidak lagi
+ * bisa terjadi.
  */
 class TahunAjaranBaruController extends Controller implements HasMiddleware
 {
@@ -47,24 +56,35 @@ class TahunAjaranBaruController extends Controller implements HasMiddleware
         if ($tahunAjarans->count() < 2) {
             return view('admin.tahun-ajaran-baru.index', [
                 'tahunAjarans' => $tahunAjarans,
+                'tahunAktif' => null,
                 'tahunAsalId' => null,
                 'tahunTujuanId' => null,
                 'grup' => collect(),
+                'kelasList' => collect(),
+                'tingkatAkhir' => 0,
                 'petaOtomatis' => [],
-                'pratinjau' => [],
+                'pemetaan' => [],
+                'override' => [],
+                'jumlahOverride' => 0,
                 'kelasTujuan' => collect(),
+                'ringkasanSalin' => ['rombel' => 0, 'penugasan' => 0, 'sudah ada' => 0],
                 'peringatan' => ['Butuh minimal dua tahun ajaran. Tambahkan tahun ajaran baru terlebih dahulu.'],
             ]);
         }
 
-        $tahunAsalId = $request->integer('tahun_asal_id') ?: $tahunAjarans->sortByDesc('tanggal_mulai')->skip(1)->first()?->id;
-        $tahunTujuanId = $request->integer('tahun_tujuan_id') ?: $tahunAjarans->first()?->id;
+        // Default: tahun asal adalah tahun yang sedang aktif, tujuan adalah
+        // tahun lain yang paling baru. Memakai tahun aktif — bukan tahun kedua
+        // terbaru — supaya siswa yang tampil memang yang sedang absen hari ini.
+        $tahunAktif = TahunAjaran::aktif()->first();
+        $tahunAsalId = $request->integer('tahun_asal_id') ?: $tahunAktif?->id;
+        $tahunTujuanId = $request->integer('tahun_tujuan_id')
+            ?: $tahunAjarans->firstWhere('id', '!=', $tahunAsalId)?->id;
 
         if ($tahunAsalId === $tahunTujuanId) {
-            $tahunAsalId = $tahunAjarans->where('id', '!=', $tahunTujuanId)->first()?->id;
+            $tahunTujuanId = $tahunAjarans->firstWhere('id', '!=', $tahunAsalId)?->id;
         }
 
-        $siswas = Siswa::with(['kelas', 'user'])
+        $siswas = Siswa::with(['kelas', 'user', 'calonSiswa'])
             ->where('is_aktif', true)
             ->where('tahun_ajaran_id', $tahunAsalId)
             ->orderBy('kelas_id')
@@ -85,6 +105,15 @@ class TahunAjaranBaruController extends Controller implements HasMiddleware
             $pemetaan[$kelasId] ??= $peta[$kelasId] ?? '';
         }
 
+        // Override per siswa ditampilkan di dalam accordion, jadi tidak lewat
+        // query string. Yang dihitung di sini hanya jumlahnya, untuk
+        // memberitahu operator bahwa ada pengecualian yang wajib ditinjau.
+        $override = $request->input('override', []);
+        $jumlahOverride = count(array_filter(
+            $override,
+            fn ($aksi) => $aksi !== null && $aksi !== '' && $aksi !== 'ikuti'
+        ));
+
         $rombelTujuan = Rombel::where('tahun_ajaran_id', $tahunTujuanId)->pluck('kelas_id')->all();
 
         $kelasTujuan = collect($pemetaan)
@@ -99,25 +128,33 @@ class TahunAjaranBaruController extends Controller implements HasMiddleware
 
         return view('admin.tahun-ajaran-baru.index', [
             'tahunAjarans' => $tahunAjarans,
+            'tahunAktif' => $tahunAktif,
             'tahunAsalId' => $tahunAsalId,
             'tahunTujuanId' => $tahunTujuanId,
             'grup' => $grup,
+            'kelasList' => Kelas::orderBy('tingkat')->orderBy('nama_kelas')->get(),
+            'tingkatAkhir' => (int) Kelas::pluck('tingkat')->map(fn ($t) => (int) $t)->max(),
             'petaOtomatis' => $peta,
             'pemetaan' => $pemetaan,
+            'override' => $override,
+            'jumlahOverride' => $jumlahOverride,
             'kelasTujuan' => $kelasTujuan,
-            'pratinjau' => $this->hitungPratinjau($grup, $pemetaan, $request->input('override', [])),
+            'pratinjau' => $this->hitungPratinjau($grup, $pemetaan),
             'ringkasanSalin' => $this->ringkasanSalin($tahunAsalId, $tahunTujuanId),
             'peringatan' => [],
         ]);
     }
 
     /**
+     * Pratinjau berdasarkan pemetaan kelas saja — override per siswa sengaja
+     * tidak dihitung, karena kolom itu baru mengubah hasil setelah dipilih.
+     * UI menandai tabel ini supaya angkanya tidak dibaca sebagai hasil final.
+     *
      * @param  \Illuminate\Support\Collection<int, array{kelas: Kelas, siswas: Collection}>  $grup
      * @param  array<int|string, string>  $pemetaan
-     * @param  array<int|string, string>  $override
      * @return array<string, array<string, int>>
      */
-    protected function hitungPratinjau($grup, array $pemetaan, array $override): array
+    protected function hitungPratinjau($grup, array $pemetaan): array
     {
         $rekap = [];
 
@@ -127,22 +164,22 @@ class TahunAjaranBaruController extends Controller implements HasMiddleware
 
             $tujuan = $pemetaan[$kelasId] ?? '';
 
-            foreach ($data['siswas'] as $siswa) {
-                $aksi = $override[$siswa->id] ?? 'ikuti';
-
-                if ($aksi === 'ikuti') {
-                    $aksi = $tujuan === 'LULUS' ? 'lulus' : ($tujuan !== '' ? 'naik' : 'dilewati');
-                }
-
-                $rekap[$nama][$aksi]++;
+            if ($tujuan === 'LULUS') {
+                $aksi = 'lulus';
+            } elseif ($tujuan !== '') {
+                $aksi = 'naik';
+            } else {
+                $aksi = 'dilewati';
             }
+
+            $rekap[$nama][$aksi] += $data['siswas']->count();
         }
 
         return $rekap;
     }
 
     /**
-     * @return array{rombel:int, penugasan:int}
+     * @return array{rombel:int, penugasan:int, sudah_ada:int}
      */
     protected function ringkasanSalin(int $tahunAsalId, int $tahunTujuanId): array
     {
@@ -159,18 +196,11 @@ class TahunAjaranBaruController extends Controller implements HasMiddleware
     }
 
     public function proses(
-        Request $request,
+        ProsesKenaikanWizardRequest $request,
         SalinRombelAction $salin,
         ProsesKenaikanAction $kenaikan
     ): RedirectResponse {
-        $validated = $request->validate([
-            'tahun_asal_id' => ['required', 'integer', 'exists:tahun_ajarans,id', 'different:tahun_tujuan_id'],
-            'tahun_tujuan_id' => ['required', 'integer', 'exists:tahun_ajarans,id'],
-            'pemetaan' => ['required', 'array', 'min:1'],
-            'pemetaan.*' => ['nullable'],
-            'override' => ['nullable', 'array'],
-            'override.*' => ['nullable', 'in:ikuti,tinggal,lulus'],
-        ]);
+        $validated = $request->validated();
 
         $tahunAsal = (int) $validated['tahun_asal_id'];
         $tahunTujuan = (int) $validated['tahun_tujuan_id'];
@@ -179,24 +209,6 @@ class TahunAjaranBaruController extends Controller implements HasMiddleware
             $validated['pemetaan']
         );
         $override = $validated['override'] ?? [];
-
-        // Kelas tujuan yang tidak dikenal harus ditolak SEBELUM mencoba membuat
-        // rombel — foreign key akan melempar 500 kalau id fiktif diteruskan.
-        $tidakDiketahui = collect($pemetaan)
-            ->filter(fn ($t) => $t !== '' && $t !== 'LULUS')
-            ->map(fn ($t) => (int) $t)
-            ->unique()
-            ->reject(fn ($id) => Kelas::whereKey($id)->exists());
-
-        if ($tidakDiketahui->isNotEmpty()) {
-            return redirect()
-                ->route('admin.tahun-ajaran-baru.index', [
-                    'tahun_asal_id' => $tahunAsal,
-                    'tahun_tujuan_id' => $tahunTujuan,
-                ])
-                ->with('error', 'Kelas tujuan '.$tidakDiketahui->implode(', ').' tidak dikenal. '
-                    .'Buat kelasnya di menu Kelas lalu jalankan ulang. Kenaikan kelas tidak dijalankan.');
-        }
 
         // Langkah 1 — bentuk rombel tahun tujuan. Idempoten, jadi aman
         // dijalankan berkali-kali saat penyiapan.
@@ -225,19 +237,22 @@ class TahunAjaranBaruController extends Controller implements HasMiddleware
             }
         }
 
-        // Verifikasi ulang. Kalau masih ada yang bolong, id kelas itu tidak
-        // dikenal sama sekali — jangan dipindahkan ke sana.
+        // Jaring pengaman. `ProsesKenaikanWizardRequest` sudah menolak id kelas yang
+        // tidak dikenal, dan setiap id yang lolos baru saja dibuatkan rombelnya,
+        // jadi daftar ini praktis tidak mungkin berisi apa pun. Kalau tetap
+        // ada, jangan dipindahkan — lebih baik tidak naik daripada menunjuk
+        // kelas tanpa rombel.
         $sisa = $kenaikan->kelasTujuanTanpaRombel($pemetaan, $tahunTujuan);
 
         if ($sisa !== []) {
-            $nama = collect($sisa)->map(fn ($id) => "#{$id}")->implode(', ');
+            $nama = collect($sisa)->map(fn ($id) => Kelas::find($id)?->nama_kelas ?? "#{$id}")->implode(', ');
 
             return redirect()
                 ->route('admin.tahun-ajaran-baru.index', [
                     'tahun_asal_id' => $tahunAsal,
                     'tahun_tujuan_id' => $tahunTujuan,
                 ])
-                ->with('error', "Kelas tujuan {$nama} tidak dikenal. Buat kelasnya di menu Kelas lalu jalankan ulang. "
+                ->with('error', "Rombel tahun tujuan untuk kelas {$nama} gagal dibuat. "
                     .'Kenaikan kelas tidak dijalankan agar tidak ada siswa yang menunjuk kelas tanpa rombel.');
         }
 
