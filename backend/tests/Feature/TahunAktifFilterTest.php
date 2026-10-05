@@ -107,15 +107,17 @@ test('siswa default tahun aktif, semua tampil, spesifik tahun lampau', function 
         ->assertOk()->assertSee('9990001')->assertDontSee('8880001');
 });
 
-test('kenaikan kelas default tahun aktif, asal lampau tampil', function () {
+test('tahun ajaran baru default tahun aktif, asal lampau tampil', function () {
     $kelas = Kelas::where('nama_kelas', '7A')->firstOrFail();
     Siswa::create(['nis' => '8880002', 'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id, 'kelas_id' => $kelas->id, 'is_aktif' => true]);
     Siswa::create(['nis' => '9990002', 'tahun_ajaran_id' => tahunLampauFilter()->id, 'kelas_id' => $kelas->id, 'is_aktif' => true]);
 
-    $this->actingAs(superAdmin())->get(route('admin.kenaikan.index'))
+    // Wizard ini yang dulu punya nama test "kenaikan kelas". Route `kenaikan.index`
+    // sekarang cuma redirect ke sini, jadi default tahun aktif diuji di satu tempat.
+    $this->actingAs(superAdmin())->get(route('admin.tahun-ajaran-baru.index'))
         ->assertOk()->assertSee('8880002')->assertDontSee('9990002');
 
-    $this->actingAs(superAdmin())->get(route('admin.kenaikan.index', ['tahun_asal_id' => tahunLampauFilter()->id, 'tahun_tujuan_id' => TahunAjaran::aktif()->first()->id]))
+    $this->actingAs(superAdmin())->get(route('admin.tahun-ajaran-baru.index', ['tahun_asal_id' => tahunLampauFilter()->id, 'tahun_tujuan_id' => TahunAjaran::aktif()->first()->id]))
         ->assertOk()->assertSee('9990002')->assertDontSee('8880002');
 });
 

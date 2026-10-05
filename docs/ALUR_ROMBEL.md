@@ -42,9 +42,9 @@ Sebelum ada rombel, data seperti "siapa mengajar apa di mana" dicatat terpisah p
 
 | Peran | Menu | Kegunaan |
 |-------|------|----------|
-| Admin akademik | Rombel | Membentuk, mengubah wali, melihat histori, salin tahun |
+| Admin akademik | Rombel | Membentuk, mengubah wali, melihat histori |
 | Admin akademik | Pengampu | Menetapkan guru per mapel per rombel |
-| Admin akademik | Kenaikan Kelas | Menaikkan/meluluskan siswa (menulis riwayat) |
+| Admin akademik | Tahun Ajaran Baru | Menyalin rombel tahun tujuan lalu menaikkan/meluluskan siswa dalam satu proses |
 | Wali/Guru | (modul menyusul) | Melihat rombel yang diampu |
 
 ## 4. Pertanyaan yang sering ditanyakan

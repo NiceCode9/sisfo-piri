@@ -19,7 +19,6 @@ use App\Http\Controllers\Admin\GuruController;
 use App\Http\Controllers\Admin\JadwalPpdbController;
 use App\Http\Controllers\Admin\JalurPendaftaranController;
 use App\Http\Controllers\Admin\KelasController;
-use App\Http\Controllers\Admin\KenaikanKelasController;
 use App\Http\Controllers\Admin\KuotaPendaftaranController;
 use App\Http\Controllers\Admin\MataPelajaranController;
 use App\Http\Controllers\Admin\MateriController;
@@ -54,6 +53,7 @@ use App\Http\Controllers\Siswa\RiwayatController;
 use App\Http\Controllers\Siswa\TugasController as SiswaTugasController;
 use App\Http\Controllers\SpmbController;
 use App\Models\BerkasCalonSiswa;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [SpmbController::class, 'home'])->name('spmb.home');
@@ -177,10 +177,23 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::patch('detail-angsuran/{detail}/denda', [RencanaAngsuranController::class, 'updateDenda'])->name('rencana.denda');
     Route::get('profil-sekolah', [ProfilSekolahController::class, 'edit'])->name('profil-sekolah.edit');
     Route::put('profil-sekolah', [ProfilSekolahController::class, 'update'])->name('profil-sekolah.update');
-    Route::get('kenaikan-kelas', [KenaikanKelasController::class, 'index'])->name('kenaikan.index');
-    Route::post('kenaikan-kelas/proses', [KenaikanKelasController::class, 'proses'])->name('kenaikan.proses');
     Route::get('tahun-ajaran-baru', [TahunAjaranBaruController::class, 'index'])->name('tahun-ajaran-baru.index');
     Route::post('tahun-ajaran-baru/proses', [TahunAjaranBaruController::class, 'proses'])->name('tahun-ajaran-baru.proses');
+
+    // Menu "Kenaikan Kelas" sudah dilebur ke wizard "Tahun Ajaran Baru". URL lama
+    // tetap dibuat redirect supaya bookmark dan tautan lama tidak jadi 404.
+    //
+    // Sengaja TIDAK ada `kenaikan.proses` lagi. Endpoint lama hanya memanggil
+    // ProsesKenaikanAction tanpa menyalin rombel dan tanpa cek kelas tujuan
+    // punya rombel, jadi itulah jalur yang bisa membuat siswa menunjuk kelas
+    // tanpa rombel. Form lama yang masih ter-cache akan berhenti di 405/404,
+    // dan itu memang jawaban yang benar — jalankan ulang dari wizard.
+    Route::get('kenaikan-kelas', function (Request $request) {
+        return redirect()->route('admin.tahun-ajaran-baru.index', array_filter([
+            'tahun_asal_id' => $request->integer('tahun_asal_id') ?: null,
+            'tahun_tujuan_id' => $request->integer('tahun_tujuan_id') ?: null,
+        ]));
+    })->name('kenaikan.index');
     Route::get('riwayat-kelas', [RiwayatKelasController::class, 'index'])->name('riwayat-kelas.index');
     Route::get('riwayat-kelas/{siswa}', [RiwayatKelasController::class, 'show'])->name('riwayat-kelas.show');
     Route::put('riwayat-kelas/{riwayatKelas}', [RiwayatKelasController::class, 'update'])->name('riwayat-kelas.update');
