@@ -213,6 +213,8 @@ Data dev sudah menyediakan kasus uji untuk hal ini. `AkademikSeeder` membentuk G
 
 **Verifikasi:** dua test saling mengunci. `guru mencapai rombel yang diampu mapel walau bukan wali` menuntut 7B memberi 200, dan `guru ditolak pada rombel milik guru lain` menuntut 7C memberi 403. Test `guru tanpa penugasan tidak melihat rombel siapa pun` menutup jalur fail-open. Sabotage-verified: menghapus klausa `orWhereIn('id', Pengampu...)` langsung membuat Guru A kehilangan 7B dan daftar materinya kosong.
 
+> **Pola fail-open yang sama ada di luar E-Learning.** Saat H2 diperbaiki, sapuan lanjutan menemukan `AbsensiController` menghitung rekap dengan cara berbeda — tanpa `terjangkauUser()`, sehingga guru tanpa kelas melihat seluruh rombel. Sudah diperbaiki terpisah dengan call site yang sama; verifikasi manual ada di `docs/PANDUAN_UJI_KEPUTUSAN_AKADEMIK.md`. Kalau menambah controller baru yang menyaring rombel, jangan menghitung jangkauan dengan cara sendiri — pakai `terjangkauUser()` supaya jalur fail-open tidak terbuka lagi.
+
 ---
 
 # MEDIUM
@@ -337,7 +339,7 @@ Tiga test lain tidak di-sabotage karena tidak ada perilaku runtime yang bisa dib
 
 | Item | Status |
 |---|---|
-| **Tabel `wali_kelas` kosong, tapi `rombels.wali_guru_id` berisi dua baris** | Ada dua sumber homeroom di schema, yang dipakai adalah kolom. Tabel `wali_kelas` tidak ikut dibaca. Perlu keputusan mana yang menjadi sumber resmi sebelum itu berubah |
+| **Tabel `wali_kelas` kosong, tapi `rombels.wali_guru_id` berisi dua baris** | **Putusan: dibiarkan kosong, didokumentasikan.** Sumber wali yang dipakai sistem adalah kolom `rombels.wali_guru_id`; tabel `wali_kelas` tidak dibaca sebagai sumber resmi. `RombelSeeder` memang memakainya sebagai salah satu sumber pembentukan rombel, tapi pasangan dari `riwayat_kelas` sudah cukup. Mengisinya tanpa keputusan akan membuat dua sumber kebenaran yang bisa menyimpang. Lihat `docs/PANDUAN_UJI_KEPUTUSAN_AKADEMIK.md` bagian "Catatan penting soal data" |
 | **Baris lama masih menunjuk path disk publik** | `materis` dan `pengumpulan_tugas` versi lama menyimpan path relatif `materi/...` dan `tugas/...` terhadap `storage/app/public`. Tidak ada file fisik di sana, sehingga `storage:link` tidak lagi membocorkan apa pun. Kalau ada data produksi, path itu perlu dipindahkan manual ke `storage/app/private/berkas` dan tidak bisa ditutup tes |
 | **Foto profil siswa masih di disk publik** | `siswa/profil.blade.php` memakai `Storage::disk('public')->url($siswa->foto_path)`. Berbeda dari lampiran E-Learning, foto profil memang biasanya dimaksudkan publik, tetapi path-nya bisa ditebak bila nama berkas berpola. Di luar cakupan audit ini |
 | **Filter mapel pada rekap dan ekspor tidak dibatasi** | `exportExcel()` dan `exportPdf()` memakai `rekapTerfilter()` yang sudah ter-scope ke rombel. Namun parameter `mapel_id` tidak dibatasi ke mapel yang benar-benar diampu guru, sehingga guru wali bisa melihat nilai mapel lain di kelasnya. Perlu keputusan produk |

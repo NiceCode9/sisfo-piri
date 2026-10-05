@@ -43,6 +43,8 @@ class DatabaseSeeder extends Seeder
             RombelSeeder::class,
             DemoElearningSeeder::class,
             DemoCbtSeeder::class,
+            RiwayatMultiTahunSeeder::class,
+            DemoUjiKeputusanSeeder::class,
         ]);
     }
 }
