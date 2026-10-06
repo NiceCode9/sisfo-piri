@@ -6,12 +6,22 @@ Panduan ini untuk menguji **tiga perbaikan** yang sudah merged ke `develop` deng
 
 ```bash
 php artisan migrate:fresh --seed
+php artisan db:seed --class=RiwayatMultiTahunSeeder
+php artisan db:seed --class=DemoUjiKeputusanSeeder
 ```
 
-Satu perintah itu sudah cukup. Seeder yang relevan:
+Perintah pertama mengisi **data master** yang bisa dibaca orang: profil, PPDB,
+kelas 7A–9C, 15 guru bernama, 90 siswa. Dua perintah berikutnya menambahkan
+fiktif yang dibutuhkan panduan ini.
+
+Seeder demo sengaja **tidak** ikut di `migrate:fresh --seed`. `RiwayatMultiTahunSeeder`
+memanggil `ProsesKenaikanAction`, yang memproses **semua** siswa aktif di tahun
+asal — bukan hanya siswa miliknya sendiri. Kalau ikut di seed utama, 10 siswa
+kelas 7A ikut naik ke 8A dan kelas 7A jadi kosong.
 
 | Seeder | Isi |
 |---|---|
+`DataMasterRealSeeder` | Data master (otomatis dari `--seed`) |
 `RiwayatMultiTahunSeeder` | Data riwayat dua tahun ajaran (7A→8A, 7B→8B), dibuat dengan memanggil Action wizard |
 `DemoUjiKeputusanSeeder` | Skenario uji untuk ketiga perbaikan di bawah |
 
