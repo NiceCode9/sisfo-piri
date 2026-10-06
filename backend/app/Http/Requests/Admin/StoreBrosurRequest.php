@@ -23,7 +23,7 @@ class StoreBrosurRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:255'],
             'desc' => ['nullable', 'string', 'max:500'],
-            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
             'order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['required', 'boolean'],
         ];
