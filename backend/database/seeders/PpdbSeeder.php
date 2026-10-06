@@ -120,17 +120,21 @@ class PpdbSeeder extends Seeder
             [
                 'nama_jalur' => 'Jalur Afirmasi',
                 'deskripsi' => 'Jalur pendaftaran untuk siswa dari keluarga kurang mampu',
-                'aktif' => true,
+                // Data master hanya membuka Jalur Reguler dan Jalur Prestasi.
+                // Barisnya tetap disimpan supaya calon siswa lama yang memakai
+                // jalur ini tidak kehilangan rujukan — yang berubah hanya
+                // `aktif`, jadi jalurnya tidak muncul di form pendaftaran.
+                'aktif' => false,
             ],
             [
                 'nama_jalur' => 'Jalur Mutasi',
                 'deskripsi' => 'Jalur pendaftaran untuk siswa pindahan dari sekolah lain',
-                'aktif' => true,
+                'aktif' => false,
             ],
             [
                 'nama_jalur' => 'Jalur Prestasi Olahraga',
                 'deskripsi' => 'Jalur pendaftaran untuk siswa berprestasi di bidang olahraga (wajib upload sertifikat kejuaraan)',
-                'aktif' => true,
+                'aktif' => false,
                 'wajib_sertifikat' => true,
             ],
         ];

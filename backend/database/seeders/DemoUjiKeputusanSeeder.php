@@ -101,9 +101,7 @@ class DemoUjiKeputusanSeeder extends Seeder
     /**
      * Guru yang mengampu satu mapel di rombel yang BUKAN dia wali.
      *
-     * Membuktikan cakupan "wali ATAU pengampu", bukan "wali saja". Di dev ini
-     * Guru A sudah berperan ganda untuk 7B, tapi dibuat eksplisit supaya
-     * jelas saat menguji.
+     * Membuktikan cakupan "wali ATAU pengampu", bukan "wali saja".
      */
     private function buatGuruPengampuSaja(): void
     {
@@ -128,8 +126,9 @@ class DemoUjiKeputusanSeeder extends Seeder
             'rombel_id' => $rombel->id,
         ]);
 
-        // Wali rombel ini sengaja dibiarkan Guru D, supaya satu-satunya alasan
-        // guru uji ini boleh melihat 7D adalah penugasan mapelnya.
+        // Rombel 7D sengaja TIDAK diberi wali: satu-satunya alasan guru uji ini
+        // boleh melihat 7D adalah penugasan mapelnya. Kalau rombel ini punya
+        // wali, pengujian ini tidak lagi membuktikan apa pun.
     }
 
     // ------------------------------------------------------------------
@@ -346,9 +345,24 @@ class DemoUjiKeputusanSeeder extends Seeder
         return $user;
     }
 
+    /**
+     * Rombel untuk nama kelas tertentu.
+     *
+     * Dibuat bila belum ada. `DataMasterRealSeeder` hanya membuat kelas 7A–9C,
+     * sedangkan skenario ini memakai 7D sebagai "rombel milik orang lain".
+     * `firstOrFail()` di sini dulu tidak masalah karena `AkademikSeeder`
+     * membuat 7A–7D; sekarang kelas itu harus dibuat sendiri supaya seeder ini
+     * tidak bergantung pada tebakan isi data master.
+     */
     private function rombel(string $kelas): Rombel
     {
-        return Rombel::whereHas('kelas', fn ($q) => $q->where('nama_kelas', $kelas))->firstOrFail();
+        $tahun = TahunAjaran::aktif()->firstOrFail();
+        $kelasModel = Kelas::firstOrCreate(['nama_kelas' => $kelas], ['tingkat' => substr($kelas, 0, 1)]);
+
+        return Rombel::firstOrCreate([
+            'kelas_id' => $kelasModel->id,
+            'tahun_ajaran_id' => $tahun->id,
+        ]);
     }
 
     /**

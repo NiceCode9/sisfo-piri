@@ -30,6 +30,27 @@ if (! function_exists('superAdmin')) {
     }
 }
 
+/*
+ * Jalur Prestasi Olahraga adalah satu-satunya jalur dengan
+ * `wajib_sertifikat`, jadi test ini butuh jalur itu — bukan jalur mana pun
+ * yang kebetulan terbuka.
+ *
+ * Data master hanya membuka Jalur Reguler dan Jalur Prestasi, jadi jalurnya
+ * diaktifkan di sini. Yang diuji adalah berkas sertifikat, bukan
+ * itu jalur mana yang default terbuka; membiarkannya bergantung pada
+ * `PpdbSeeder` berarti test ikut gagal setiap kali daftar jalur default
+ * berubah.
+ */
+if (! function_exists('jalurOlahraga')) {
+    function jalurOlahraga(): JalurPendaftaran
+    {
+        $jalur = JalurPendaftaran::where('nama_jalur', 'Jalur Prestasi Olahraga')->firstOrFail();
+        $jalur->update(['aktif' => true]);
+
+        return $jalur;
+    }
+}
+
 if (! function_exists('payloadPendaftaran')) {
     function payloadPendaftaran(int $jalurId, string $suffix, array $extra = []): array
     {
@@ -65,7 +86,7 @@ if (! function_exists('payloadPendaftaran')) {
 }
 
 test('jalur olahraga tanpa sertifikat ditolak', function () {
-    $jalur = JalurPendaftaran::where('nama_jalur', 'Jalur Prestasi Olahraga')->first();
+    $jalur = jalurOlahraga();
 
     $response = $this->post(route('spmb.store'), payloadPendaftaran($jalur->id, '01'));
 
@@ -74,7 +95,7 @@ test('jalur olahraga tanpa sertifikat ditolak', function () {
 });
 
 test('jalur olahraga dengan 2 sertifikat berhasil', function () {
-    $jalur = JalurPendaftaran::where('nama_jalur', 'Jalur Prestasi Olahraga')->first();
+    $jalur = jalurOlahraga();
 
     $response = $this->post(route('spmb.store'), payloadPendaftaran($jalur->id, '02', [
         'sertifikat' => [
@@ -134,7 +155,7 @@ test('jalur reguler tetap bisa mengirim sertifikat bila diisi', function () {
 });
 
 test('baris sertifikat kosong pada jalur wajib tetap ditolak', function () {
-    $jalur = JalurPendaftaran::where('nama_jalur', 'Jalur Prestasi Olahraga')->first();
+    $jalur = jalurOlahraga();
 
     $response = $this->post(route('spmb.store'), payloadPendaftaran($jalur->id, '08', [
         'sertifikat' => [['nama' => '']],
@@ -145,7 +166,7 @@ test('baris sertifikat kosong pada jalur wajib tetap ditolak', function () {
 });
 
 test('lebih dari 5 sertifikat ditolak', function () {
-    $jalur = JalurPendaftaran::where('nama_jalur', 'Jalur Prestasi Olahraga')->first();
+    $jalur = jalurOlahraga();
     $banyak = [];
     for ($i = 0; $i < 6; $i++) {
         $banyak[] = ['nama' => "Sertifikat {$i}", 'file' => UploadedFile::fake()->create("s{$i}.pdf", 100, 'application/pdf')];
@@ -157,7 +178,7 @@ test('lebih dari 5 sertifikat ditolak', function () {
 });
 
 test('file sertifikat selain pdf/jpg ditolak', function () {
-    $jalur = JalurPendaftaran::where('nama_jalur', 'Jalur Prestasi Olahraga')->first();
+    $jalur = jalurOlahraga();
 
     $response = $this->post(route('spmb.store'), payloadPendaftaran($jalur->id, '05', [
         'sertifikat' => [
@@ -169,7 +190,7 @@ test('file sertifikat selain pdf/jpg ditolak', function () {
 });
 
 test('hapus calon menghapus file sertifikat', function () {
-    $jalur = JalurPendaftaran::where('nama_jalur', 'Jalur Prestasi Olahraga')->first();
+    $jalur = jalurOlahraga();
 
     $this->post(route('spmb.store'), payloadPendaftaran($jalur->id, '06', [
         'sertifikat' => [
@@ -189,7 +210,7 @@ test('hapus calon menghapus file sertifikat', function () {
 });
 
 test('admin dapat menambah calon beserta sertifikat', function () {
-    $jalur = JalurPendaftaran::where('nama_jalur', 'Jalur Prestasi Olahraga')->first();
+    $jalur = jalurOlahraga();
     $tahun = $jalur->kuotaPendaftaran->first()->tahun_ajaran_id;
 
     $response = $this->actingAs(superAdmin())->post(route('admin.calon-siswas.store'), [
@@ -223,7 +244,7 @@ test('admin dapat menambah calon beserta sertifikat', function () {
 });
 
 test('admin ditolak menambah calon ke jalur wajib sertifikat tanpa sertifikat', function () {
-    $jalur = JalurPendaftaran::where('nama_jalur', 'Jalur Prestasi Olahraga')->firstOrFail();
+    $jalur = jalurOlahraga();
     $tahun = $jalur->kuotaPendaftaran->first()->tahun_ajaran_id;
 
     // Dulunya hanya JavaScript yang menahan; POST langsung tetap diterima.
@@ -263,7 +284,7 @@ test('admin boleh menambah calon ke jalur reguler tanpa sertifikat', function ()
 });
 
 test('edit calon jalur wajib yang sudah punya sertifikat tidak wajib upload ulang', function () {
-    $jalur = JalurPendaftaran::where('nama_jalur', 'Jalur Prestasi Olahraga')->firstOrFail();
+    $jalur = jalurOlahraga();
     $calon = CalonSiswa::create([
         'jalur_pendaftaran_id' => $jalur->id,
         'tahun_ajaran_id' => TahunAjaran::aktif()->first()->id,
