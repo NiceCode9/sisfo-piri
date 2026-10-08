@@ -115,7 +115,7 @@
         </table></div>
     </div>
     @if ($siswas->hasPages())
-        <div class="card-footer-nexus">{{ $siswas->links() }}</div>
+        <div class="card-footer-nexus">{{ $siswas->links('pagination::bootstrap-5') }}</div>
     @endif
 </div>
 @endsection
