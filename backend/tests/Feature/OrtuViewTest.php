@@ -13,6 +13,7 @@ use Database\Seeders\PermissionSeeder;
 use Database\Seeders\PpdbSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 uses(RefreshDatabase::class);
@@ -70,6 +71,49 @@ test('dashboard menampilkan wali dan persentase bulanan', function () {
 
     $this->actingAs($ortu)->get(route('ortu.dashboard'))
         ->assertOk()->assertSee('Guru A')->assertSee('50%');
+});
+
+test('jumlah query dashboard orang tua tidak bertambah per anak', function () {
+    $rombelA = Rombel::whereHas('kelas', fn ($q) => $q->where('nama_kelas', '7A'))
+        ->where('tahun_ajaran_id', TahunAjaran::aktif()->first()->id)->firstOrFail();
+    $rombelB = Rombel::whereHas('kelas', fn ($q) => $q->where('nama_kelas', '7B'))
+        ->where('tahun_ajaran_id', TahunAjaran::aktif()->first()->id)->firstOrFail();
+
+    $anakSatu = siswaOrtuUji('8101', 'Anak Tunggal', $rombelA);
+    $ortu = User::where('username', 'ortu-'.$anakSatu->nisn)->firstOrFail();
+
+    $hitung = function (User $ortu): int {
+        // Pemanasan dulu: request pertama memuat cache permission Spatie yang
+        // di luar kendali controller. Tanpa ini, query cache ikut terhitung dan
+        // perbandingan jadi menyesatkan.
+        $this->actingAs($ortu)->get(route('ortu.dashboard'))->assertOk();
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $this->actingAs($ortu)->get(route('ortu.dashboard'))->assertOk();
+        $jumlah = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        return $jumlah;
+    };
+
+    $satuAnak = $hitung($ortu);
+
+    // Satu akun orang tua dapat dipakai bersama beberapa anak. Versi lama
+    // menjalankan dua query di dalam loop anak, sehingga total query naik
+    // seiring bertambahnya anak. Sekarang rombel dan agregat absensi diambil
+    // sekali untuk seluruh anak.
+    $anakDua = siswaOrtuUji('8102', 'Anak Kedua', $rombelA);
+    $anakTiga = siswaOrtuUji('8103', 'Anak Ketiga', $rombelB);
+
+    WaliMurid::whereIn('siswa_id', [$anakDua->id, $anakTiga->id])
+        ->update(['user_id' => $ortu->id]);
+
+    expect($ortu->waliMurids()->count())->toBe(3);
+
+    $tigaAnak = $hitung($ortu);
+
+    expect($tigaAnak)->toBe($satuAnak);
 });
 
 test('detail mendukung filter semester ganjil', function () {

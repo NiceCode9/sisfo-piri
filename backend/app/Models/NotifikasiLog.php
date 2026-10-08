@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class NotifikasiLog extends Model
 {
     protected $fillable = [
+        'kunci',
         'tipe',
         'tujuan',
         'pesan',
