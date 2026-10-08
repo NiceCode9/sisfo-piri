@@ -167,16 +167,18 @@
 <div class="row g-3 mb-3">
     <div class="col-12 col-sm-3">
         <div class="form-floating">
-            <input type="number" name="kuota" value="{{ old('kuota', $gelombang->kuota ?? 80) }}" class="form-control @error('kuota') is-invalid @enderror" id="kuota" min="1" required />
-            <label for="kuota">Kuota <span class="text-danger">*</span></label>
+            <input type="number" name="kuota" value="{{ old('kuota', $gelombang->kuota ?? 80) }}" class="form-control @error('kuota') is-invalid @enderror" id="kuota" min="1" placeholder="Kosong = tanpa batas" />
+            <label for="kuota">Kuota Pendaftaran (batch ini)</label>
             @error('kuota')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            <div class="form-text">Batas jumlah yang boleh mendaftar ke batch ini. Kosongkan bila tidak dibatasi.</div>
         </div>
     </div>
     <div class="col-12 col-sm-3">
         <div class="form-floating">
             <input type="number" name="terisi" value="{{ old('terisi', $gelombang->terisi ?? 0) }}" class="form-control @error('terisi') is-invalid @enderror" id="terisi" min="0" />
-            <label for="terisi">Terisi</label>
+            <label for="terisi">Terdaftar</label>
             @error('terisi')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            <div class="form-text">Jumlah yang sudah mendaftar ke batch ini, semua jalur.</div>
         </div>
     </div>
     <div class="col-12 col-sm-3">

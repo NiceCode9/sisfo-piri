@@ -25,7 +25,10 @@ class StoreGelombangRequest extends FormRequest
             'nama_gelombang' => ['required', 'string', 'max:100'],
             'nomor_urut' => ['required', 'integer', 'min:1'],
             'badge' => ['nullable', 'string', 'max:50'],
-            'kuota' => ['required', 'integer', 'min:1'],
+            // NULL = tanpa batas. `min:1` sengaja, bukan `min:0`: `0` pernah berarti dua
+            // hal berbeda di dua tabel dan pernah menutup jalur secara tak
+            // sengaja. Sekarang satu penanda saja — kosong.
+            'kuota' => ['nullable', 'integer', 'min:1'],
             'terisi' => ['nullable', 'integer', 'min:0'],
             'diskon_persen' => ['nullable', 'integer', 'min:0', 'max:100'],
             'keuntungan' => ['nullable', 'array'],

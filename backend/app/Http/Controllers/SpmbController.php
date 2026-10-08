@@ -74,29 +74,35 @@ class SpmbController extends Controller
     }
 
     /**
-     * Agregat kuota untuk kartu "Kuota Terbatas" di landing page.
+     * Agregat kuota untuk kartu "Kuota Pendaftaran" di landing page.
      *
      * Sebelumnya kartu tersebut menampilkan angka hardcoded (180 siswa, 6 kelas,
-     * 45% terisi) yang bertentangan dengan data asli. Sekarang:
-     *  - `kapasitas` = jumlah kursi yang bisa didaftarkan,
-     *  - `persen` memakai `terisi_pendaftaran` — satu-satunya angka yang
-     *    benar-benar bergerak di sistem.
+     * 45% terisi) yang bertentangan dengan data asli.
      *
-     * Jalur tanpa batas (`kuota_pendaftaran` NULL) diabaikan agar tidak
-     * ikut dihitung sebagai kapasitas.
+     * Kapasitas diambil dari `Gelombang`, bukan dari `KuotaPendaftaran`.
+     * Alasannya: yang benar-benar membatasi pendaftaran adalah kuota per batch
+     * — `Gelombang::bisaMasuk()`, yang dijaga di `store()` sebelum baris
+     * pendaftar dibuat. `kuota_pendaftaran` per jalur sengaja NULL untuk jalur
+     * yang tidak membatasi jumlah pendaftar, jadi kalau kartu ini
+     * menjumlahkannya, kapasitasnya jadi nol sementara judulnya "Kuota
+     * Terbatas". `terisi` diambil dari tabel yang sama supaya satuan,
+     * cakupan, dan gerbangnya satu: jumlah terdaftar per batch.
      */
     private function ringkasanKuota(?TahunAjaran $tahun): array
     {
         if (! $tahun) {
-            return ['kapasitas' => 0, 'terisi' => 0, 'persen' => 0, 'jumlah_kelas' => 0];
+            return ['kapasitas' => 0, 'terisi' => 0, 'persen' => 0, 'jumlah_kelas' => 0, 'tanpa_batas' => false];
         }
 
-        $kuota = KuotaPendaftaran::where('tahun_ajaran_id', $tahun->id)
-            ->whereNotNull('kuota_pendaftaran')
-            ->get(['kuota_pendaftaran', 'terisi_pendaftaran']);
+        $gelombangs = Gelombang::where('tahun_ajaran_id', $tahun->id)->get(['kuota', 'terisi']);
 
-        $kapasitas = (int) $kuota->sum('kuota_pendaftaran');
-        $terisi = (int) $kuota->sum('terisi_pendaftaran');
+        $kapasitas = (int) $gelombangs->sum('kuota');
+        $terisi = (int) $gelombangs->sum('terisi');
+
+        // Semua batch tanpa kuota berarti pendaftaran tidak dibatasi sama
+        // sekali. Ditandai terpisah supaya UI mengatakannya secara jujur,
+        // bukan menampilkan "—" di bawah judul yang menjanjikan angka.
+        $tanpaBatas = $gelombangs->isNotEmpty() && $gelombangs->every(fn ($g) => $g->kuota === null);
 
         // Tabel `kelas` hanya katalog nama kelas (7A, 7B, ...) tanpa tahun
         // ajaran. Kelas yang benar-benar berjalan pada tahun ini dihitung dari
@@ -113,6 +119,7 @@ class SpmbController extends Controller
             'terisi' => $terisi,
             'persen' => $kapasitas > 0 ? (int) round($terisi / $kapasitas * 100) : 0,
             'jumlah_kelas' => $jumlahKelas,
+            'tanpa_batas' => $tanpaBatas,
         ];
     }
 

@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\BiayaPendaftaran;
 use App\Models\Gelombang;
 use App\Models\GelombangTahap;
-use App\Models\JadwalPpdb;
 use App\Models\JalurPendaftaran;
 use App\Models\KuotaPendaftaran;
 use App\Models\Pengumuman;
@@ -53,9 +52,7 @@ class PpdbSeeder extends Seeder
 
         $this->seedKuota($tahunAjaranAktif);
         $this->seedBiaya($tahunAjaranAktif);
-        // Gelombang harus lebih dulu: JadwalPpdb diturunkan dari tahapnya.
         $this->seedGelombang($tahunAjaranAktif);
-        $this->seedJadwal($tahunAjaranAktif);
         $this->seedPengumuman($tahunAjaranAktif);
 
         $this->command?->info('Seeder PPDB selesai.');
@@ -122,7 +119,7 @@ class PpdbSeeder extends Seeder
                 'deskripsi' => 'Jalur pendaftaran untuk siswa dari keluarga kurang mampu',
                 // Data master hanya membuka Jalur Reguler dan Jalur Prestasi.
                 // Barisnya tetap disimpan supaya calon siswa lama yang memakai
-                // jalur ini tidak kehilangan rujukan — yang berubah hanya
+                // jalur ini tidak kehilangan rujukan â€” yang berubah hanya
                 // `aktif`, jadi jalurnya tidak muncul di form pendaftaran.
                 'aktif' => false,
             ],
@@ -163,52 +160,49 @@ class PpdbSeeder extends Seeder
      * membuat kartu kuota di landing page terlihat seperti sekolah raksasa.
      *
      * Label `keterangan` diturunkan dari nama tahun ajaran, bukan ditulis
-     * manual — versi lama tertinggal "2024/2025" padahal barisnya menempel ke
+     * manual â€” versi lama tertinggal "2024/2025" padahal barisnya menempel ke
      * 2026/2027.
      */
     private function seedKuota(TahunAjaran $tahun): void
     {
+        // Hanya dua jalur yang benar-benar dipakai sekolah. Reguler tidak membatasi
+        // jumlah pENERIMAAN (`kuota` NULL), Prestasi membatasi. Keduanya
+        // juga tidak membatasi jumlah pendaftar per jalur — batas daftar
+        // yang berlaku ada di Gelombok, per batch.
+        //
+        // Jalur Afirmasi, Mutasi, dan Prestasi Olahraga sengaja tidak
+        // dibuatkan baris kuota: ketiganya sudah `aktif = false` di
+        // `seedJalurPendaftaran()`, jadi baris kuota hanya sisa data lama
+        // yang tidak pernah dibersihkan.
         $kuotaPendaftaran = [
             [
                 'jalur' => 'Jalur Reguler',
-                'kuota' => 100,
+                'kuota' => null,
                 'terisi' => 74,
-                'kuota_pendaftaran' => 130,
+                'kuota_pendaftaran' => null,
                 'terisi_pendaftaran' => 92,
             ],
             [
                 'jalur' => 'Jalur Prestasi',
                 'kuota' => 35,
                 'terisi' => 24,
-                'kuota_pendaftaran' => 45,
+                'kuota_pendaftaran' => null,
                 'terisi_pendaftaran' => 31,
             ],
-            [
-                'jalur' => 'Jalur Afirmasi',
-                'kuota' => 25,
-                'terisi' => 17,
-                'kuota_pendaftaran' => 35,
-                'terisi_pendaftaran' => 21,
-            ],
-            [
-                'jalur' => 'Jalur Mutasi',
-                'kuota' => 15,
-                'terisi' => 4,
-                'kuota_pendaftaran' => 30,
-                'terisi_pendaftaran' => 7,
-            ],
-            [
-                'jalur' => 'Jalur Prestasi Olahraga',
-                'kuota' => 15,
-                'terisi' => 0,
-                'kuota_pendaftaran' => null, // jalur kecil: biarkan tanpa batas
-                // Sengaja 0. Jalur tanpa batas tidak ikut dijumlahkan di total
-                // bounded (dipakai kartu kuota di landing page), jadi kalau
-                // jalur ini punya pendaftar, total jalur dan total gelombang
-                // akan berselisih dan dua kartu publik memberi angka berbeda.
-                'terisi_pendaftaran' => 0,
-            ],
         ];
+
+        // `updateOrCreate` tidak pernah menghapus. Baris kuota untuk jalur yang sudah
+        // tidak dipakai (Afirmasi, Mutasi, Prestasi Olahraga) harus dibersihkan
+        // di sini, kalau tidak `db:seed` kedua meninggalkan sisa data.
+        //
+        // Yang dibandingkan adalah daftar jalur di $kuotaPendaftaran, bukan
+        // semua jalur yang ada — `jalurId` memuat kelima jalur, termasuk yang
+        // sengaja tidak dibuatkan kuota.
+        $jalurAktif = array_map(fn ($k) => $this->jalurId[$k['jalur']], $kuotaPendaftaran);
+
+        KuotaPendaftaran::where('tahun_ajaran_id', $tahun->id)
+            ->whereNotIn('jalur_pendaftaran_id', $jalurAktif)
+            ->delete();
 
         foreach ($kuotaPendaftaran as $kuota) {
             $jalur = $kuota['jalur'];
@@ -285,66 +279,6 @@ class PpdbSeeder extends Seeder
     }
 
     /**
-     * Kalender internal sekolah. Kunci: (tahun_ajaran_id, tipe).
-     *
-     * Jadwal PPDB TIDAK lagi menjadi gate pendaftaran (lihat
-     * `App\Support\StatusPendaftaran`), jadi isinya diturunkan dari tahap
-     * gelombang pertama, bukan dari daftar tanggal yang ditulis ulang di sini.
-     * Sebelumnya kedua tabel punya daftar tanggal sendiri yang bisa berbeda
-     * satu sama lain, sehingga kalender internal pernah menjanjikan tanggal
-     * yang tidak ada di halaman publik.
-     *
-     * Gelombang pertama dipakai karena kalender ini hanya mewakili satu tahun
-     * ajaran, sementara tiap gelombang punya jadwal sendiri. Kalau sekolah ingin
-     * kalender berbeda per batch, admin menyesuaikan lewat menu Jadwal PPDB.
-     *
-     * Tahap tanpa `tanggal_selesai` (tahap satu hari) ditulis apa adanya;
-     * kolom JadwalPpdb tetap NOT NULL karena di sana satu hari ditulis dengan
-     * tanggal yang sama.
-     */
-    private function seedJadwal(TahunAjaran $tahun): void
-    {
-        $gelombang = Gelombang::where('tahun_ajaran_id', $tahun->id)
-            ->orderBy('nomor_urut')
-            ->first();
-
-        if (! $gelombang) {
-            return;
-        }
-
-        $jadwalPpdb = $gelombang->tahapan
-            ->map(fn (GelombangTahap $tahap) => [
-                'nama_jadwal' => $tahap->nama_tahap,
-                'tipe' => $tahap->tipe,
-                'tanggal_mulai' => $tahap->tanggal_mulai->toDateString(),
-                'tanggal_selesai' => $tahap->tanggalAkhir()->toDateString(),
-                'keterangan' => $tahap->keterangan,
-            ])
-            ->all();
-
-        foreach ($jadwalPpdb as $jadwal) {
-            JadwalPpdb::updateOrCreate(
-                [
-                    'tahun_ajaran_id' => $tahun->id,
-                    'tipe' => $jadwal['tipe'],
-                ],
-                $jadwal + ['tahun_ajaran_id' => $tahun->id]
-            );
-        }
-
-        // Tahap yang dihapus dari gelombang harus mengubah kalender juga.
-        // Kalau tidak, `db:seed` kedua kalinya meninggalkan baris lama yang
-        // tidak lagi punya tahapnya di tabel `gelombang_tahapan`.
-        $tipeTersedia = array_column($jadwalPpdb, 'tipe');
-
-        if ($tipeTersedia !== []) {
-            JadwalPpdb::where('tahun_ajaran_id', $tahun->id)
-                ->whereNotIn('tipe', $tipeTersedia)
-                ->delete();
-        }
-    }
-
-    /**
      * Pengumuman. Kunci: (tahun_ajaran_id, judul).
      *
      * Tanggal pengumuman dibuat relatif terhadap hari ini, sama seperti jadwal.
@@ -411,7 +345,7 @@ class PpdbSeeder extends Seeder
      *    angkanya berbeda admin mendapat dua jawaban berbeda untuk pertanyaan
      *    yang sama: "berapa kursi yang tersedia?". Jalur tanpa batas
      *    (`kuota_pendaftaran` NULL) ikut dihitung di `terisi` tapi tidak pernah
-     *    dihitung di `kapasitas`, jadi pendaftar pada jalur itu harus 0 —
+     *    dihitung di `kapasitas`, jadi pendaftar pada jalur itu harus 0 â€”
      *    kalau tidak, total gelombangan akan melebihi total jalur bounded.
      */
     private function seedGelombang(TahunAjaran $tahun): void
@@ -425,7 +359,7 @@ class PpdbSeeder extends Seeder
                 'badge' => 'EARLY BIRD',
                 'buka' => $hariIni->copy()->subMonth(),
                 'tutup' => $hariIni->copy()->addMonths(2),
-                'kuota' => 100,
+                'kuota' => 120,
                 'terisi' => 92,
                 'diskon_persen' => 15,
                 'keuntungan' => ['Gratis seragam olahraga', 'Prioritas pilihan kelas'],
@@ -439,7 +373,7 @@ class PpdbSeeder extends Seeder
                 'badge' => 'RECOMMENDED',
                 'buka' => $hariIni->copy()->addMonths(2)->addDays(15),
                 'tutup' => $hariIni->copy()->addMonths(4),
-                'kuota' => 85,
+                'kuota' => 100,
                 'terisi' => 42,
                 'diskon_persen' => 10,
                 'keuntungan' => ['Gratis tas sekolah', 'Gratis try-out persiapan'],
@@ -453,7 +387,7 @@ class PpdbSeeder extends Seeder
                 'badge' => 'LAST CHANCE',
                 'buka' => $hariIni->copy()->addMonths(4)->addDays(15),
                 'tutup' => $hariIni->copy()->addMonths(6),
-                'kuota' => 55,
+                'kuota' => 80,
                 'terisi' => 17,
                 'diskon_persen' => 5,
                 'keuntungan' => ['Gratis alat tulis', 'Kesempatan terakhir!'],

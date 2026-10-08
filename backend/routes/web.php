@@ -16,7 +16,6 @@ use App\Http\Controllers\Admin\EkstrakurikulerController;
 use App\Http\Controllers\Admin\GaleriController;
 use App\Http\Controllers\Admin\GelombangController;
 use App\Http\Controllers\Admin\GuruController;
-use App\Http\Controllers\Admin\JadwalPpdbController;
 use App\Http\Controllers\Admin\JalurPendaftaranController;
 use App\Http\Controllers\Admin\KelasController;
 use App\Http\Controllers\Admin\KuotaPendaftaranController;
@@ -145,7 +144,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::resource('gelombangs', GelombangController::class)->except(['show']);
     Route::resource('tahun-ajarans', TahunAjaranController::class)->except(['show']);
     Route::resource('jalur-pendaftarans', JalurPendaftaranController::class)->except(['show']);
-    Route::resource('jadwal-ppdbs', JadwalPpdbController::class)->except(['show']);
+
     Route::resource('kuota-pendaftarans', KuotaPendaftaranController::class)->except(['show']);
     Route::resource('gurus', GuruController::class)->except(['show']);
     Route::resource('mata-pelajarans', MataPelajaranController::class)->except(['show']);

@@ -25,7 +25,7 @@ class UpdateGelombangRequest extends FormRequest
             'nama_gelombang' => ['required', 'string', 'max:100'],
             'nomor_urut' => ['required', 'integer', 'min:1'],
             'badge' => ['nullable', 'string', 'max:50'],
-            'kuota' => ['required', 'integer', 'min:1'],
+            'kuota' => ['nullable', 'integer', 'min:1'],
             'terisi' => ['nullable', 'integer', 'min:0'],
             'diskon_persen' => ['nullable', 'integer', 'min:0', 'max:100'],
             'keuntungan' => ['nullable', 'array'],

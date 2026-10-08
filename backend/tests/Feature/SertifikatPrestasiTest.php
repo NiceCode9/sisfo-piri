@@ -211,7 +211,7 @@ test('hapus calon menghapus file sertifikat', function () {
 
 test('admin dapat menambah calon beserta sertifikat', function () {
     $jalur = jalurOlahraga();
-    $tahun = $jalur->kuotaPendaftaran->first()->tahun_ajaran_id;
+    $tahun = TahunAjaran::aktif()->firstOrFail()->id;
 
     $response = $this->actingAs(superAdmin())->post(route('admin.calon-siswas.store'), [
         'jalur_pendaftaran_id' => $jalur->id,
@@ -245,7 +245,7 @@ test('admin dapat menambah calon beserta sertifikat', function () {
 
 test('admin ditolak menambah calon ke jalur wajib sertifikat tanpa sertifikat', function () {
     $jalur = jalurOlahraga();
-    $tahun = $jalur->kuotaPendaftaran->first()->tahun_ajaran_id;
+    $tahun = TahunAjaran::aktif()->firstOrFail()->id;
 
     // Dulunya hanya JavaScript yang menahan; POST langsung tetap diterima.
     $response = $this->actingAs(superAdmin())->post(route('admin.calon-siswas.store'), [
@@ -266,7 +266,7 @@ test('admin ditolak menambah calon ke jalur wajib sertifikat tanpa sertifikat', 
 
 test('admin boleh menambah calon ke jalur reguler tanpa sertifikat', function () {
     $jalur = JalurPendaftaran::where('nama_jalur', 'Jalur Reguler')->firstOrFail();
-    $tahun = $jalur->kuotaPendaftaran->first()->tahun_ajaran_id;
+    $tahun = TahunAjaran::aktif()->firstOrFail()->id;
 
     $this->actingAs(superAdmin())->post(route('admin.calon-siswas.store'), [
         'jalur_pendaftaran_id' => $jalur->id,

@@ -12,8 +12,9 @@ class GelombangTahap extends Model
     protected $table = 'gelombang_tahapan';
 
     /**
-     * Jenis tahap. Sengaja sama dengan enum `jadwal_ppdbs.tipe` supaya kedua
-     * tabel memakai kosakata yang sama.
+     * Jenis tahap. Nilai enum ini pernah disamakan dengan `jadwal_ppdbs.tipe`
+     * (tabel itu sudah dihapus); status pendaftaran kini hanya membaca tahap
+     * ini, jadi daftar ini adalah satu-satunya kosakata jadwal PPDB.
      */
     public const TIPE = [
         'pendaftaran' => 'Pendaftaran',

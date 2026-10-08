@@ -104,3 +104,91 @@ test('admin tanpa permission delete tidak dapat menghapus kuota', function () {
 
     $this->actingAs($admin)->delete(route('admin.kuota-pendaftarans.destroy', $kuota))->assertForbidden();
 });
+
+test('kuota null berarti jalur tidak dibatasi penerimaan', function () {
+    // Jalur Reguler pada data master: menerima tanpa batas. NULL adalah satu
+    // -satunya penanda "tanpa batas" di seluruh sistem.
+    $tahun = TahunAjaran::aktif()->first();
+    $jalur = JalurPendaftaran::where('nama_jalur', 'Jalur Reguler')->firstOrFail();
+
+    $kuota = KuotaPendaftaran::where('tahun_ajaran_id', $tahun->id)
+        ->where('jalur_pendaftaran_id', $jalur->id)->firstOrFail();
+
+    expect($kuota->kuota)->toBeNull();
+
+    // Bahkan setelah terlampaui jauh, jalur tanpa batas tidak boleh penuh.
+    $kuota->update(['terisi' => 9999]);
+    expect($kuota->fresh()->penerimaanPenuh())->toBeFalse();
+});
+
+test('kuota nol bukan penanda tanpa batas dan menutup penerimaan jalur', function () {
+    // Jebakan yang ditutup migration penyatuan_kuota_nullable: dulu form
+    // mengizinkan `min:0`, dan `0` berarti `0 >= 0` = PENUH. Admin yang
+    // mengira 0 berarti "tanpa batas" justru menutup jalurnya sendiri.
+    $tahun = TahunAjaran::aktif()->first();
+    $jalur = JalurPendaftaran::where('nama_jalur', 'Jalur Prestasi')->firstOrFail();
+
+    $kuota = KuotaPendaftaran::where('tahun_ajaran_id', $tahun->id)
+        ->where('jalur_pendaftaran_id', $jalur->id)->firstOrFail();
+
+    $kuota->update(['kuota' => 0, 'terisi' => 0]);
+
+    expect($kuota->fresh()->penerimaanPenuh())->toBeTrue();
+});
+
+test('form kuota menolak kuota nol', function () {
+    $tahun = TahunAjaran::aktif()->first();
+    $jalur = JalurPendaftaran::doesntHave('kuotaPendaftaran')->first()
+        ?? JalurPendaftaran::create(['nama_jalur' => 'Jalur Nol', 'aktif' => true]);
+
+    $response = $this->actingAs(superAdmin())->post(route('admin.kuota-pendaftarans.store'), [
+        'tahun_ajaran_id' => $tahun->id,
+        'jalur_pendaftaran_id' => $jalur->id,
+        'kuota' => 0,
+        'terisi' => 0,
+    ]);
+
+    $response->assertSessionHasErrors('kuota');
+});
+
+test('form kuota menerima kuota kosong sebagai tanpa batas', function () {
+    $tahun = TahunAjaran::aktif()->first();
+    $jalur = JalurPendaftaran::doesntHave('kuotaPendaftaran')->first()
+        ?? JalurPendaftaran::create(['nama_jalur' => 'Jalur Tanpa Batas', 'aktif' => true]);
+
+    $response = $this->actingAs(superAdmin())->post(route('admin.kuota-pendaftarans.store'), [
+        'tahun_ajaran_id' => $tahun->id,
+        'jalur_pendaftaran_id' => $jalur->id,
+        'kuota' => '',
+        'terisi' => 7,
+    ]);
+
+    $response->assertSessionHasNoErrors();
+    $kuota = KuotaPendaftaran::where('tahun_ajaran_id', $tahun->id)
+        ->where('jalur_pendaftaran_id', $jalur->id)->first();
+
+    expect($kuota)->not->toBeNull()->and($kuota->kuota)->toBeNull();
+});
+
+test('form kuota menerima kuota pendaftaran di atas kuota penerimaan', function () {
+    // Aturan lama `kuota_pendaftaran lte kuota` dipindah ke withValidator(),
+    // karena begitu `kuota` boleh NULL perbandingan `lte` di rules() selalu
+    // gagal. Jalur tanpa batas penerimaan tidak boleh punya batas daftar
+    // yang lebih kecil dari jumlah yang sudah terlampaui.
+    $tahun = TahunAjaran::aktif()->first();
+    $jalur = JalurPendaftaran::where('nama_jalur', 'Jalur Reguler')->firstOrFail();
+
+    $kuota = KuotaPendaftaran::where('tahun_ajaran_id', $tahun->id)
+        ->where('jalur_pendaftaran_id', $jalur->id)->firstOrFail();
+
+    $response = $this->actingAs(superAdmin())->put(route('admin.kuota-pendaftarans.update', $kuota), [
+        'tahun_ajaran_id' => $tahun->id,
+        'jalur_pendaftaran_id' => $jalur->id,
+        'kuota' => '',
+        'terisi' => $kuota->terisi,
+        'kuota_pendaftaran' => 200,
+        'terisi_pendaftaran' => $kuota->terisi_pendaftaran,
+    ]);
+
+    $response->assertSessionHasNoErrors();
+});

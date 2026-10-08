@@ -29,6 +29,11 @@ class Gelombang extends Model
     protected $casts = [
         'keuntungan' => 'array',
         'is_aktif' => 'boolean',
+        // Tanpa cast integer, NULL tetap NULL di PHP — bagus. Yang justru
+        // merusak adalah `(int) null` yang jadi 0, dan itulah yang membuat
+        // kuota 0 pernah berarti "terbuka" sebelum diseragamkan ke NULL.
+        'kuota' => 'integer',
+        'terisi' => 'integer',
     ];
 
     public function tahunAjaran(): BelongsTo
@@ -143,14 +148,16 @@ class Gelombang extends Model
     }
 
     /**
-     * Sisa kursi.
+     * Sisa kursi, atau NULL kalau gelombang ini tidak dibatasi.
      *
-     * Kuota <= 0 berarti tidak dibatasi, jadi vacancy tidak boleh dibatasi
-     * angka nol (yang akan membuat semua pendaftar ditolak).
+     * Kuota NULL berarti tanpa batas. Angka nol TIDAK dipakai sebagai penanda
+     * karena berarti dua hal berbeda di dua tabel: dulu `0` berarti bebas di
+     * sini tapi "selalu penuh" di `KuotaPendaftaran`, dan form masa lalu
+     * mengizinkan keduanya. Satu penanda untuk satu konsep sekarang: NULL.
      */
     public function getSisaKursiAttribute(): ?int
     {
-        if ($this->kuota <= 0) {
+        if ($this->kuota === null) {
             return null;
         }
 
@@ -159,7 +166,7 @@ class Gelombang extends Model
 
     public function kuotaPenuh(): bool
     {
-        return $this->kuota > 0 && $this->terisi >= $this->kuota;
+        return $this->kuota !== null && $this->terisi >= $this->kuota;
     }
 
     /**
@@ -207,7 +214,7 @@ class Gelombang extends Model
 
     public function getPersentaseAttribute(): float
     {
-        if ($this->kuota <= 0) {
+        if ($this->kuota === null || $this->kuota === 0) {
             return 0;
         }
 

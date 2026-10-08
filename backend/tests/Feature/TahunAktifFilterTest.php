@@ -4,7 +4,6 @@ use App\Models\BiayaPendaftaran;
 use App\Models\CalonSiswa;
 use App\Models\Gelombang;
 use App\Models\Guru;
-use App\Models\JadwalPpdb;
 use App\Models\JalurPendaftaran;
 use App\Models\Kelas;
 use App\Models\KuotaPendaftaran;
@@ -210,21 +209,6 @@ test('pengumuman default tahun aktif, semua tampil', function () {
 
     $this->actingAs(superAdmin())->get(route('admin.pengumumans.index', ['tahun' => 'semua']))
         ->assertOk()->assertSee('Pengumuman Lampau');
-});
-
-test('jadwal default tahun aktif, semua tampil', function () {
-    JadwalPpdb::create([
-        'tahun_ajaran_id' => tahunLampauFilter()->id,
-        'nama_jadwal' => 'Jadwal Lampau',
-        'tanggal_mulai' => '2025-09-01',
-        'tanggal_selesai' => '2025-09-30',
-    ]);
-
-    $this->actingAs(superAdmin())->get(route('admin.jadwal-ppdbs.index'))
-        ->assertOk()->assertDontSee('Jadwal Lampau');
-
-    $this->actingAs(superAdmin())->get(route('admin.jadwal-ppdbs.index', ['tahun' => 'semua']))
-        ->assertOk()->assertSee('Jadwal Lampau');
 });
 
 test('kuota default tahun aktif, semua tampil', function () {

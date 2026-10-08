@@ -35,13 +35,13 @@
     <div class="card-body-nexus p-0">
         <div class="table-responsive">
             <table class="table-nexus w-100">
-                <thead><tr><th>Nama</th><th>Periode</th><th>Jadwal</th><th>Kuota</th><th>Calon</th><th>Status</th><th>Aksi</th></tr></thead>
+                <thead><tr><th>Nama</th><th>Periode</th><th>Gelombang</th><th>Kuota</th><th>Calon</th><th>Status</th><th>Aksi</th></tr></thead>
                 <tbody>
                     @forelse($tahunAjarans as $t)
                         <tr>
                             <td style="font-weight:600;font-size:13px;">{{ $t->nama_tahun_ajaran }}</td>
                             <td style="font-size:12.5px;">{{ \Carbon\Carbon::parse($t->tanggal_mulai)->format('d M Y') }} → {{ \Carbon\Carbon::parse($t->tanggal_selesai)->format('d M Y') }}</td>
-                            <td style="font-size:13px;">{{ $t->jadwal_ppdb_count }}</td>
+                            <td style="font-size:13px;">{{ $t->gelombangs_count }}</td>
                             <td style="font-size:13px;">{{ $t->kuota_pendaftaran_count }}</td>
                             <td style="font-size:13px;">{{ $t->calon_siswa_count }}</td>
                             <td>{!! $t->status_aktif ? '<span class="badge-nexus badge-info">aktif</span>' : '<span class="badge-nexus badge-neutral">nonaktif</span>' !!}</td>

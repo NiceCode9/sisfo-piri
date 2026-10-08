@@ -29,10 +29,15 @@ class StoreKuotaPendaftaranRequest extends FormRequest
                     fn ($query) => $query->where('tahun_ajaran_id', $this->tahun_ajaran_id)
                 ),
             ],
-            'kuota' => ['required', 'integer', 'min:0', 'gte:terisi'],
-            'terisi' => ['nullable', 'integer', 'min:0', 'lte:kuota'],
-            // Kosong = pendaftaran tidak dibatasi jumlahnya.
-            'kuota_pendaftaran' => ['nullable', 'integer', 'min:0', 'lte:kuota'],
+            // NULL = tidak dibatasi. Sama seperti Gelombang, `min:1` dipakai supaya `0`
+            // tidak bisa dipakai sebagai penanda — dulu `0` di sini berarti
+            // "selalu penuh" (`0 >= 0`), padahal di Gelombang berarti bebas.
+            // Sekarang satu arti untuk keduanya: kosong.
+            'kuota' => ['nullable', 'integer', 'min:1', 'gte:terisi'],
+            'terisi' => ['nullable', 'integer', 'min:0'],
+            // Kosong = pendaftaran tidak dibatasi jumlahnya. `lte:kuota` dipindah
+            // ke withValidator() karena perbandingan dengan NULL selalu gagal.
+            'kuota_pendaftaran' => ['nullable', 'integer', 'min:0'],
             'terisi_pendaftaran' => ['nullable', 'integer', 'min:0'],
             'keterangan' => ['nullable', 'string', 'max:1000'],
         ];
@@ -48,15 +53,42 @@ class StoreKuotaPendaftaranRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            // `terisi_pendaftaran` dihitung sistem, tapi form ini tetap memvalidasi
-            // konsistensinya supaya angka tidak pernah lebih besar dari kuota.
-            $terisi = (int) $this->input('terisi_pendaftaran', 0);
-            $kuota = $this->input('kuota_pendaftaran');
+            // Semua perbandingan `lte` dipindah ke sini. Sebelumnya `lte:kuota`
+            // dipakai langsung di rules(), dan begitu `kuota` boleh NULL
+            // (jalur tanpa batas penerimaan) perbandingan itu selalu gagal —
+            // `5 <= null` tidak pernah benar.
+            $kuota = $this->input('kuota');
+            $terisi = $this->input('terisi');
+            $kuotaPendaftaran = $this->input('kuota_pendaftaran');
+            $terisiPendaftaran = (int) $this->input('terisi_pendaftaran', 0);
 
-            if ($kuota !== null && $kuota !== '' && $terisi > (int) $kuota) {
+            // `terisi_pendaftaran` dihitung sistem, tapi form ini tetap
+            // memvalidasi konsistensinya supaya angka tidak pernah lebih besar
+            // dari kuota pendaftaran.
+            if ($kuotaPendaftaran !== null && $kuotaPendaftaran !== '' && $terisiPendaftaran > (int) $kuotaPendaftaran) {
                 $validator->errors()->add(
                     'kuota_pendaftaran',
                     'Kuota pendaftaran tidak boleh lebih kecil dari jumlah pendaftar saat ini.'
+                );
+            }
+
+            // Tidak ada batas atas yang bisa diperiksa kalau penerimaan dan
+            // pendaftaran keduanya tanpa batas.
+            if ($kuota === null || $kuota === '') {
+                return;
+            }
+
+            if ($terisi !== null && $terisi !== '' && (int) $terisi > (int) $kuota) {
+                $validator->errors()->add(
+                    'terisi',
+                    'Jumlah diterima tidak boleh lebih besar dari kuota penerimaan.'
+                );
+            }
+
+            if ($kuotaPendaftaran !== null && $kuotaPendaftaran !== '' && (int) $kuotaPendaftaran > (int) $kuota) {
+                $validator->errors()->add(
+                    'kuota_pendaftaran',
+                    'Kuota pendaftaran tidak boleh lebih besar dari kuota penerimaan untuk jalur ini.'
                 );
             }
         });

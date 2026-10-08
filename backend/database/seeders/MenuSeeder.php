@@ -19,7 +19,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Calon Siswa', 'icon' => 'fa-solid fa-user-graduate', 'route' => 'admin.calon-siswas.index', 'permission' => 'calon-siswas.view', 'order' => 11],
             ['name' => 'Tahun Ajaran', 'icon' => 'fa-solid fa-calendar-check', 'route' => 'admin.tahun-ajarans.index', 'permission' => 'tahun-ajarans.view', 'order' => 11],
             ['name' => 'Jalur Pendaftaran', 'icon' => 'fa-solid fa-signs-post', 'route' => 'admin.jalur-pendaftarans.index', 'permission' => 'jalur-pendaftarans.view', 'order' => 12],
-            ['name' => 'Jadwal PPDB', 'icon' => 'fa-solid fa-calendar-days', 'route' => 'admin.jadwal-ppdbs.index', 'permission' => 'jadwal-ppdbs.view', 'order' => 13],
+
             ['name' => 'Kuota', 'icon' => 'fa-solid fa-chart-pie', 'route' => 'admin.kuota-pendaftarans.index', 'permission' => 'kuota-pendaftarans.view', 'order' => 14],
             ['name' => 'Gelombang', 'icon' => 'fa-solid fa-layer-group', 'route' => 'admin.gelombangs.index', 'permission' => 'gelombangs.view', 'order' => 15],
             ['name' => 'Pembayaran', 'icon' => 'fa-solid fa-dollar-sign', 'route' => 'admin.pembayarans.index', 'permission' => 'pembayarans.view', 'order' => 16],
@@ -75,5 +75,12 @@ class MenuSeeder extends Seeder
         // `menu_permission.menu_id` sudah cascade, jadi pivot ikut bersih dan
         // tidak ada grant permission yang menggantung.
         Menu::where('name', 'Kenaikan Kelas')->delete();
+
+        // "Jadwal PPDB" dihapus bersama fiturnya. Baris ini hanya kalender
+        // internal yang isinya salinan `gelombang_tahapan` milik Gelombang 1,
+        // dan tidak dibaca halaman mana pun sejak status pendaftaran dipusatkan
+        // ke Gelombang. Sisa barisnya harus ikut hilang, karena
+        // `updateOrCreate` tidak pernah menghapus.
+        Menu::where('name', 'Jadwal PPDB')->delete();
     }
 }

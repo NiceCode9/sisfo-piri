@@ -40,7 +40,11 @@
                 <tbody>
                     @forelse($kuotas as $k)
                         @php
-                            $pct = $k->kuota > 0 ? round($k->terisi / $k->kuota * 100) : 0;
+                            // NULL = tanpa batas. Penanda ini berlaku sama di
+                            // `KuotaPendaftaran` dan `Gelombang`; angka 0 sudah
+                            // tidak lagi dipakai karena dulu berarti dua hal
+                            // berbeda di dua tabel.
+                            $pct = $k->kuota !== null && $k->kuota > 0 ? round($k->terisi / $k->kuota * 100) : null;
                             $pctDaftar = $k->kuota_pendaftaran ? round($k->terisi_pendaftaran / $k->kuota_pendaftaran * 100) : null;
                         @endphp
                         <tr>
@@ -53,8 +57,14 @@
                                     <span class="text-muted">{{ $k->terisi_pendaftaran }}/∞</span>
                                 @endif
                             </td>
-                            <td style="font-size:13px;">{{ $k->terisi }}/{{ $k->kuota }} ({{ $pct }}%)</td>
-                            <td style="min-width:140px;"><div class="progress-nexus"><div class="progress-fill" style="width:{{ min($pct, 100) }}%"></div></div></td>
+                            <td style="font-size:13px;">
+                                @if ($k->kuota === null)
+                                    {{ $k->terisi }} <span class="text-muted">/∞</span>
+                                @else
+                                    {{ $k->terisi }}/{{ $k->kuota }} ({{ $pct }}%)
+                                @endif
+                            </td>
+                            <td style="min-width:140px;"><div class="progress-nexus"><div class="progress-fill" style="width:{{ min($pct ?? 0, 100) }}%"></div></div></td>
                             <td>
                                 <div class="d-flex gap-1">
                                     @can('kuota-pendaftarans.edit')<a href="{{ route('admin.kuota-pendaftarans.edit', $k) }}" class="btn-icon btn btn-nexus-outline btn-sm"><i class="fa-solid fa-pencil"></i></a>@endcan

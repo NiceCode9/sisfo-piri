@@ -96,15 +96,28 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
                     </svg>
                 </div>
-                <h3 class="text-xl font-bold text-gray-800 mb-3">Kuota Terbatas</h3>
-                @php $kuota = $ringkasanKuota ?? ['kapasitas' => 0, 'terisi' => 0, 'persen' => 0, 'jumlah_kelas' => 0]; @endphp
+                <h3 class="text-xl font-bold text-gray-800 mb-3">Kuota Pendaftaran</h3>
+                @php $kuota = $ringkasanKuota ?? ['kapasitas' => 0, 'terisi' => 0, 'persen' => 0, 'jumlah_kelas' => 0, 'tanpa_batas' => false]; @endphp
                 <div class="space-y-4">
                     <div>
                         <div class="flex items-baseline justify-between mb-2">
-                            <span class="text-4xl font-extrabold text-accent-700">{{ $kuota['kapasitas'] ?: '—' }}</span>
+                            @if ($kuota['tanpa_batas'])
+                                <span class="text-4xl font-extrabold text-accent-700">∞</span>
+                            @else
+                                <span class="text-4xl font-extrabold text-accent-700">{{ $kuota['kapasitas'] ?: '—' }}</span>
+                            @endif
                             <span class="text-sm text-gray-600">siswa</span>
                         </div>
-                        <p class="text-sm text-gray-700">Total kuota yang tersedia</p>
+                        <p class="text-sm text-gray-700">
+                            {{-- Judul lama "Kuota Terbatas" tidak lagi cocok: yang
+                                 membatasi pendaftaran adalah kuota per batch, dan
+                                 sekolah boleh membiarkannya kosong. --}}
+                            @if ($kuota['tanpa_batas'])
+                                Kuota pendaftaran tidak dibatasi
+                            @else
+                                Total kuota pendaftaran yang tersedia
+                            @endif
+                        </p>
                     </div>
                     <div class="pt-4 border-t border-accent-200">
                         <div class="flex justify-between text-sm mb-2">
@@ -112,6 +125,8 @@
                             <span class="font-bold text-accent-700">
                                 @if ($kuota['kapasitas'])
                                     {{ $kuota['terisi'] }}/{{ $kuota['kapasitas'] }} terisi
+                                @elseif ($kuota['tanpa_batas'])
+                                    {{ $kuota['terisi'] }} sudah terdaftar
                                 @else
                                     Kuota belum diatur
                                 @endif
@@ -120,7 +135,13 @@
                         <div class="w-full bg-accent-200 rounded-full h-2">
                             <div class="bg-accent-600 h-2 rounded-full" style="width: {{ min($kuota['persen'], 100) }}%"></div>
                         </div>
-                        <p class="text-xs text-gray-600 mt-2">{{ $kuota['persen'] }}% kuota pendaftaran terisi</p>
+                        <p class="text-xs text-gray-600 mt-2">
+                            @if ($kuota['kapasitas'])
+                                {{ $kuota['persen'] }}% kuota pendaftaran terisi
+                            @else
+                                Kuota per batch belum diatur
+                            @endif
+                        </p>
                     </div>
                 </div>
             </div>

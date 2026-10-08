@@ -411,14 +411,70 @@ test('sisa kursi dan persentase memakai data nyata', function () {
         ->and($gelombang->fresh()->sisa_kursi)->toBe(0);
 });
 
-test('kuota nol berarti gelombang tidak dibatasi', function () {
+test('kuota null berarti gelombang tidak dibatasi', function () {
+    // Penanda "tanpa batas" diseragamkan ke NULL di seluruh sistem. Dulu
+    // Gelombang memakai `kuota <= 0` sementara KuotaPendaftaran memakai
+    // `kuota IS NULL` — dan `0` berarti dua hal berbeda di keduanya: bebas di
+    // sini, "selalu penuh" (`0 >= 0`) di sana. Form masa lalu mengizinkan
+    // keduanya, jadi admin bisa tanpa sengaja menutup jalurnya sendiri.
     Gelombang::query()->delete();
-    $tanpaBatas = buatGelombang(['kuota' => 0, 'terisi' => 999]);
+    $tanpaBatas = buatGelombang(['kuota' => null, 'terisi' => 999]);
 
     expect($tanpaBatas->sisa_kursi)->toBeNull()
         ->and($tanpaBatas->kuotaPenuh())->toBeFalse()
         ->and($tanpaBatas->persentase)->toBe(0.0)
         ->and($tanpaBatas->bisaMasuk())->toBeTrue();
+});
+
+test('kuota nol bukan penanda tanpa batas dan menutup gelombang', function () {
+    // Pengaman terhadap jebakan yang disebut di test sebelumnya: `0` harus
+    // diperlakukan sebagai kuota nol yang sudah penuh, bukan "bebas".
+    Gelombang::query()->delete();
+    $nol = buatGelombang(['kuota' => 0, 'terisi' => 0]);
+
+    expect($nol->kuotaPenuh())->toBeTrue()
+        ->and($nol->bisaMasuk())->toBeFalse();
+});
+
+test('form gelombang menolak kuota nol', function () {
+    // Validasi harus menolak `0` supaya penanda "tanpa batas" hanya punya
+    // satu bentuk. Kalau `0` lolos ke database, admin yang mengira itu
+    // "tanpa batas" justru mendapat gelombang yang selalu penuh.
+    $admin = User::factory()->create();
+    $admin->assignRole('super-admin');
+
+    $response = $this->actingAs($admin)->post(route('admin.gelombangs.store'), [
+        'tahun_ajaran_id' => TahunAjaran::aktif()->firstOrFail()->id,
+        'nama_gelombang' => 'Kuota Nol',
+        'nomor_urut' => 90,
+        'kuota' => 0,
+        'is_aktif' => true,
+        'tahapan' => [
+            ['tipe' => 'pendaftaran', 'nama_tahap' => 'Pendaftaran', 'tanggal_mulai' => now()->toDateString()],
+        ],
+    ]);
+
+    $response->assertSessionHasErrors('kuota');
+    expect(Gelombang::where('nama_gelombang', 'Kuota Nol')->exists())->toBeFalse();
+});
+
+test('form gelombang menerima kuota kosong sebagai tanpa batas', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('super-admin');
+
+    $response = $this->actingAs($admin)->post(route('admin.gelombangs.store'), [
+        'tahun_ajaran_id' => TahunAjaran::aktif()->firstOrFail()->id,
+        'nama_gelombang' => 'Tanpa Batas',
+        'nomor_urut' => 91,
+        'kuota' => '',
+        'is_aktif' => true,
+        'tahapan' => [
+            ['tipe' => 'pendaftaran', 'nama_tahap' => 'Pendaftaran', 'tanggal_mulai' => now()->toDateString()],
+        ],
+    ]);
+
+    $response->assertSessionHasNoErrors();
+    expect(Gelombang::where('nama_gelombang', 'Tanpa Batas')->value('kuota'))->toBeNull();
 });
 
 test('diskon gelombang dijepit di rentang 0 sampai 100', function () {

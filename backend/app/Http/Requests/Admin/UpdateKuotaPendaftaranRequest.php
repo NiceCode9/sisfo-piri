@@ -31,9 +31,12 @@ class UpdateKuotaPendaftaranRequest extends FormRequest
                     ->ignore($id)
                     ->where(fn ($query) => $query->where('tahun_ajaran_id', $this->tahun_ajaran_id)),
             ],
-            'kuota' => ['required', 'integer', 'min:0', 'gte:terisi'],
-            'terisi' => ['nullable', 'integer', 'min:0', 'lte:kuota'],
-            // Kosong = pendaftaran tidak dibatasi jumlahnya.
+            // NULL = tidak dibatasi. `min:1` supaya `0` tidak dipakai sebagai penanda;
+            // dulu `0` berarti "selalu penuh" di sini dan "bebas" di Gelombang.
+            'kuota' => ['nullable', 'integer', 'min:1', 'gte:terisi'],
+            'terisi' => ['nullable', 'integer', 'min:0'],
+            // Kosong = pendaftaran tidak dibatasi jumlahnya. `lte:kuota` dan
+            // `lte:kuota_pendaftaran` dipindah ke withValidator() di bawah.
             'kuota_pendaftaran' => ['nullable', 'integer', 'min:0'],
             'terisi_pendaftaran' => ['nullable', 'integer', 'min:0'],
             'keterangan' => ['nullable', 'string', 'max:1000'],
@@ -50,13 +53,36 @@ class UpdateKuotaPendaftaranRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            $terisi = (int) $this->input('terisi_pendaftaran', 0);
-            $kuota = $this->input('kuota_pendaftaran');
+            // `lte` tidak bisa dipakai di rules() begitu `kuota` boleh NULL:
+            // `5 <= null` selalu salah, jadi jalur tanpa batas penerimaan tidak
+            // akan bisa disimpan sama sekali.
+            $kuota = $this->input('kuota');
+            $terisi = $this->input('terisi');
+            $kuotaPendaftaran = $this->input('kuota_pendaftaran');
+            $terisiPendaftaran = (int) $this->input('terisi_pendaftaran', 0);
 
-            if ($kuota !== null && $kuota !== '' && $terisi > (int) $kuota) {
+            if ($kuotaPendaftaran !== null && $kuotaPendaftaran !== '' && $terisiPendaftaran > (int) $kuotaPendaftaran) {
                 $validator->errors()->add(
                     'kuota_pendaftaran',
                     'Kuota pendaftaran tidak boleh lebih kecil dari jumlah pendaftar saat ini.'
+                );
+            }
+
+            if ($kuota === null || $kuota === '') {
+                return;
+            }
+
+            if ($terisi !== null && $terisi !== '' && (int) $terisi > (int) $kuota) {
+                $validator->errors()->add(
+                    'terisi',
+                    'Jumlah diterima tidak boleh lebih besar dari kuota penerimaan.'
+                );
+            }
+
+            if ($kuotaPendaftaran !== null && $kuotaPendaftaran !== '' && (int) $kuotaPendaftaran > (int) $kuota) {
+                $validator->errors()->add(
+                    'kuota_pendaftaran',
+                    'Kuota pendaftaran tidak boleh lebih besar dari kuota penerimaan untuk jalur ini.'
                 );
             }
         });

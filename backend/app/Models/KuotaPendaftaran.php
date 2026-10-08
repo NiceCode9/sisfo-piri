@@ -37,7 +37,10 @@ class KuotaPendaftaran extends Model
     }
 
     /**
-     * Kuota pendaftaran penuh? `kuota_pendaftaran` NULL berarti tidak dibatasi.
+     * Kuota pendaftaran penuh? NULL berarti tidak dibatasi.
+     *
+     * Berlaku untuk jalur yang tidak membatasi jumlah pendaftar, misalnya Jalur
+     * Reguler yang menerima berapa pun pendaftar selama ada gelombang terbuka.
      */
     public function pendaftaranPenuh(): bool
     {
@@ -48,8 +51,13 @@ class KuotaPendaftaran extends Model
     /**
      * Kuota penerimaan penuh?
      *
-     * `kuota` NULL diperlakukan sebagai "tanpa batas" agar konsisten dengan
-     * `pendaftaranPenuh()` yang memakai NULL = tidak dibatasi.
+     * NULL berarti "tanpa batas", sama seperti `pendaftaranPenuh()` dan sama
+     * seperti `Gelombang::kuotaPenuh()`. Inilah yang membuat Jalur Reguler
+     * bisa menerima tanpa batas sementara Jalur Prestasi dibatasi angkanya.
+     *
+     * Angka nol TIDAK boleh dipakai sebagai penanda. Dulu form mengizinkan
+     * `min:0`, dan `0` di sini berarti `0 >= 0` = selalu penuh — jalur yang
+     * diartikan admin sebagai "tanpa batas" malah menutup dirinya sendiri.
      */
     public function penerimaanPenuh(): bool
     {

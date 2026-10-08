@@ -23,14 +23,14 @@ class TahunAjaran extends Model
         'status_aktif' => 'boolean',
     ];
 
-    public function jadwalPpdb(): HasMany
-    {
-        return $this->hasMany(JadwalPpdb::class);
-    }
-
     public function calonSiswa(): HasMany
     {
         return $this->hasMany(CalonSiswa::class);
+    }
+
+    public function gelombangs(): HasMany
+    {
+        return $this->hasMany(Gelombang::class);
     }
 
     public function siswa(): HasMany

@@ -57,7 +57,16 @@
                                     <span class="badge-nexus badge-danger">tanpa jadwal daftar</span>
                                 @endif
                             </td>
-                            <td style="font-size:12.5px;">{{ $g->terisi }}/{{ $g->kuota }} ({{ $g->persentase }}%)</td>
+                            <td style="font-size:12.5px;">
+                                {{-- Kuota NULL = batch ini tidak dibatasi, jadi
+                                     menampilkan "terisi/0" akan berbohong: penyebutnya
+                                     nol padahal tidak ada batas. --}}
+                                @if ($g->kuota === null)
+                                    {{ $g->terisi }} <span style="color:var(--text-muted);">(tanpa batas)</span>
+                                @else
+                                    {{ $g->terisi }}/{{ $g->kuota }} ({{ $g->persentase }}%)
+                                @endif
+                            </td>
                             <td style="font-size:13px;">{{ $g->diskon_persen ? $g->diskon_persen.'%' : '-' }}</td>
                             <td>{!! $g->is_aktif ? '<span class="badge-nexus badge-info">aktif</span>' : '<span class="badge-nexus badge-neutral">nonaktif</span>' !!}</td>
                             <td>

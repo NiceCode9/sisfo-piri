@@ -556,8 +556,16 @@ test('halaman pendaftaran menampilkan peringatan ketika ditutup', function () {
 });
 
 test('wizard menampilkan sisa kuota pendaftaran dari database', function () {
-    $kuota = KuotaPendaftaran::whereNotNull('kuota_pendaftaran')->firstOrFail();
-    $jalur = JalurPendaftaran::findOrFail($kuota->jalur_pendaftaran_id);
+    // Fixture dibuat di sini, bukan diambil dari seeder. Data master sengaja
+    // menyisakan `kuota_pendaftaran` NULL untuk kedua jalur aktif — batas
+    // pendaftaran yang berlaku ada di Gelombang, per batch — jadi test ini
+    // harus menyediakan jalurnya sendiri supaya tetap menguji jalur tanpa
+    // batas maupun jalur berbatas.
+    $jalur = JalurPendaftaran::where('nama_jalur', 'Jalur Reguler')->firstOrFail();
+    $kuota = KuotaPendaftaran::updateOrCreate(
+        ['tahun_ajaran_id' => TahunAjaran::aktif()->firstOrFail()->id, 'jalur_pendaftaran_id' => $jalur->id],
+        ['kuota_pendaftaran' => 30, 'terisi_pendaftaran' => 12]
+    );
     $sisa = $kuota->kuota_pendaftaran - $kuota->terisi_pendaftaran;
 
     $html = $this->get(route('spmb.pendaftaran'))->assertOk()->getContent();
@@ -583,9 +591,11 @@ test('jalur tanpa batas kuota tidak menampilkan angka sisa', function () {
 });
 
 test('jalur yang kuotanya penuh otomatis dinonaktifkan di wizard', function () {
-    $kuota = KuotaPendaftaran::whereNotNull('kuota_pendaftaran')->firstOrFail();
-    $jalur = JalurPendaftaran::findOrFail($kuota->jalur_pendaftaran_id);
-    $kuota->update(['terisi_pendaftaran' => $kuota->kuota_pendaftaran]);
+    $jalur = JalurPendaftaran::where('nama_jalur', 'Jalur Reguler')->firstOrFail();
+    $kuota = KuotaPendaftaran::updateOrCreate(
+        ['tahun_ajaran_id' => TahunAjaran::aktif()->firstOrFail()->id, 'jalur_pendaftaran_id' => $jalur->id],
+        ['kuota_pendaftaran' => 30, 'terisi_pendaftaran' => 30]
+    );
 
     $html = $this->get(route('spmb.pendaftaran'))->assertOk()->getContent();
 
@@ -709,13 +719,48 @@ test('tidak ada tahap yang jatuh sebelum pendaftaran gelombang dibuka', function
     }
 });
 
-test('seeder mengisi kuota pendaftaran dan kuota penerimaan terpisah', function () {
-    $kuota = KuotaPendaftaran::whereNotNull('kuota_pendaftaran')->firstOrFail();
+test('seeder memberi kuota penerimaan tanpa batas ke Reguler dan angka ke Prestasi', function () {
+    // Ini keadaan dunia nyata yang diminta: hanya ada dua jalur. Reguler
+    // menerima tanpa batas penerimaan, Prestasi dibatasi angkanya. Keduanya
+    // tidak membatasi jumlah pendaftar — batas daftar ada di Gelombang.
+    $tahun = TahunAjaran::aktif()->firstOrFail();
 
-    expect($kuota->terisi_pendaftaran)->toBeGreaterThan(0)
-        ->and($kuota->kuota)->toBeGreaterThan(0)
-        ->and($kuota->pendaftaranPenuh())->toBeFalse()
-        ->and($kuota->penerimaanPenuh())->toBeFalse();
+    $reguler = KuotaPendaftaran::where('tahun_ajaran_id', $tahun->id)
+        ->whereHas('jalurPendaftaran', fn ($q) => $q->where('nama_jalur', 'Jalur Reguler'))
+        ->firstOrFail();
+
+    $prestasi = KuotaPendaftaran::where('tahun_ajaran_id', $tahun->id)
+        ->whereHas('jalurPendaftaran', fn ($q) => $q->where('nama_jalur', 'Jalur Prestasi'))
+        ->firstOrFail();
+
+    // Reguler: kuota penerimaan NULL berarti tidak pernah penuh.
+    expect($reguler->kuota)->toBeNull()
+        ->and($reguler->penerimaanPenuh())->toBeFalse()
+        ->and($reguler->kuota_pendaftaran)->toBeNull()
+        ->and($reguler->pendaftaranPenuh())->toBeFalse()
+        ->and($reguler->terisi)->toBeGreaterThan(0)
+        ->and($reguler->terisi_pendaftaran)->toBeGreaterThan(0);
+
+    // Prestasi: batas penerimaan nyata, belum tercapai.
+    expect($prestasi->kuota)->toBeGreaterThan(0)
+        ->and($prestasi->terisi)->toBeGreaterThan(0)
+        ->and($prestasi->terisi)->toBeLessThan($prestasi->kuota)
+        ->and($prestasi->penerimaanPenuh())->toBeFalse();
+
+    // Jalur yang sudah tidak dipakai tidak boleh meninggalkan baris kuota.
+    expect(KuotaPendaftaran::count())->toBe(2);
+});
+
+test('kuota penerimaan NULL tidak pernah penuh walau terlampaui', function () {
+    // Jalur tanpa batas harus tetap menerima walau jumlah diterima sudah jauh
+    // melewati angka penerimaan yang biasanya dipakai sebagai penanda.
+    $jalur = JalurPendaftaran::where('nama_jalur', 'Jalur Reguler')->firstOrFail();
+    $kuota = KuotaPendaftaran::where('tahun_ajaran_id', TahunAjaran::aktif()->firstOrFail()->id)
+        ->where('jalur_pendaftaran_id', $jalur->id)->firstOrFail();
+
+    $kuota->update(['terisi' => 9999]);
+
+    expect($kuota->fresh()->penerimaanPenuh())->toBeFalse();
 });
 
 test('email yang sudah dipakai akun lain ditolak tanpa membocorkan pesan SQL', function () {
@@ -934,22 +979,23 @@ function heroHtml(string $html): string
     return $m[0] ?? '';
 }
 
-test('kartu kuota terbatas memakai angka nyata dari database, bukan hardcoded', function () {
+test('kartu kuota pendaftaran memakai angka nyata dari database, bukan hardcoded', function () {
     $tahun = TahunAjaran::aktif()->firstOrFail();
 
-    // Semua jalur berbatas diseragamkan; jalur tanpa batas (NULL) tidak boleh
-    // ikut dihitung. Ekspektasi dihitung dari database, bukan angka tetap,
-    // supaya test tidak bergantung pada jumlah baris hasil seeder.
-    $berbatas = KuotaPendaftaran::where('tahun_ajaran_id', $tahun->id)
-        ->whereNotNull('kuota_pendaftaran')
+    // Kapasitas dan terisi diambil dari Gelombang, bukan dari kuota per jalur.
+    // Yang membatasi pendaftaran adalah kuota per batch — `Gelombang::bisaMasuk()`
+    // yang dijaga di `store()` — jadi kartu yang menjumlahkan `kuota_pendaftaran`
+    // akan menampilkan nol sementara judulnya menjanjikan angka.
+    $berbatas = Gelombang::where('tahun_ajaran_id', $tahun->id)
+        ->whereNotNull('kuota')
         ->get();
-    $tanpaBatas = KuotaPendaftaran::where('tahun_ajaran_id', $tahun->id)
-        ->whereNull('kuota_pendaftaran')
+    $tanpaBatas = Gelombang::where('tahun_ajaran_id', $tahun->id)
+        ->whereNull('kuota')
         ->get();
 
     expect($berbatas)->not->toBeEmpty();
-    $berbatas->each(fn ($k) => $k->update(['kuota_pendaftaran' => 100, 'terisi_pendaftaran' => 25]));
-    $tanpaBatas->each(fn ($k) => $k->update(['terisi_pendaftaran' => 999]));
+    $berbatas->each(fn ($g) => $g->update(['kuota' => 100, 'terisi' => 25]));
+    $tanpaBatas->each(fn ($g) => $g->update(['terisi' => 999]));
 
     $kapasitas = $berbatas->count() * 100;
     $terisi = $berbatas->count() * 25;
@@ -961,8 +1007,20 @@ test('kartu kuota terbatas memakai angka nyata dari database, bukan hardcoded', 
         ->and($html)->toContain('width: '.$persen.'%')
         ->and($html)->toContain($persen.'% kuota pendaftaran terisi')
         ->and($html)->toContain($terisi.'/'.$kapasitas.' terisi')
-        // Jalur tanpa batas tidak boleh menambah kapasitas maupun terisi.
+        // Batch tanpa batas tidak boleh menambah kapasitas maupun terisi.
         ->and($html)->not->toContain('>'.($kapasitas + 999).'</span>');
+});
+
+test('kartu kuota pendaftaran jujur saat semua batch tanpa batas', function () {
+    // Semua batch tanpa kuota = pendaftaran tidak dibatasi. Kartu harus
+    // mengatakannya, bukan menampilkan "—" di bawah judul "Kuota Pendaftaran".
+    $tahun = TahunAjaran::aktif()->firstOrFail();
+    Gelombang::where('tahun_ajaran_id', $tahun->id)->update(['kuota' => null, 'terisi' => 40]);
+
+    $html = $this->get(route('spmb.home'))->assertOk()->getContent();
+
+    expect($html)->toContain('Kuota pendaftaran tidak dibatasi')
+        ->and($html)->not->toContain('Total kuota pendaftaran yang tersedia');
 });
 
 test('kartu kuota terbatas tidak menampilkan angka palsu saat belum ada data', function () {

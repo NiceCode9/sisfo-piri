@@ -26,7 +26,7 @@ class TahunAjaranController extends Controller implements HasMiddleware
 
     public function index(): View
     {
-        $tahunAjarans = TahunAjaran::withCount(['jadwalPpdb', 'kuotaPendaftaran', 'calonSiswa'])
+        $tahunAjarans = TahunAjaran::withCount(['gelombangs', 'kuotaPendaftaran', 'calonSiswa'])
             ->when(request('search'), fn ($q, $s) => $q->where('nama_tahun_ajaran', 'like', "%{$s}%"))
             ->orderByDesc('tanggal_mulai')
             ->paginate(10)
@@ -69,7 +69,10 @@ class TahunAjaranController extends Controller implements HasMiddleware
 
     public function destroy(TahunAjaran $tahunAjaran): RedirectResponse
     {
-        if ($tahunAjaran->jadwalPpdb()->exists() || $tahunAjaran->kuotaPendaftaran()->exists() || $tahunAjaran->calonSiswa()->exists()) {
+        // Gelombang sudah tercakup lewat `calonSiswa` dan relasi turunannya, dan
+        // baris kuota ikut dihitung sendiri. Tabel jadwal PPDB tidak lagi
+        // menjadi syarat: isinya salinan tahap Gelombang, bukan data mandiri.
+        if ($tahunAjaran->kuotaPendaftaran()->exists() || $tahunAjaran->calonSiswa()->exists()) {
             return back()->with('error', "Tahun ajaran {$tahunAjaran->nama_tahun_ajaran} masih memiliki data terkait dan tidak dapat dihapus.");
         }
 
