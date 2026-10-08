@@ -107,8 +107,19 @@ class RiwayatKelasController extends Controller implements HasMiddleware
     }
 
     /**
-     * Id siswa yang `siswas.kelas_id` / `tahun_ajaran_id`-nya tidak cocok dengan
-     * baris riwayat `aktif` di tahun yang sama.
+     * Id siswa yang `siswas.kelas_id` tidak cocok dengan baris riwayat `aktif`
+     * **pada tahun ajaran yang sama**.
+     *
+     * Korelasi tahun itu wajib. Tanpa itu, setiap siswa yang pernah naik
+     * kelas ikut terbaca: baris 7A/tahun-1 `aktif` dibandingkan dengan pointer
+     * 8A/tahun-2, dan `whereColumn` yang tidak memfilter tahun menganggapnya
+     * berbeda. Semua siswa pasca kenaikan akan ditandai "Pointer tidak
+     * sinkron" padahal tidak ada yang salah.
+     *
+     * Status `aktif` pada baris tahun yang sudah lewat itu benar, bukan sisa:
+     * `pindah` hanya dipakai untuk perpindahan kelas DI DALAM satu tahun
+     * ajaran, dan `Rombel::anggotaIds()` memfilter tahun sebelum menghitung
+     * keanggotaan, jadi baris lama tidak mencemari rombel tahun baru.
      *
      * @return list<int>
      */
@@ -120,10 +131,11 @@ class RiwayatKelasController extends Controller implements HasMiddleware
                     ->from('riwayat_kelas')
                     ->whereColumn('riwayat_kelas.siswa_id', 'siswas.id')
                     ->where('riwayat_kelas.status', 'aktif')
-                    ->where(function ($q) {
-                        $q->whereColumn('riwayat_kelas.kelas_id', '!=', 'siswas.kelas_id')
-                            ->orWhereColumn('riwayat_kelas.tahun_ajaran_id', '!=', 'siswas.tahun_ajaran_id');
-                    });
+                    // Tahun harus sama dengan pointer siswa. Kalau pointer-nya
+                    // NULL, `whereColumn` tidak akan match sama sekali — tahun
+                    // yang tidak diketahui memang tidak bisa dinilai.
+                    ->whereColumn('riwayat_kelas.tahun_ajaran_id', 'siswas.tahun_ajaran_id')
+                    ->whereColumn('riwayat_kelas.kelas_id', '!=', 'siswas.kelas_id');
             })
             ->pluck('id')
             ->all();
@@ -169,11 +181,17 @@ class RiwayatKelasController extends Controller implements HasMiddleware
             ->orderByDesc('id')
             ->get();
 
+        $tahunAjarans = TahunAjaran::orderByDesc('tanggal_mulai')->get();
+        $tahunAktif = TahunAjaran::aktif()->first();
+
         return view('admin.riwayat-kelas.show', [
             'siswa' => $siswa->load(['user', 'kelas', 'tahunAjaran']),
             'riwayats' => $riwayats,
             'kelases' => Kelas::orderBy('tingkat')->orderBy('nama_kelas')->get(),
-            'tahunAjarans' => TahunAjaran::orderByDesc('tanggal_mulai')->get(),
+            'tahunAjarans' => $tahunAjarans,
+            // Untuk menandai baris `aktif` yang berasal dari tahun ajaran yang
+            // sudah lewat, supaya tidak terbaca sebagai kelas siswa sekarang.
+            'tahunAktif' => $tahunAktif,
         ]);
     }
 
