@@ -13,6 +13,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 /**
@@ -29,6 +30,13 @@ use Illuminate\View\View;
  */
 class RiwayatKelasController extends Controller implements HasMiddleware
 {
+    /**
+     * Filter daftar. Semuanya kecuali `semua` menampilkan HANYA siswa yang
+     * bermasalah, karena gunanya halaman ini adalah menemukan yang salah —
+     * bukan memeriksa semua orang satu per satu.
+     */
+    public const FILTER = ['semua', 'tanpa-aktif', 'drift', 'ganda-aktif'];
+
     public static function middleware(): array
     {
         return [
@@ -38,18 +46,116 @@ class RiwayatKelasController extends Controller implements HasMiddleware
 
     public function index(Request $request): View
     {
+        $filter = $request->query('filter');
+        $filter = in_array($filter, self::FILTER, true) ? $filter : 'semua';
+
+        // Anomali dihitung lewat subquery, bukan lewat loop atas hasil paginate.
+        // Nama dan kelas dihitung hanya untuk siswa yang lolos filter, supaya
+        // daftar 90 siswa tidak memaksa tiga subquery per baris.
+        $tanpaAktif = $this->tanpaBarisAktif();
+        $drift = $this->pointerTidakSinkron();
+        $ganda = $this->duaBarisAktif();
+
+        // Gabungan ketiga kondisi, sebagai subquery agar bisa dipakai ulang di
+        // badge tanpa query tambahan per siswa.
+        $bermasalah = $this->bermasalah($tanpaAktif, $drift, $ganda);
+
         $siswas = Siswa::with(['user', 'kelas', 'tahunAjaran'])
+            ->withCount('riwayatKelas')
+            ->when($request->query('search'), fn ($q, $s) => $q->where(function ($q) use ($s) {
+                $q->whereHas('user', fn ($uq) => $uq->where('name', 'like', "%{$s}%"))
+                    // NIS/NISN ikut dicari karena itu yang biasanya dipakai
+                    // saat venus mencari siswa yang salah catat.
+                    ->orWhere('nis', 'like', "%{$s}%")
+                    ->orWhere('nisn', 'like', "%{$s}%");
+            }))
+            ->when($filter === 'tanpa-aktif', fn ($q) => $q->whereIn('id', $tanpaAktif))
+            ->when($filter === 'drift', fn ($q) => $q->whereIn('id', $drift))
+            ->when($filter === 'ganda-aktif', fn ($q) => $q->whereIn('id', $ganda))
             ->orderBy('nis')
-            ->when($request->query('search'), fn ($q, $s) => $q->whereHas(
-                'user',
-                fn ($uq) => $uq->where('name', 'like', "%{$s}%")
-            ))
             ->paginate(20)
             ->withQueryString();
 
         return view('admin.riwayat-kelas.index', [
             'siswas' => $siswas,
+            'filter' => $filter,
+            'filterTersedia' => self::FILTER,
+            'tanpaAktif' => $tanpaAktif,
+            'drift' => $drift,
+            'ganda' => $ganda,
+            'jumlahTanpaAktif' => count($tanpaAktif),
+            'jumlahDrift' => count($drift),
+            'jumlahGanda' => count($ganda),
         ]);
+    }
+
+    /**
+     * Id siswa yang tidak punya satu pun baris `aktif`.
+     *
+     * Siswa seperti ini tidak muncul di rekap absensi, nilai tugas, maupun
+     * nilai ujian — bukan karena datanya salah, tapi karena `Rombel::anggotaIds()`
+     * membaca riwayat dan tidak menemukan barisnya.
+     *
+     * @return list<int>
+     */
+    protected function tanpaBarisAktif(): array
+    {
+        return Siswa::query()
+            ->whereDoesntHave('riwayatKelas', fn ($q) => $q->where('status', 'aktif'))
+            ->pluck('id')
+            ->all();
+    }
+
+    /**
+     * Id siswa yang `siswas.kelas_id` / `tahun_ajaran_id`-nya tidak cocok dengan
+     * baris riwayat `aktif` di tahun yang sama.
+     *
+     * @return list<int>
+     */
+    protected function pointerTidakSinkron(): array
+    {
+        return Siswa::query()
+            ->whereExists(function ($q) {
+                $q->select(DB::raw(1))
+                    ->from('riwayat_kelas')
+                    ->whereColumn('riwayat_kelas.siswa_id', 'siswas.id')
+                    ->where('riwayat_kelas.status', 'aktif')
+                    ->where(function ($q) {
+                        $q->whereColumn('riwayat_kelas.kelas_id', '!=', 'siswas.kelas_id')
+                            ->orWhereColumn('riwayat_kelas.tahun_ajaran_id', '!=', 'siswas.tahun_ajaran_id');
+                    });
+            })
+            ->pluck('id')
+            ->all();
+    }
+
+    /**
+     * Id siswa yang punya lebih dari satu baris `aktif` dalam satu tahun ajaran.
+     *
+     * @return list<int>
+     */
+    protected function duaBarisAktif(): array
+    {
+        return DB::table('riwayat_kelas')
+            ->where('status', 'aktif')
+            ->groupBy('siswa_id', 'tahun_ajaran_id')
+            ->havingRaw('COUNT(*) > 1')
+            ->pluck('siswa_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+    }
+
+    /**
+     * Gabungan ketiga daftar anomali, untuk badge ringkas di view.
+     *
+     * @param  list<int>  $tanpaAktif
+     * @param  list<int>  $drift
+     * @param  list<int>  $ganda
+     * @return list<int>
+     */
+    protected function bermasalah(array $tanpaAktif, array $drift, array $ganda): array
+    {
+        return array_values(array_unique([...$tanpaAktif, ...$drift, ...$ganda]));
     }
 
     /**
@@ -71,6 +177,84 @@ class RiwayatKelasController extends Controller implements HasMiddleware
         ]);
     }
 
+    /**
+     * Tambah baris riwayat untuk siswa yang belum punya.
+     *
+     * Status bebas diisi, tapi penyelarasan pointer hanya terjadi kalau
+     * statusnya `aktif`. Menambah baris historis (mis. mengulang tahun lalu)
+     * tidak boleh memindahkan siswa sekarang.
+     */
+    public function store(Request $request, Siswa $siswa): RedirectResponse
+    {
+        $validated = $request->validate([
+            'kelas_id' => ['required', 'integer', 'exists:kelas,id'],
+            'tahun_ajaran_id' => ['required', 'integer', 'exists:tahun_ajarans,id'],
+            'status' => ['required', 'in:aktif,lulus,pindah,dropout,mengulang'],
+            'keterangan' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        // Constraint unik (siswa, kelas, tahun) yang sudah dipasang akan
+        // menolak bentrok. Dicek di sini supaya pesannya terbaca.
+        if ($this->sudahPunya($siswa->id, $validated['kelas_id'], $validated['tahun_ajaran_id'])) {
+            return back()->withErrors([
+                'kelas_id' => 'Siswa ini sudah punya baris riwayat untuk kelas dan tahun ajaran tersebut.',
+            ])->withInput();
+        }
+
+        DB::transaction(function () use ($siswa, $validated) {
+            if ($validated['status'] === 'aktif') {
+                // Melepas baris aktif lain di tahun yang sama, supaya siswa
+                // tidak jadi anggota dua rombel sekaligus. Sama seperti
+                // `update()`, dan sama seperti yang dilakukan `SiswaController`
+                // saat kelas diganti.
+                RiwayatKelas::where('siswa_id', $siswa->id)
+                    ->where('status', 'aktif')
+                    ->where('tahun_ajaran_id', $validated['tahun_ajaran_id'])
+                    ->update(['status' => 'pindah']);
+            }
+
+            RiwayatKelas::create($validated + ['siswa_id' => $siswa->id]);
+
+            // Tanpa ini, baris `aktif` yang baru dibuat langsung menjadi
+            // anomali "pointer tidak sinkron" — formnya sendiri yang
+            // memunculkan masalah yang seharusnya ia perbaiki.
+            if ($validated['status'] === 'aktif') {
+                $siswa->update([
+                    'kelas_id' => $validated['kelas_id'],
+                    'tahun_ajaran_id' => $validated['tahun_ajaran_id'],
+                ]);
+            }
+        });
+
+        return redirect()
+            ->route('admin.riwayat-kelas.show', $siswa)
+            ->with('success', 'Baris riwayat ditambahkan.');
+    }
+
+    /**
+     * Apakah siswa sudah punya baris untuk pasangan kelas + tahun ini.
+     *
+     * Satu tempat untuk `store()` dan `update()`. Kalau aturan ini ditulis dua
+     * kali, keduanya akan berbeda setelah salah satu diubah — dan yang salah
+     * akan lolos ke database sebagai `QueryException`, bukan pesan yang bisa
+     * dibaca.
+     */
+    protected function sudahPunya(
+        int $siswaId,
+        int $kelasId,
+        int $tahunAjaranId,
+        ?int $abaikanId = null
+    ): bool {
+        return RiwayatKelas::where('siswa_id', $siswaId)
+            ->where('kelas_id', $kelasId)
+            ->where('tahun_ajaran_id', $tahunAjaranId)
+            ->when($abaikanId, fn ($q, $id) => $q->where('id', '!=', $id))
+            ->exists();
+    }
+
+    /**
+     * Koreksi baris yang sudah ada.
+     */
     public function update(Request $request, RiwayatKelas $riwayatKelas): RedirectResponse
     {
         $validated = $request->validate([
@@ -83,13 +267,7 @@ class RiwayatKelasController extends Controller implements HasMiddleware
         // Constraint unik (siswa, kelas, tahun) yang baru dipasang akan
         // menolak bentrok. Dicek di sini supaya pesannya bisa dibaca alih-alih
         // menjadi QueryException.
-        $bentrok = RiwayatKelas::where('siswa_id', $riwayatKelas->siswa_id)
-            ->where('kelas_id', $validated['kelas_id'])
-            ->where('tahun_ajaran_id', $validated['tahun_ajaran_id'])
-            ->where('id', '!=', $riwayatKelas->id)
-            ->exists();
-
-        if ($bentrok) {
+        if ($this->sudahPunya($riwayatKelas->siswa_id, $validated['kelas_id'], $validated['tahun_ajaran_id'], $riwayatKelas->id)) {
             return back()->withErrors([
                 'kelas_id' => 'Siswa ini sudah punya baris riwayat untuk kelas dan tahun ajaran tersebut.',
             ]);

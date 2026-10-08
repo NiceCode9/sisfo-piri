@@ -195,6 +195,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     })->name('kenaikan.index');
     Route::get('riwayat-kelas', [RiwayatKelasController::class, 'index'])->name('riwayat-kelas.index');
     Route::get('riwayat-kelas/{siswa}', [RiwayatKelasController::class, 'show'])->name('riwayat-kelas.show');
+    Route::post('riwayat-kelas/{siswa}', [RiwayatKelasController::class, 'store'])->name('riwayat-kelas.store');
     Route::put('riwayat-kelas/{riwayatKelas}', [RiwayatKelasController::class, 'update'])->name('riwayat-kelas.update');
     Route::delete('riwayat-kelas/{riwayatKelas}', [RiwayatKelasController::class, 'destroy'])->name('riwayat-kelas.destroy');
     Route::get('siswas/template', [SiswaController::class, 'template'])->name('siswas.template');

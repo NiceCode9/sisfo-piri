@@ -14,6 +14,66 @@
 
 @include('layouts.partials.alert')
 
+{{-- Form tambah baris. Hanya muncul kalau siswa belum punya baris `aktif`,
+     karena itu keadaan yang membuat siswa lenyap dari rekap dan tidak punya
+     jalur perbaikan lain di sistem ini. --}}
+@if (! $riwayats->contains('status', 'aktif'))
+    <div class="card-nexus mb-3">
+        <div class="card-header-nexus">
+            <div>
+                <h5 class="card-title">Tambah Baris Riwayat</h5>
+                <p class="card-subtitle mb-0">
+                    Siswa ini belum punya baris berstatus <code>aktif</code>, jadi ia tidak muncul di rekap
+                    absensi, nilai tugas, maupun nilai ujian.
+                </p>
+            </div>
+        </div>
+        <div class="card-body-nexus">
+            <form method="POST" action="{{ route('admin.riwayat-kelas.store', $siswa) }}" class="d-flex gap-2 flex-wrap align-items-end">
+                @csrf
+                <div style="width:170px;">
+                    <label class="form-label" style="font-size:11px;">Kelas</label>
+                    <select name="kelas_id" class="form-select form-select-sm @error('kelas_id') is-invalid @enderror">
+                        <option value="">— Pilih Kelas —</option>
+                        @foreach ($kelases as $k)
+                            <option value="{{ $k->id }}" @selected(old('kelas_id', $siswa->kelas_id) == $k->id)>{{ $k->nama_kelas }}</option>
+                        @endforeach
+                    </select>
+                    @error('kelas_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                </div>
+                <div style="width:170px;">
+                    <label class="form-label" style="font-size:11px;">Tahun Ajaran</label>
+                    <select name="tahun_ajaran_id" class="form-select form-select-sm @error('tahun_ajaran_id') is-invalid @enderror">
+                        <option value="">— Pilih Tahun Ajaran —</option>
+                        @foreach ($tahunAjarans as $t)
+                            <option value="{{ $t->id }}" @selected(old('tahun_ajaran_id', $siswa->tahun_ajaran_id) == $t->id)>{{ $t->nama_tahun_ajaran }}</option>
+                        @endforeach
+                    </select>
+                    @error('tahun_ajaran_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                </div>
+                <div style="width:150px;">
+                    <label class="form-label" style="font-size:11px;">Status</label>
+                    <select name="status" class="form-select form-select-sm @error('status') is-invalid @enderror">
+                        @foreach (['aktif', 'mengulang', 'lulus', 'pindah', 'dropout'] as $s)
+                            <option value="{{ $s }}" @selected(old('status', 'aktif') === $s)>{{ $s }}</option>
+                        @endforeach
+                    </select>
+                    @error('status')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                </div>
+                <div style="flex:1;min-width:180px;">
+                    <label class="form-label" style="font-size:11px;">Keterangan</label>
+                    <input type="text" name="keterangan" value="{{ old('keterangan') }}" class="form-control form-control-sm" maxlength="255" />
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Tambah</button>
+            </form>
+            <p style="font-size:11.5px;color:var(--text-muted);margin-top:8px;margin-bottom:0;">
+                Memilih status <code>aktif</code> sekaligus menyelaraskan data siswa (kelas dan tahun ajaran)
+                agar keduanya tidak berbeda pendapat. Status lain hanya menambah catatan historis.
+            </p>
+        </div>
+    </div>
+@endif
+
 <div class="card-nexus">
     <div class="card-header-nexus">
         <div><h5 class="card-title">Baris Riwayat ({{ $riwayats->count() }})</h5>
@@ -41,7 +101,7 @@
                                     <label class="form-label" style="font-size:11px;">Tahun Ajaran</label>
                                     <select name="tahun_ajaran_id" class="form-select form-select-sm">
                                         @foreach ($tahunAjarans as $t)
-                                            <option value="{{ $t->id }}" @selected($t->id === $r->tahun_ajaran_id)>{{ $t->nama }}</option>
+                                            <option value="{{ $t->id }}" @selected($t->id === $r->tahun_ajaran_id)>{{ $t->nama_tahun_ajaran }}</option>
                                         @endforeach
                                     </select>
                                 </div>
