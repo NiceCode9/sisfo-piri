@@ -112,6 +112,16 @@
                                             <option value="{{ $s }}" @selected($s === $r->status)>{{ $s }}</option>
                                         @endforeach
                                     </select>
+                                    {{-- Status `aktif` di tahun yang sudah lewat itu BENAR: siswa itu
+                                     memang aktif di kelas itu sepanjang tahun itu.
+                                     Yang perlu dijelaskan hanya bahwa ini bukan
+                                     kelas sekarang. `pindah` hanya dipakai untuk
+                                     pindah kelas DALAM satu tahun ajaran, dan baris
+                                     ini tidak boleh diubah supaya sejarah tetap
+                                     jujur. --}}
+                                    @if ($r->status === 'aktif' && $tahunAktif && $r->tahun_ajaran_id !== $tahunAktif->id)
+                                        <div style="font-size:11px;color:var(--text-muted);">kelas waktu itu, bukan kelas sekarang</div>
+                                    @endif
                                 </div>
                                 <div style="flex:1;min-width:160px;">
                                     <label class="form-label" style="font-size:11px;">Keterangan</label>
