@@ -9,9 +9,21 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreAbsensiBatchRequest extends FormRequest
 {
+    /**
+     * Otorisasi rombel, bukan hanya permission.
+     *
+     * Middleware `absensis.create` hanya menjawab "boleh mencatat absensi",
+     * bukan "boleh mencatat di kelas ini". Tanpa cek jangkauan di sini, setiap
+     * pemegang permission tersebut bisa POST batch untuk rombel mana pun
+     * karena `rombel_id` hanya divalidasi `exists`.
+     */
     public function authorize(): bool
     {
-        return true;
+        return Rombel::terjangkauOleh(
+            $this->user(),
+            $this->input('rombel_id') === null ? null : (int) $this->input('rombel_id'),
+            Rombel::ROLE_ABSENSI_UNIVERSAL,
+        );
     }
 
     /**

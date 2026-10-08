@@ -16,9 +16,27 @@ class Rombel extends Model
     /**
      * Role yang boleh melihat seluruh rombel tanpa perlu penugasan.
      *
+     * Sengaja sempit. Konstanta ini dibaca modul e-learning dan tugas di
+     * `MateriPolicy`, `TugasPolicy`, dan `BerkasController`, dan di sana
+     * pencocokan role menggantikan cek permission. Menambah role di sini
+     * karena kebutuhan satu modul berarti membuka modul lain, jadi tiap modul
+     * punya daftarnya sendiri lewat `ROLE_ABSENSI_UNIVERSAL`.
+     *
      * @var list<string>
      */
     public const ROLE_UNIVERSAL = ['super-admin', 'admin'];
+
+    /**
+     * Role yang boleh mencatat kehadiran di seluruh rombel.
+     *
+     * Guru piket bekerja di gerbang sekolah, bukan di satu kelas, sehingga
+     * jangkauan berbasis penugasan akan membuatnya melihat nol rombel dan
+     * mematikan fitur yang memang miliknya. Konsep ini hanya berlaku untuk
+     * absensi; materi, tugas, dan berkas tetap memakai `ROLE_UNIVERSAL`.
+     *
+     * @var list<string>
+     */
+    public const ROLE_ABSENSI_UNIVERSAL = ['super-admin', 'admin', 'guru-piket'];
 
     /**
      * Jangkar kelas berjalan: satu baris per pasangan kelas + tahun.
@@ -131,18 +149,40 @@ class Rombel extends Model
     }
 
     /**
+     * ID siswa untuk roster rekap.
+     *
+     * Untuk tahun berjalan memakai {@see anggotaIdsAktif()}: siswa yang sudah
+     * pindah di tengah tahun tidak lagi dihitung sebagai anggota kelas ini,
+     * dan baris absensinya pun tidak bisa dikoreksi lewat grid karena grid
+     * hanya memuat anggota aktif. Untuk tahun historis memakai
+     * {@see anggotaIds()} supaya rekap lama tetap menampilkan siswa yang
+     * waktu itu masih di sini.
+     *
+     * @return array<int>
+     */
+    public function anggotaIdsUntukRekap(): array
+    {
+        return $this->tahun_ajaran_id === TahunAjaran::aktif()->value('id')
+            ? $this->anggotaIdsAktif()
+            : $this->anggotaIds();
+    }
+
+    /**
      * Rombel yang boleh dikelola oleh user: rombel yang diampu sebagai wali
      * kelas ATAU sebagai pengampu mata pelajaran.
      *
      * Akses bersifat fail-closed. Guru tanpa penugasan apa pun memperoleh nol
      * rombel, bukan seluruh rombel. User yang bukan guru dan bukan admin juga
-     * nol —KEADAAN ini dulu terlewat karena fallback "kalau kosong, semua
+     * nol — keadaan ini dulu terlewat karena fallback "kalau kosong, semua
      * rombel", yang membuat guru tanpa kelas bisa membaca tugas rombel mana
-     * saja. Bypass hanya lewat ROLE_UNIVERSAL, bukan lewat hasil kosong.
+     * saja. Bypass hanya lewat daftar role universal, bukan lewat hasil kosong.
+     *
+     * @param  list<string>  $universal  Role yang boleh menembus seluruh rombel.
+     *                                   Absensi memakai {@see ROLE_ABSENSI_UNIVERSAL}.
      */
-    public function scopeTerjangkauUser(Builder $query, User $user): Builder
+    public function scopeTerjangkauUser(Builder $query, User $user, array $universal = self::ROLE_UNIVERSAL): Builder
     {
-        if ($user->hasRole(self::ROLE_UNIVERSAL)) {
+        if ($user->hasRole($universal)) {
             return $query;
         }
 
@@ -161,14 +201,16 @@ class Rombel extends Model
     /**
      * Padanan {@see scopeTerjangkauUser()} untuk satu rombel, dipakai policy
      * dan controller yang memeriksa satu baris saja.
+     *
+     * @param  list<string>  $universal  Role yang boleh menembus seluruh rombel.
      */
-    public static function terjangkauOleh(User $user, ?int $rombelId): bool
+    public static function terjangkauOleh(User $user, ?int $rombelId, array $universal = self::ROLE_UNIVERSAL): bool
     {
         if ($rombelId === null) {
             return false;
         }
 
-        return static::terjangkauUser($user)->whereKey($rombelId)->exists();
+        return static::terjangkauUser($user, $universal)->whereKey($rombelId)->exists();
     }
 
     /**

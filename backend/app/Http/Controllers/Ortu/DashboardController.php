@@ -6,8 +6,10 @@ use App\Http\Controllers\Admin\AbsensiController;
 use App\Http\Controllers\Controller;
 use App\Models\Absensi;
 use App\Models\Rombel;
+use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\WaliMurid;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -32,21 +34,49 @@ class DashboardController extends Controller
         $waliPerSiswa = [];
         $persenPerSiswa = [];
 
+        // Satu akun orang tua bisa punya beberapa anak — nomor WA yang sama
+        // dipakai bersama antar saudara. Versi lama melakukan dua query per
+        // anak di dalam loop (cari rombel, lalu agregat bulanan), sehingga
+        // total query ikut bertambah mengikuti jumlah anak. Berikutnya kedua
+        // sumber diambil sekali untuk seluruh anak lalu dipetakan.
+        $pasangan = $anak->pluck('siswa')
+            ->filter()
+            ->map(fn (Siswa $siswa) => [$siswa->kelas_id, $siswa->tahun_ajaran_id])
+            ->unique(fn (array $pair) => $pair[0].':'.$pair[1]);
+
+        // Tanpa pasangan, `where(function () {})` berarti tanpa syarat sama
+        // sekali dan rombel yang termuat jadi seluruh sekolah. Karena itu
+        // daftar rombel sengaja dikosongkan secara eksplisit.
+        $rombels = $pasangan->isEmpty()
+            ? collect()
+            : Rombel::with('waliGuru')
+                ->where(function (Builder $q) use ($pasangan) {
+                    foreach ($pasangan as [$kelasId, $tahunAjaranId]) {
+                        $q->orWhere(fn ($qq) => $qq->where('kelas_id', $kelasId)->where('tahun_ajaran_id', $tahunAjaranId));
+                    }
+                })
+                ->get()
+                ->keyBy(fn (Rombel $rombel) => $rombel->kelas_id.':'.$rombel->tahun_ajaran_id);
+
+        $porsiPerSiswa = Absensi::whereIn('siswa_id', $anak->pluck('siswa_id'))
+            ->where('tanggal', 'like', $bulan.'%')
+            ->selectRaw('siswa_id, status, COUNT(DISTINCT tanggal) as jumlah')
+            ->groupBy('siswa_id', 'status')
+            ->get()
+            ->groupBy('siswa_id');
+
         foreach ($anak as $tautan) {
             $siswa = $tautan->siswa;
 
             if ($siswa) {
-                $rombel = Rombel::with('waliGuru')->where('kelas_id', $siswa->kelas_id)
-                    ->where('tahun_ajaran_id', $siswa->tahun_ajaran_id)
-                    ->first();
+                $rombel = $rombels->get($siswa->kelas_id.':'.$siswa->tahun_ajaran_id);
                 $waliPerSiswa[$siswa->id] = $rombel?->waliGuru?->nama;
 
-                $rekap = Absensi::where('siswa_id', $siswa->id)
-                    ->where('tanggal', 'like', $bulan.'%')
-                    ->selectRaw('status, COUNT(DISTINCT tanggal) as jumlah')
-                    ->groupBy('status')
-                    ->pluck('jumlah', 'status')
-                    ->all();
+                $rekap = [];
+                foreach ($porsiPerSiswa->get($siswa->id, collect()) as $baris) {
+                    $rekap[$baris->status] = (int) $baris->jumlah;
+                }
+
                 $total = array_sum($rekap);
                 $persenPerSiswa[$siswa->id] = $total ? round((($rekap['hadir'] ?? 0) + ($rekap['terlambat'] ?? 0)) / $total * 100) : null;
             }

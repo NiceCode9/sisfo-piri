@@ -168,6 +168,56 @@ test('wali dikunci ke rombel ampuan', function () {
         ->assertForbidden();
 });
 
+test('rekap tahun aktif menyembunyikan siswa yang sudah pindah kelas', function () {
+    $rombel = rombelRekapUji('7A');
+    $tetap = siswaRekapUji('6010', 'Anak Tetap', $rombel);
+    $pindah = siswaRekapUji('6011', 'Anak Pindah', $rombel);
+
+    RiwayatKelas::where('siswa_id', $pindah->id)->update(['status' => 'pindah']);
+    catatRekapUji($rombel, $tetap, now()->toDateString(), 'hadir');
+    catatRekapUji($rombel, $pindah, now()->toDateString(), 'hadir');
+
+    // Grid hanya memuat anggota aktif, sehingga baris absensi siswa yang sudah
+    // pindah mustahil dikoreksi. Menampilkan baris beku itu di rekap tahun
+    // berjalan hanya menambah kebingungan.
+    $this->actingAs(superAdmin())->get(route('admin.absensis.rekap', [
+        'rombel_id' => $rombel->id,
+        'periode' => 'bulan',
+        'acuan' => now()->format('Y-m-d'),
+    ]))
+        ->assertOk()
+        ->assertSee('Anak Tetap')
+        ->assertDontSee('Anak Pindah');
+});
+
+test('rekap tahun historis tetap menampilkan siswa yang waktu itu pindah', function () {
+    $tahunHistoris = TahunAjaran::create([
+        'nama_tahun_ajaran' => '2025/2026',
+        'tanggal_mulai' => '2025-07-01',
+        'tanggal_selesai' => '2026-06-30',
+        'status_aktif' => false,
+    ]);
+
+    $rombel = Rombel::create([
+        'kelas_id' => rombelRekapUji('7A')->kelas_id,
+        'tahun_ajaran_id' => $tahunHistoris->id,
+    ]);
+
+    $siswa = siswaRekapUji('6012', 'Anak Historia', $rombel);
+    RiwayatKelas::where('siswa_id', $siswa->id)->update(['status' => 'pindah']);
+    catatRekapUji($rombel, $siswa, '2025-09-01', 'hadir');
+
+    // Rekap lama adalah sumber kebenaran historis. Menghilanginya akan
+    // menghapus jejaknya siswa dari kelas yang ia tinggalkan.
+    $this->actingAs(superAdmin())->get(route('admin.absensis.rekap', [
+        'rombel_id' => $rombel->id,
+        'periode' => 'tahun',
+        'tahun_ajaran_id' => $tahunHistoris->id,
+    ]))
+        ->assertOk()
+        ->assertSee('Anak Historia');
+});
+
 test('dashboard ortu menampilkan anak dan status hari ini', function () {
     $rombel = rombelRekapUji();
     $siswa = siswaRekapUji('6001', 'Anak Rekap Satu', $rombel);

@@ -43,16 +43,11 @@ class AbsensiController extends Controller implements HasMiddleware
      */
     public function index(): View
     {
-        $tahunAktif = TahunAjaran::aktif()->first();
-        $rombels = Rombel::with(['kelas', 'tahunAjaran'])
-            ->when($tahunAktif, fn ($q) => $q->orderByRaw('tahun_ajaran_id = ? desc', [$tahunAktif->id]))
-            ->orderByDesc('tahun_ajaran_id')
-            ->orderBy('kelas_id')
-            ->get();
+        ['semua' => $rombels, 'terkunci' => $terkunci] = $this->rombelTerjangkau();
 
-        $rombelId = request()->query('rombel_id', $rombels->first()?->id);
+        $rombelDiminta = request()->query('rombel_id');
+        $rombel = $this->pilihRombelTerjangkau($rombels, $terkunci, $rombelDiminta, $rombelDiminta ?? $rombels->first()?->id);
         $tanggal = request()->query('tanggal', now()->toDateString());
-        $rombel = $rombels->firstWhere('id', (int) $rombelId);
 
         $siswas = collect();
         $tercatat = collect();
@@ -143,17 +138,27 @@ class AbsensiController extends Controller implements HasMiddleware
 
         foreach ($siswas as $siswa) {
             foreach ($siswa->waliMurids->pluck('no_whatsapp')->filter()->unique() as $nomor) {
-                $log = NotifikasiLog::create([
-                    'tipe' => 'whatsapp',
-                    'tujuan' => $nomor,
-                    'pesan' => KirimNotifikasiWhatsapp::pesanAlpa(
-                        $siswa->user?->name ?? '-',
-                        $rombel->kelas->nama_kelas ?? '-',
-                        $tanggal
-                    ),
-                ]);
+                // Idempoten per (siswa, rombel, tanggal, nomor). Guru sering
+                // menyimpan batch berulang untuk koreksi; tanpa kunci, tiap
+                // simpanan mengirim ulang pesan "alpa" yang sama ke orang tua.
+                $kunci = hash('sha256', "whatsapp|alpa|{$siswa->id}|{$rombelId}|{$tanggal}|{$nomor}");
 
-                KirimNotifikasiWhatsapp::dispatch($log->id);
+                $log = NotifikasiLog::firstOrCreate(
+                    ['kunci' => $kunci],
+                    [
+                        'tipe' => 'whatsapp',
+                        'tujuan' => $nomor,
+                        'pesan' => KirimNotifikasiWhatsapp::pesanAlpa(
+                            $siswa->user?->name ?? '-',
+                            $rombel->kelas->nama_kelas ?? '-',
+                            $tanggal
+                        ),
+                    ],
+                );
+
+                if ($log->wasRecentlyCreated) {
+                    KirimNotifikasiWhatsapp::dispatch($log->id);
+                }
             }
         }
     }
@@ -163,21 +168,20 @@ class AbsensiController extends Controller implements HasMiddleware
      */
     public function scan(): View
     {
-        $tahunAktif = TahunAjaran::aktif()->first();
-        $rombels = Rombel::with(['kelas', 'tahunAjaran'])
-            ->when($tahunAktif, fn ($q) => $q->orderByRaw('tahun_ajaran_id = ? desc', [$tahunAktif->id]))
-            ->orderByDesc('tahun_ajaran_id')
-            ->orderBy('kelas_id')
-            ->get();
+        ['semua' => $rombels, 'terkunci' => $terkunci] = $this->rombelTerjangkau();
+
+        $rombelDiminta = request()->query('rombel_id');
+        $rombel = $this->pilihRombelTerjangkau($rombels, $terkunci, $rombelDiminta, $rombelDiminta ?? $rombels->first()?->id);
 
         return view('admin.absensis.scan', [
             'rombels' => $rombels,
-            'rombelId' => request()->query('rombel_id', $rombels->first()?->id),
+            'rombelId' => $rombel?->id,
         ]);
     }
 
     /**
-     * Catat hasil scan (JSON). Idempoten: scan ulang = update jam.
+     * Catat hasil scan (JSON). Idempoten: scan ulang tidak menimpa arrival
+     * pertama, hanya mencatat bahwa siswa hadir.
      */
     public function storeScan(Request $request): JsonResponse
     {
@@ -186,13 +190,13 @@ class AbsensiController extends Controller implements HasMiddleware
             'rombel_id' => ['required', 'integer', 'exists:rombels,id'],
         ]);
 
+        $rombel = $this->rombelAbsensiTerjangkau((int) $data['rombel_id']);
+
         $siswa = Siswa::with('user')->where('qr_token', $data['token'])->first();
 
         if (! $siswa) {
             return response()->json(['message' => 'QR tidak dikenal.'], 422);
         }
-
-        $rombel = Rombel::find($data['rombel_id']);
 
         if (! in_array($siswa->id, $rombel->anggotaIdsAktif(), true)) {
             return response()->json(['message' => 'Siswa bukan anggota rombel ini.'], 422);
@@ -202,27 +206,41 @@ class AbsensiController extends Controller implements HasMiddleware
         $sekarang = now();
         $status = $sekarang->format('H:i') > $batas ? 'terlambat' : 'hadir';
 
-        $absensi = Absensi::updateOrCreate(
+        // `updateOrCreate` tidak bisa dipakai di sini karena selalu menulis
+        // `jam_datang`. Siswa yang scan 06:55 lalu scan lagi 08:05 akan
+        // kehilangan catatan kehadiran tepat waktunya dan justru ditandai
+        // terlambat. Arrival pertama yang dihitung: jam hanya diisi bila
+        // masih kosong, dan status `hadir` tidak pernah diturunkan ke
+        // `terlambat` oleh scan susulan.
+        $absensi = Absensi::firstOrNew([
             // rombel_id masuk kunci, bukan hanya atribut. Tanpa itu, scan
             // untuk kelas yang berbeda pada tanggal sama akan menimpa baris
             // kelas lama alih-alih membuat baris sendiri.
-            [
-                'siswa_id' => $siswa->id,
-                'rombel_id' => $rombel->id,
-                'tanggal' => $sekarang->toDateString(),
-            ],
-            [
-                'status' => $status,
-                'jam_datang' => $sekarang->format('H:i:s'),
-                'metode' => 'qr',
-                'dicatat_oleh' => auth()->id(),
-            ],
-        );
+            'siswa_id' => $siswa->id,
+            'rombel_id' => $rombel->id,
+            'tanggal' => $sekarang->toDateString(),
+        ]);
+
+        if (! $absensi->exists) {
+            $absensi->status = $status;
+            $absensi->jam_datang = $sekarang->format('H:i:s');
+        } else {
+            $absensi->status = $absensi->status === 'hadir' ? 'hadir' : $status;
+
+            if (! $absensi->jam_datang) {
+                $absensi->jam_datang = $sekarang->format('H:i:s');
+            }
+        }
+
+        $absensi->rombel_id = $rombel->id;
+        $absensi->metode = 'qr';
+        $absensi->dicatat_oleh = auth()->id();
+        $absensi->save();
 
         return response()->json([
             'nama' => $siswa->user?->name ?? '-',
             'nis' => $siswa->nis ?? $siswa->nisn ?? '-',
-            'status' => $status,
+            'status' => $absensi->status,
             'jam' => $absensi->jam_datang,
             'baru' => $absensi->wasRecentlyCreated,
         ]);
@@ -274,6 +292,11 @@ class AbsensiController extends Controller implements HasMiddleware
      * Sekarang memakai {@see Rombel::terjangkauUser()} sehingga cekunya
      * adalah wali ATAU pengampu mapel, dan kosong berarti nol.
      *
+     * Grid input dan scan memakai helper yang sama. Semula keduanya memuat
+     * seluruh rombel tanpa penyaring apa pun, sehingga setiap pemegang
+     * permission `absensis.create` bisa membaca roster dan mencatat kehadiran
+     * di kelas yang bukan ampunya.
+     *
      * @return array{semua: Collection, terkunci: bool}
      */
     protected function rombelTerjangkau(): array
@@ -281,7 +304,7 @@ class AbsensiController extends Controller implements HasMiddleware
         $tahunAktif = TahunAjaran::aktif()->first();
 
         $semua = Rombel::with(['kelas', 'tahunAjaran'])
-            ->terjangkauUser(request()->user())
+            ->terjangkauUser(request()->user(), Rombel::ROLE_ABSENSI_UNIVERSAL)
             ->when($tahunAktif, fn ($q) => $q->orderByRaw('tahun_ajaran_id = ? desc', [$tahunAktif->id]))
             ->orderByDesc('tahun_ajaran_id')
             ->orderBy('kelas_id')
@@ -289,8 +312,49 @@ class AbsensiController extends Controller implements HasMiddleware
 
         return [
             'semua' => $semua,
-            'terkunci' => ! request()->user()->hasRole(Rombel::ROLE_UNIVERSAL),
+            'terkunci' => ! request()->user()->hasRole(Rombel::ROLE_ABSENSI_UNIVERSAL),
         ];
+    }
+
+    /**
+     * Pilih satu rombel dari daftar terjangkau, tolak 403 bila yang diminta
+     * bukan ampuan user.
+     *
+     * Tanpa guard ini user yang belum punya rombel mendapat halaman error
+     * alih-alih tampilan kosong yang wajar, karena daftar ampuan kosong
+     * sehingga tidak ada rombel yang terpilih.
+     *
+     * @param  Collection<int, Rombel>  $rombels
+     * @param  mixed  $diminta  Nilai mentah dari query string, null bila tidak disebut.
+     * @param  mixed  $id  Kandidat rombel terpilih.
+     */
+    protected function pilihRombelTerjangkau(Collection $rombels, bool $terkunci, mixed $diminta, mixed $id): ?Rombel
+    {
+        $rombel = $rombels->firstWhere('id', (int) $id);
+
+        if ($terkunci && $diminta && ! $rombel) {
+            abort(403, 'Rombel ini bukan ampuan Anda.');
+        }
+
+        return $rombel;
+    }
+
+    /**
+     * Satu rombel yang pasti terjangkau user, untuk jalur tulis.
+     *
+     * Jalur tulis tidak boleh diam-diam jatuh kerombel lain seperti tampilan
+     * grid, jadi di sini rombel di luar jangkauan selalu 403, bukan sekadar
+     * tidak ditemukan.
+     */
+    protected function rombelAbsensiTerjangkau(int $rombelId): Rombel
+    {
+        abort_unless(
+            Rombel::terjangkauOleh(request()->user(), $rombelId, Rombel::ROLE_ABSENSI_UNIVERSAL),
+            403,
+            'Rombel ini bukan ampuan Anda.',
+        );
+
+        return Rombel::with('kelas')->findOrFail($rombelId);
     }
 
     /**
@@ -301,7 +365,7 @@ class AbsensiController extends Controller implements HasMiddleware
         $rombel = Rombel::with(['kelas', 'tahunAjaran'])->findOrFail($rombelId);
 
         $siswas = Siswa::with('user')
-            ->whereIn('id', $rombel->anggotaIds())
+            ->whereIn('id', $rombel->anggotaIdsUntukRekap())
             ->orderBy('nis')
             ->get();
 
@@ -309,11 +373,15 @@ class AbsensiController extends Controller implements HasMiddleware
             ->whereBetween('tanggal', [$mulai, $selesai])
             ->get();
 
+        // Dikelompokkan sekali, bukan dicari ulang per siswa: `Collection::where`
+        // di dalam loop menyapu seluruh catatan untuk tiap siswa.
+        $catatanPerSiswa = $catatan->groupBy('siswa_id');
+
         $matriks = [];
         $total = [];
 
         foreach ($siswas as $siswa) {
-            $perTanggal = $catatan->where('siswa_id', $siswa->id)->keyBy('tanggal');
+            $perTanggal = $catatanPerSiswa->get($siswa->id, collect())->keyBy('tanggal');
             $hitung = ['hadir' => 0, 'sakit' => 0, 'izin' => 0, 'alpa' => 0, 'terlambat' => 0];
 
             foreach ($perTanggal as $row) {
@@ -349,21 +417,12 @@ class AbsensiController extends Controller implements HasMiddleware
     {
         ['semua' => $rombels, 'terkunci' => $terkunci] = $this->rombelTerjangkau();
 
-        $rombelId = request()->query('rombel_id', $rombels->first()?->id);
         $rombelDiminta = request()->query('rombel_id');
         $periode = request()->query('periode', 'bulan');
         $acuan = request()->query('acuan', now()->toDateString());
         $tahunAjaranId = request()->query('tahun_ajaran_id', TahunAjaran::aktif()->first()?->id) ?: null;
 
-        $rombel = $rombels->firstWhere('id', (int) $rombelId);
-
-        // 403 hanya bila rombel tertentu memang diminta dan bukan ampuan.
-        // Tanpa ini, guru yang belum punya kelas sama sekali mendapat
-        // halaman error alih-alih tampilan kosong yang wajar, karena daftar
-        // ampuan kosong sehingga tidak ada rombel yang terpilih.
-        if ($terkunci && $rombelDiminta && ! $rombel) {
-            abort(403, 'Rombel ini bukan ampuan Anda.');
-        }
+        $rombel = $this->pilihRombelTerjangkau($rombels, $terkunci, $rombelDiminta, $rombelDiminta ?? $rombels->first()?->id);
 
         $data = null;
 

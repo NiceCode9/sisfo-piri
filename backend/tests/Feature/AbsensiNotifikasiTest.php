@@ -99,6 +99,52 @@ test('batch alpa mengantrekan notifikasi log-only', function () {
         ->and($log->respons)->toContain('log-only');
 });
 
+test('menyimpan ulang batch alpa tidak mengirim notifikasi ganda', function () {
+    config()->set('services.whatsapp.url', null);
+    Http::fake();
+    $rombel = rombelNotifikasiUji();
+    $siswa = siswaNotifikasiUji('7002', 'Anak Notif Ganda');
+
+    $payload = [
+        'rombel_id' => $rombel->id,
+        'tanggal' => now()->toDateString(),
+        'status' => [$siswa->id => 'alpa'],
+    ];
+
+    $this->actingAs(superAdmin())->post(route('admin.absensis.batch'), $payload)->assertSessionHas('success');
+    $kedua = $this->actingAs(superAdmin())->post(route('admin.absensis.batch'), $payload);
+
+    // Simpan ulang adalah hal wajar saat guru mengoreksi absensi. Tanpa
+    // idempotensi, orang tua menerima pesan "alpa" berulang untuk hari yang
+    // sama.
+    $kedua->assertSessionHas('success');
+    expect(NotifikasiLog::count())->toBe(1);
+    expect(NotifikasiLog::first()->tujuan)->toBe('081233344455');
+});
+
+test('notifikasi alpa tetap terbit ulang pada tanggal berikutnya', function () {
+    config()->set('services.whatsapp.url', null);
+    Http::fake();
+    $rombel = rombelNotifikasiUji();
+    $siswa = siswaNotifikasiUji('7003', 'Anak Notif Hari Deux');
+
+    $this->actingAs(superAdmin())->post(route('admin.absensis.batch'), [
+        'rombel_id' => $rombel->id,
+        'tanggal' => now()->subDay()->toDateString(),
+        'status' => [$siswa->id => 'alpa'],
+    ])->assertSessionHas('success');
+
+    $this->actingAs(superAdmin())->post(route('admin.absensis.batch'), [
+        'rombel_id' => $rombel->id,
+        'tanggal' => now()->toDateString(),
+        'status' => [$siswa->id => 'alpa'],
+    ])->assertSessionHas('success');
+
+    // Idempotensi berlaku per hari, bukan selamanya: alpa hari ini dan alpa
+    // kemarin memang dua pesan yang berbeda.
+    expect(NotifikasiLog::count())->toBe(2);
+});
+
 test('batch tanpa alpa tidak membuat log', function () {
     config()->set('services.whatsapp.url', null);
     Http::fake();
