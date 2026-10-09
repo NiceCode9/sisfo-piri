@@ -369,6 +369,23 @@ class AbsensiController extends Controller implements HasMiddleware
 
     /**
      * Data rekap satu rombel + rentang (dipakai layar + ekspor).
+     *
+     * Keputusan `rinci` diambil di sini, sebelum data dimuat, karena kedua
+     * jalur butuh sumber data yang berbeda. Rincian per tanggal hanya dibaca
+     * di balik guard `$rekap['rinci']` oleh `rekap.blade.php` dan
+     * `AbsensiRekapExport`; view PDF hanya memakai `hitung` dan `persen`.
+     *
+     * Untuk rentang panjang (semester, satu tahun) memuat satu model per hari
+     * per siswa berarti sekitar 13.000 model untuk kelas 36 siswa. Ringkasan
+     * tidak butuh baris per tanggal sama sekali — cukup agregat per siswa dan
+     * status, jadi yang masuk memori hanya sekitar 180 baris.
+     *
+     * `COUNT(*)` boleh dipakai sebagai jumlah hari: unique
+     * `absensis_siswa_rombel_tanggal_unique` menjamin maksimal satu baris per
+     * (siswa, tanggal) dalam satu rombel, sehingga menghitung baris sama
+     * dengan menghitung tanggal unik.
+     *
+     * @return array{rombel: Rombel, siswas: Collection, matriks: array, total: array, tanggals: array<int, string>, rinci: bool, mulai: string, selesai: string}
      */
     public function dataRekap(int $rombelId, string $mulai, string $selesai): array
     {
@@ -379,45 +396,113 @@ class AbsensiController extends Controller implements HasMiddleware
             ->orderBy('nis')
             ->get();
 
-        $catatan = Absensi::where('rombel_id', $rombel->id)
-            ->whereBetween('tanggal', [$mulai, $selesai])
-            ->get();
-
-        // Dikelompokkan sekali, bukan dicari ulang per siswa: `Collection::where`
-        // di dalam loop menyapu seluruh catatan untuk tiap siswa.
-        $catatanPerSiswa = $catatan->groupBy('siswa_id');
-
-        $matriks = [];
-        $total = [];
-
-        foreach ($siswas as $siswa) {
-            $perTanggal = $catatanPerSiswa->get($siswa->id, collect())->keyBy('tanggal');
-            $hitung = ['hadir' => 0, 'sakit' => 0, 'izin' => 0, 'alpa' => 0, 'terlambat' => 0];
-
-            foreach ($perTanggal as $row) {
-                $hitung[$row->status] = ($hitung[$row->status] ?? 0) + 1;
-            }
-
-            $terisi = array_sum($hitung);
-            $matriks[$siswa->id] = [
-                'siswa' => $siswa,
-                'perTanggal' => $perTanggal,
-                'hitung' => $hitung,
-                'persen' => $terisi ? round((($hitung['hadir'] + $hitung['terlambat']) / $terisi) * 100) : null,
-            ];
-
-            foreach ($hitung as $status => $jumlah) {
-                $total[$status] = ($total[$status] ?? 0) + $jumlah;
-            }
-        }
-
         $tanggals = [];
         $periode = CarbonPeriod::create($mulai, $selesai);
         foreach ($periode as $tanggal) {
             $tanggals[] = $tanggal->toDateString();
         }
 
-        return compact('rombel', 'siswas', 'matriks', 'total', 'tanggals', 'mulai', 'selesai');
+        $rinci = count($tanggals) <= self::BATAS_RINCI_HARI;
+
+        $catatanPerSiswa = $rinci
+            ? $this->catatanRinciPerSiswa($rombel->id, $mulai, $selesai)
+            : $this->agregatPerSiswa($rombel->id, $mulai, $selesai);
+
+        $matriks = [];
+        $total = [];
+
+        foreach ($siswas as $siswa) {
+            $baris = $catatanPerSiswa->get($siswa->id);
+            $hitung = $this->hitungStatus($baris);
+            $terisi = array_sum($hitung);
+
+            $matriks[$siswa->id] = [
+                'siswa' => $siswa,
+                'hitung' => $hitung,
+                'persen' => $terisi ? round((($hitung['hadir'] + $hitung['terlambat']) / $terisi) * 100) : null,
+            ];
+
+            // Hanya bermakna saat rinci. Saat ringkasan kuncinya dihilangkan
+            // sama sekali, bukan diisi kosong: kalau suatu saat guard `rinci`
+            // di view atau export terhapus, hasilnya gagal keras, bukan
+            // menampilkan kolom kosong yang tampilannya meyakinkan.
+            if ($rinci) {
+                $matriks[$siswa->id]['perTanggal'] = $baris?->keyBy('tanggal') ?? collect();
+            }
+
+            foreach ($hitung as $status => $jumlah) {
+                $total[$status] = ($total[$status] ?? 0) + $jumlah;
+            }
+        }
+
+        return compact('rombel', 'siswas', 'matriks', 'total', 'tanggals', 'mulai', 'selesai') + ['rinci' => $rinci];
+    }
+
+    /**
+     * Baris absensi per siswa, dikelompokkan per tanggal.
+     *
+     * Hanya dipanggil saat rentang pendek, jadi jumlah barisnya terbatas:
+     * BATAS_RINCI_HARI hari dikali jumlah siswa. Kolom yang diminta hanya
+     * yang dipakai matriks — `get()` tanpa daftar kolom akan ikut memuat
+     * `keterangan` TEXT dan dua timestamp.
+     *
+     * @return Collection<int, Collection<int, Absensi>>
+     */
+    protected function catatanRinciPerSiswa(int $rombelId, string $mulai, string $selesai): Collection
+    {
+        return Absensi::where('rombel_id', $rombelId)
+            ->whereBetween('tanggal', [$mulai, $selesai])
+            ->get(['siswa_id', 'tanggal', 'status'])
+            ->groupBy('siswa_id');
+    }
+
+    /**
+     * Jumlah per status per siswa, dihitung di SQL.
+     *
+     * Hasil akhirnya dikelompokkan per siswa, bukan model `Absensi`. Bentuknya
+     * sengaja dibuat berbeda dari {@see catatanRinciPerSiswa()} di satu hal:
+     * tiap baris membawa `jumlah` (@see hitungStatus()), bukan satu baris per
+     * tanggal. Karena itu tidak ada kolom `tanggal` di sini — tidak ada yang
+     * membacanya, dan keberadaannya akan menyesatkan.
+     *
+     * @return Collection<int, Collection<int, object>>
+     */
+    protected function agregatPerSiswa(int $rombelId, string $mulai, string $selesai): Collection
+    {
+        return Absensi::where('rombel_id', $rombelId)
+            ->whereBetween('tanggal', [$mulai, $selesai])
+            ->selectRaw('siswa_id, status, COUNT(*) as jumlah')
+            ->groupBy('siswa_id', 'status')
+            ->get()
+            ->groupBy('siswa_id')
+            ->map(fn (Collection $baris) => $baris->map(fn ($r) => (object) [
+                'status' => $r->status,
+                'jumlah' => (int) $r->jumlah,
+            ]));
+    }
+
+    /**
+     * Jumlah hari per status untuk satu siswa.
+     *
+     * Satu-satunya tempat angka rekap dihitung, jadi jalur rinci dan jalur
+     * ringkasan tidak mungkin menghasilkan hitungan berbeda. Setiap status
+     * selalu ada di hasilnya, termasuk yang nol, supaya tampilan dan ekspor
+     * tidak perlu memeriksa keberadaan kunci.
+     *
+     * @param  Collection<int, object>|null  $baris
+     * @return array<string, int>
+     */
+    protected function hitungStatus(?Collection $baris): array
+    {
+        $hitung = ['hadir' => 0, 'sakit' => 0, 'izin' => 0, 'alpa' => 0, 'terlambat' => 0];
+
+        foreach ($baris ?? [] as $row) {
+            // Jalur agregat menyatukan jumlah per status lewat `jumlah`,
+            // sedangkan jalur rinci punya satu baris per tanggal.
+            $hitung[$row->status] = ($hitung[$row->status] ?? 0) + (int) ($row->jumlah ?? 1);
+        }
+
+        return $hitung;
     }
 
     /**
@@ -439,7 +524,6 @@ class AbsensiController extends Controller implements HasMiddleware
         if ($rombel) {
             $rentang = static::rentangPeriode($periode, $acuan, $tahunAjaranId ? (int) $tahunAjaranId : null);
             $data = $this->dataRekap($rombel->id, $rentang['mulai'], $rentang['selesai']);
-            $data['rinci'] = count($data['tanggals']) <= self::BATAS_RINCI_HARI;
         }
 
         return view('admin.absensis.rekap', array_merge([
@@ -494,7 +578,6 @@ class AbsensiController extends Controller implements HasMiddleware
         $rentang = static::rentangPeriode($periode, $request->query('acuan', now()->toDateString()), $tahunAjaranId ? (int) $tahunAjaranId : null);
 
         $data = $this->dataRekap($rombel->id, $rentang['mulai'], $rentang['selesai']);
-        $data['rinci'] = count($data['tanggals']) <= self::BATAS_RINCI_HARI;
         $data['periode'] = $periode;
 
         return $data;
