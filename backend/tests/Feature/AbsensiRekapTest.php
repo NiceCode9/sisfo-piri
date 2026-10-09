@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AbsensiController;
 use App\Models\Absensi;
 use App\Models\Guru;
 use App\Models\RiwayatKelas;
@@ -13,6 +14,7 @@ use Database\Seeders\PermissionSeeder;
 use Database\Seeders\PpdbSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 
@@ -123,6 +125,118 @@ test('rekap mingguan menampilkan matriks dan total', function () {
         ->assertSee('H 1')
         ->assertSee('S 1')
         ->assertSee('A 1');
+});
+
+test('jalur rinci dan ringkasan menghitung angka yang sama', function () {
+    $rombel = rombelRekapUji();
+    $penghitung = app(AbsensiController::class);
+
+    $s1 = siswaRekapUji('6001', 'Anak Rekap Satu', $rombel);
+    $s2 = siswaRekapUji('6002', 'Anak Rekap Dua', $rombel);
+    $s3 = siswaRekapUji('6003', 'Anak Rekap Tiga', $rombel);
+    // Murid tanpa catatan sama sekali. Dibuat sebelum rekap dihitung supaya
+    // benar-benar ikut masuk roster yang dihitung.
+    $tanpa = siswaRekapUji('6004', 'Anak Tanpa Catatan', $rombel);
+
+    // Sebar di dua bulan supaya rentang pendek dan panjang bisa dipisahkan,
+    // dan keduanya dihitung oleh jalur kode yang berbeda.
+    foreach (range(1, 12) as $hari) {
+        catatRekapUji($rombel, $s1, '2026-01-'.str_pad((string) $hari, 2, '0', STR_PAD_LEFT), 'hadir');
+    }
+    catatRekapUji($rombel, $s2, '2026-01-05', 'alpa');
+    catatRekapUji($rombel, $s1, '2026-02-05', 'sakit');
+    catatRekapUji($rombel, $s2, '2026-02-06', 'izin');
+    catatRekapUji($rombel, $s3, '2026-02-07', 'terlambat');
+
+    // Januari saja: 30 hari, jadi lewat jalur rinci (baris per tanggal).
+    $januari = $penghitung->dataRekap($rombel->id, '2026-01-01', '2026-01-30');
+    // Januari sampai Maret: 90 hari, lewat jalur ringkasan (agregat SQL).
+    $semester = $penghitung->dataRekap($rombel->id, '2026-01-01', '2026-03-31');
+
+    expect($januari['rinci'])->toBeTrue()
+        ->and($semester['rinci'])->toBeFalse();
+
+    // Ekspektasi dihitung tangan dari data di atas, bukan dari kode yang
+    // sedang diuji. Jalur ringkasan menggabungkan hitungan bulan ketiga, jadi
+    // angkanya lebih besar; yang dijaga adalah bahwa keduanya benar dan
+    // tidak ada status yang hilang.
+    expect($januari['total'])->toBe(['hadir' => 12, 'sakit' => 0, 'izin' => 0, 'alpa' => 1, 'terlambat' => 0]);
+    expect($semester['total'])->toBe(['hadir' => 12, 'sakit' => 1, 'izin' => 1, 'alpa' => 1, 'terlambat' => 1]);
+
+    // Siswa yang tidak punya catatan di rentang itu tetap punya hitungan nol
+    // penuh dan persen kosong, bukan kunci yang hilang. Di rentang semester
+    // siswa ini justru punya satu catatan, jadi diuji terpisah.
+    expect($januari['matriks'][$s3->id]['hitung'])->toBe(['hadir' => 0, 'sakit' => 0, 'izin' => 0, 'alpa' => 0, 'terlambat' => 0]);
+    expect($januari['matriks'][$s3->id]['persen'])->toBeNull();
+
+    // Murid yang benar-benar tanpa catatan sama sekali di rentang ini.
+    foreach ([$januari, $semester] as $rekap) {
+        expect($rekap['matriks'][$tanpa->id]['hitung'])->toBe(['hadir' => 0, 'sakit' => 0, 'izin' => 0, 'alpa' => 0, 'terlambat' => 0])
+            ->and($rekap['matriks'][$tanpa->id]['persen'])->toBeNull();
+    }
+
+    // Perentase dihitung dari jumlah yang terisi, bukan dari panjang rentang.
+    // `round()` mengembalikan float, jadi ekspektasinya float juga supaya
+    // perbandingan tetap ketat.
+    expect($januari['matriks'][$s1->id]['persen'])->toBe(100.0);
+    expect($semester['matriks'][$s1->id]['persen'])->toBe(92.0); // 12 dari 13 hari, dibulatkan
+    expect($semester['matriks'][$s2->id]['persen'])->toBe(0.0);
+    expect($semester['matriks'][$s3->id]['persen'])->toBe(100.0); // terlambat dihitung hadir
+
+    // `perTanggal` hanya ada di jalur rinci. Di jalur ringkasan kuncinya
+    // dihilangkan, bukan diisi kosong supaya guard yang hilang di view atau
+    // export gagal keras.
+    expect(array_key_exists('perTanggal', $januari['matriks'][$s1->id]))->toBeTrue()
+        ->and(array_key_exists('perTanggal', $semester['matriks'][$s1->id]))->toBeFalse();
+
+    // Bagian status pada rentang Januari harus utuh di jalur ringkasan.
+    expect($semester['matriks'][$s1->id]['hitung']['hadir'])->toBe($januari['matriks'][$s1->id]['hitung']['hadir'])
+        ->and($semester['matriks'][$s1->id]['hitung']['alpa'])->toBe($januari['matriks'][$s1->id]['hitung']['alpa'])
+        ->and($semester['matriks'][$s2->id]['hitung']['alpa'])->toBe($januari['matriks'][$s2->id]['hitung']['alpa']);
+});
+
+test('rentang panjang memakai agregat SQL, bukan memuat semua baris', function () {
+    $rombel = rombelRekapUji();
+    $siswa = siswaRekapUji('6001', 'Anak Rekap Satu', $rombel);
+    catatRekapUji($rombel, $siswa, '2026-01-05', 'hadir');
+    catatRekapUji($rombel, $siswa, '2026-03-05', 'alpa');
+
+    $sql = [];
+    DB::listen(function ($query) use (&$sql) {
+        $sql[] = $query->sql;
+    });
+
+    app(AbsensiController::class)->dataRekap($rombel->id, '2026-01-01', '2026-06-30');
+
+    $absensi = array_values(array_filter($sql, fn ($q) => str_contains($q, '"absensis"')));
+
+    // Untuk rentang panjang, rekap tidak boleh menarik satu baris per hari per
+    // siswa. Cukup satu query agregat.
+    expect($absensi)->toHaveCount(1)
+        ->and($absensi[0])->toContain('group by "siswa_id", "status"')
+        ->and($absensi[0])->not->toContain('"jam_datang"');
+});
+
+test('rentang pendek tetap memuat rincian per tanggal', function () {
+    $rombel = rombelRekapUji();
+    $siswa = siswaRekapUji('6001', 'Anak Rekap Satu', $rombel);
+    catatRekapUji($rombel, $siswa, '2026-01-05', 'hadir');
+
+    $sql = [];
+    DB::listen(function ($query) use (&$sql) {
+        $sql[] = $query->sql;
+    });
+
+    $rekap = app(AbsensiController::class)->dataRekap($rombel->id, '2026-01-01', '2026-01-30');
+
+    $absensi = array_values(array_filter($sql, fn ($q) => str_contains($q, '"absensis"')));
+
+    expect($rekap['rinci'])->toBeTrue()
+        ->and($absensi)->toHaveCount(1)
+        // Hanya kolom yang dipakai matriks, bukan seluruh tabel.
+        ->and($absensi[0])->toContain('"siswa_id", "tanggal", "status"')
+        ->and($absensi[0])->not->toContain('"keterangan"')
+        ->and($rekap['matriks'][$siswa->id]['perTanggal']->get('2026-01-05')?->status)->toBe('hadir');
 });
 
 test('semester ganjil genap memakai konvensi kalender', function () {
