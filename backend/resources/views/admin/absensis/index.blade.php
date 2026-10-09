@@ -47,7 +47,10 @@
         </div>
         @can('absensis.create')
             @if($siswas->isNotEmpty())
-                <button type="submit" form="form-absensi" class="btn btn-primary btn-sm"><i class="fa-solid fa-floppy-disk"></i> Simpan</button>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-nexus-outline btn-sm" data-tandai-semua="hadir"><i class="fa-solid fa-check-double"></i> Tandai semua hadir</button>
+                    <button type="submit" form="form-absensi" class="btn btn-primary btn-sm"><i class="fa-solid fa-floppy-disk"></i> Simpan</button>
+                </div>
             @endif
         @endcan
     </div>
@@ -70,9 +73,16 @@
                             <td style="font-weight:600;font-size:13px;">{{ $s->user->name ?? '-' }}<div style="font-size:11px;color:var(--text-muted);font-weight:400;">{{ $s->nis ?? $s->nisn ?? '-' }}</div></td>
                             <td style="min-width:170px;">
                                 @can('absensis.create')
+                                    @php
+                                        // `old()` bisa balik `null` alih-alih default-nya,
+                                        // dan `null === ''` bernilai salah. Tanpa
+                                        // pemrosesan ini opsi "Belum dicatat" justru tidak
+                                        // terpilih sehingga browser jatuh ke "Hadir".
+                                        $terpilih = (string) old('status.'.$s->id, $catat?->status ?? '');
+                                    @endphp
                                     <select name="status[{{ $s->id }}]" form="form-absensi" class="form-select form-select-sm @error('status.'.$s->id) is-invalid @enderror" aria-label="Status {{ $s->nis ?? $s->id }}">
-                                        @foreach(['hadir' => 'Hadir', 'terlambat' => 'Terlambat', 'sakit' => 'Sakit', 'izin' => 'Izin', 'alpa' => 'Alpa'] as $val => $label)
-                                            <option value="{{ $val }}" @selected(old('status.'.$s->id, $catat?->status ?? 'hadir')===$val)>{{ $label }}</option>
+                                        @foreach(['' => 'Belum dicatat', 'hadir' => 'Hadir', 'terlambat' => 'Terlambat', 'sakit' => 'Sakit', 'izin' => 'Izin', 'alpa' => 'Alpa'] as $val => $label)
+                                            <option value="{{ $val }}" @selected($terpilih === (string) $val)>{{ $label }}</option>
                                         @endforeach
                                     </select>
                                     @error('status.'.$s->id)<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
@@ -91,3 +101,20 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    // Pintasan lama "buka grid lalu Simpan berarti semua hadir" sengaja
+    // dihapus karena menulis hadir tanpa pilihan guru. Tombol di bawah
+    // mengembalikan jalur cepat itu sebagai aksi yang terlihat dan disengaja.
+    document.querySelectorAll('[data-tandai-semua]').forEach(function (tombol) {
+        tombol.addEventListener('click', function () {
+            // Select berada di luar <form> dan menunjukkannya lewat atribut
+            // `form`, jadi selector yang benar bukan berbasis hierarki.
+            document.querySelectorAll('select[form="form-absensi"]').forEach(function (select) {
+                select.value = tombol.dataset.tandaiSemua;
+            });
+        });
+    });
+</script>
+@endpush

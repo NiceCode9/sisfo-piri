@@ -27,7 +27,33 @@ class StoreAbsensiBatchRequest extends FormRequest
     }
 
     /**
+     * Buang pilihan "belum dicatat" sebelum validasi.
+     *
+     * `<select>` selalu mengirim nilai untuk setiap siswa, jadi siswa yang
+     * tidak disentuh guru terkirim sebagai string kosong. Kalau nilai kosong
+     * itu ikut disimpan, membuka grid hari yang belum ada absensinya lalu
+     * menekan Simpan akan menulis `hadir` untuk seluruh kelas — absensi palsu
+     * terbentuk tanpa error dan tanpa jejak. Baris kosong berarti "tidak
+     * dicatat", jadi dibuang di sini dan tidak pernah menyentuh database.
+     */
+    protected function prepareForValidation(): void
+    {
+        $status = $this->input('status');
+
+        if (! is_array($status)) {
+            return;
+        }
+
+        $this->merge([
+            'status' => array_filter($status, fn ($nilai) => $nilai !== null && $nilai !== ''),
+        ]);
+    }
+
+    /**
      * Payload: status[siswa_id] = hadir|sakit|izin|alpa|terlambat.
+     *
+     * Kunci yang dihapus {@see prepareForValidation()} tidak ikut divalidasi,
+     * jadi siswa yang dibiarkan "belum dicatat" tidak menggagalkan simpanan.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
@@ -38,6 +64,17 @@ class StoreAbsensiBatchRequest extends FormRequest
             'tanggal' => ['required', 'date', 'before_or_equal:today'],
             'status' => ['required', 'array', 'min:1'],
             'status.*' => ['required', 'in:hadir,sakit,izin,alpa,terlambat'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'status.required' => 'Pilih status kehadiran untuk minimal satu siswa.',
+            'status.min' => 'Pilih status kehadiran untuk minimal satu siswa.',
         ];
     }
 

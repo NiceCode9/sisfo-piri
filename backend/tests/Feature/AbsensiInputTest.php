@@ -93,6 +93,92 @@ test('grid menampilkan siswa rombel', function () {
         ->assertOk()->assertSee('Anak Absen Satu');
 });
 
+test('siswa tanpa catatan tampil sebagai belum dicatat', function () {
+    $rombel = rombelUjiAbsensi();
+    buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
+
+    // Select tidak boleh terisi "hadir" secara diam-diam. Kalau iya, membuka
+    // grid lalu menekan Simpan akan mencatat seluruh kelas hadir.
+    $this->actingAs(superAdmin())->get(route('admin.absensis.index', [
+        'rombel_id' => $rombel->id,
+        'tanggal' => now()->toDateString(),
+    ]))
+        ->assertOk()
+        ->assertSee('Belum dicatat')
+        ->assertSee('<option value="" selected', false);
+});
+
+test('siswa yang sudah punya catatan menampilkan status tercatatnya', function () {
+    $rombel = rombelUjiAbsensi();
+    $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
+    $hari = now()->toDateString();
+
+    Absensi::create([
+        'rombel_id' => $rombel->id,
+        'siswa_id' => $siswa->id,
+        'tanggal' => $hari,
+        'status' => 'sakit',
+        'metode' => 'manual',
+    ]);
+
+    // Memakai "Belum dicatat" sebagai nilai kosong tidak boleh ikut menimpa
+    // pilihan yang memang sudah tercatat.
+    $this->actingAs(superAdmin())->get(route('admin.absensis.index', [
+        'rombel_id' => $rombel->id,
+        'tanggal' => $hari,
+    ]))
+        ->assertOk()
+        ->assertSee('<option value="sakit" selected', false)
+        ->assertDontSee('<option value="" selected', false);
+});
+
+test('simpan grid tanpa pilihan tidak membuat baris hadir', function () {
+    $rombel = rombelUjiAbsensi();
+    $s1 = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
+    $s2 = buatAnggotaRombel('4002', 'Anak Absen Dua', $rombel);
+    $hari = now()->toDateString();
+
+    // Semua dropdown masih "belum dicatat" dan form tetap mengirim nilainya
+    // sebagai string kosong. Tidak boleh ada yang tersimpan sebagai hadir.
+    $this->actingAs(superAdmin())->post(route('admin.absensis.batch'), [
+        'rombel_id' => $rombel->id,
+        'tanggal' => $hari,
+        'status' => [$s1->id => '', $s2->id => ''],
+    ])->assertSessionHasErrors('status');
+
+    expect(Absensi::where('tanggal', $hari)->count())->toBe(0);
+});
+
+test('siswa yang dibiarkan kosong tidak menghalangi siswa lain tersimpan', function () {
+    $rombel = rombelUjiAbsensi();
+    $s1 = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
+    $s2 = buatAnggotaRombel('4002', 'Anak Absen Dua', $rombel);
+    $s3 = buatAnggotaRombel('4003', 'Anak Absen Tiga', $rombel);
+    $hari = now()->toDateString();
+
+    $this->actingAs(superAdmin())->post(route('admin.absensis.batch'), [
+        'rombel_id' => $rombel->id,
+        'tanggal' => $hari,
+        'status' => [$s1->id => 'hadir', $s2->id => '', $s3->id => 'sakit'],
+    ])->assertSessionHas('success');
+
+    expect(Absensi::where('tanggal', $hari)->count())->toBe(2)
+        ->and(Absensi::where('siswa_id', $s1->id)->exists())->toBeTrue()
+        ->and(Absensi::where('siswa_id', $s3->id)->exists())->toBeTrue()
+        ->and(Absensi::where('siswa_id', $s2->id)->exists())->toBeFalse();
+});
+
+test('tombol tandai semua hadir tersedia sebagai pintasan cepat', function () {
+    $rombel = rombelUjiAbsensi();
+    buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
+
+    // Jalur cepat "semua hadir" harus tetap ada, tapi sebagai aksi eksplisit.
+    $this->actingAs(superAdmin())->get(route('admin.absensis.index', ['rombel_id' => $rombel->id]))
+        ->assertOk()
+        ->assertSee('Tandai semua hadir')
+        ->assertSee('data-tandai-semua="hadir"', false);
+});
+
 test('batch manual tersimpan dan dapat diperbarui', function () {
     $rombel = rombelUjiAbsensi();
     $s1 = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
