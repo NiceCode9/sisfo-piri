@@ -97,8 +97,10 @@ test('pengumuman nonaktif 404 di publik', function () {
 test('home menampilkan biaya wajib dan pengumuman', function () {
     $response = $this->get(route('spmb.home'));
     $response->assertOk()->assertSee('Biaya');
-    // biaya wajib sum 3.850.000 dari seeder
-    $response->assertSee('Rp');
+
+    // biaya wajib sum 3.850.000 dari seeder. `Rp` diperiksa lewat
+    // htmlTanpaToken(): jarum dua karakter berisiko menabrak token acak.
+    expect(htmlTanpaToken($response->getContent()))->toContain('Rp');
 });
 
 test('admin tanpa permission delete tidak dapat menghapus pengumuman', function () {

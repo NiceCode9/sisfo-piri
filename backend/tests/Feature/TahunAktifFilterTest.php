@@ -61,14 +61,19 @@ if (! function_exists('rombelLampauFilter')) {
 test('rombel default tahun aktif, semua tampil, spesifik tahun lampau', function () {
     rombelLampauFilter();
 
-    $this->actingAs(superAdmin())->get(route('admin.rombels.index'))
-        ->assertOk()->assertSee('7A')->assertDontSee('8Z');
+    // `7A` dan `8Z` diperiksa lewat htmlTanpaToken(): jarum dua karakter
+    // berisiko menabrak token CSRF acak pada halaman.
+    $aktif = $this->actingAs(superAdmin())->get(route('admin.rombels.index'));
+    $aktif->assertOk();
+    expect(htmlTanpaToken($aktif->getContent()))->toContain('7A')->not->toContain('8Z');
 
-    $this->actingAs(superAdmin())->get(route('admin.rombels.index', ['tahun' => 'semua']))
-        ->assertOk()->assertSee('7A')->assertSee('8Z');
+    $semua = $this->actingAs(superAdmin())->get(route('admin.rombels.index', ['tahun' => 'semua']));
+    $semua->assertOk();
+    expect(htmlTanpaToken($semua->getContent()))->toContain('7A')->toContain('8Z');
 
-    $this->actingAs(superAdmin())->get(route('admin.rombels.index', ['tahun' => tahunLampauFilter()->id]))
-        ->assertOk()->assertSee('8Z')->assertDontSee('7A');
+    $lampau = $this->actingAs(superAdmin())->get(route('admin.rombels.index', ['tahun' => tahunLampauFilter()->id]));
+    $lampau->assertOk();
+    expect(htmlTanpaToken($lampau->getContent()))->toContain('8Z')->not->toContain('7A');
 });
 
 test('pengampu default tahun aktif, semua tampil, spesifik tahun lampau', function () {

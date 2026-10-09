@@ -48,3 +48,28 @@ function something()
 {
     // ..
 }
+
+/**
+ * Buang nilai acak yang di-generate tiap request dari HTML halaman.
+ *
+ * Setiap halaman memuat token CSRF acak 40 karakter, baik di meta tag
+ * `csrf-token` maupun di input tersembunyi `_token`. Assert string pendek
+ * seperti `7B` langsung ke HTML rapuh: token itu memuat `7B` sekitar 0,9%
+ * dari waktu ke waktu, sehingga test gagal sesekali tanpa ada perubahan kode
+ * — persis itulah yang membuat suite tampak flaky padahal tidak ada bug.
+ *
+ * Token bukan bagian dari apa pun yang test-test ini periksa, jadi aman
+ * dibuang. Dipakai begini:
+ *
+ *     $respons = $this->actingAs($user)->get(route('admin.absensis.index'));
+ *     $respons->assertOk();
+ *     expect(htmlTanpaToken($respons->getContent()))->not->toContain('7B');
+ */
+function htmlTanpaToken(string $html): string
+{
+    return preg_replace(
+        '/(<meta name="csrf-token" content="|_token"\s+value=")([A-Za-z0-9]{20,})/',
+        '$1TOKEN',
+        $html
+    );
+}

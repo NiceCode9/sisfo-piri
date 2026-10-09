@@ -309,18 +309,23 @@ test('halaman wizard menampilkan pratinjau dan nama kelas tujuan', function () {
     // 8A perlu ada supaya pasangan otomatis 7A -> 8A ditemukan dan tampil.
     Kelas::create(['nama_kelas' => '8A', 'tingkat' => '8']);
 
-    $this->actingAs(adminTahunBaru())
+    $respons = $this->actingAs(adminTahunBaru())
         ->get(route('admin.tahun-ajaran-baru.index', [
             'tahun_asal_id' => TahunAjaran::aktif()->firstOrFail()->id,
             'tahun_tujuan_id' => $tujuan->id,
-        ]))
-        ->assertOk()
+        ]));
+
+    $respons->assertOk()
         ->assertSee('Langkah 1')
         ->assertSee('Langkah 2')
         ->assertSee('Langkah 3')
-        ->assertSee('Langkah 4')
-        ->assertSee('7A')
-        ->assertSee('8A');
+        ->assertSee('Langkah 4');
+
+    // `7A` dan `8A` diperiksa lewat htmlTanpaToken(): jarum dua karakter
+    // berisiko menabrak token CSRF acak pada halaman.
+    $html = htmlTanpaToken($respons->getContent());
+
+    expect($html)->toContain('7A')->toContain('8A');
 });
 
 test('wizard butuh permission khusus', function () {

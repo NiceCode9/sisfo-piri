@@ -89,7 +89,14 @@ if (! function_exists('siswaTujuhA')) {
     {
         $rombel = Rombel::whereHas('kelas', fn ($q) => $q->where('nama_kelas', '7A'))->firstOrFail();
 
-        $user = User::factory()->create(['username' => "siswa-naik-{$kode}"]);
+        // Nama tidak dibiarkan dari Faker: Blade meng-escape `{{ }}`, dan
+        // sekitar 1,6% nama Faker memuat karakter yang berubah saat di-escape
+        // (mis. "O'Connell" -> "O&#039;Connell"), sehingga `toContain($nama)`
+        // gagal sesekali tanpa ada perubahan kode.
+        $user = User::factory()->create([
+            'username' => "siswa-naik-{$kode}",
+            'name' => "Siswa Naik {$kode}",
+        ]);
         $user->assignRole('siswa');
 
         $siswa = Siswa::create([

@@ -60,12 +60,23 @@ if (! function_exists('rombelRiwayatKelas')) {
 /**
  * Siswa dengan satu baris riwayat `aktif` — keadaan normal.
  */
+/**
+ * Nama di factory sengaja tidak dibiarkan dari Faker.
+ *
+ * Blade meng-escape `{{ }}`, jadi nama berkoma seperti "O'Connell" muncul di
+ * HTML sebagai `O&#039;Connell`. Selain itu sekitar 1,6% nama Faker memuat
+ * karakter yang berubah saat di-escape, sehingga `toContain($nama)` gagal
+ * sesekali tanpa ada perubahan kode.
+ */
 if (! function_exists('siswaSehat')) {
     function siswaRiwayatSehat(string $kode): Siswa
     {
         $rombel = rombelRiwayatKelas('7A');
 
-        $user = User::factory()->create(['username' => "siswa-sehat-{$kode}"]);
+        $user = User::factory()->create([
+            'username' => "siswa-sehat-{$kode}",
+            'name' => "Siswa Sehat {$kode}",
+        ]);
         $user->assignRole('siswa');
 
         $siswa = Siswa::create([
@@ -96,7 +107,10 @@ if (! function_exists('siswaRiwayatTanpaAktif')) {
     {
         $rombel = rombelRiwayatKelas('7A');
 
-        $user = User::factory()->create(['username' => "siswa-tanpa-{$kode}"]);
+        $user = User::factory()->create([
+            'username' => "siswa-tanpa-{$kode}",
+            'name' => "Siswa Tanpa Aktif {$kode}",
+        ]);
         $user->assignRole('siswa');
 
         $siswa = Siswa::create([

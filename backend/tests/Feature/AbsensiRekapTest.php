@@ -161,8 +161,11 @@ test('wali dikunci ke rombel ampuan', function () {
     $rombel7B = rombelRekapUji('7B');
     $wali = guruWaliUji($rombel7A);
 
-    $this->actingAs($wali)->get(route('admin.absensis.rekap'))
-        ->assertOk()->assertSee('7A')->assertDontSee('7B');
+    $respons = $this->actingAs($wali)->get(route('admin.absensis.rekap'));
+    $respons->assertOk();
+    expect(htmlTanpaToken($respons->getContent()))
+        ->toContain('7A')
+        ->not->toContain('7B');
 
     $this->actingAs($wali)->get(route('admin.absensis.rekap', ['rombel_id' => $rombel7B->id]))
         ->assertForbidden();

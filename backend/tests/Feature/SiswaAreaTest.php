@@ -162,8 +162,12 @@ test('riwayat kelas hanya milik sendiri', function () {
     $a = buatAkunSiswaArea('Anak Area Satu', '5001');
     buatAkunSiswaArea('Anak Area Dua', '5002', '7B');
 
-    $this->actingAs($a['user'])->get(route('siswa.kelas'))
-        ->assertOk()->assertSee('7A')->assertDontSee('7B');
+    $respons = $this->actingAs($a['user'])->get(route('siswa.kelas'));
+    $respons->assertOk();
+
+    expect(htmlTanpaToken($respons->getContent()))
+        ->toContain('7A')
+        ->not->toContain('7B');
 });
 
 test('absensi dan rekap hanya milik sendiri', function () {

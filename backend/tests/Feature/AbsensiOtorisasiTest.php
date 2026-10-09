@@ -95,11 +95,12 @@ test('wali hanya melihat rombel ampuan sendiri di grid absensi', function () {
     rombelOtorisasiUji('7B');
     $wali = waliOtorisasiUji($rombelSendiri);
 
-    $this->actingAs($wali)
-        ->get(route('admin.absensis.index'))
-        ->assertOk()
-        ->assertSee('7A')
-        ->assertDontSee('7B');
+    $respons = $this->actingAs($wali)->get(route('admin.absensis.index'));
+    $respons->assertOk();
+
+    expect(htmlTanpaToken($respons->getContent()))
+        ->toContain('7A')
+        ->not->toContain('7B');
 });
 
 test('wali ditolak membuka grid absensi rombel yang bukan ampunya', function () {
@@ -170,10 +171,9 @@ test('pengampu mapel dapat membuka grid rombel yang diampu', function () {
         'mata_pelajaran_id' => $mapel->id,
     ]);
 
-    $this->actingAs($user)
-        ->get(route('admin.absensis.index', ['rombel_id' => $rombelSendiri->id]))
-        ->assertOk()
-        ->assertSee('7C');
+    $respons = $this->actingAs($user)->get(route('admin.absensis.index', ['rombel_id' => $rombelSendiri->id]));
+    $respons->assertOk();
+    expect(htmlTanpaToken($respons->getContent()))->toContain('7C');
 
     $this->actingAs($user)
         ->get(route('admin.absensis.index', ['rombel_id' => $rombelAsing->id]))
@@ -185,11 +185,12 @@ test('guru tanpa penugasan melihat daftar kosong bukan seluruh rombel', function
     rombelOtorisasiUji('7B');
     $user = guruRoleUji('guru', 'Guru Tanpa Kelas');
 
-    $this->actingAs($user)
-        ->get(route('admin.absensis.index'))
-        ->assertOk()
-        ->assertDontSee('7A')
-        ->assertDontSee('7B');
+    $respons = $this->actingAs($user)->get(route('admin.absensis.index'));
+    $respons->assertOk();
+
+    expect(htmlTanpaToken($respons->getContent()))
+        ->not->toContain('7A')
+        ->not->toContain('7B');
 });
 
 test('guru piket tetap dapat mencatat di seluruh rombel', function () {
@@ -197,10 +198,9 @@ test('guru piket tetap dapat mencatat di seluruh rombel', function () {
     $siswa = siswaOtorisasiUji('6104', 'Anak Piket', $rombel);
     $piket = guruRoleUji('guru-piket', 'Guru Piket Uji');
 
-    $this->actingAs($piket)
-        ->get(route('admin.absensis.index'))
-        ->assertOk()
-        ->assertSee('7B');
+    $respons = $this->actingAs($piket)->get(route('admin.absensis.index'));
+    $respons->assertOk();
+    expect(htmlTanpaToken($respons->getContent()))->toContain('7B');
 
     $this->actingAs($piket)
         ->post(route('admin.absensis.batch'), [

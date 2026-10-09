@@ -2,7 +2,9 @@
 
 use App\Models\MataPelajaran;
 use App\Models\PengumpulanTugas;
+use App\Models\RiwayatKelas;
 use App\Models\Rombel;
+use App\Models\Siswa;
 use App\Models\Tugas;
 use App\Models\User;
 use Database\Seeders\AkademikSeeder;
@@ -26,15 +28,19 @@ test('rekap menampilkan matriks nilai', function () {
     $tugas = Tugas::create(['rombel_id' => $rombel->id, 'mata_pelajaran_id' => $mapel->id, 'judul' => 'Tugas Rekap', 'is_aktif' => true]);
     $user = User::factory()->create(['username' => 'siswa-rekap']);
     $user->assignRole('siswa');
-    $siswa = \App\Models\Siswa::create(['user_id' => $user->id, 'nis' => '9101', 'nisn' => '008099101', 'tahun_ajaran_id' => $rombel->tahun_ajaran_id, 'kelas_id' => $rombel->kelas_id, 'is_aktif' => true]);
-    \App\Models\RiwayatKelas::create(['siswa_id' => $siswa->id, 'kelas_id' => $rombel->kelas_id, 'tahun_ajaran_id' => $rombel->tahun_ajaran_id, 'status' => 'aktif']);
+    $siswa = Siswa::create(['user_id' => $user->id, 'nis' => '9101', 'nisn' => '008099101', 'tahun_ajaran_id' => $rombel->tahun_ajaran_id, 'kelas_id' => $rombel->kelas_id, 'is_aktif' => true]);
+    RiwayatKelas::create(['siswa_id' => $siswa->id, 'kelas_id' => $rombel->kelas_id, 'tahun_ajaran_id' => $rombel->tahun_ajaran_id, 'status' => 'aktif']);
     PengumpulanTugas::create(['tugas_id' => $tugas->id, 'siswa_id' => $siswa->id, 'nilai' => 80]);
 
     $admin = User::factory()->create();
     $admin->assignRole('super-admin');
 
-    $this->actingAs($admin)->get(route('admin.tugas.rekap', ['rombel_id' => $rombel->id]))
-        ->assertOk()->assertSee('80')->assertSee('Rekap Nilai');
+    $respons = $this->actingAs($admin)->get(route('admin.tugas.rekap', ['rombel_id' => $rombel->id]));
+    $respons->assertOk()->assertSee('Rekap Nilai');
+
+    // `80` diperiksa lewat htmlTanpaToken(): jarum dua karakter berisiko
+    // menabrak token CSRF acak pada halaman.
+    expect(htmlTanpaToken($respons->getContent()))->toContain('80');
 });
 
 test('export excel/pdf rekap', function () {
@@ -56,10 +62,14 @@ test('siswa dapat melihat rekap sendiri', function () {
     $tugas = Tugas::create(['rombel_id' => $rombel->id, 'mata_pelajaran_id' => $mapel->id, 'judul' => 'Tugas Siswa Rekap', 'is_aktif' => true]);
     $user = User::factory()->create(['username' => 'siswa-rekap2']);
     $user->assignRole('siswa');
-    $siswa = \App\Models\Siswa::create(['user_id' => $user->id, 'nis' => '9102', 'nisn' => '008099102', 'tahun_ajaran_id' => $rombel->tahun_ajaran_id, 'kelas_id' => $rombel->kelas_id, 'is_aktif' => true]);
-    \App\Models\RiwayatKelas::create(['siswa_id' => $siswa->id, 'kelas_id' => $rombel->kelas_id, 'tahun_ajaran_id' => $rombel->tahun_ajaran_id, 'status' => 'aktif']);
+    $siswa = Siswa::create(['user_id' => $user->id, 'nis' => '9102', 'nisn' => '008099102', 'tahun_ajaran_id' => $rombel->tahun_ajaran_id, 'kelas_id' => $rombel->kelas_id, 'is_aktif' => true]);
+    RiwayatKelas::create(['siswa_id' => $siswa->id, 'kelas_id' => $rombel->kelas_id, 'tahun_ajaran_id' => $rombel->tahun_ajaran_id, 'status' => 'aktif']);
     PengumpulanTugas::create(['tugas_id' => $tugas->id, 'siswa_id' => $siswa->id, 'nilai' => 90]);
 
-    $this->actingAs($user)->get(route('siswa.tugas.rekap'))
-        ->assertOk()->assertSee('90');
+    $respons = $this->actingAs($user)->get(route('siswa.tugas.rekap'));
+    $respons->assertOk();
+
+    // `90` diperiksa lewat htmlTanpaToken(): jarum dua karakter berisiko
+    // menabrak token CSRF acak pada halaman.
+    expect(htmlTanpaToken($respons->getContent()))->toContain('90');
 });

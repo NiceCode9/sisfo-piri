@@ -349,11 +349,17 @@ test('siswa melihat riwayat sendiri', function () {
     [$siswa, $user] = buatSiswaDuaTahun();
 
     // Tampilan meringkas per mapel, bukan daftar judul tugas.
-    $this->actingAs($user)->get(route('siswa.riwayat'))
-        ->assertOk()
-        ->assertSee('8A')
-        ->assertSee('7A')
-        ->assertSee('Ujian Genap')
+    $respons = $this->actingAs($user)->get(route('siswa.riwayat'));
+    $respons->assertOk();
+
+    // `8A` dan `7A` diperiksa lewat htmlTanpaToken(): jarum dua karakter
+    // berisiko menabrak token CSRF acak pada halaman.
+    $html = htmlTanpaToken($respons->getContent());
+
+    expect($html)->toContain('8A');
+    expect($html)->toContain('7A');
+
+    $respons->assertSee('Ujian Genap')
         ->assertSee('Ujian Ganjil')
         ->assertSee('Kehadiran')
         ->assertSee('E-Learning')
