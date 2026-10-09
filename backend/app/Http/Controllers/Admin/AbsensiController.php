@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Exports\AbsensiRekapExport;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\AbsensiFilterRequest;
 use App\Http\Requests\Admin\StoreAbsensiBatchRequest;
 use App\Jobs\KirimNotifikasiWhatsapp;
 use App\Models\Absensi;
@@ -30,6 +31,15 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class AbsensiController extends Controller implements HasMiddleware
 {
+    /**
+     * Batas hari untuk menampilkan rincian per tanggal.
+     *
+     * Melewati batas ini tabel melebar jadi tidak terbaca dan satu baris siswa
+     * bisa menembus ratusan kolom. Di atas batas, layar dan ekspor sama-sama
+     * turun ke ringkasan per status.
+     */
+    public const BATAS_RINCI_HARI = 45;
+
     public static function middleware(): array
     {
         return [
@@ -41,13 +51,13 @@ class AbsensiController extends Controller implements HasMiddleware
     /**
      * Grid input manual per rombel + tanggal.
      */
-    public function index(): View
+    public function index(AbsensiFilterRequest $request): View
     {
         ['semua' => $rombels, 'terkunci' => $terkunci] = $this->rombelTerjangkau();
 
-        $rombelDiminta = request()->query('rombel_id');
+        $rombelDiminta = $request->query('rombel_id');
         $rombel = $this->pilihRombelTerjangkau($rombels, $terkunci, $rombelDiminta, $rombelDiminta ?? $rombels->first()?->id);
-        $tanggal = request()->query('tanggal', now()->toDateString());
+        $tanggal = $request->query('tanggal', now()->toDateString());
 
         $siswas = collect();
         $tercatat = collect();
@@ -166,11 +176,11 @@ class AbsensiController extends Controller implements HasMiddleware
     /**
      * Halaman scan QR (kamera device sekolah).
      */
-    public function scan(): View
+    public function scan(AbsensiFilterRequest $request): View
     {
         ['semua' => $rombels, 'terkunci' => $terkunci] = $this->rombelTerjangkau();
 
-        $rombelDiminta = request()->query('rombel_id');
+        $rombelDiminta = $request->query('rombel_id');
         $rombel = $this->pilihRombelTerjangkau($rombels, $terkunci, $rombelDiminta, $rombelDiminta ?? $rombels->first()?->id);
 
         return view('admin.absensis.scan', [
@@ -413,14 +423,14 @@ class AbsensiController extends Controller implements HasMiddleware
     /**
      * Halaman rekap kehadiran.
      */
-    public function rekap(): View
+    public function rekap(AbsensiFilterRequest $request): View
     {
         ['semua' => $rombels, 'terkunci' => $terkunci] = $this->rombelTerjangkau();
 
-        $rombelDiminta = request()->query('rombel_id');
-        $periode = request()->query('periode', 'bulan');
-        $acuan = request()->query('acuan', now()->toDateString());
-        $tahunAjaranId = request()->query('tahun_ajaran_id', TahunAjaran::aktif()->first()?->id) ?: null;
+        $rombelDiminta = $request->query('rombel_id');
+        $periode = $request->query('periode', 'bulan');
+        $acuan = $request->query('acuan', now()->toDateString());
+        $tahunAjaranId = $request->query('tahun_ajaran_id') ?: (TahunAjaran::aktif()->first()?->id) ?: null;
 
         $rombel = $this->pilihRombelTerjangkau($rombels, $terkunci, $rombelDiminta, $rombelDiminta ?? $rombels->first()?->id);
 
@@ -429,7 +439,7 @@ class AbsensiController extends Controller implements HasMiddleware
         if ($rombel) {
             $rentang = static::rentangPeriode($periode, $acuan, $tahunAjaranId ? (int) $tahunAjaranId : null);
             $data = $this->dataRekap($rombel->id, $rentang['mulai'], $rentang['selesai']);
-            $data['rinci'] = count($data['tanggals']) <= 45;
+            $data['rinci'] = count($data['tanggals']) <= self::BATAS_RINCI_HARI;
         }
 
         return view('admin.absensis.rekap', array_merge([
@@ -443,9 +453,9 @@ class AbsensiController extends Controller implements HasMiddleware
         ], $data ? ['rekap' => $data] : []));
     }
 
-    public function exportExcel(): BinaryFileResponse
+    public function exportExcel(AbsensiFilterRequest $request): BinaryFileResponse
     {
-        $rekap = $this->rekapTerfilter();
+        $rekap = $this->rekapTerfilter($request);
 
         return Excel::download(
             new AbsensiRekapExport($rekap),
@@ -453,9 +463,9 @@ class AbsensiController extends Controller implements HasMiddleware
         );
     }
 
-    public function exportPdf(): Response
+    public function exportPdf(AbsensiFilterRequest $request): Response
     {
-        $rekap = $this->rekapTerfilter();
+        $rekap = $this->rekapTerfilter($request);
 
         return Pdf::loadView('admin.absensis.pdf', [
             'rekap' => $rekap,
@@ -463,24 +473,28 @@ class AbsensiController extends Controller implements HasMiddleware
     }
 
     /**
-     * Rekap sesuai filter request ( dipakai ekspor ).
+     * Rekap sesuai filter request (dipakai ekspor).
+     *
+     * Filter yang sama divalidasi oleh `AbsensiFilterRequest`, jadi ekspor tidak
+     * bisa menghasilkan rekap periode berbeda dari yang tampil di layar.
      */
-    protected function rekapTerfilter(): array
+    protected function rekapTerfilter(AbsensiFilterRequest $request): array
     {
         ['semua' => $rombels, 'terkunci' => $terkunci] = $this->rombelTerjangkau();
 
-        $rombel = $rombels->firstWhere('id', (int) request('rombel_id', $rombels->first()?->id));
+        $rombelDiminta = $request->query('rombel_id');
+        $rombel = $this->pilihRombelTerjangkau($rombels, $terkunci, $rombelDiminta, $rombelDiminta ?? $rombels->first()?->id);
 
-        if (! $rombel || ($terkunci && ! $rombels->contains('id', $rombel->id))) {
+        if (! $rombel) {
             abort(404, 'Rombel tidak ditemukan.');
         }
 
-        $periode = request('periode', 'bulan');
-        $tahunAjaranId = request('tahun_ajaran_id', TahunAjaran::aktif()->first()?->id) ?: null;
-        $rentang = static::rentangPeriode($periode, request('acuan', now()->toDateString()), $tahunAjaranId ? (int) $tahunAjaranId : null);
+        $periode = $request->query('periode', 'bulan');
+        $tahunAjaranId = $request->query('tahun_ajaran_id') ?: (TahunAjaran::aktif()->first()?->id) ?: null;
+        $rentang = static::rentangPeriode($periode, $request->query('acuan', now()->toDateString()), $tahunAjaranId ? (int) $tahunAjaranId : null);
 
         $data = $this->dataRekap($rombel->id, $rentang['mulai'], $rentang['selesai']);
-        $data['rinci'] = count($data['tanggals']) <= 45;
+        $data['rinci'] = count($data['tanggals']) <= self::BATAS_RINCI_HARI;
         $data['periode'] = $periode;
 
         return $data;

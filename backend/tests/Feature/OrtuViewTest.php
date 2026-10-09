@@ -73,6 +73,40 @@ test('dashboard menampilkan wali dan persentase bulanan', function () {
         ->assertOk()->assertSee('Guru A')->assertSee('50%');
 });
 
+test('bulan ngawur ditolak di halaman absensi siswa', function () {
+    $siswa = siswaOrtuUji('8001', 'Anak Ortu Satu');
+
+    // Halaman absensi siswa berada di area siswa, jadi harus masuk sebagai
+    // akun siswa, bukan akun orang tuanya.
+    $user = $siswa->user;
+
+    // `bulan` masuk sebagai pola `LIKE`. Tanpa validasi, `?bulan=%` mencocokkan
+    // seluruh tabel absensi.
+    $this->actingAs($user)
+        ->get(route('siswa.absensi', ['bulan' => '%']))
+        ->assertSessionHasErrors('bulan');
+
+    $this->actingAs($user)
+        ->get(route('siswa.absensi', ['bulan' => '2026']))
+        ->assertSessionHasErrors('bulan');
+
+    $this->actingAs($user)
+        ->get(route('siswa.absensi', ['bulan' => now()->format('Y-m')]))
+        ->assertOk();
+});
+
+test('periode ngawur ditolak di rekap anak orang tua', function () {
+    $rombel = Rombel::whereHas('kelas', fn ($q) => $q->where('nama_kelas', '7A'))
+        ->where('tahun_ajaran_id', TahunAjaran::aktif()->first()->id)->firstOrFail();
+    $siswa = siswaOrtuUji('8001', 'Anak Ortu Satu', $rombel);
+    $ortu = User::where('username', 'ortu-'.$siswa->nisn)->firstOrFail();
+    $tautan = WaliMurid::where('user_id', $ortu->id)->firstOrFail();
+
+    $this->actingAs($ortu)
+        ->get(route('ortu.anak', ['waliMurid' => $tautan->id, 'periode' => 'ngawur']))
+        ->assertSessionHasErrors('periode');
+});
+
 test('jumlah query dashboard orang tua tidak bertambah per anak', function () {
     $rombelA = Rombel::whereHas('kelas', fn ($q) => $q->where('nama_kelas', '7A'))
         ->where('tahun_ajaran_id', TahunAjaran::aktif()->first()->id)->firstOrFail();

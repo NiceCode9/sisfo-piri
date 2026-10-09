@@ -179,6 +179,33 @@ test('tombol tandai semua hadir tersedia sebagai pintasan cepat', function () {
         ->assertSee('data-tandai-semua="hadir"', false);
 });
 
+test('tanggal pencatatan ngawur ditolak tanpa membuat halaman 500', function () {
+    $rombel = rombelUjiAbsensi();
+    buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
+
+    $this->actingAs(superAdmin())
+        ->get(route('admin.absensis.index', ['rombel_id' => $rombel->id, 'tanggal' => 'bukan-tanggal']))
+        ->assertSessionHasErrors('tanggal')
+        ->assertStatus(302);
+});
+
+test('tanggal masa depan ditolak', function () {
+    $rombel = rombelUjiAbsensi();
+
+    $this->actingAs(superAdmin())
+        ->get(route('admin.absensis.index', [
+            'rombel_id' => $rombel->id,
+            'tanggal' => now()->addDay()->toDateString(),
+        ]))
+        ->assertSessionHasErrors('tanggal');
+});
+
+test('scan menolak rombel_id ngawur', function () {
+    $this->actingAs(superAdmin())
+        ->get(route('admin.absensis.scan', ['rombel_id' => 'abc']))
+        ->assertSessionHasErrors('rombel_id');
+});
+
 test('batch manual tersimpan dan dapat diperbarui', function () {
     $rombel = rombelUjiAbsensi();
     $s1 = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);

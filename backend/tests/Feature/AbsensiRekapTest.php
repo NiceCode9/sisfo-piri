@@ -141,6 +141,45 @@ test('semester ganjil genap memakai konvensi kalender', function () {
         ->assertOk()->assertSee('2026-01-01 s.d. 2026-06-30')->assertSee('I 1')->assertDontSee('H 1');
 });
 
+test('periode ngawur ditolak, bukan diam-diam jadi tahun penuh', function () {
+    $rombel = rombelRekapUji();
+    siswaRekapUji('6001', 'Anak Rekap Satu', $rombel);
+
+    // Tanpa validasi, `rentangPeriode()` jatuh ke cabang `default` yang
+    // bermakna "tahun penuh": filter ngawur dijawab dengan angka rekap satu
+    // tahun seolah-olah itu yang diminta.
+    $this->actingAs(superAdmin())
+        ->get(route('admin.absensis.rekap', ['rombel_id' => $rombel->id, 'periode' => 'ngawur']))
+        ->assertSessionHasErrors('periode');
+});
+
+test('acuan tidak valid ditolak tanpa membuat halaman 500', function () {
+    $rombel = rombelRekapUji();
+
+    // `Carbon::parse()` melempar exception pada input ngawur, jadi tanpa
+    // validasi halaman rekap jadi 500.
+    $this->actingAs(superAdmin())
+        ->get(route('admin.absensis.rekap', [
+            'rombel_id' => $rombel->id,
+            'periode' => 'minggu',
+            'acuan' => 'bukan-tanggal',
+        ]))
+        ->assertSessionHasErrors('acuan')
+        ->assertStatus(302);
+});
+
+test('ekspor memakai filter yang sama dan menolak periode ngawur', function () {
+    $rombel = rombelRekapUji();
+
+    $this->actingAs(superAdmin())
+        ->get(route('admin.absensis.rekap.excel', ['rombel_id' => $rombel->id, 'periode' => 'ngawur']))
+        ->assertSessionHasErrors('periode');
+
+    $this->actingAs(superAdmin())
+        ->get(route('admin.absensis.rekap.pdf', ['rombel_id' => $rombel->id, 'periode' => 'ngawur']))
+        ->assertSessionHasErrors('periode');
+});
+
 test('ekspor excel dan pdf rekap', function () {
     $rombel = rombelRekapUji();
     $siswa = siswaRekapUji('6001', 'Anak Rekap Satu', $rombel);

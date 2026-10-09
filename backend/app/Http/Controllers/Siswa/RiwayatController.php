@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Siswa;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Siswa\AbsensiSiswaRequest;
 use App\Models\Absensi;
 use App\Models\TahunAjaran;
 use App\Services\RiwayatSiswa;
@@ -38,10 +39,10 @@ class RiwayatController extends Controller
         ]);
     }
 
-    public function absensi(): View
+    public function absensi(AbsensiSiswaRequest $request): View
     {
         $siswa = auth()->user()->siswa;
-        $bulan = request()->query('bulan', now()->format('Y-m'));
+        $bulan = $request->query('bulan', now()->format('Y-m'));
 
         $riwayat = collect();
         $rekapBulan = [];

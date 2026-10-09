@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Ortu;
 
 use App\Http\Controllers\Admin\AbsensiController;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Ortu\AnakAbsensiRequest;
 use App\Models\Absensi;
 use App\Models\Rombel;
 use App\Models\Siswa;
@@ -94,18 +95,18 @@ class DashboardController extends Controller
     /**
      * Detail satu anak: rekap periode (bulan/ganjil/genap/tahun) + riwayat.
      */
-    public function show(WaliMurid $waliMurid): View
+    public function show(WaliMurid $waliMurid, AnakAbsensiRequest $request): View
     {
         abort_unless($waliMurid->user_id === auth()->id(), 403, 'Bukan anak asuh Anda.');
 
         $waliMurid->load(['siswa.user', 'siswa.kelas', 'siswa.tahunAjaran']);
 
-        $periode = request()->query('periode', 'bulan');
-        $acuan = request()->query('acuan', now()->format('Y-m'));
+        $periode = $request->query('periode', 'bulan');
+        $acuan = $request->query('acuan', now()->format('Y-m'));
         if ($periode === 'bulan' && strlen($acuan) === 10) {
             $acuan = substr($acuan, 0, 7);
         }
-        $tahunAjaranId = request()->query('tahun_ajaran_id', $waliMurid->siswa->tahun_ajaran_id ?? TahunAjaran::aktif()->first()?->id);
+        $tahunAjaranId = $request->query('tahun_ajaran_id') ?: ($waliMurid->siswa->tahun_ajaran_id ?? TahunAjaran::aktif()->first()?->id);
         $acuanTanggal = $periode === 'bulan' ? $acuan.'-01' : (strlen($acuan) === 7 ? $acuan.'-01' : $acuan);
         $rentang = AbsensiController::rentangPeriode($periode, $acuanTanggal, $tahunAjaranId ? (int) $tahunAjaranId : null);
 
