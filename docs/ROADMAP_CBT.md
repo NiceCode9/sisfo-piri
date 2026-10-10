@@ -101,3 +101,26 @@
 * Bank `question_banks` unique `[guru, mapel, nama]`; hapus bank `nullOnDelete` — snapshot exam tetap.
 * `exam_questions.exam_id` nullable: soal di bank `exam_id=null`, di exam `exam_id` terisi + `question_bank_id/source_question_id` jejak.
 
+## Kebijakan remedial (decided 2026-10-10)
+
+Satu siswa hanya boleh punya **satu sesi per ujian** — token berapa pun.
+Indeks unik `exam_sessions` karena itu berada di `['exam_id','user_id']`, bukan
+per token; sebelumnya token kedua untuk ujian yang sama membuka akses ulang.
+
+Remedial dibuat sebagai baris `exams` baru dengan penanda:
+
+- `is_remedial` — boolean, default `false`
+- `remedial_of_id` — FK ke `exams.id` (ujian asal), wajib rombel + mapel sama
+
+Form create/edit punya checkbox "Ujian remedial" + dropdown ujian asal.
+`ExamController::rapikanRemedial()` menolak asal lintas mapel/rombel, ujian yang
+menunjuk dirinya sendiri, dan rantai bercabang.
+
+Raport ambil skor **terbaik dalam satu rantai remedial**. Ujian yang bukan
+remedial selalu menjadi kelompok sendiri — inilah yang menjaga UH-1 dan UH-2
+tetap dua nilai yang dihitung, bukan digabung.
+
+Sesi `expired` (laptop mati / internet putus) tetap memblokir: remedial tetap
+butuh ujian baru oleh guru, bukan akses ulang otomatis.
+
+Rincian temuan & perbaikannya: `docs/BUG_CBT.md` (M7).

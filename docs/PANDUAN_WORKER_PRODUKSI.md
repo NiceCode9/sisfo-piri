@@ -1,22 +1,29 @@
 # Panduan Worker & Scheduler Produksi
 
-> Untuk modul Absensi A4 (notifikasi WA). Berlaku untuk Laravel 11/13.
+> Awalnya hanya untuk modul Absensi A4 (notifikasi WA). Sekarang juga mencakup
+> job CBT, karena keduanya berjalan di worker yang sama.
 
 ## Ringkasan
 
 | Proses | Dijalankan via | Perintah | Fungsi |
 |---|---|---|---|
 | Scheduler | **cron** (tiap menit) | `php artisan schedule:run` | Memicu `routes/console.php` — di app ini `absensi:cek-belum-hadir` tiap 5 menit (self-gating jam `pengaturans.jam_cek_belum_hadir`) |
-| Queue worker | **Supervisor** (long-running) | `php artisan queue:work` | Eksekusi `app/Jobs/KirimNotifikasiWhatsapp.php` dari tabel `jobs` |
+| Queue worker | **Supervisor** (long-running) | `php artisan queue:work redis` | `KirimNotifikasiWhatsapp` (Absensi) + `RecordHeartbeat` & `LogViolationDetail` (CBT) |
 
 Jangan tukar: scheduler tidak butuh Supervisor, worker jangan via cron.
 
 ## Env
 
 ```env
-QUEUE_CONNECTION=database
+QUEUE_CONNECTION=redis
 WHATSAPP_URL=https://service-wa.internal/kirim   # kosong = mode log-only
 ```
+
+Driver harus **redis**, sama dengan `PANDUAN_DEPLOY_VPS.md` dan `.env.example`.
+Panduan ini sebelumnya menulis `database`; kalau worker dijalankan dengan
+driver yang berbeda dari `.env` produksi, job CBT menumpuk di antrean tanpa
+diproses — `violation_count` tetap naik (sinkron) tetapi rinciannya hilang, dan
+indikator `is_online` di monitoring selalu false. Keduanya harus sama.
 
 Kosong → `notifikasi_logs.respons = "Gateway belum dikonfigurasi (mode log-only)."` (normal untuk testing tanpa service WA).
 
@@ -41,7 +48,7 @@ Jam cek bisa diubah admin via `pengaturans.jam_cek_belum_hadir` (mis. `08:00`), 
 
 ```ini
 [program:sisfo-worker]
-command=php /path/backend/artisan queue:work database --sleep=3 --tries=3 --max-time=3600 --queue=default
+command=php /path/backend/artisan queue:work redis --sleep=3 --tries=3 --max-time=3600 --queue=default
 autostart=true
 autorestart=true
 user=www-data
