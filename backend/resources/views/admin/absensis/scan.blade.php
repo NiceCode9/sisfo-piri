@@ -27,6 +27,16 @@
         </select>
     </div>
     <div class="card-body-nexus">
+        @if($rombels->isEmpty())
+            {{-- Tanpa rombel terjangkau, dropdown kosong dan JS akan mengirim
+                 rombel_id kosong yang berakhir sebagai "Gagal mencatat." yang
+                 tidak menjelaskan apa pun. --}}
+            <div class="alert alert-warning mb-3" role="alert">
+                <strong>Belum ada rombel yang bisa dipindai.</strong>
+                Anda hanya bisa mencatat kehadiran untuk rombel yang Anda wali
+                atau ampu. Hubungi admin bila ini keliru.
+            </div>
+        @endif
         <div id="kamera-gagal" class="alert alert-warning d-none" role="alert">
             Kamera tidak dapat diakses. Gunakan form token manual di bawah.
         </div>
@@ -60,8 +70,18 @@
     const terakhirNama = document.getElementById('terakhir-nama');
     const tercatatJumlah = document.getElementById('tercatat-jumlah');
     const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    // Jeda setelah satu kartu tercatat. Tanpa ini kamera tetap memindai kartu
+    // yang masih di dalam frame — html5-qrcode memanggil callback tiap frame
+    // yang berhasil dibaca — sehingga satu kartu bisa menghasilkan puluhan
+    // POST identik.
+    const jedaScanMs = 2500;
+    const maksAntrean = 20;
+
+    let antrean = [];
     let memproses = false;
     let jumlah = 0;
+    let jedaSelesai = 0;
 
     function tampilkan(ok, pesan) {
         hasil.classList.remove('d-none', 'alert-success', 'alert-danger');
@@ -69,34 +89,65 @@
         hasil.textContent = pesan;
     }
 
+    async function kirim(token) {
+        const res = await fetch("{{ route('admin.absensis.scan.store') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrf,
+            },
+            body: JSON.stringify({ token: token.trim(), rombel_id: rombelSelect.value }),
+        });
+
+        return { ok: res.ok, data: await res.json() };
+    }
+
     async function catat(token) {
-        if (memproses || !token) return;
+        if (! token) return;
+
+        if (memproses) {
+            // Versi lama membuang scan yang datang saat request masih jalan.
+            // Di gerbang sekolah itu berarti satu siswa hilang dari daftar
+            // tanpa umpan balik apa pun, jadi tokennya diantrekan.
+            if (antrean.length < maksAntrean) {
+                antrean.push(token);
+            }
+
+            return;
+        }
+
         memproses = true;
+
         try {
-            const res = await fetch("{{ route('admin.absensis.scan.store') }}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': csrf,
-                },
-                body: JSON.stringify({ token: token.trim(), rombel_id: rombelSelect.value }),
-            });
-            const data = await res.json();
-            if (!res.ok) {
+            const { ok, data } = await kirim(token);
+
+            if (!ok) {
                 tampilkan(false, data.message || 'Gagal mencatat.');
             } else {
                 tampilkan(true, data.nama + ' (' + data.nis + ') — ' + data.status + ' ' + (data.jam || '').substring(0, 5));
                 terakhirNama.textContent = data.nama;
+
                 if (data.baru) {
                     jumlah++;
                     tercatatJumlah.textContent = jumlah;
                 }
+
+                jedaPemindai();
             }
         } catch (e) {
             tampilkan(false, 'Jaringan bermasalah, coba lagi.');
         }
+
         memproses = false;
+
+        if (antrean.length) {
+            jedaSelesai = 0;
+            const berikutnya = antrean.shift();
+
+            await new Promise(function (selesai) { setTimeout(selesai, 400); });
+            catat(berikutnya);
+        }
     }
 
     document.getElementById('form-token').addEventListener('submit', function (e) {
@@ -107,13 +158,37 @@
         input.focus();
     });
 
+    if (!rombelSelect.value) {
+        // Tidak ada rombel terjangkau: jangan nyalakan kamera, karena setiap
+        // scan pasti ditolak dengan pesan yang tidak menjelaskan masalahnya.
+        return;
+    }
+
     if (typeof Html5Qrcode === 'undefined') {
         document.getElementById('kamera-gagal').classList.remove('d-none');
         return;
     }
 
     const pemindai = new Html5Qrcode('qr-reader');
-    pemindai.start({ facingMode: 'environment' }, { fps: 10, qrbox: 250 }, catat)
+
+    // `pause()` hanya menahan decode; kamera tetap hidup dan pemindai otomatis
+    // lanjut lagi setelah jeda, jadi tidak ada alur untuk lupa dinyalakan lagi.
+    function jedaPemindai() {
+        jedaSelesai = Date.now() + jedaScanMs;
+
+        pemindai.pause()
+            .then(function () {
+                setTimeout(function () {
+                    pemindai.resume().catch(function () {});
+                }, jedaScanMs);
+            })
+            .catch(function () {});
+    }
+
+    pemindai.start({ facingMode: 'environment' }, { fps: 10, qrbox: 250 }, function (token) {
+        if (Date.now() < jedaSelesai) return;
+        catat(token);
+    })
         .catch(function () {
             document.getElementById('kamera-gagal').classList.remove('d-none');
         });

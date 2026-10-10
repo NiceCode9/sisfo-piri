@@ -42,6 +42,16 @@ return Application::configure(basePath: dirname(__DIR__))
             RateLimiter::for('elearning-kumpul', function (Request $request) {
                 return Limit::perMinute(12)->by($request->user()?->id ?: $request->ip());
             });
+
+            // Scan QR absensi. Kamera memindai beberapa kali per detik selama
+            // kartu berada di dalam frame, jadi batas throttle bawaan terlalu
+            // longgar: satu perangkat yang macet bisa membanjiri server dengan
+            // permintaan yang isinya identik. 120/menit per pengguna masih jauh
+            // di atas kebutuhan nyata: satu kelas 40 siswa dengan jeda scan
+            // hanya sekitar 40 permintaan.
+            RateLimiter::for('absensi-scan', function (Request $request) {
+                return Limit::perMinute(120)->by($request->user()?->id ?: $request->ip());
+            });
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
