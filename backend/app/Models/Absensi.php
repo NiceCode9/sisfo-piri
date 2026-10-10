@@ -16,6 +16,7 @@ class Absensi extends Model
         'metode',
         'dicatat_oleh',
         'keterangan',
+        'berkas_path',
     ];
 
     public function rombel(): BelongsTo

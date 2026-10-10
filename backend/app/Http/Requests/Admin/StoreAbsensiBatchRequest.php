@@ -64,6 +64,11 @@ class StoreAbsensiBatchRequest extends FormRequest
             'tanggal' => ['required', 'date', 'before_or_equal:today'],
             'status' => ['required', 'array', 'min:1'],
             'status.*' => ['required', 'in:hadir,sakit,izin,alpa,terlambat'],
+            // Nullable di sini karena tidak bisa diketahui lebih dulu dari
+            // aturan statis: field ini hanya wajib bila ada baris yang statusnya
+            // berubah. Syarat itu ditegakkan di controller, yang baru tahu mana
+            // yang koreksi setelah membandingkan nilai lama dan baru.
+            'alasan' => ['nullable', 'string', 'max:500'],
         ];
     }
 

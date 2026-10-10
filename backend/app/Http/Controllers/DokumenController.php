@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Absensi;
 use App\Models\BerkasCalonSiswa;
 use App\Models\CalonSiswa;
 use App\Models\Pembayaran;
 use App\Models\PembayaranLainnya;
+use App\Models\Rombel;
 use App\Models\SertifikatPrestasi;
 use App\Models\Siswa;
 use App\Models\User;
@@ -62,6 +64,35 @@ class DokumenController extends Controller
         $this->authorizePemilik($pembayaranLainnya->calonSiswa, 'pembayaran-lainnyas.view');
 
         return $this->alirkan($pembayaranLainnya->bukti_pembayaran_path);
+    }
+
+    /**
+     * Bukti sakit/izin pada satu baris absensi.
+     *
+     * Dibaca oleh user yang jangkauan rombelnya, oleh siswa itu sendiri, atau
+     * oleh orang tuanya. Bukti ini berisi informasi kesehatan, jadi tidak
+     * boleh terbuka hanya karena punya permission melihat rekap absensi.
+     */
+    public function absensi(Absensi $absensi): StreamedResponse
+    {
+        abort_if(! $absensi->berkas_path, 404);
+
+        /** @var User $user */
+        $user = auth()->user();
+        abort_if(! $user, 401);
+
+        if (Rombel::terjangkauOleh($user, $absensi->rombel_id, Rombel::ROLE_ABSENSI_UNIVERSAL)) {
+            return $this->alirkan($absensi->berkas_path);
+        }
+
+        $siswa = $absensi->siswa;
+        $isSiswa = $siswa !== null && $siswa->user_id === $user->id;
+        $isWali = $siswa !== null
+            && $siswa->waliMurids()->where('user_id', $user->id)->exists();
+
+        abort_unless($isSiswa || $isWali, 403);
+
+        return $this->alirkan($absensi->berkas_path);
     }
 
     /**
