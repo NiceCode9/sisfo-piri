@@ -100,12 +100,34 @@
                                             <option value="{{ $val }}" @selected($terpilih === (string) $val)>{{ $label }}</option>
                                         @endforeach
                                     </select>
-                                    @error('status.'.$s->id)<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                    @error('status.'.$s->id)<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+
+                                    {{-- Bukti hanya bermakna untuk sakit dan izin, jadi
+                                         tombolnya baru muncul setelah status itu
+                                         benar-benar tercatat dan dipilih. --}}
+                                    @can('absensis.create')
+                                        @if($catat && in_array($catat->status, ['sakit', 'izin'], true))
+                                            <form method="POST" action="{{ route('admin.absensis.bukti', $catat) }}" enctype="multipart/form-data" class="mt-1 d-flex gap-1">
+                                                @csrf
+                                                <input type="file" name="berkas" accept=".jpg,.jpeg,.png,.webp" required
+                                                       class="form-control form-control-sm @error('berkas') is-invalid @enderror"
+                                                       style="font-size:11px;padding:2px 4px;"
+                                                       aria-label="Unggah bukti {{ $s->nis ?? $s->id }}" />
+                                                <button type="submit" class="btn btn-nexus-outline btn-sm" style="font-size:11px;padding:2px 8px;">Unggah</button>
+                                            </form>
+                                            @error('berkas')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                        @endif
+                                    @endcan
                                 @else
                                     <span class="badge-nexus badge-info">{{ ucfirst($catat?->status ?? '—') }}</span>
                                 @endcan
                             </td>
-                            <td style="font-size:12.5px;">{{ $catat?->jam_datang ? substr($catat->jam_datang, 0, 5) : '—' }}{{ $catat ? ' • '.($catat->metode === 'qr' ? 'QR' : 'Manual') : '' }}</td>
+                            <td style="font-size:12.5px;">
+                                {{ $catat?->jam_datang ? substr($catat->jam_datang, 0, 5) : '—' }}{{ $catat ? ' • '.($catat->metode === 'qr' ? 'QR' : 'Manual') : '' }}
+                                @if($catat?->berkas_path)
+                                    <div class="mt-1"><a href="{{ route('dokumen.absensi', $catat) }}" target="_blank" rel="noopener" style="font-size:11px;">Lihat bukti</a></div>
+                                @endif
+                            </td>
                         </tr>
                     @empty
                         <tr><td colspan="3" class="text-center py-4" style="color:var(--text-muted);">Tidak ada siswa pada rombel ini.</td></tr>

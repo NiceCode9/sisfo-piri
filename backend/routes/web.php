@@ -79,6 +79,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/dokumen/pembayaran/{pembayaran}', [DokumenController::class, 'pembayaran'])->name('dokumen.pembayaran');
     Route::get('/dokumen/pembayaran-lainnya/{pembayaranLainnya}', [DokumenController::class, 'pembayaranLainnya'])->name('dokumen.pembayaran-lainnya');
 
+    // Bukti sakit/izin. Disajikan lewat route terotorisasi karena berkasnya
+    // berisi informasi kesehatan siswa dan berada di disk privat.
+    Route::get('/dokumen/absensi/{absensi}', [DokumenController::class, 'absensi'])->name('dokumen.absensi');
+
     // Lampiran materi dan berkas tugas siswa tidak berada di disk publik,
     // jadi penyajiannya harus lewat route yang memeriksa hak akses.
     Route::get('/elearning/materi/{materi}/berkas', [ElearningBerkasController::class, 'materi'])->name('elearning.materi.berkas');
@@ -208,6 +212,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::post('absensis/batch', [AbsensiController::class, 'storeBatch'])->name('absensis.batch');
     Route::get('absensis/scan', [AbsensiController::class, 'scan'])->name('absensis.scan');
     Route::post('absensis/scan', [AbsensiController::class, 'storeScan'])->name('absensis.scan.store');
+    Route::post('absensis/{absensi}/bukti', [AbsensiController::class, 'storeBukti'])->name('absensis.bukti');
     Route::get('absensis/rekap', [AbsensiController::class, 'rekap'])->name('absensis.rekap');
     Route::get('absensis/rekap/excel', [AbsensiController::class, 'exportExcel'])->name('absensis.rekap.excel');
     Route::get('absensis/rekap/pdf', [AbsensiController::class, 'exportPdf'])->name('absensis.rekap.pdf');

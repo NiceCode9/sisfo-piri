@@ -6,6 +6,7 @@ use App\Exports\AbsensiRekapExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AbsensiFilterRequest;
 use App\Http\Requests\Admin\StoreAbsensiBatchRequest;
+use App\Http\Requests\Admin\StoreBuktiAbsensiRequest;
 use App\Jobs\KirimNotifikasiWhatsapp;
 use App\Models\Absensi;
 use App\Models\AbsensiRiwayat;
@@ -27,6 +28,7 @@ use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
@@ -47,7 +49,7 @@ class AbsensiController extends Controller implements HasMiddleware
     {
         return [
             new Middleware('permission:absensis.view', only: ['index', 'scan', 'rekap', 'exportExcel', 'exportPdf']),
-            new Middleware('permission:absensis.create', only: ['storeBatch', 'storeScan']),
+            new Middleware('permission:absensis.create', only: ['storeBatch', 'storeScan', 'storeBukti']),
             // Kamera memindai berulang selama kartu di dalam frame; tanpa batas
             // ini satu perangkat bisa membanjiri server dengan permintaan
             // yang isinya identik.
@@ -372,6 +374,34 @@ class AbsensiController extends Controller implements HasMiddleware
         }
 
         return $rombel;
+    }
+
+    /**
+     * Unggah bukti pendukung untuk absensi sakit atau izin.
+     *
+     * Sengaja endpoint terpisah dari `storeBatch`: grid mengirim belasan siswa
+     * sekaligus, dan mencampur berkas per siswa ke dalam satu payload membuat
+     * baik payload maupun penanganan kegagalannya sulit dibaca.
+     */
+    public function storeBukti(StoreBuktiAbsensiRequest $request, Absensi $absensi): RedirectResponse
+    {
+        $this->rombelAbsensiTerjangkau($absensi->rombel_id);
+
+        abort_unless(
+            in_array($absensi->status, ['sakit', 'izin'], true),
+            422,
+            'Bukti hanya bisa dilampirkan pada absensi berstatus sakit atau izin.'
+        );
+
+        // Berkas lama dibuang supaya satu catatan tidak menumpuk lampiran.
+        if ($absensi->berkas_path) {
+            Storage::disk('berkas')->delete($absensi->berkas_path);
+        }
+
+        $absensi->berkas_path = $request->file('berkas')->store('absensi', 'berkas');
+        $absensi->save();
+
+        return back()->with('success', 'Bukti berhasil diunggah.');
     }
 
     /**

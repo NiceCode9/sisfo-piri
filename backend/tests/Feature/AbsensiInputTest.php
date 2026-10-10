@@ -16,8 +16,10 @@ use Database\Seeders\PermissionSeeder;
 use Database\Seeders\PpdbSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
 
@@ -458,6 +460,147 @@ test('koreksi butuh permission absensis.edit', function () {
 
     expect(Absensi::where('siswa_id', $siswa->id)->firstOrFail()->status)->toBe('hadir')
         ->and(AbsensiRiwayat::count())->toBe(0);
+});
+
+test('bukti sakit hanya bisa dilampirkan pada status sakit atau izin', function () {
+    Storage::fake('berkas');
+
+    $rombel = rombelUjiAbsensi();
+    $sakit = buatAnggotaRombel('4001', 'Anak Sakit', $rombel);
+    $hadir = buatAnggotaRombel('4002', 'Anak Hadir', $rombel);
+    $hari = now()->toDateString();
+    $admin = superAdmin();
+
+    $this->actingAs($admin)->post(route('admin.absensis.batch'), [
+        'rombel_id' => $rombel->id,
+        'tanggal' => $hari,
+        'status' => [$sakit->id => 'sakit', $hadir->id => 'hadir'],
+    ])->assertSessionHas('success');
+
+    $absensiSakit = Absensi::where('siswa_id', $sakit->id)->firstOrFail();
+    $absensiHadir = Absensi::where('siswa_id', $hadir->id)->firstOrFail();
+
+    $this->actingAs($admin)->post(route('admin.absensis.bukti', $absensiSakit), [
+        'berkas' => UploadedFile::fake()->image('surat.jpg'),
+    ])->assertSessionHas('success');
+
+    $absensiSakit->refresh();
+    expect($absensiSakit->berkas_path)->not->toBeNull();
+    Storage::disk('berkas')->assertExists($absensiSakit->berkas_path);
+
+    // Lampiran pada baris `hadir` tidak bermakna dan ditolak.
+    $this->actingAs($admin)->post(route('admin.absensis.bukti', $absensiHadir), [
+        'berkas' => UploadedFile::fake()->image('ngawur.jpg'),
+    ])->assertStatus(422);
+
+    expect($absensiHadir->fresh()->berkas_path)->toBeNull();
+});
+
+test('bukti ditolak bila bukan gambar atau melebihi batas', function () {
+    Storage::fake('berkas');
+
+    $rombel = rombelUjiAbsensi();
+    $siswa = buatAnggotaRombel('4001', 'Anak Sakit', $rombel);
+    $absensi = Absensi::create([
+        'rombel_id' => $rombel->id,
+        'siswa_id' => $siswa->id,
+        'tanggal' => now()->toDateString(),
+        'status' => 'izin',
+        'metode' => 'manual',
+    ]);
+
+    $this->actingAs(superAdmin())->post(route('admin.absensis.bukti', $absensi), [
+        'berkas' => UploadedFile::fake()->create('dokumen.pdf', 100, 'application/pdf'),
+    ])->assertSessionHasErrors('berkas');
+
+    $this->actingAs(superAdmin())->post(route('admin.absensis.bukti', $absensi), [
+        'berkas' => UploadedFile::fake()->image('besar.jpg')->size(10241),
+    ])->assertSessionHasErrors('berkas');
+
+    expect($absensi->fresh()->berkas_path)->toBeNull();
+});
+
+test('mengunggah bukti baru menghapus berkas lama', function () {
+    Storage::fake('berkas');
+
+    $rombel = rombelUjiAbsensi();
+    $siswa = buatAnggotaRombel('4001', 'Anak Sakit', $rombel);
+    $absensi = Absensi::create([
+        'rombel_id' => $rombel->id,
+        'siswa_id' => $siswa->id,
+        'tanggal' => now()->toDateString(),
+        'status' => 'sakit',
+        'metode' => 'manual',
+    ]);
+
+    $admin = superAdmin();
+
+    $this->actingAs($admin)->post(route('admin.absensis.bukti', $absensi), [
+        'berkas' => UploadedFile::fake()->image('pertama.jpg'),
+    ])->assertSessionHas('success');
+
+    $lama = $absensi->fresh()->berkas_path;
+    Storage::disk('berkas')->assertExists($lama);
+
+    $this->actingAs($admin)->post(route('admin.absensis.bukti', $absensi), [
+        'berkas' => UploadedFile::fake()->image('kedua.jpg'),
+    ])->assertSessionHas('success');
+
+    $baru = $absensi->fresh()->berkas_path;
+
+    // Satu catatan tidak boleh menumpuk lampiran.
+    expect($baru)->not->toBe($lama)
+        ->and(Storage::disk('berkas')->allFiles('absensi'))->toHaveCount(1);
+});
+
+test('bukti hanya bisa dibaca yang berhak: rombel, siswa, atau orang tuanya', function () {
+    Storage::fake('berkas');
+
+    $rombel = rombelUjiAbsensi();
+    $siswa = buatAnggotaRombel('4001', 'Anak Sakit', $rombel);
+    $absensi = Absensi::create([
+        'rombel_id' => $rombel->id,
+        'siswa_id' => $siswa->id,
+        'tanggal' => now()->toDateString(),
+        'status' => 'sakit',
+        'metode' => 'manual',
+    ]);
+
+    $this->actingAs(superAdmin())->post(route('admin.absensis.bukti', $absensi), [
+        'berkas' => UploadedFile::fake()->image('surat.jpg'),
+    ])->assertSessionHas('success');
+
+    // Admin penjaga gerbang: punya jangkauan rombel.
+    $this->actingAs(superAdmin())->get(route('dokumen.absensi', $absensi))->assertOk();
+
+    // Orang tua siswa tersebut.
+    $ortu = User::where('username', 'ortu-'.$siswa->nisn)->firstOrFail();
+    $this->actingAs($ortu)->get(route('dokumen.absensi', $absensi))->assertOk();
+
+    // Orang tua anak lain: harus ditolak, meski sama-sama punya akun ortu.
+    $siswaLain = buatAnggotaRombel('4002', 'Anak Lain', $rombel);
+    $ortuLain = User::where('username', 'ortu-'.$siswaLain->nisn)->firstOrFail();
+    $this->actingAs($ortuLain)->get(route('dokumen.absensi', $absensi))->assertForbidden();
+
+    // Guru tanpa penugasan di rombel ini, meski punya absensis.view, tidak
+    // boleh membaca bukti kesehatan siswa.
+    $asing = User::factory()->create(['username' => 'guru-asing-bukti', 'name' => 'Guru Asing']);
+    $asing->assignRole('guru');
+    $this->actingAs($asing)->get(route('dokumen.absensi', $absensi))->assertForbidden();
+});
+
+test('unduhan bukti ditolak untuk absensi tanpa lampiran', function () {
+    $rombel = rombelUjiAbsensi();
+    $siswa = buatAnggotaRombel('4001', 'Anak Sakit', $rombel);
+    $absensi = Absensi::create([
+        'rombel_id' => $rombel->id,
+        'siswa_id' => $siswa->id,
+        'tanggal' => now()->toDateString(),
+        'status' => 'sakit',
+        'metode' => 'manual',
+    ]);
+
+    $this->actingAs(superAdmin())->get(route('dokumen.absensi', $absensi))->assertNotFound();
 });
 
 test('riwayat koreksi ditampilkan di grid hari yang sama', function () {
