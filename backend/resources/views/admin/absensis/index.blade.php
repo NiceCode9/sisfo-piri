@@ -18,6 +18,34 @@
 
 @include('layouts.partials.alert')
 
+@can('absensis.create')
+    <div class="card-nexus mt-3">
+        <div class="card-header-nexus">
+            <div>
+                <h5 class="card-title">Impor dari Excel/CSV</h5>
+                <p class="card-subtitle">
+                    Untuk memindahkan catatan dari buku atau berkas lama. Hanya
+                    mencatat yang belum ada — koreksi atas absensi yang sudah
+                    tercatat tetap lewat grid supaya alasannya tercatat.
+                </p>
+            </div>
+            <a href="{{ route('admin.absensis.impor.template') }}" class="btn btn-nexus-outline btn-sm">
+                <i class="fa-solid fa-download"></i> Unduh template
+            </a>
+        </div>
+        <div class="card-body-nexus">
+            <form method="POST" action="{{ route('admin.absensis.impor') }}" enctype="multipart/form-data" class="d-flex gap-2 flex-wrap align-items-start">
+                @csrf
+                <input type="file" name="file" accept=".xlsx,.xls,.csv" required
+                       class="form-control form-control-sm @error('file') is-invalid @enderror"
+                       style="max-width:320px;" aria-label="Berkas absensi" />
+                <button type="submit" class="btn btn-primary btn-sm"><i class="fa-solid fa-file-import"></i> Impor</button>
+                @error('file')<div class="invalid-feedback d-block w-100">{{ $message }}</div>@enderror
+            </form>
+        </div>
+    </div>
+@endcan
+
 <div class="card-nexus">
     <div class="card-header-nexus">
         <div>
@@ -138,8 +166,7 @@
     </div>
 </div>
 
-@if($koreksi->isNotEmpty())
-    <div class="card-nexus mt-3">
+@if($koreksi->isNotEmpty())    <div class="card-nexus mt-3">
         <div class="card-header-nexus">
             <div>
                 <h5 class="card-title">Riwayat Koreksi ({{ $koreksi->count() }})</h5>

@@ -213,6 +213,8 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::get('absensis/scan', [AbsensiController::class, 'scan'])->name('absensis.scan');
     Route::post('absensis/scan', [AbsensiController::class, 'storeScan'])->name('absensis.scan.store');
     Route::post('absensis/{absensi}/bukti', [AbsensiController::class, 'storeBukti'])->name('absensis.bukti');
+    Route::get('absensis/impor/template', [AbsensiController::class, 'importTemplate'])->name('absensis.impor.template');
+    Route::post('absensis/impor', [AbsensiController::class, 'import'])->name('absensis.impor');
     Route::get('absensis/rekap', [AbsensiController::class, 'rekap'])->name('absensis.rekap');
     Route::get('absensis/rekap/excel', [AbsensiController::class, 'exportExcel'])->name('absensis.rekap.excel');
     Route::get('absensis/rekap/pdf', [AbsensiController::class, 'exportPdf'])->name('absensis.rekap.pdf');

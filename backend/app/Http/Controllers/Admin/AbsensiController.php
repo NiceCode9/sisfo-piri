@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Exports\AbsensiRekapExport;
+use App\Exports\AbsensiTemplateExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AbsensiFilterRequest;
 use App\Http\Requests\Admin\StoreAbsensiBatchRequest;
 use App\Http\Requests\Admin\StoreBuktiAbsensiRequest;
+use App\Imports\AbsensiImport;
 use App\Jobs\KirimNotifikasiWhatsapp;
 use App\Models\Absensi;
 use App\Models\AbsensiRiwayat;
@@ -49,7 +51,7 @@ class AbsensiController extends Controller implements HasMiddleware
     {
         return [
             new Middleware('permission:absensis.view', only: ['index', 'scan', 'rekap', 'exportExcel', 'exportPdf']),
-            new Middleware('permission:absensis.create', only: ['storeBatch', 'storeScan', 'storeBukti']),
+            new Middleware('permission:absensis.create', only: ['storeBatch', 'storeScan', 'storeBukti', 'import', 'importTemplate']),
             // Kamera memindai berulang selama kartu di dalam frame; tanpa batas
             // ini satu perangkat bisa membanjiri server dengan permintaan
             // yang isinya identik.
@@ -374,6 +376,83 @@ class AbsensiController extends Controller implements HasMiddleware
         }
 
         return $rombel;
+    }
+
+    public function importTemplate(): BinaryFileResponse
+    {
+        return Excel::download(new AbsensiTemplateExport, 'template-import-absensi.xlsx');
+    }
+
+    /**
+     * Impor absensi harian dari Excel/CSV.
+     *
+     * Scoping rombel ditegakkan di dalam importer lewat closure
+     * {@see rombelTerjangkau()} yang dipakai balik. Closure itu mengembalikan
+     * null — bukan melempar — supaya baris yang tidak terjangkau dilaporkan
+     * sebagai kegagalan dengan alasan, bukan menggagalkan seluruh berkas.
+     */
+    public function import(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
+        ]);
+
+        $this->rombelTerjangkau();
+
+        $impor = new AbsensiImport(
+            fn (int $rombelId): ?Rombel => Rombel::terjangkauUser(
+                request()->user(),
+                Rombel::ROLE_ABSENSI_UNIVERSAL
+            )->whereKey($rombelId)->first(),
+            fn (int $siswaId, int $rombelId, Carbon $tanggal, string $status, string $metode): Absensi => $this->catatKehadiran(
+                $siswaId,
+                $rombelId,
+                $tanggal,
+                $status,
+                $metode
+            ),
+        );
+
+        Excel::import($impor, $request->file('file'));
+
+        // Notifikasi alpa dikirim sekali per pasangan rombel+tanggal, bukan per
+        // baris berkas, dan tetap lewat jalur idempoten yang sudah ada.
+        foreach (array_keys($impor->rombelTanggalAlpa) as $kunci) {
+            [$rombelId, $tanggal] = explode('|', $kunci, 2);
+
+            $this->antrekanNotifikasiAlpa((int) $rombelId, $tanggal, $this->siswaAlpaRombel((int) $rombelId, $tanggal));
+        }
+
+        $gagal = $impor->failures();
+        $ringkas = "tercatat {$impor->imported}";
+        $jumlahGagal = $gagal->count() + count($impor->customFailures);
+
+        if ($jumlahGagal > 0) {
+            $daftar = $gagal->take(10)
+                ->map(fn ($f) => 'Baris '.$f->row().': '.implode(', ', $f->errors()))
+                ->merge($impor->customFailures)
+                ->take(10)
+                ->implode(' | ');
+
+            return back()->with('error', "Import selesai: {$ringkas}, {$jumlahGagal} gagal. {$daftar}");
+        }
+
+        return back()->with('success', "Import selesai: {$ringkas}.");
+    }
+
+    /**
+     * ID siswa berstatus alpa pada satu rombel dan tanggal, untuk notifikasi.
+     *
+     * @return array<int>
+     */
+    protected function siswaAlpaRombel(int $rombelId, string $tanggal): array
+    {
+        return Absensi::where('rombel_id', $rombelId)
+            ->whereDate('tanggal', $tanggal)
+            ->where('status', 'alpa')
+            ->pluck('siswa_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
     }
 
     /**
