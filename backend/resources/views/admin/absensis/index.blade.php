@@ -60,6 +60,19 @@
                 @csrf
                 <input type="hidden" name="rombel_id" value="{{ $rombel?->id }}" />
                 <input type="hidden" name="tanggal" value="{{ $tanggal }}" />
+                <div id="wrap-alasan" class="px-4 pt-3 pb-0 d-none">
+                    <label class="form-label" for="alasan" style="font-size:12px;">
+                        Alasan koreksi <span class="text-danger">*</span>
+                    </label>
+                    <input type="text" name="alasan" id="alasan" maxlength="500"
+                           class="form-control form-control-sm @error('alasan') is-invalid @enderror"
+                           placeholder="Contoh: salah input, siswa menunjukkan surat dokter"
+                           value="{{ old('alasan') }}" />
+                    <div class="form-text" style="font-size:11px;">
+                        Wajib diisi selama status siswa yang sudah tercatat berubah.
+                    </div>
+                    @error('alasan')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                </div>
             </form>
             @if($errors->has('status'))<div class="alert alert-danger m-3 mb-0" role="alert">{{ $errors->first('status') }}</div>@endif
         @endcan
@@ -80,7 +93,9 @@
                                         // terpilih sehingga browser jatuh ke "Hadir".
                                         $terpilih = (string) old('status.'.$s->id, $catat?->status ?? '');
                                     @endphp
-                                    <select name="status[{{ $s->id }}]" form="form-absensi" class="form-select form-select-sm @error('status.'.$s->id) is-invalid @enderror" aria-label="Status {{ $s->nis ?? $s->id }}">
+                                    <select name="status[{{ $s->id }}]" form="form-absensi"
+                                            data-tercatat="{{ $catat?->status ?? '' }}"
+                                            class="form-select form-select-sm @error('status.'.$s->id) is-invalid @enderror" aria-label="Status {{ $s->nis ?? $s->id }}">
                                         @foreach(['' => 'Belum dicatat', 'hadir' => 'Hadir', 'terlambat' => 'Terlambat', 'sakit' => 'Sakit', 'izin' => 'Izin', 'alpa' => 'Alpa'] as $val => $label)
                                             <option value="{{ $val }}" @selected($terpilih === (string) $val)>{{ $label }}</option>
                                         @endforeach
@@ -100,6 +115,34 @@
         </div>
     </div>
 </div>
+
+@if($koreksi->isNotEmpty())
+    <div class="card-nexus mt-3">
+        <div class="card-header-nexus">
+            <div>
+                <h5 class="card-title">Riwayat Koreksi ({{ $koreksi->count() }})</h5>
+                <p class="card-subtitle">Perubahan terhadap absensi yang sudah tercatat pada {{ $tanggal }}</p>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table-nexus w-100">
+                <thead><tr><th>Siswa</th><th>Dari</th><th>Ke</th><th>Alasan</th><th>Oleh</th><th>Waktu</th></tr></thead>
+                <tbody>
+                    @foreach($koreksi as $k)
+                        <tr>
+                            <td style="font-weight:600;font-size:13px;">{{ $k->siswa?->user->name ?? '-' }}</td>
+                            <td style="font-size:12.5px;">{{ ucfirst($k->status_sebelum) }}{{ $k->jam_sebelum ? ' ('.substr($k->jam_sebelum, 0, 5).')' : '' }}</td>
+                            <td style="font-size:12.5px;">{{ ucfirst($k->status_sesudah) }}{{ $k->jam_sesudah ? ' ('.substr($k->jam_sesudah, 0, 5).')' : '' }}</td>
+                            <td style="font-size:12.5px;">{{ $k->alasan }}</td>
+                            <td style="font-size:12.5px;">{{ $k->pencatat?->name ?? 'Sistem' }}</td>
+                            <td style="font-size:12px;color:var(--text-muted);white-space:nowrap;">{{ $k->created_at?->format('d/m H:i') }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+@endif
 @endsection
 
 @push('scripts')
@@ -114,7 +157,35 @@
             document.querySelectorAll('select[form="form-absensi"]').forEach(function (select) {
                 select.value = tombol.dataset.tandaiSemua;
             });
+            perbaruiKoreksi();
         });
     });
+
+    // Kolom alasan hanya muncul saat ada siswa yang status tercatatnya
+    // diubah. Field-nya tetap kosong kalau tidak ada koreksi, jadi teacher
+    // tidak perlu mengisinya saat mencatat hari biasa.
+    function perbaruiKoreksi() {
+        const wrap = document.getElementById('wrap-alasan');
+        if (!wrap) return;
+
+        const adaKoreksi = Array.from(
+            document.querySelectorAll('select[form="form-absensi"][data-tercatat]')
+        ).some(function (select) {
+            return select.dataset.tercatat !== '' && select.value !== select.dataset.tercatat;
+        });
+
+        wrap.classList.toggle('d-none', !adaKoreksi);
+    }
+
+    document.querySelectorAll('select[form="form-absensi"][data-tercatat]').forEach(function (select) {
+        select.addEventListener('change', perbaruiKoreksi);
+    });
+
+    // Setelah validasi gagal, alasannya wajib tampil lagi supaya guru melihat
+    // apa yang harus diperbaiki.
+    @error('alasan')
+        document.getElementById('wrap-alasan')?.classList.remove('d-none');
+    @enderror
+    perbaruiKoreksi();
 </script>
 @endpush

@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\AbsensiFilterRequest;
 use App\Http\Requests\Admin\StoreAbsensiBatchRequest;
 use App\Jobs\KirimNotifikasiWhatsapp;
 use App\Models\Absensi;
+use App\Models\AbsensiRiwayat;
 use App\Models\Guru;
 use App\Models\NotifikasiLog;
 use App\Models\Pengaturan;
@@ -26,6 +27,7 @@ use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -66,6 +68,7 @@ class AbsensiController extends Controller implements HasMiddleware
 
         $siswas = collect();
         $tercatat = collect();
+        $koreksi = collect();
 
         if ($rombel) {
             $siswas = Siswa::with('user')
@@ -76,6 +79,21 @@ class AbsensiController extends Controller implements HasMiddleware
                 ->where('tanggal', $tanggal)
                 ->get()
                 ->keyBy('siswa_id');
+
+            // Koreksi untuk hari yang sedang dibuka. Teacher biasanya
+            // memperbaiki absensi di hari yang sama, jadi menampilkan riwayatnya
+            // di halaman yang sama sudah cukup tanpa halaman terpisah.
+            //
+            // `whereDate`, bukan `where`: kolom `tanggal` dicasting sebagai
+            // `date` pada model, sehingga nilai query ikut menjadi berformat
+            // penuh `Y-m-d H:i:s`. Di MySQL itu masih dianggap sama dengan
+            // kolom DATE, tapi di SQLite dibandingkan sebagai teks dan tidak
+            // cocok — jadi test hijau di produksi merah di lokal.
+            $koreksi = AbsensiRiwayat::with(['siswa.user', 'pencatat'])
+                ->where('rombel_id', $rombel->id)
+                ->whereDate('tanggal', $tanggal)
+                ->latest()
+                ->get();
         }
 
         return view('admin.absensis.index', [
@@ -84,18 +102,26 @@ class AbsensiController extends Controller implements HasMiddleware
             'tanggal' => $tanggal,
             'siswas' => $siswas,
             'tercatat' => $tercatat,
+            'koreksi' => $koreksi,
         ]);
     }
 
     /**
      * Simpan grid manual sekaligus (upsert per siswa+tanggal).
+     *
+     * Baris yang belum ada adalah pencatatan biasa. Baris yang sudah ada dan
+     * nilai `status`/`jam_datang`-nya berubah adalah koreksi: butuh
+     * `absensis.edit`, wajib menyertakan alasan, dan selalu meninggalkan jejak
+     * di {@see AbsensiRiwayat}.
+     *
      * Baris alpa mengantrekan notifikasi WA ke orang-tua.
      */
     public function storeBatch(StoreAbsensiBatchRequest $request): RedirectResponse
     {
         $validated = $request->validated();
+        $alasan = $validated['alasan'] ?? null;
 
-        $jumlah = DB::transaction(function () use ($validated) {
+        $jumlah = DB::transaction(function () use ($validated, $alasan) {
             $count = 0;
 
             foreach ($validated['status'] as $siswaId => $status) {
@@ -110,6 +136,13 @@ class AbsensiController extends Controller implements HasMiddleware
                 ];
 
                 $absensi = Absensi::firstOrNew($kunci);
+
+                // Diambil sebelum atribut ditimpa, karena inilah yang perlu
+                // dibandingkan untuk tahu apakah ini koreksi atau pencatatan.
+                $sebelum = $absensi->exists
+                    ? ['status' => $absensi->status, 'jam' => $absensi->jam_datang]
+                    : null;
+
                 $absensi->rombel_id = $validated['rombel_id'];
                 $absensi->status = $status;
                 $absensi->metode = 'manual';
@@ -119,10 +152,21 @@ class AbsensiController extends Controller implements HasMiddleware
                     $absensi->jam_datang = now()->format('H:i:s');
                 }
 
+                $koreksi = $sebelum !== null && ($sebelum['status'] !== $absensi->status || $sebelum['jam'] !== $absensi->jam_datang);
+
+                if ($koreksi) {
+                    $this->pastikanBolehMengerjakanKoreksi($alasan);
+                }
+
                 // Status dari grid adalah koreksi eksplisit guru, jadi berbeda
                 // dari scan: di sini nilai yang dikirim yang menang, dan
                 // `jam_datang` milik pencatatan lain tidak diubah.
                 $absensi = $this->simpanAbsensi($absensi, $kunci);
+
+                if ($koreksi) {
+                    $this->catatKoreksi($absensi, $sebelum, (string) $alasan);
+                }
+
                 $count++;
             }
 
@@ -328,6 +372,55 @@ class AbsensiController extends Controller implements HasMiddleware
         }
 
         return $rombel;
+    }
+
+    /**
+     * Penjaga sebelum mengubah absensi yang sudah tercatat.
+     *
+     * `absensis.edit` selama ini diberikan ke role tapi tidak pernah dicek di
+     * mana pun, sehingga siapa pun yang bisa mencatat juga bisa menimpa status
+     * yang sudah ada tanpa jejak. `storeScan` sengaja tidak lewat sini: scan
+     * ulang adalah hal normal dan menjadikannya butuh izin edit akan merusak
+     * alur — arrival pertama tetap dilindungi oleh aturannya sendiri.
+     *
+     * Setiap role yang memegang `absensis.create` juga memegang
+     * `absensis.edit`, jadi penjagaan ini tidak membatasi siapa pun saat ini;
+     * ia mencegah role baru yang hanya memegang `create` menimpa diam-diam.
+     */
+    protected function pastikanBolehMengerjakanKoreksi(?string $alasan): void
+    {
+        abort_unless(
+            request()->user()?->can('absensis.edit'),
+            403,
+            'Mengubah absensi yang sudah tercatat butuh izin absensis.edit.'
+        );
+
+        if (blank($alasan)) {
+            throw ValidationException::withMessages([
+                'alasan' => 'Isi alasan koreksi. Absensi yang sudah tercatat hanya boleh diubah bila ada alasannya.',
+            ]);
+        }
+    }
+
+    /**
+     * Menyimpan jejak satu perubahan terhadap baris absensi.
+     *
+     * @param  array{status: string, jam: ?string}  $sebelum
+     */
+    protected function catatKoreksi(Absensi $absensi, array $sebelum, string $alasan): void
+    {
+        AbsensiRiwayat::create([
+            'absensi_id' => $absensi->id,
+            'siswa_id' => $absensi->siswa_id,
+            'rombel_id' => $absensi->rombel_id,
+            'tanggal' => $absensi->tanggal,
+            'status_sebelum' => (string) $sebelum['status'],
+            'status_sesudah' => (string) $absensi->status,
+            'jam_sebelum' => $sebelum['jam'],
+            'jam_sesudah' => $absensi->jam_datang,
+            'alasan' => $alasan,
+            'dicatat_oleh' => auth()->id(),
+        ]);
     }
 
     /**

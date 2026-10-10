@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\Absensi;
+use App\Models\AbsensiRiwayat;
+use App\Models\Guru;
 use App\Models\Kelas;
 use App\Models\Pengaturan;
 use App\Models\RiwayatKelas;
@@ -368,11 +370,124 @@ test('batch manual tersimpan dan dapat diperbarui', function () {
         ->and(Absensi::where('siswa_id', $s2->id)->first()->status)->toBe('sakit')
         ->and(Absensi::where('siswa_id', $s1->id)->first()->metode)->toBe('manual');
 
+    // Pencatatan pertama bukan koreksi, jadi tidak ada jejaknya.
+    expect(AbsensiRiwayat::count())->toBe(0);
+
+    // Memperbarui baris yang sudah ada adalah koreksi: butuh alasan dan
+    // selalu meninggalkan jejak.
     $payload['status'] = [$s1->id => 'izin', $s2->id => 'sakit'];
+    $payload['alasan'] = 'Salah input jam masuk';
+
     $this->actingAs(superAdmin())->post(route('admin.absensis.batch'), $payload)->assertSessionHas('success');
 
     expect(Absensi::where('tanggal', $hari)->count())->toBe(2)
         ->and(Absensi::where('siswa_id', $s1->id)->first()->status)->toBe('izin');
+
+    // Hanya s1 yang berubah; s2 disentuh tapi nilainya sama sehingga bukan koreksi.
+    expect(AbsensiRiwayat::count())->toBe(1);
+
+    $jejak = AbsensiRiwayat::firstOrFail();
+
+    expect($jejak->siswa_id)->toBe($s1->id)
+        ->and($jejak->status_sebelum)->toBe('hadir')
+        ->and($jejak->status_sesudah)->toBe('izin')
+        ->and($jejak->alasan)->toBe('Salah input jam masuk')
+        ->and($jejak->dicatat_oleh)->not->toBeNull();
+});
+
+test('mengubah absensi yang sudah tercatat tanpa alasan ditolak', function () {
+    $rombel = rombelUjiAbsensi();
+    $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
+    $hari = now()->toDateString();
+
+    $this->actingAs(superAdmin())->post(route('admin.absensis.batch'), [
+        'rombel_id' => $rombel->id,
+        'tanggal' => $hari,
+        'status' => [$siswa->id => 'hadir'],
+    ])->assertSessionHas('success');
+
+    // Tanpa alasan, koreksi ditolak dan baris lama tidak boleh berubah.
+    $this->actingAs(superAdmin())->post(route('admin.absensis.batch'), [
+        'rombel_id' => $rombel->id,
+        'tanggal' => $hari,
+        'status' => [$siswa->id => 'alpa'],
+    ])->assertSessionHasErrors('alasan');
+
+    expect(Absensi::where('siswa_id', $siswa->id)->firstOrFail()->status)->toBe('hadir')
+        ->and(AbsensiRiwayat::count())->toBe(0);
+});
+
+test('koreksi butuh permission absensis.edit', function () {
+    $rombel = rombelUjiAbsensi();
+    $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
+    $hari = now()->toDateString();
+    $admin = superAdmin();
+
+    $this->actingAs($admin)->post(route('admin.absensis.batch'), [
+        'rombel_id' => $rombel->id,
+        'tanggal' => $hari,
+        'status' => [$siswa->id => 'hadir'],
+    ])->assertSessionHas('success');
+
+    // User yang boleh mencatat tapi tidak memegang `absensis.edit`. Permission
+    // di Spatie bersifat aditif antara user dan role-nya, jadi revoke pada
+    // `guru-piket` tidak cukup — role itu sudah memberi `absensis.edit`.
+    // User dibuat tanpa role, dengan permission langsung dan sebuah baris Guru
+    // supaya rombelnya tetap terjangkau; tanpa itu penolakan datang dari cek
+    // jangkauan rombel, bukan dari permission yang sedang diuji.
+    $setengah = User::factory()->create(['username' => 'pengguna-absensi-sebagian']);
+    $guruSetengah = Guru::create([
+        'user_id' => $setengah->id,
+        'nama' => 'Guru Absensi Sebagian',
+        'jenis_kelamin' => 'L',
+        'is_aktif' => true,
+    ]);
+    $rombel->update(['wali_guru_id' => $guruSetengah->id]);
+
+    $setengah->givePermissionTo('absensis.view', 'absensis.create');
+
+    expect($setengah->can('absensis.create'))->toBeTrue()
+        ->and($setengah->can('absensis.edit'))->toBeFalse();
+
+    $this->actingAs($setengah)->post(route('admin.absensis.batch'), [
+        'rombel_id' => $rombel->id,
+        'tanggal' => $hari,
+        'status' => [$siswa->id => 'alpa'],
+        'alasan' => 'Mencoba menimpa tanpa izin',
+    ])->assertForbidden();
+
+    expect(Absensi::where('siswa_id', $siswa->id)->firstOrFail()->status)->toBe('hadir')
+        ->and(AbsensiRiwayat::count())->toBe(0);
+});
+
+test('riwayat koreksi ditampilkan di grid hari yang sama', function () {
+    $rombel = rombelUjiAbsensi();
+    $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
+    $hari = now()->toDateString();
+    $admin = superAdmin();
+
+    $this->actingAs($admin)->post(route('admin.absensis.batch'), [
+        'rombel_id' => $rombel->id,
+        'tanggal' => $hari,
+        'status' => [$siswa->id => 'hadir'],
+    ])->assertSessionHas('success');
+
+    $this->actingAs($admin)->post(route('admin.absensis.batch'), [
+        'rombel_id' => $rombel->id,
+        'tanggal' => $hari,
+        'status' => [$siswa->id => 'izin'],
+        'alasan' => 'Surat dokter menyusul',
+    ])->assertSessionHas('success');
+
+    $this->actingAs($admin)->get(route('admin.absensis.index', [
+        'rombel_id' => $rombel->id,
+        'tanggal' => $hari,
+    ]))
+        ->assertOk()
+        ->assertSee('Riwayat Koreksi (1)')
+        ->assertSee('Surat dokter menyusul')
+        ->assertSee('Dari')
+        ->assertSee('Ke');
 });
 
 test('batch menolak siswa luar rombel', function () {
