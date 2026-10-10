@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ExamQuestion extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'exam_id', 'question_bank_id', 'source_question_id', 'question_text', 'question_image', 'type', 'options', 'correct_answer', 'score', 'order',
     ];

@@ -14,7 +14,11 @@ class AnswerController extends Controller
         $data = $request->validate([
             'exam_session_id' => 'required|integer',
             'exam_question_id' => 'required|integer',
-            'answer' => 'required', // array utk pilihan ganda, string/objek utk essay
+            // Aturan ini sebelumnya hanya `required`, sehingga siswa bisa
+            // mengirim JSON berukuran sembarang tanpa batas. Dipakai bersama
+            // throttle:cbt-write di routes/api_cbt.php.
+            'answer' => ['required', 'array', 'max:20'],
+            'answer.*' => ['nullable', 'string', 'max:5000'],
         ]);
 
         $session = ExamSessionController::resolveOngoingSession($request, $data['exam_session_id']);
@@ -31,7 +35,7 @@ class AnswerController extends Controller
                 'exam_question_id' => $data['exam_question_id'],
             ],
             [
-                'answer' => is_array($data['answer']) ? $data['answer'] : [$data['answer']],
+                'answer' => $data['answer'],
                 'answered_at' => Carbon::now(),
             ]
         );

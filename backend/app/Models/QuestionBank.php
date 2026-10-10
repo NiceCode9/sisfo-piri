@@ -3,12 +3,15 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class QuestionBank extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'mata_pelajaran_id', 'guru_id', 'nama', 'deskripsi', 'is_shared', 'created_by',
     ];

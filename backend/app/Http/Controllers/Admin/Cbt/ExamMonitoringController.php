@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Exam;
 use App\Models\ExamSession;
 use App\Models\ExamViolation;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -17,6 +18,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ExamMonitoringController extends Controller implements HasMiddleware
 {
+    use AuthorizesRequests;
+
     public static function middleware(): array
     {
         return [new Middleware('permission:cbt.view')];
@@ -24,6 +27,8 @@ class ExamMonitoringController extends Controller implements HasMiddleware
 
     public function index(Exam $exam): View
     {
+        $this->authorize('view', $exam);
+
         $exam->loadCount(['questions', 'tokens']);
 
         return view('admin.cbt.monitoring.index', compact('exam'));
@@ -31,8 +36,10 @@ class ExamMonitoringController extends Controller implements HasMiddleware
 
     public function data(Exam $exam): JsonResponse
     {
-        $sessions = ExamSession::with(['user', 'violations'])
-            ->withCount('violations')
+        $this->authorize('view', $exam);
+
+        $sessions = ExamSession::with('user')
+            ->withCount('answers')
             ->where('exam_id', $exam->id)
             ->latest()
             ->get()
@@ -47,7 +54,10 @@ class ExamMonitoringController extends Controller implements HasMiddleware
                     'remaining_seconds' => $remaining,
                     'violation_count' => $s->violation_count,
                     'is_online' => $isOnline,
-                    'answered_count' => $s->answers()->count(),
+                    // Diambil lewat withCount, bukan $s->answers()->count()
+                    // per sesi. Halaman ini dipoll berkala; pada kelas 40
+                    // siswa itu berarti 40 query sia-sia tiap beberapa detik.
+                    'answered_count' => $s->answers_count,
                     'score' => $s->score,
                 ];
             });
@@ -59,6 +69,10 @@ class ExamMonitoringController extends Controller implements HasMiddleware
                 'ongoing' => $sessions->where('status', 'ongoing')->count(),
                 'finished' => $sessions->where('status', 'finished')->count(),
                 'disqualified' => $sessions->where('status', 'disqualified')->count(),
+                // `expired` ditulis sweeper cbt:expire-sessions untuk sesi yang
+                // ditinggalkan siswa. Sebelumnya status ini tidak pernah diisi
+                // sehingga baris tersebut tetap terlihat sebagai ujian berjalan.
+                'expired' => $sessions->where('status', 'expired')->count(),
             ],
         ]);
     }
@@ -66,6 +80,10 @@ class ExamMonitoringController extends Controller implements HasMiddleware
     public function force(Exam $exam, ExamSession $session): RedirectResponse
     {
         abort_unless($session->exam_id === $exam->id, 404);
+
+        // Force adalah tindakan yang mengubah nilai siswa, jadi butuh izin Manage
+        // meski halaman monitoringnya sendiri hanya butuh View.
+        $this->authorize('update', $exam);
 
         $lock = Cache::lock("force:{$session->id}", 10);
 
@@ -84,6 +102,8 @@ class ExamMonitoringController extends Controller implements HasMiddleware
 
     public function violationsCsv(Exam $exam): StreamedResponse
     {
+        $this->authorize('view', $exam);
+
         $violations = ExamViolation::with('session.user')
             ->whereHas('session', fn ($q) => $q->where('exam_id', $exam->id))
             ->latest()->get();

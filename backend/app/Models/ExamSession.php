@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ExamSession extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'exam_id', 'exam_token_id', 'user_id', 'started_at', 'expected_end_at', 'finished_at',
         'last_heartbeat_at', 'status', 'finish_reason', 'violation_count', 'score', 'client_ip', 'user_agent',

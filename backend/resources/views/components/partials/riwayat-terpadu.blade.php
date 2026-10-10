@@ -96,29 +96,38 @@
                     </div>
                 @endif
 
-                <h6 class="mb-2 mt-3" style="font-size:13px;font-weight:600;">Nilai CBT</h6>
-                @if($r['cbt'] === [])
-                    <p style="font-size:13px;color:var(--text-muted);">Tidak ada ujian yang diikuti.</p>
-                @else
-                    <div class="table-responsive">
-                        <table class="table-nexus w-100" style="font-size:12.5px;">
-                            <thead><tr><th>Ujian</th><th>Mapel</th><th>Skor</th><th>Status</th></tr></thead>
-                            <tbody>
-                                @foreach($r['cbt'] as $u)
-                                    <tr>
-                                        <td>{{ $u['nama'] }}</td>
-                                        <td>{{ $u['mapel'] ?? '—' }}</td>
-                                        <td>{{ $u['skor'] === null ? '—' : $u['skor'] }}</td>
-                                        <td>{{ $u['status'] }}</td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                    @if($r['cbtRata'] !== null)
-                        <p style="font-size:12.5px;margin-top:6px;">Rata-rata skor ujian: <strong>{{ $r['cbtRata'] }}</strong></p>
-                    @endif
-                @endif
+<h6 class="mb-2 mt-3" style="font-size:13px;font-weight:600;">Nilai CBT</h6>
+@if($r['cbt'] === [])
+    <p style="font-size:13px;color:var(--text-muted);">Tidak ada ujian yang diikuti.</p>
+@else
+    <div class="table-responsive">
+        <table class="table-nexus w-100" style="font-size:12.5px;">
+            <thead><tr><th>Ujian</th><th>Mapel</th><th>Skor</th><th>Status</th></tr></thead>
+            <tbody>
+                @foreach($r['cbt'] as $u)
+                    <tr>
+                        <td>
+                            {{ $u['nama'] }}
+                            {{-- Satu baris per rantai remedial: ujian asal dan
+                                 remedial-nya diringkas, skor terbaik yang dipakai.
+                                 Ujian yang bukan remedial tidak pernah digabung,
+                                 jadi UH-1 dan UH-2 tetap dua nilai. --}}
+                            @if($u['jumlahPercobaan'] > 1)
+                                <span class="badge-nexus badge-info">Remedial · {{ $u['jumlahPercobaan'] }} percobaan</span>
+                            @endif
+                        </td>
+                        <td>{{ $u['mapel'] ?? '—' }}</td>
+                        <td>{{ $u['skor'] === null ? '—' : $u['skor'] }}</td>
+                        <td>{{ $u['status'] }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+    @if($r['cbtRata'] !== null)
+        <p style="font-size:12.5px;margin-top:6px;">Rata-rata skor ujian: <strong>{{ $r['cbtRata'] }}</strong></p>
+    @endif
+@endif
 
             </div>
         </div>

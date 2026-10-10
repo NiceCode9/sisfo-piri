@@ -43,6 +43,26 @@ return Application::configure(basePath: dirname(__DIR__))
                 return Limit::perMinute(12)->by($request->user()?->id ?: $request->ip());
             });
 
+            // Login CBT menerima identifier + password tanpa throttle
+            // sebelumnya, sehingga satu alamat IP bisa menebak kredensial
+            // siswa tanpa batas. 10/menit per IP masih jauh di atas kebutuhan
+            // nyata (siswa hanya login sekali per sesi ujian).
+            RateLimiter::for('cbt-login', function (Request $request) {
+                return Limit::perMinute(10)
+                    ->by($request->ip())
+                    ->response(fn () => response()->json([
+                        'message' => 'Terlalu banyak percobaan login. Coba lagi beberapa saat lagi.',
+                    ], 429));
+            });
+
+            // Autosave dijadwal ulang tiap 800 ms saat siswa mengubah pilihan,
+            // jadi satu siswa bisa menghasilkan banyak POST /exam/answer dalam
+            // satu menit. 90/menit menutup pemakaian normal tanpa memotong
+            // siswa yang sedang mengubah jawaban berulang.
+            RateLimiter::for('cbt-write', function (Request $request) {
+                return Limit::perMinute(90)->by($request->user()?->id ?: $request->ip());
+            });
+
             // Scan QR absensi. Kamera memindai beberapa kali per detik selama
             // kartu berada di dalam frame, jadi batas throttle bawaan terlalu
             // longgar: satu perangkat yang macet bisa membanjiri server dengan

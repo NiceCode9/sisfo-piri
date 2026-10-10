@@ -258,9 +258,22 @@ class RiwayatSiswa
     }
 
     /**
-     * Sesi ujian siswa pada satu rombel.
+     * Rekap nilai CBT siswa pada satu rombel, dikelompokkan per rantai remedial.
      *
-     * @return array<int, array{nama:string, mapel:?string, skor:?float, status:string}>
+     * Satu grup per rantai remedial, sehingga rapor memakai skor terbaik antara ujian asal
+     * dan remedial-remedialnya. Ujian yang BUKAN remedial selalu menjadi
+     * kelompoknya sendiri: inilah yang menjaga UH-1 dan UH-2 tetap dua nilai
+     * yang dihitung, bukan digabung jadi satu.
+     *
+     * @return array<int, array{
+     *     nama:string,
+     *     mapel:?string,
+     *     skor:?float,
+     *     status:string,
+     *     jumlahPercobaan:int,
+     *     adalahRemedial:bool,
+     *     semuaPercobaan:array<int, array{nama:string, skor:?float, status:string}>
+     * }>
      */
     protected static function rekapCbt(Siswa $siswa, int $rombelId): array
     {
@@ -268,18 +281,61 @@ class RiwayatSiswa
             return [];
         }
 
-        return ExamSession::with('exam.mataPelajaran')
+        $sesi = ExamSession::with('exam.mataPelajaran')
             ->where('user_id', $siswa->user_id)
             ->whereHas('exam', fn ($q) => $q->where('rombel_id', $rombelId))
             ->orderByDesc('exam_id')
-            ->get()
-            ->map(fn ($s) => [
-                'nama' => $s->exam?->name ?? 'Ujian',
-                'mapel' => $s->exam?->mataPelajaran?->kode,
-                'skor' => $s->score !== null ? (float) $s->score : null,
-                'status' => $s->status,
-            ])
-            ->all();
+            ->get();
+
+        $kelompok = [];
+
+        foreach ($sesi as $s) {
+            if ($s->exam === null) {
+                continue;
+            }
+
+            // Kunci kelompok: remedial memakai ujian asalnya sebagai kunci.
+            $kunci = $s->exam->nilaiKelompok();
+
+            $kelompok[$kunci][] = $s;
+        }
+
+        $hasil = [];
+
+        foreach ($kelompok as $sesiGrup) {
+            $sesiGrup = collect($sesiGrup);
+
+            // Skor tertinggi menang. `null` (belum dinilai / diskualifikasi)
+            // tidak pernah mengalahkan angka.
+            $terbaik = $sesiGrup
+                ->filter(fn ($s) => $s->score !== null)
+                ->sortByDesc(fn ($s) => (float) $s->score)
+                ->first();
+
+            // Kalau tidak satu pun punya skor (semua diskualifikasi), tetap
+            // tampilkan yang terakhir agar siswa melihat statusnya.
+            $terlihat = $terbaik ?? $sesiGrup->last();
+
+            $semua = $sesiGrup
+                ->map(fn ($s) => [
+                    'nama' => $s->exam?->name ?? 'Ujian',
+                    'skor' => $s->score !== null ? (float) $s->score : null,
+                    'status' => $s->status,
+                ])
+                ->values();
+
+            $hasil[] = [
+                'nama' => $terlihat->exam?->name ?? 'Ujian',
+                'mapel' => $terlihat->exam?->mataPelajaran?->kode,
+                'skor' => $terbaik?->score !== null ? (float) $terbaik->score : null,
+                'status' => $terlihat->status,
+                'jumlahPercobaan' => $sesiGrup->count(),
+                'adalahRemedial' => $sesiGrup->count() > 1,
+                'semuaPercobaan' => $semua->all(),
+            ];
+        }
+
+        return $hasil;
     }
 
     /**

@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ExamToken extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'exam_id', 'token', 'active_from', 'active_until', 'max_usage', 'used_count', 'is_active', 'created_by',
     ];

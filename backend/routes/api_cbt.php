@@ -7,7 +7,7 @@ use App\Http\Controllers\Api\Cbt\QuestionController;
 use App\Http\Controllers\Api\Cbt\ViolationController;
 use Illuminate\Support\Facades\Route;
 
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:cbt-login');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -15,9 +15,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/exam/active', [ExamSessionController::class, 'active']);
     Route::post('/exam/join', [ExamSessionController::class, 'join']);
     Route::get('/exam/questions', [QuestionController::class, 'index']);
-    Route::post('/exam/answer', [AnswerController::class, 'store']);
+    Route::post('/exam/answer', [AnswerController::class, 'store'])->middleware('throttle:cbt-write');
     Route::post('/exam/heartbeat', [ExamSessionController::class, 'heartbeat'])->middleware('throttle:heartbeat');
-    Route::post('/exam/violation', [ViolationController::class, 'store']);
+    Route::post('/exam/violation', [ViolationController::class, 'store'])->middleware('throttle:cbt-write');
     Route::post('/exam/finish', [ExamSessionController::class, 'finish']);
 });
 

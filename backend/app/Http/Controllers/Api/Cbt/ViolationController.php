@@ -13,7 +13,10 @@ class ViolationController extends Controller
         $data = $request->validate([
             'exam_session_id' => 'required|integer',
             'type' => 'required|in:fullscreen_exit,tab_blur,visibility_hidden,devtools_suspected,copy_paste_attempt,connection_lost',
-            'meta' => 'nullable|array',
+            // meta disimpan sebagai JSON; tanpa batas ukuran, satu permintaan
+            // bisa menulis blob besar ke tabel exam_violations.
+            'meta' => ['nullable', 'array', 'max:10'],
+            'meta.*' => ['nullable'],
         ]);
 
         $session = ExamSessionController::resolveOngoingSession($request, $data['exam_session_id']);

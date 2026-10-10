@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Admin\Cbt;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\Cbt\StoreBankQuestionRequest;
 use App\Models\ExamQuestion;
 use App\Models\QuestionBank;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Storage;
@@ -21,21 +21,11 @@ class QuestionBankQuestionController extends Controller implements HasMiddleware
         return [new Middleware('permission:cbt.manage')];
     }
 
-    public function store(Request $request, QuestionBank $bank): RedirectResponse
+    public function store(StoreBankQuestionRequest $request, QuestionBank $bank): RedirectResponse
     {
         $this->authorize('update', $bank);
 
-        $data = $request->validate([
-            'question_text' => ['required', 'string'],
-            'question_image' => ['nullable', 'image', 'max:2048'],
-            'type' => ['required', 'in:single_choice,multiple_choice,essay'],
-            'options' => ['nullable', 'array'],
-            'options.*.key' => ['required_with:options', 'string', 'max:2'],
-            'options.*.text' => ['required_with:options', 'string'],
-            'correct_answer' => ['nullable', 'array'],
-            'score' => ['required', 'integer', 'min:1'],
-            'order' => ['nullable', 'integer', 'min:0'],
-        ]);
+        $data = $request->validatedData();
 
         $imagePath = null;
         if ($request->hasFile('question_image')) {
@@ -60,9 +50,15 @@ class QuestionBankQuestionController extends Controller implements HasMiddleware
     public function destroy(ExamQuestion $question): RedirectResponse
     {
         $bank = $question->bank;
-        if ($bank !== null) {
-            $this->authorize('update', $bank);
-        }
+
+        // Fail closed. Versi lama memakai `if ($bank !== null)` sehingga soal
+        // ujian (question_bank_id NULL) mencapai delete() tanpa satu pun
+        // authorize() — siapa pun pemegang cbt.manage bisa menghapus soal
+        // ujian milik guru lain lewat route bank.
+        abort_if($bank === null, 404);
+
+        $this->authorize('update', $bank);
+
         if ($question->question_image) {
             Storage::disk('public')->delete($question->question_image);
         }

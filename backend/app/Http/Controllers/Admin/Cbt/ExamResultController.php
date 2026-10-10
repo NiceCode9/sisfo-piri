@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Cbt;
 
 use App\Http\Controllers\Controller;
 use App\Models\Exam;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -12,6 +13,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ExamResultController extends Controller implements HasMiddleware
 {
+    use AuthorizesRequests;
+
     public static function middleware(): array
     {
         return [new Middleware('permission:cbt.view')];
@@ -19,6 +22,8 @@ class ExamResultController extends Controller implements HasMiddleware
 
     public function index(Request $request, Exam $exam): View
     {
+        $this->authorize('view', $exam);
+
         $exam->load(['mataPelajaran', 'rombel.kelas', 'questions' => fn ($q) => $q->orderBy('order')]);
 
         $sessions = $exam->sessions()->with(['user', 'answers.question'])->orderBy('score', 'desc')->get();
@@ -28,6 +33,8 @@ class ExamResultController extends Controller implements HasMiddleware
 
     public function export(Request $request, Exam $exam): StreamedResponse
     {
+        $this->authorize('view', $exam);
+
         $exam->load('questions');
         $sessions = $exam->sessions()->with(['user', 'answers'])->get();
 
