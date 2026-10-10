@@ -8,11 +8,14 @@ use App\Models\Rombel;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
+use Carbon\Carbon;
 use Database\Seeders\AkademikSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\PpdbSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 
@@ -206,6 +209,146 @@ test('scan menolak rombel_id ngawur', function () {
         ->assertSessionHasErrors('rombel_id');
 });
 
+test('halaman scan menjelaskan saat tidak ada rombel terjangkau', function () {
+    $rombel = rombelUjiAbsensi();
+    $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
+
+    // Guru tanpa penugasan. Dropdown rombel kosong, dan tanpa penjelasan
+    // setiap scan berakhir dengan "Gagal mencatat." yang tidak menjelaskan
+    // apa pun ke guru.
+    $guru = User::factory()->create(['username' => 'guru-tanpa-rombel-scan']);
+    $guru->assignRole('guru');
+
+    $this->actingAs($guru)->get(route('admin.absensis.scan'))
+        ->assertOk()
+        ->assertSee('Belum ada rombel yang bisa dipindai')
+        ->assertSee('wali');
+});
+
+test('balapan pada unique tidak berakhir sebagai 500', function () {
+    Pengaturan::updateOrCreate(['kunci' => 'batas_terlambat'], ['nilai' => '07:00']);
+    $rombel = rombelUjiAbsensi();
+    $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
+    $payload = ['token' => $siswa->qr_token, 'rombel_id' => $rombel->id];
+
+    // Simulasikan balapan sungguhan: tepat sebelum baris pertama ditulis,
+    // perangkat lain berhasil lebih dulu menyisipkan baris untuk kunci yang
+    // sama. Tanpa penanganan unique, insert ini meledak jadi 500.
+    $berkasLawan = false;
+
+    Absensi::creating(function () use (&$berkasLawan, $rombel, $siswa) {
+        if ($berkasLawan) {
+            return;
+        }
+
+        $berkasLawan = true;
+
+        DB::table('absensis')->insert([
+            'rombel_id' => $rombel->id,
+            'siswa_id' => $siswa->id,
+            'tanggal' => now()->toDateString(),
+            'status' => 'hadir',
+            'jam_datang' => '06:30:00',
+            'metode' => 'qr',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    });
+
+    $this->actingAs(superAdmin())->postJson(route('admin.absensis.scan.store'), $payload)
+        ->assertOk()
+        ->assertJson(['status' => 'hadir', 'baru' => false]);
+
+    expect(Absensi::where('siswa_id', $siswa->id)->count())->toBe(1);
+
+    // Arrival pertama milik perangkat lain harus tetap utuh.
+    $absensi = Absensi::where('siswa_id', $siswa->id)->firstOrFail();
+    expect(substr((string) $absensi->jam_datang, 0, 5))->toBe('06:30');
+
+    Absensi::flushEventListeners();
+});
+
+test('scan dibatasi rate limit', function () {
+    Pengaturan::updateOrCreate(['kunci' => 'batas_terlambat'], ['nilai' => '07:00']);
+    $rombel = rombelUjiAbsensi();
+    $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
+    $admin = superAdmin();
+
+    // Kamera memindai berulang selama kartu di dalam frame, jadi endpoint ini
+    // harus punya batas sendiri, bukan throttle bawaan.
+    for ($i = 0; $i < 120; $i++) {
+        $this->actingAs($admin)->postJson(route('admin.absensis.scan.store'), [
+            'token' => $siswa->qr_token,
+            'rombel_id' => $rombel->id,
+        ])->assertOk();
+    }
+
+    $this->actingAs($admin)->postJson(route('admin.absensis.scan.store'), [
+        'token' => $siswa->qr_token,
+        'rombel_id' => $rombel->id,
+    ])->assertStatus(429);
+});
+
+test('batas terlambat dibaca dari cache dan dibuang saat pengaturan disimpan', function () {
+    Cache::flush();
+    Pengaturan::updateOrCreate(['kunci' => 'batas_terlambat'], ['nilai' => '07:00']);
+    Pengaturan::flushCache();
+
+    $rombel = rombelUjiAbsensi();
+    $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
+
+    // 09 Oktober 23:30 UTC = 10 Oktober 06:30 WIB, jadi masih dalam batas 07:00.
+    $this->travelTo(Carbon::parse('2026-10-09 23:30:00', 'UTC'));
+    $this->actingAs(superAdmin())->postJson(route('admin.absensis.scan.store'), [
+        'token' => $siswa->qr_token,
+        'rombel_id' => $rombel->id,
+    ])->assertOk()->assertJson(['status' => 'hadir']);
+
+    // Scan kedua harus memakai nilai yang sama tanpa query ulang. Yang dihitung
+    // adalah nilai yang dikirim sebagai binding, bukan teks SQL: query-nya
+    // berbentuk `select * from pengaturan where kunci = ? limit 1` sehingga
+    // nama kuncinya tidak pernah muncul di SQL dan pemeriksaan berbasis
+    // `str_contains($sql, ...)` akan selalu nol. `CheckMaintenance` juga
+    // membaca `maintenance_mode` di setiap request, jadi filter kuncinya
+    // wajib.
+    $query = 0;
+    DB::listen(function ($q) use (&$query) {
+        if (str_contains($q->sql, 'pengaturans') && in_array('batas_terlambat', (array) $q->bindings, true)) {
+            $query++;
+        }
+    });
+
+    $this->actingAs(superAdmin())->postJson(route('admin.absensis.scan.store'), [
+        'token' => $siswa->qr_token,
+        'rombel_id' => $rombel->id,
+    ])->assertOk();
+
+    expect($query)->toBe(0);
+
+    // Admin mengubah batas; nilai baru harus berlaku segera, bukan setelah
+    // cache kedaluwarsa.
+    $admin = superAdmin();
+    $this->actingAs($admin)->put(route('admin.pengaturans.update'), [
+        'batas_terlambat' => '05:00',
+    ])->assertSessionHas('success');
+
+    expect(Pengaturan::nilai('batas_terlambat'))->toBe('05:00');
+});
+
+test('penanda cek-belum-hadir tidak ikut di-cache', function () {
+    Cache::flush();
+    Pengaturan::updateOrCreate(['kunci' => 'cek_belum_hadir_terakhir'], ['nilai' => null]);
+
+    // Perintah ini menulis penanda lalu membacanya di run yang sama sebagai
+    // self-gating. Kalau `Pengaturan::nilai()` meng-cache semua kunci, penanda
+    // itu jadi basi dan perintah jalan berulang.
+    expect(Pengaturan::KUNCI_CACHE)->not->toContain('cek_belum_hadir_terakhir');
+
+    Pengaturan::updateOrCreate(['kunci' => 'cek_belum_hadir_terakhir'], ['nilai' => '2026-10-10']);
+
+    expect(Pengaturan::nilai('cek_belum_hadir_terakhir'))->toBe('2026-10-10');
+});
+
 test('batch manual tersimpan dan dapat diperbarui', function () {
     $rombel = rombelUjiAbsensi();
     $s1 = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
@@ -264,6 +407,59 @@ test('scan sukses mencatat hadir dengan jam', function () {
 
     $response->assertOk()->assertJson(['status' => 'hadir', 'baru' => true]);
     expect(Absensi::where('siswa_id', $siswa->id)->first()->metode)->toBe('qr');
+});
+
+test('zona waktu aplikasi bukan UTC', function () {
+    // Absensi membandingkan jam scan dengan batas jam dari `Pengaturan` dan
+    // mengambil tanggal dari `now()`. Bila zona waktu aplikasi kembali ke UTC,
+    // seluruh jendela 00:00-06:59 WIB masuk ke tanggal sebelumnya dan siswa
+    // yang datang tepat waktu ditandai terlambat. `zona-waktu:audit` dipakai
+    // untuk menghitung dampak pada data yang sudah ada.
+    expect(config('app.timezone'))->not->toBe('UTC');
+});
+
+test('scan tengah malam dicatat pada tanggal sekolah yang benar', function () {
+    // Instan dikunci dalam UTC secara absolut, bukan lewat `Carbon::parse`
+    // tanpa zona — kalau begitu "sekarang" ikut zona aplikasi dan testnya
+    // selalu lolos apa pun zonanya, yaitu tidak membuktikan apa pun.
+    //
+    // 09 Oktober 17:30 UTC = 10 Oktober 00:30 WIB. Dengan zona UTC, scan ini
+    // tersimpan tanggal 9 Oktober dan jam 17:30, lalu `'17:30' > '07:00'`
+    // membuat siswa yang datang tengah malam ditandai terlambat.
+    $this->travelTo(Carbon::parse('2026-10-09 17:30:00', 'UTC'));
+
+    expect(now()->toDateString())->toBe('2026-10-10');
+
+    Pengaturan::updateOrCreate(['kunci' => 'batas_terlambat'], ['nilai' => '07:00']);
+    $rombel = rombelUjiAbsensi();
+    $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
+
+    $this->actingAs(superAdmin())->postJson(route('admin.absensis.scan.store'), [
+        'token' => $siswa->qr_token,
+        'rombel_id' => $rombel->id,
+    ])->assertOk()->assertJson(['status' => 'hadir']);
+
+    $absensi = Absensi::where('siswa_id', $siswa->id)->firstOrFail();
+
+    expect($absensi->tanggal)->toBe('2026-10-10')
+        ->and(substr((string) $absensi->jam_datang, 0, 5))->toBe('00:30');
+});
+
+test('scan larut malam tetap pada hari yang sama dan ditandai terlambat', function () {
+    // 10 Oktober 16:30 UTC = 10 Oktober 23:30 WIB. Lewat batas 07:00, jadi
+    // `terlambat` itu benar; yang dijaga adalah tanggalnya tetap 10 Oktober.
+    $this->travelTo(Carbon::parse('2026-10-10 16:30:00', 'UTC'));
+
+    Pengaturan::updateOrCreate(['kunci' => 'batas_terlambat'], ['nilai' => '07:00']);
+    $rombel = rombelUjiAbsensi();
+    $siswa = buatAnggotaRombel('4002', 'Anak Absen Malam', $rombel);
+
+    $this->actingAs(superAdmin())->postJson(route('admin.absensis.scan.store'), [
+        'token' => $siswa->qr_token,
+        'rombel_id' => $rombel->id,
+    ])->assertOk()->assertJson(['status' => 'terlambat']);
+
+    expect(Absensi::where('siswa_id', $siswa->id)->firstOrFail()->tanggal)->toBe('2026-10-10');
 });
 
 test('scan lewat batas tercatat terlambat', function () {

@@ -60,12 +60,19 @@ return [
     |--------------------------------------------------------------------------
     |
     | Here you may specify the default timezone for your application, which
-    | will be used by the PHP date and date-time functions. The timezone
-    | is set to "UTC" by default as it is suitable for most use cases.
+    | will be used by the PHP date and date-time functions. Applications that
+    | operate in one country or region may wish to narrow it down.
+    |
+    | Defaultnya zona waktu sekolah, bukan UTC. Absensi memakai jam server
+    | secara langsung: `tanggal` diambil dari `now()->toDateString()` dan
+    | status `hadir`/`terlambat` dibanding batas jam dari `Pengaturan`. Dengan
+    | zona UTC, scan antara pukul 00:00 dan 06:59 WIB jatuh ke tanggal
+    | sebelumnya dan jamnya tercatat tujuh jam lebih awal sehingga siswa yang
+    | datang tepat waktu justru ditandai terlambat.
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => env('APP_TIMEZONE', 'Asia/Jakarta'),
 
     /*
     |--------------------------------------------------------------------------

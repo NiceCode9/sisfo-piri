@@ -17,6 +17,7 @@ use App\Models\TahunAjaran;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -45,6 +46,10 @@ class AbsensiController extends Controller implements HasMiddleware
         return [
             new Middleware('permission:absensis.view', only: ['index', 'scan', 'rekap', 'exportExcel', 'exportPdf']),
             new Middleware('permission:absensis.create', only: ['storeBatch', 'storeScan']),
+            // Kamera memindai berulang selama kartu di dalam frame; tanpa batas
+            // ini satu perangkat bisa membanjiri server dengan permintaan
+            // yang isinya identik.
+            new Middleware('throttle:absensi-scan', only: ['storeScan']),
         ];
     }
 
@@ -94,15 +99,17 @@ class AbsensiController extends Controller implements HasMiddleware
             $count = 0;
 
             foreach ($validated['status'] as $siswaId => $status) {
-                // Kunci baris harus memuat rombel_id, bukan hanya
-                // (siswa_id, tanggal). Tanpa rombel_id, siswa yang pindah kelas
-                // di tengah hariin memakai baris kelas lamanya lalu menimpa
-                // absensi kelas lama dengan rombel yang baru.
-                $absensi = Absensi::firstOrNew([
+                $kunci = [
+                    // Kunci baris harus memuat rombel_id, bukan hanya
+                    // (siswa_id, tanggal). Tanpa rombel_id, siswa yang pindah kelas
+                    // di tengah hari memakai baris kelas lamanya lalu menimpa
+                    // absensi kelas lama dengan rombel yang baru.
                     'siswa_id' => $siswaId,
                     'rombel_id' => $validated['rombel_id'],
                     'tanggal' => $validated['tanggal'],
-                ]);
+                ];
+
+                $absensi = Absensi::firstOrNew($kunci);
                 $absensi->rombel_id = $validated['rombel_id'];
                 $absensi->status = $status;
                 $absensi->metode = 'manual';
@@ -112,7 +119,10 @@ class AbsensiController extends Controller implements HasMiddleware
                     $absensi->jam_datang = now()->format('H:i:s');
                 }
 
-                $absensi->save();
+                // Status dari grid adalah koreksi eksplisit guru, jadi berbeda
+                // dari scan: di sini nilai yang dikirim yang menang, dan
+                // `jam_datang` milik pencatatan lain tidak diubah.
+                $absensi = $this->simpanAbsensi($absensi, $kunci);
                 $count++;
             }
 
@@ -216,36 +226,7 @@ class AbsensiController extends Controller implements HasMiddleware
         $sekarang = now();
         $status = $sekarang->format('H:i') > $batas ? 'terlambat' : 'hadir';
 
-        // `updateOrCreate` tidak bisa dipakai di sini karena selalu menulis
-        // `jam_datang`. Siswa yang scan 06:55 lalu scan lagi 08:05 akan
-        // kehilangan catatan kehadiran tepat waktunya dan justru ditandai
-        // terlambat. Arrival pertama yang dihitung: jam hanya diisi bila
-        // masih kosong, dan status `hadir` tidak pernah diturunkan ke
-        // `terlambat` oleh scan susulan.
-        $absensi = Absensi::firstOrNew([
-            // rombel_id masuk kunci, bukan hanya atribut. Tanpa itu, scan
-            // untuk kelas yang berbeda pada tanggal sama akan menimpa baris
-            // kelas lama alih-alih membuat baris sendiri.
-            'siswa_id' => $siswa->id,
-            'rombel_id' => $rombel->id,
-            'tanggal' => $sekarang->toDateString(),
-        ]);
-
-        if (! $absensi->exists) {
-            $absensi->status = $status;
-            $absensi->jam_datang = $sekarang->format('H:i:s');
-        } else {
-            $absensi->status = $absensi->status === 'hadir' ? 'hadir' : $status;
-
-            if (! $absensi->jam_datang) {
-                $absensi->jam_datang = $sekarang->format('H:i:s');
-            }
-        }
-
-        $absensi->rombel_id = $rombel->id;
-        $absensi->metode = 'qr';
-        $absensi->dicatat_oleh = auth()->id();
-        $absensi->save();
+        $absensi = $this->catatKehadiran($siswa->id, $rombel->id, $sekarang, $status, 'qr');
 
         return response()->json([
             'nama' => $siswa->user?->name ?? '-',
@@ -352,19 +333,112 @@ class AbsensiController extends Controller implements HasMiddleware
     /**
      * Satu rombel yang pasti terjangkau user, untuk jalur tulis.
      *
-     * Jalur tulis tidak boleh diam-diam jatuh kerombel lain seperti tampilan
-     * grid, jadi di sini rombel di luar jangkauan selalu 403, bukan sekadar
-     * tidak ditemukan.
+     * Cukup satu query ter-scope. Versi sebelumnya memanggil
+     * {@see Rombel::terjangkauOleh()} lalu `findOrFail()` — dua query untuk
+     * hal yang sama, padahal `terjangkauUser()` sudah membatasi barisnya.
+     * Rombel di luar jangkauan menghasilkan 403, bukan 404: `rombel_id` sudah
+     * divalidasi `exists` lebih dulu, jadi tidak-found berarti tidak terjangkau.
      */
     protected function rombelAbsensiTerjangkau(int $rombelId): Rombel
     {
-        abort_unless(
-            Rombel::terjangkauOleh(request()->user(), $rombelId, Rombel::ROLE_ABSENSI_UNIVERSAL),
-            403,
-            'Rombel ini bukan ampuan Anda.',
-        );
+        $rombel = Rombel::with('kelas')
+            ->terjangkauUser(request()->user(), Rombel::ROLE_ABSENSI_UNIVERSAL)
+            ->find($rombelId);
 
-        return Rombel::with('kelas')->findOrFail($rombelId);
+        abort_if($rombel === null, 403, 'Rombel ini bukan ampunan Anda.');
+
+        return $rombel;
+    }
+
+    /**
+     * Menyimpan baris absensi, aman terhadap balapan pada unique.
+     *
+     * Dua perangkat bisa memindai kartu yang sama pada saat bersamaan. Keduanya
+     * membaca tabel kosong lalu sama-sama mencoba insert, dan yang kedua menabrak
+     * `absensis_siswa_rombel_tanggal_unique` sehingga berakhir sebagai 500.
+     *
+     * Mengembalikan baris yang benar-benar tersimpan: model milik pemanggil
+     * bila sukses, atau baris pesaing bila balapan terjadi. Pemanggil
+     * memeriksa identitasnya untuk tahu perlu menerapkan aturan pencatatan lagi.
+     *
+     * @param  array<string, mixed>  $kunci
+     */
+    protected function simpanAbsensi(Absensi $absensi, array $kunci): Absensi
+    {
+        try {
+            $absensi->save();
+
+            return $absensi;
+        } catch (QueryException $e) {
+            // 23000 = integrity constraint violation di MySQL maupun SQLite.
+            // Pelanggaran lain (mis. foreign key) harus tetap surfaced.
+            if ($e->getCode() !== '23000') {
+                throw $e;
+            }
+
+            return Absensi::where($kunci)->first() ?? throw $e;
+        }
+    }
+
+    /**
+     * Mencatat kehadiran dengan aturan "arrival pertama yang dihitung".
+     *
+     * @param  'manual'|'qr'  $metode
+     */
+    protected function catatKehadiran(int $siswaId, int $rombelId, Carbon $sekarang, string $status, string $metode): Absensi
+    {
+        $kunci = [
+            // rombel_id masuk kunci, bukan hanya atribut. Tanpa itu, scan
+            // untuk kelas yang berbeda pada tanggal sama akan menimpa baris
+            // kelas lama alih-alih membuat baris sendiri.
+            'siswa_id' => $siswaId,
+            'rombel_id' => $rombelId,
+            'tanggal' => $sekarang->toDateString(),
+        ];
+
+        $absensi = Absensi::firstOrNew($kunci);
+        $this->isiArrivalPertama($absensi, $status, $sekarang, $metode);
+        $tersimpan = $this->simpanAbsensi($absensi, $kunci);
+
+        if ($tersimpan->is($absensi)) {
+            return $tersimpan;
+        }
+
+        // Balapan: baris ini milik pencatatan perangkat lain, jadi perlakukan
+        // sebagai pencatatan susulan — jam pertama dan status `hadir` tidak
+        // boleh ditimpa.
+        $this->isiArrivalPertama($tersimpan, $status, $sekarang, $metode);
+        $tersimpan->save();
+
+        return $tersimpan;
+    }
+
+    /**
+     * Menerapkan aturan "arrival pertama yang dihitung".
+     *
+     * `jam_datang` hanya diisi bila masih kosong, dan status `hadir` tidak
+     * pernah diturunkan ke `terlambat` oleh pencatatan susulan. Siswa yang scan
+     * 06:55 lalu scan lagi 08:05 tidak boleh kehilangan catatan kehadiran tepat
+     * waktunya dan tidak boleh dianggap terlambat karena scan kedua.
+     *
+     * @param  'manual'|'qr'  $metode
+     */
+    protected function isiArrivalPertama(Absensi $absensi, string $status, Carbon $sekarang, string $metode): void
+    {
+        if (! $absensi->exists) {
+            $absensi->status = $status;
+            $absensi->jam_datang = $sekarang->format('H:i:s');
+        } else {
+            $absensi->status = $absensi->status === 'hadir' ? 'hadir' : $status;
+
+            if (! $absensi->jam_datang) {
+                $absensi->jam_datang = $sekarang->format('H:i:s');
+            }
+        }
+
+        $absensi->rombel_id = (int) $absensi->rombel_id;
+        $absensi->metode = $metode;
+        $absensi->dicatat_oleh = auth()->id();
     }
 
     /**

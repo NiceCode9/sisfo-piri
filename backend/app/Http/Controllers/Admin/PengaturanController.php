@@ -39,6 +39,12 @@ class PengaturanController extends Controller implements HasMiddleware
             Pengaturan::updateOrCreate(['kunci' => $kunci], ['nilai' => $nilai === null ? null : (string) $nilai]);
         }
 
+        // `Pengaturan::nilai()` menyalin sebagian nilai ke cache supaya jalur
+        // panas seperti scan QR tidak query database tiap permintaan. Tanpa
+        // pembuangan di sini, batas jam yang baru disimpan baru berlaku setelah
+        // cache kedaluwarsa.
+        Pengaturan::flushCache();
+
         return redirect()->route('admin.pengaturans.index')->with('success', 'Pengaturan disimpan.');
     }
 
