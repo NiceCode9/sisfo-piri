@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-interface Question {
+export interface Question {
   id: number;
   question_text: string;
   question_image: string | null;
@@ -9,7 +9,7 @@ interface Question {
   score: number;
 }
 
-interface ExamMeta {
+export interface ExamMeta {
   examSessionId: number;
   examId: number;
   examName: string;

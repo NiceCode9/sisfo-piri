@@ -2,15 +2,34 @@ import { useState } from 'react';
 import { useExamGuard } from '../hooks/useExamGuard';
 import { useAutosaveAnswer } from '../hooks/useAutosaveAnswer';
 import { useExamStore } from '../store/examStore';
+import QuestionNavigator from '../components/QuestionNavigator';
 import { finishExam } from '../services/examApi';
 import { useNavigate } from 'react-router-dom';
+import type { ExamMeta, Question } from '../store/examStore';
 
+/**
+ * Cangkang luar hanya menahan render sampai `meta` terisi. Semua hook hidup di
+ * ExamRoomInner: `onForceFinish` memanggil `reset()` yang mennullkan `meta`,
+ * dan bila `if (!meta) return null` berada di komponen yang sama, render
+ * berikutnya memotong daftar hook sehingga React melempar "Rendered fewer hooks
+ * than expected" — tab ujian blank tepat di saat auto-finish memicunya.
+ * Dengan memisahkan keduanya, komponen dalam hanya di-unmount, bukan
+ * dirender dengan jumlah hook berbeda.
+ */
 export default function ExamRoom() {
-  const navigate = useNavigate();
-  const { meta, questions, answers, savingStatus, currentIndex, flagged, setAnswer, goToQuestion, toggleFlag, reset } = useExamStore();
-  const [showFinishModal, setShowFinishModal] = useState(false);
+  const meta = useExamStore((s) => s.meta);
+  const questions = useExamStore((s) => s.questions);
 
   if (!meta) return null;
+
+  return <ExamRoomInner meta={meta} questions={questions} />;
+}
+
+function ExamRoomInner({ meta, questions }: { meta: ExamMeta; questions: Question[] }) {
+  const navigate = useNavigate();
+  const { answers, savingStatus, currentIndex, flagged, setAnswer, goToQuestion, toggleFlag, reset } = useExamStore();
+  const [showFinishModal, setShowFinishModal] = useState(false);
+  const [showNavigator, setShowNavigator] = useState(false);
 
   const { saveAnswer, flush } = useAutosaveAnswer(meta.examSessionId);
   const guard = useExamGuard({
@@ -77,17 +96,18 @@ export default function ExamRoom() {
 
   return (
     <div className="flex h-screen flex-col bg-surface">
-      <header className="flex items-center justify-between border-b border-outline-variant bg-surface-container-lowest px-6 py-3">
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-outline-variant bg-surface-container-lowest px-4 py-3 sm:px-6">
         <span className="font-jakarta font-semibold text-on-surface">{meta.examName}</span>
         <span className={`rounded-full px-4 py-1 text-sm font-bold ${timerClass}`}>
           {Math.floor(guard.remainingSeconds / 60)}:{String(guard.remainingSeconds % 60).padStart(2, '0')}
         </span>
-        <span className="text-sm text-on-surface-variant">Pelanggaran: {guard.remainingViolations} tersisa</span>
+        <span className="w-full text-sm text-on-surface-variant sm:w-auto">
+          Pelanggaran: {guard.remainingViolations} tersisa
+        </span>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Workspace 70% */}
-        <main className="flex-1 overflow-y-auto p-6 lg:w-[70%]">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:w-[70%]">
           <p className="mb-4 font-inter text-sm text-on-surface-variant">
             Soal {currentIndex + 1} dari {questions.length} — {answeredCount} terjawab, {flaggedCount} ragu
           </p>
@@ -143,50 +163,66 @@ export default function ExamRoom() {
           </div>
         </main>
 
-        {/* Matrix 30% — desktop */}
+        {/* Navigator — desktop */}
         <aside className="hidden w-[30%] min-w-[320px] max-w-[400px] overflow-y-auto border-l border-outline-variant bg-surface-container-lowest p-4 lg:block">
           <p className="mb-3 font-jakarta text-sm font-semibold text-on-surface">Navigasi Soal</p>
-          <div className="grid grid-cols-5 gap-2">
-            {questions.map((q, idx) => {
-              const answered = (answers[q.id] ?? []).some((v) => v.trim() !== '');
-              const flaggedQ = !!flagged[q.id];
-              const active = idx === currentIndex;
-              let cellClass = 'bg-surface-container border-outline-variant text-on-surface-variant';
-              if (flaggedQ) cellClass = 'bg-secondary-fixed border-secondary text-on-secondary-fixed';
-              else if (answered) cellClass = 'bg-tertiary border-tertiary text-white';
-              if (active) cellClass += ' ring-2 ring-primary ring-offset-1';
-              return (
-                <button
-                  key={q.id}
-                  onClick={() => goToQuestion(idx)}
-                  className={`flex h-10 w-10 items-center justify-center rounded-lg border text-xs font-bold ${cellClass}`}
-                  title={`Soal ${idx + 1}${flaggedQ ? ' — Ragu' : answered ? ' — Terjawab' : ' — Kosong'}`}
-                >
-                  {idx + 1}
-                </button>
-              );
-            })}
-          </div>
-          <div className="mt-4 flex gap-2 text-xs">
-            <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-tertiary" /> Terjawab</span>
-            <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-secondary-fixed" /> Ragu</span>
-            <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border border-outline-variant bg-surface-container" /> Kosong</span>
-          </div>
+          <QuestionNavigator />
         </aside>
       </div>
 
-      <footer className="flex justify-between border-t border-outline-variant bg-surface-container-lowest p-4">
-        <button disabled={currentIndex === 0} onClick={() => goToQuestion(currentIndex - 1)} className="rounded-lg border border-outline-variant px-4 py-2 text-sm disabled:opacity-50">
+      <footer className="flex items-center justify-between gap-2 border-t border-outline-variant bg-surface-container-lowest p-4">
+        <button
+          disabled={currentIndex === 0}
+          onClick={() => goToQuestion(currentIndex - 1)}
+          className="rounded-lg border border-outline-variant px-4 py-2 text-sm disabled:opacity-50"
+        >
           Sebelumnya
         </button>
+
+        {/* Di mobile sidebar disembunyikan, jadi navigasi harus punya pintu
+            masuk sendiri — tanpa ini tidak ada cara lompat soal di ponsel. */}
+        <button
+          onClick={() => setShowNavigator((v) => !v)}
+          className="rounded-lg border border-outline-variant px-3 py-2 text-sm font-semibold text-on-surface lg:hidden"
+          aria-expanded={showNavigator}
+        >
+          Soal {currentIndex + 1}/{questions.length}
+        </button>
+
         {currentIndex < questions.length - 1 ? (
-          <button onClick={() => goToQuestion(currentIndex + 1)} className="rounded-lg bg-primary px-4 py-2 text-sm text-on-primary">Selanjutnya</button>
+          <button
+            onClick={() => goToQuestion(currentIndex + 1)}
+            className="rounded-lg bg-primary px-4 py-2 text-sm text-on-primary"
+          >
+            Selanjutnya
+          </button>
         ) : (
-          <button onClick={() => setShowFinishModal(true)} className="rounded-lg bg-tertiary px-4 py-2 text-sm font-semibold text-white">
+          <button
+            onClick={() => setShowFinishModal(true)}
+            className="rounded-lg bg-tertiary px-4 py-2 text-sm font-semibold text-white"
+          >
             Selesai Ujian
           </button>
         )}
       </footer>
+
+      {/* Navigator — mobile */}
+      {showNavigator && (
+        <div className="fixed inset-0 z-40 flex flex-col bg-surface lg:hidden">
+          <div className="flex items-center justify-between border-b border-outline-variant bg-surface-container-lowest px-4 py-3">
+            <p className="font-jakarta font-semibold text-on-surface">Navigasi Soal</p>
+            <button
+              onClick={() => setShowNavigator(false)}
+              className="rounded-lg border border-outline-variant px-3 py-1.5 text-sm text-on-surface-variant"
+            >
+              Tutup
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            <QuestionNavigator onSelect={() => setShowNavigator(false)} />
+          </div>
+        </div>
+      )}
 
       {/* Modal Selesaikan */}
       {showFinishModal && (

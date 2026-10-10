@@ -8,6 +8,10 @@ export default {
         tertiary: { DEFAULT: '#10B981', dark: '#00563a' },
         surface: { DEFAULT: '#f8f9ff', container: '#f1f5f9', 'container-lowest': '#ffffff' },
         'on-surface': '#0B1C30',
+        // Token yang dipakai JSX tapi sebelumnya tidak terdefinisi, sehingga
+        // kelas seperti text-on-surface-variant diam-diam tidak menghasilkan
+        // warna apa pun. on-surface-variant = teks sekunder di atas surface.
+        'on-surface-variant': '#475569',
         outline: { DEFAULT: '#757684', variant: '#E2E8F0' },
         error: { DEFAULT: '#dc2626', 'on-error': '#ffffff' },
       },

@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { logout } from '../services/api';
 
 const REASON_MESSAGES: Record<string, { title: string; desc: string; tone: 'ok' | 'warn' | 'danger' }> = {
   manual: {
@@ -26,15 +28,18 @@ const REASON_MESSAGES: Record<string, { title: string; desc: string; tone: 'ok' 
 export default function Finished() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const [signingOut, setSigningOut] = useState(false);
   const reason = params.get('reason') ?? 'manual';
   const info = REASON_MESSAGES[reason] ?? REASON_MESSAGES.manual;
 
   const toneClass =
     info.tone === 'ok' ? 'text-tertiary' : info.tone === 'warn' ? 'text-secondary' : 'text-error';
 
-  const handleBackToLogin = () => {
-    localStorage.removeItem('cbt_auth_token');
-    localStorage.removeItem('cbt_user_name');
+  const handleBackToLogin = async () => {
+    setSigningOut(true);
+    // Memanggil logout() membatalkan token di server; localStorage baru
+    // dibersihkan setelahnya (atau meski gagal, lihat services/api.ts).
+    await logout();
     navigate('/login');
   };
 
@@ -43,8 +48,12 @@ export default function Finished() {
       <h1 className={`font-jakarta text-3xl font-bold ${toneClass}`}>{info.title}</h1>
       <p className="max-w-md text-on-surface-variant">{info.desc}</p>
       <p className="text-sm text-outline">Nilai akan diumumkan oleh guru melalui sistem sekolah.</p>
-      <button onClick={handleBackToLogin} className="mt-4 rounded-lg bg-primary px-6 py-3 text-on-primary font-semibold">
-        Kembali ke Login
+      <button
+        onClick={handleBackToLogin}
+        disabled={signingOut}
+        className="mt-4 rounded-lg bg-primary px-6 py-3 text-on-primary font-semibold disabled:opacity-60"
+      >
+        {signingOut ? 'Keluar...' : 'Kembali ke Login'}
       </button>
     </div>
   );

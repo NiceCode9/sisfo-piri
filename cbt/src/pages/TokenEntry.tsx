@@ -44,7 +44,10 @@ export default function TokenEntry() {
 
   return (
     <div className="min-h-screen bg-surface flex flex-col items-center justify-center p-6">
-      <div className="card-surface w-full max-w-md p-8">
+      {/* `card-surface` sebelumnya dipakai sebagai satu kelas tunggal tapi tidak ada
+          di CSS mana pun — kartu ini tampil tanpa latar, tanpa border, tanpa
+          bayangan. Diganti utility asli. */}
+      <div className="w-full max-w-md rounded-xl border border-outline-variant bg-surface-container-lowest p-8 shadow-lg">
         <h1 className="font-jakarta text-xl font-bold text-on-surface mb-1">Masukkan Token Ujian</h1>
         <p className="text-sm text-on-surface-variant mb-6">Token 6–20 karakter dari pengawas, huruf kapital</p>
         <input

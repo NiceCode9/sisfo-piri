@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { reportViolation, sendHeartbeat, finishExam } from '../services/examApi';
+import type { ViolationType } from '../services/examApi';
 
 interface UseExamGuardOptions {
   examSessionId: number;
@@ -42,26 +43,32 @@ export function useExamGuard({
   // --- Helper: catat pelanggaran, naikkan counter, cek batas ---
   // connection_lost tidak hitung batas curang (server juga kecualikan)
   const recordViolation = useCallback(
-    async (type: Parameters<typeof reportViolation>[1]) => {
+    async (type: ViolationType) => {
       if (finishedRef.current) return;
 
       const isCheatingViolation = type !== 'connection_lost';
 
-      setState((prev) => {
-        const nextCount = isCheatingViolation ? prev.violationCount + 1 : prev.violationCount;
-        return {
-          ...prev,
-          violationCount: nextCount,
-          showViolationWarning: true,
-          lastViolationType: type,
-        };
-      });
+      // Penghitung optimistic dipakai HANYA untuk umpan balik visual; begitu
+// respons server datang, angka itu diganti dengan `violation_count` asli.
+// Versi lama menaikkan counter lokal tanpa memverifikasi ke server sehingga
+// koneksi putus sesaat membuat penghitung siswa melenceng dari yang tercatat.
+      setState((prev) => ({
+        ...prev,
+        violationCount: isCheatingViolation ? prev.violationCount + 1 : prev.violationCount,
+        showViolationWarning: true,
+        lastViolationType: type,
+      }));
 
       try {
-        await reportViolation(examSessionId, type);
+        const res = await reportViolation(examSessionId, type);
+        const serverCount = res?.data?.violation_count;
+        if (typeof serverCount === 'number') {
+          setState((prev) => ({ ...prev, violationCount: serverCount }));
+        }
       } catch {
-        // Kalau request gagal (misal lagi disconnect), tetap lanjut —
-        // server juga akan expire sesi ini via expected_end_at kalau perlu.
+        // Permintaan gagal dan sudah masuk antrean examApi; penghitung lokal
+        // sengaja dibiarkan apa adanya agar tidak mengarang angka yang
+        // server tidak pernah terima.
       }
     },
     [examSessionId]
