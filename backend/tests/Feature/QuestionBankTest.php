@@ -95,8 +95,9 @@ test('impor soal dari bank membuat snapshot copy', function () {
     $mapel = mapelAktif();
     $guru = Guru::create(['user_id' => $admin->id, 'nama' => 'Admin Guru', 'jenis_kelamin' => 'L', 'is_aktif' => true]);
     $bank = QuestionBank::create(['mata_pelajaran_id' => $mapel->id, 'guru_id' => $guru->id, 'nama' => 'Bank Snap', 'created_by' => $admin->id]);
-    $q1 = ExamQuestion::create(['question_bank_id' => $bank->id, 'question_text' => 'Soal 1', 'type' => 'single_choice', 'score' => 10, 'order' => 1]);
-    $q2 = ExamQuestion::create(['question_bank_id' => $bank->id, 'question_text' => 'Soal 2', 'type' => 'single_choice', 'score' => 10, 'order' => 2]);
+    $opsi = [['key' => 'a', 'text' => 'A'], ['key' => 'b', 'text' => 'B']];
+    $q1 = ExamQuestion::create(['question_bank_id' => $bank->id, 'question_text' => 'Soal 1', 'type' => 'single_choice', 'options' => $opsi, 'correct_answer' => ['a'], 'score' => 10, 'order' => 1]);
+    $q2 = ExamQuestion::create(['question_bank_id' => $bank->id, 'question_text' => 'Soal 2', 'type' => 'single_choice', 'options' => $opsi, 'correct_answer' => ['b'], 'score' => 10, 'order' => 2]);
 
     $rombel = rombelBaru();
     $exam = Exam::create(['rombel_id' => $rombel->id, 'mata_pelajaran_id' => $mapel->id, 'name' => 'Ujian Snap', 'duration_minutes' => 60, 'max_violation_count' => 3, 'status' => 'draft', 'created_by' => $admin->id]);
@@ -107,6 +108,45 @@ test('impor soal dari bank membuat snapshot copy', function () {
 
     expect($exam->fresh()->questions()->count())->toBe(2)
         ->and($exam->questions()->where('source_question_id', $q1->id)->exists())->toBeTrue();
+});
+
+test('impor melewati soal yang kuncinya tidak cocok dengan opsinya', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('super-admin');
+    $mapel = mapelAktif();
+    $guru = Guru::create(['user_id' => $admin->id, 'nama' => 'Admin Rusak', 'jenis_kelamin' => 'L', 'is_aktif' => true]);
+    $bank = QuestionBank::create(['mata_pelajaran_id' => $mapel->id, 'guru_id' => $guru->id, 'nama' => 'Bank Rusak', 'created_by' => $admin->id]);
+
+    // Kunci "z" tidak ada di opsi — soal ini akan bernilai 0 untuk semua siswa.
+    $rusak = ExamQuestion::create([
+        'question_bank_id' => $bank->id,
+        'question_text' => 'Soal Rusak',
+        'type' => 'single_choice',
+        'options' => [['key' => 'a', 'text' => 'A']],
+        'correct_answer' => ['z'],
+        'score' => 10,
+        'order' => 1,
+    ]);
+
+    // Pilihan tunggal dengan dua kunci — mustahil dijawab benar.
+    $ganda = ExamQuestion::create([
+        'question_bank_id' => $bank->id,
+        'question_text' => 'Soal Kunci Ganda',
+        'type' => 'single_choice',
+        'options' => [['key' => 'a', 'text' => 'A'], ['key' => 'b', 'text' => 'B']],
+        'correct_answer' => ['a', 'b'],
+        'score' => 10,
+        'order' => 2,
+    ]);
+
+    $rombel = rombelBaru();
+    $exam = Exam::create(['rombel_id' => $rombel->id, 'mata_pelajaran_id' => $mapel->id, 'name' => 'Ujian Filter', 'duration_minutes' => 60, 'max_violation_count' => 3, 'status' => 'draft', 'created_by' => $admin->id]);
+
+    $this->actingAs($admin)->post(route('admin.cbt.exams.banks.import', [$exam, $bank]), [
+        'question_ids' => [$rusak->id, $ganda->id],
+    ])->assertRedirect();
+
+    expect($exam->fresh()->questions()->count())->toBe(0);
 });
 
 test('hapus bank tidak menghapus snapshot ujian', function () {
