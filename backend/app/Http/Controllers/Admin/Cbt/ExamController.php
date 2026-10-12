@@ -36,10 +36,22 @@ class ExamController extends Controller implements HasMiddleware
     {
         $query = Exam::with(['rombel.kelas', 'mataPelajaran', 'tokens'])->latest();
 
-        // Satu-satunya sumber:jangkauan rombel dari Rombel::terjangkauUser().
-        // Guru tanpa penugasan harus melihat NOL, bukan seluruh ujian.
         if (! $request->user()->hasRole(Rombel::ROLE_UNIVERSAL)) {
-            $query->whereIn('rombel_id', Rombel::terjangkauUser($request->user())->select('rombels.id'));
+            $guru = Guru::where('user_id', $request->user()->id)->first();
+
+            // Daftar ini tidak boleh lebih longgar dari ExamPolicy::view(),
+            // kalau tidak guru melihat baris yang tidak bisa dibuka -> 403 saat
+            // diklik. Policy minta dua hal: rombel terjangkau, DAN mengampu
+            // mapel ujian. Keduanya dicek di sini dengan syarat terpisah.
+            // `Pengampu` sengaja tidak difilter rombel, sama seperti policy:
+            // guru yang mengampu Matematika di 8B tetap berhak atas ujian
+            // Matematika di 7A selama ia wali kelas 7A.
+            $query
+                ->whereIn('rombel_id', Rombel::terjangkauUser($request->user())->select('rombels.id'))
+                ->whereExists(fn ($q) => $q->selectRaw('1')
+                    ->from('pengampus')
+                    ->whereColumn('pengampus.mata_pelajaran_id', 'exams.mata_pelajaran_id')
+                    ->where('pengampus.guru_id', $guru?->id ?? -1));
         }
 
         $exams = $query->paginate(10)->withQueryString();

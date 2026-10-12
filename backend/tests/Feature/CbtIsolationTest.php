@@ -178,6 +178,80 @@ test('guru tanpa penugasan melihat nol ujian, bukan seluruh ujian', function () 
         ->assertSee('Belum ada ujian');
 });
 
+/**
+ * Guru wali kelas $rombel tanpa baris Pengampu untuk mapel apa pun.
+ *
+ * Rombel::terjangkauUser() menghitungnya terjangkau, jadi dia lolos penyaring
+ * daftar — tapi ExamPolicy::view() tetap menolak karena tidak mengampu mapel.
+ */
+function guruWaliSaja(Rombel $rombel): User
+{
+    $user = User::factory()->create();
+    $user->assignRole('guru');
+
+    $guru = Guru::create([
+        'user_id' => $user->id,
+        'nip' => 'NIP'.Str::upper(Str::random(6)),
+        'nama' => $user->name,
+        'jenis_kelamin' => 'L',
+        'is_aktif' => true,
+    ]);
+
+    $rombel->update(['wali_guru_id' => $guru->id]);
+
+    return $user;
+}
+
+test('daftar ujian tidak menampilkan ujian yang policy akan tolak', function () {
+    $rombel = rombelIsolasi();
+    $mapel = mapelIsolasi();
+    $exam = examMilik($rombel, $mapel);
+
+    // Wali kelas yang bukan pengampu mapel ini. Rombel-nya terjangkau, jadi
+    // dia dulu muncul di daftar lalu kena 403 saat diklik. Daftar harus
+    // Daftar harus mencerminkan ExamPolicy::view(), bukan menundanya.
+    $wali = guruWaliSaja($rombel);
+
+    $this->actingAs($wali)
+        ->get(route('admin.cbt.exams.index'))
+        ->assertOk()
+        ->assertDontSee($exam->name);
+
+    // Dan konsekuensinya: klik baris itu memang memang ditolak.
+    $this->actingAs($wali)
+        ->get(route('admin.cbt.exams.show', $exam))
+        ->assertForbidden();
+});
+
+test('wali kelas tetap melihat ujian mapel yang iaampu di rombel lain', function () {
+    // ExamPolicy::view() memeriksa Pengampu TANPA filter rombel: guru yang
+    // mengampu Matematika di 8B berhak atas Matematika 7A selama ia wali 7A.
+    // Kalau daftar ikut Persempit kelewat memakai EXISTS berpasangan rombel+mapel,
+    // dia akan kehilangan haknya ini.
+    $rombelUjian = rombelIsolasi();
+    $rombelLain = rombelIsolasi();
+    $mapel = mapelIsolasi();
+    $exam = examMilik($rombelUjian, $mapel);
+
+    $wali = guruWaliSaja($rombelUjian);
+    $guru = Guru::where('user_id', $wali->id)->first();
+
+    Pengampu::create([
+        'guru_id' => $guru->id,
+        'mata_pelajaran_id' => $mapel->id,
+        'rombel_id' => $rombelLain->id,
+    ]);
+
+    $this->actingAs($wali)
+        ->get(route('admin.cbt.exams.index'))
+        ->assertOk()
+        ->assertSee($exam->name);
+
+    $this->actingAs($wali)
+        ->get(route('admin.cbt.exams.show', $exam))
+        ->assertOk();
+});
+
 test('hasil ujian milik guru lain tidak bisa dibaca atau diekspor', function () {
     $rombel = rombelIsolasi();
     $mapel = mapelIsolasi();
