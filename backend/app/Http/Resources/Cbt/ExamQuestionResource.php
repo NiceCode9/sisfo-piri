@@ -17,7 +17,13 @@ class ExamQuestionResource extends JsonResource
         return [
             'id' => $this->id,
             'question_text' => $this->question_text,
-            'question_image' => $this->question_image,
+            // URL route terproteksi, BUKAN path storage mentah. Path mentah
+            // dua masalah sekaligus: membocorkan struktur disk, dan
+            // dipakai SPA sebagai `src` sehingga resolve ke /cbt/questions/...
+            // yang 404 (URL publik ada di bawah /storage).
+            'question_image' => $this->question_image
+                ? route('api.cbt.exam.question-image', ['question' => $this->id])
+                : null,
             'type' => $this->type,
             'options' => $options,
             'score' => $this->score,

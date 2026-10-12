@@ -13,7 +13,8 @@
 | **High** | 6 | Brute force, kebocoran kunci jawaban, kontrol yang tidak pernah dijalankan |
 | **Medium** | 7 | Kerusakan saat dipakai, perhitungan nilai tidak benar, jalur happy-path putus |
 | **Low** | 8 | Aset mati, token UI tidak terdefinikan, tidak ada test, mobile tidak terpakai |
-| **TOTAL** | **24** | **24 selesai** |
+| **Upload** | 6 | Gambar soal bocor lewat disk publik, URL salah, form cacah |
+| **TOTAL** | **30** | **30 selesai** |
 
 Temuan paling struktural: **`ExamPolicy` sudah ditulis lengkap tetapi tidak pernah dipanggil sekali pun** (C2) — seluruh 16 route admin CBT hanya dijaga `middleware('auth')`, sehingga setiap guru bisa membaca dan mengubah ujian milik guru lain. Dan **jawaban benar tidak divalidasi terhadap opsinya** (M4), sehingga satu salah ketik guru membuat soal bernilai 0 untuk semua siswa tanpa satu pun pesan error.
 
@@ -25,7 +26,7 @@ Legend verifikasi:
 
 # Status Perbaikan
 
-Ringkasan akhir: **755 test backend** + **21 test frontend** lulus; `pint`, `tsc --noEmit`, `oxlint`, dan `vite build` bersih; `npm audit --omit=dev` melaporkan **0 kerentanan**.
+Ringkasan akhir: **788 test backend** + **26 test frontend** lulus; `pint`, `tsc --noEmit`, `oxlint`, dan `vite build` bersih; `npm audit --omit=dev` melaporkan **0 kerentanan**.
 
 ## Tahap 1 — 9 temuan Critical + High ✅
 
@@ -86,6 +87,107 @@ Ringkasan verifikasi: `vendor/bin/pint`, `tsc --noEmit`, `oxlint`, `vite build` 
 
 19 test regresi baru di `backend/tests/Feature/CbtRemedialTest.php`; dengan source di-`git stash`, 8 di antaranya gagal — test benar-benar mengunci aturan ini.
 
+## Tahap 5 — upload gambar soal & form tambah soal ✅
+
+| ID | Temuan | Status |
+|---|---|---|
+| U1 | Gambar soal hidup di disk publik tanpa autentikasi | ✅ disk privat + route terproteksi |
+| U2 | Gambar tidak pernah tampil di ujian (URL salah) | ✅ API kirim URL route, SPA ambil blob |
+| U3 | Form bank tanpa opsi/kunci — regresi saya sendiri | ✅ partial form bersama |
+| U4 | Berkas bersama hasil import terhapus bareng soal bank | ✅ hapus hanya bila tak dirujuk |
+| U5 | Hapus soal ujian tidak menghapus file (yatim) | ✅ keduanya konsisten |
+| U6 | Seeder menulis berkas tebakan ke disk publik | ✅ dihapus |
+
+17 test backend + 5 test frontend. Dengan source di-`git stash`, **17 dari 17
+test backend gagal** — semuanya mengunci bug, bukan sekadar lulus.
+
+---
+
+# UPLOAD GAMBAR SOAL
+
+## U1. Gambar soal hidup di disk publik ✅
+
+**Lokasi** — `QuestionBankQuestionController.php`, `ExamQuestionController.php` — `->store('cbt/questions', 'public')`
+
+**Masalah** Gambar disimpan ke disk `public` dan disajikan di
+`/storage/cbt/questions/...` tanpa autentikasi. `public/.htaccess` tidak punya
+aturan untuk `/storage`.
+
+**Dampak** Isi file itu adalah **bank soal ujian** — justru hal yang dilindungi
+di H4. Hash 40 karakter pada nama file hanya *obscurity*, bukan kontrol akses
+(preseden: BUG_PPDB C1). URL bocor lewat `Referer`, cache browser, atau log.
+
+Aturan `.ai/rules/controllers.md` menyebut "unggahan siswa/ortu", jadi secara
+harfiah soal ini tidak tercakup — tapi isinya justru lebih sensitif, sehingga
+ruang lingkup aturannya diperluas di bagian aturan repo.
+
+**Perbaikan** `ExamQuestion::DISK = 'berkas'` — disk privat yang sama dengan
+`Materi` dan `PengumpulanTugas`. Dua route penyaji:
+
+- `GET /api/cbt/exam/question-image/{question}` — siswa, Sanctum + harus punya
+  sesi ongoing pada ujian itu. Soal bank selalu 404.
+- `GET /admin/cbt/questions/{question}/image` — guru, session web + `ExamPolicy`.
+
+Keduanya stream lewat `Storage::disk(...)->response()`, sama seperti
+`BerkasController::alirkan()`.
+
+> **Sisi server:** `ExamSessionController::ownsOngoingExam()` diekstrak sebagai satu definisi bersama `resolveOngoingSession()`. Kalau tidak, aturan "ujian mana yang sedang dikerjakan siswa" punya dua implementasi yang bisa berbeda — mengizinkan gambar lewat jalur longgar sementara menjawab soal lewat jalur ketat akan membocorkan soal yang belum waktunya.
+
+## U2. Gambar tidak pernah tampil di ujian ✅
+
+**Lokasi** — `ExamQuestionResource.php:20` dan `ExamRoom.tsx:116`
+
+**Masalah** Resource mengirim path storage mentah (`cbt/questions/abc.png`),
+lalu SPA memakainya sebagai `src`. Browser meminta `/cbt/questions/abc.png`,
+padahal URL publik ada di bawah `/storage`. Tidak ada proxy `/storage` di
+`vite.config.ts`. Hasilnya 404 — gambar tidak pernah muncul sejak awal.
+
+**Perbaikan** Resource mengirim URL route. SPA mengambilnya sebagai blob lewat
+`useQuestionImage()` karena `<img src>` tidak bisa mengirim header
+`Authorization` — token CBT disimpan di `localStorage`, bukan cookie.
+
+Hook menyimpan `src` **bersama** url-nya lalu mencocokkan saat render. Kalau
+hanya disimpan sebagai string, gambar soal sebelumnya tetap tampil sesaat saat
+gambar baru belum selesai diunduh. `URL.revokeObjectURL` dipanggil saat soal
+berganti — tanpa itu tiap perpindahan menahan satu blob sampai tab ditutup.
+
+## U3. Form bank tidak punya opsi/kunci — regresi saya sendiri ✅
+
+**Lokasi** — `banks/show.blade.php:13-20`
+
+**Masalah** Saya menambahkan validasi kunci jawaban (M4) yang mewajibkan
+`options` dan `correct_answer` untuk soal pilihan — tapi form bank tidak punya
+kedua field itu, dan tipe default-nya `single_choice`. **Setiap soal pilihan
+gagal tersimpan**, dengan pesan error yang tidak punya kolom untuk memperbaikinya.
+
+Saya memperbaiki form *ujian* di Tahap 3 tapi terlewat form *bank*. Test suite
+tetap hijau karena tidak ada test yang menelusuri form blade.
+
+**Perbaikan** Partial bersama `admin/cbt/questions/_form.blade.php` dipakai kedua
+halaman, dengan baris opsi dinamis dan kunci per baris. Ada test yang memastikan
+kedua halaman memuat partial yang sama, supaya tidak bisa berbeda lagi.
+
+> **Akar bug kedua di form ini:** saat tipe diubah ke uraian, baris opsi disembunyikan tapi **tetap terkirim** sebagai string kosong. `ConvertEmptyStringsToNull` mengubahnya jadi `null`, lalu `required_with:options` menolaknya. Input yang tidak aktif harus di-`disable`, bukan sekadar disembunyikan.
+
+## U4 & U5. Penghapusan file ✅
+
+`importFromBank` menyalin `question_image` apa adanya, jadi baris di bank dan
+salinannya di ujian menunjuk **satu file**. Menghapus soal di bank ikut menghapus
+gambar yang masih dipakai soal ujian yang sedang berjalan. Sebaliknya,
+`ExamQuestionController::destroy` sama sekali tidak menghapus file — soal ujian
+meninggalkan berkas yatim.
+
+Keduanya kini memakai `ExamQuestion::hapusGambarJikaTakDipakai()`: menghapus file
+hanya bila tidak ada baris lain yang mereferensikannya.
+
+## U6. Seeder menulis berkas ke disk publik ✅
+
+Seeder membuat `cbt/questions/demo-{bankId}-{urutan}.txt` di disk publik: nama
+bisa ditebak, isinya cuma teks placeholder, dan `.txt` menyamar sebagai gambar.
+Seeder tidak lagi membuat berkas; soal yang dulu merujuk gambar placeholder
+sudah ditulis ulang agar tidak merujuk gambar yang tidak ada.
+
+---
 # CRITICAL
 
 ## C1. Soal ujian bisa dihapus tanpa satu pun pemeriksaan izin ✅

@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\Cbt\ExamAnswerController;
 use App\Http\Controllers\Admin\Cbt\ExamController as CbtExamController;
 use App\Http\Controllers\Admin\Cbt\ExamMonitoringController as CbtMonitoringController;
 use App\Http\Controllers\Admin\Cbt\ExamQuestionController as CbtQuestionController;
+use App\Http\Controllers\Admin\Cbt\ExamQuestionImageController as CbtQuestionImageController;
 use App\Http\Controllers\Admin\Cbt\ExamResultController;
 use App\Http\Controllers\Admin\Cbt\ExamTokenController as CbtTokenController;
 use App\Http\Controllers\Admin\Cbt\QuestionBankController;
@@ -234,8 +235,8 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
         Route::resource('exams', CbtExamController::class);
         Route::post('exams/{exam}/tokens', [CbtTokenController::class, 'store'])->name('exams.tokens.store');
         Route::delete('tokens/{token}', [CbtTokenController::class, 'destroy'])->name('tokens.destroy');
-        Route::post('exams/{exam}/questions', [CbtQuestionController::class, 'store'])->name('exams.questions.store');
-        Route::delete('questions/{question}', [CbtQuestionController::class, 'destroy'])->name('questions.destroy');
+        Route::post('exams/{exam}/questions', [CbtQuestionController::class, 'store'])->name('exams.questions.store');        Route::delete('questions/{question}', [CbtQuestionController::class, 'destroy'])->name('questions.destroy');
+        Route::get('questions/{question}/image', CbtQuestionImageController::class)->name('questions.image');
         Route::get('exams/{exam}/monitoring', [CbtMonitoringController::class, 'index'])->name('monitoring.index');
         Route::get('exams/{exam}/monitoring/data', [CbtMonitoringController::class, 'data'])->name('monitoring.data');
         Route::post('exams/{exam}/sessions/{session}/force', [CbtMonitoringController::class, 'force'])->name('sessions.force');

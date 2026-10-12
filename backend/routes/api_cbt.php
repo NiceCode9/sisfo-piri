@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Cbt\AnswerController;
 use App\Http\Controllers\Api\Cbt\AuthController;
+use App\Http\Controllers\Api\Cbt\ExamQuestionImageController;
 use App\Http\Controllers\Api\Cbt\ExamSessionController;
 use App\Http\Controllers\Api\Cbt\QuestionController;
 use App\Http\Controllers\Api\Cbt\ViolationController;
@@ -15,6 +16,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/exam/active', [ExamSessionController::class, 'active']);
     Route::post('/exam/join', [ExamSessionController::class, 'join']);
     Route::get('/exam/questions', [QuestionController::class, 'index']);
+    Route::get('/exam/question-image/{question}', ExamQuestionImageController::class)->name('api.cbt.exam.question-image');
     Route::post('/exam/answer', [AnswerController::class, 'store'])->middleware('throttle:cbt-write');
     Route::post('/exam/heartbeat', [ExamSessionController::class, 'heartbeat'])->middleware('throttle:heartbeat');
     Route::post('/exam/violation', [ViolationController::class, 'store'])->middleware('throttle:cbt-write');

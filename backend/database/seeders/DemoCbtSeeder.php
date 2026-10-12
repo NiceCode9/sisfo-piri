@@ -12,7 +12,6 @@ use App\Models\QuestionBank;
 use App\Models\Rombel;
 use App\Models\TahunAjaran;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Storage;
 
 class DemoCbtSeeder extends Seeder
 {
@@ -76,22 +75,18 @@ class DemoCbtSeeder extends Seeder
                 ['type' => 'multiple_choice', 'text' => 'Bangun datar dengan 4 sisi sama?', 'options' => [['key' => 'A', 'text' => 'Persegi'], ['key' => 'B', 'text' => 'Segitiga'], ['key' => 'C', 'text' => 'Belah ketupat'], ['key' => 'D', 'text' => 'Lingkaran']], 'correct' => ['A', 'C'], 'score' => 10],
                 ['type' => 'essay', 'text' => 'Jelaskan langkah menyelesaikan persamaan 2x + 5 = 15.', 'options' => null, 'correct' => null, 'score' => 15],
                 ['type' => 'essay', 'text' => 'Sebuah toko memberi diskon 20%. Jika harga awal Rp100.000, berapa harga setelah diskon? Jelaskan.', 'options' => null, 'correct' => null, 'score' => 15],
-                ['type' => 'essay', 'text' => 'Perhatikan gambar persegi berikut (sisi 8 cm). Hitung luasnya dan jelaskan rumus yang dipakai.', 'options' => null, 'correct' => null, 'score' => 15, 'with_image' => true],
+                ['type' => 'essay', 'text' => 'Sebuah persegi memiliki panjang 8 cm dan lebar 8 cm. Hitung luasnya dan jelaskan rumus yang dipakai.', 'options' => null, 'correct' => null, 'score' => 15],
             ];
 
             foreach ($templates as $order => $tpl) {
-                $image = null;
-                if (! empty($tpl['with_image'])) {
-                    $path = 'cbt/questions/demo-'.$bank->id.'-'.($order + 1).'.txt';
-                    if (! Storage::disk('public')->exists($path)) {
-                        Storage::disk('public')->put($path, 'Placeholder image soal '.$bank->nama.' #'.($order + 1));
-                    }
-                    $image = $path;
-                }
-
+                // Seeder sengaja tidak membuat berkas gambar. Versi lama menulis
+                // file .txt bernama `demo-{bankId}-{urutan}.txt` ke disk PUBLIK —
+                // nama yang bisa ditebak, isinya cuma placeholder, dan URLnya
+                // bisa diambil tanpa login. Sekarang gambar soal hanya dibuat
+                // lewat form guru, yang menyimpannya ke disk privat.
                 ExamQuestion::firstOrCreate(
                     ['question_bank_id' => $bank->id, 'question_text' => $tpl['text']],
-                    ['exam_id' => null, 'source_question_id' => null, 'question_image' => $image, 'type' => $tpl['type'], 'options' => $tpl['options'], 'correct_answer' => $tpl['correct'], 'score' => $tpl['score'], 'order' => $order + 1]
+                    ['exam_id' => null, 'source_question_id' => null, 'question_image' => null, 'type' => $tpl['type'], 'options' => $tpl['options'], 'correct_answer' => $tpl['correct'], 'score' => $tpl['score'], 'order' => $order + 1]
                 );
             }
         }

@@ -251,6 +251,28 @@ class ExamSessionController extends Controller
     }
 
     /**
+     * Apakah user punya sesi yang benar-benar jalan pada suatu ujian?
+     *
+     * Dipakai route penyaji gambar soal. Sengaja diekstrak sebagai satu
+     * definisi bersama `resolveOngoingSession()` supaya aturan "ujian mana
+     * yang sedang dikerjakan siswa" tidak punya dua implementasi yang bisa
+     * berbeda — mengizinkan gambar lewat jalur longgar sementara menjawab soal
+     * lewat jalur ketat akan membocorkan soal ujian yang belum waktunya.
+     */
+    public static function ownsOngoingExam(Request $request, ?int $examId): bool
+    {
+        if ($examId === null) {
+            return false;
+        }
+
+        return ExamSession::where('user_id', $request->user()->id)
+            ->where('exam_id', $examId)
+            ->where('status', 'ongoing')
+            ->where('expected_end_at', '>', Carbon::now())
+            ->exists();
+    }
+
+    /**
      * @param  string|null  $status  Status akhir eksplisit. Sweeper memakai
      *                               'expired' untuk menandai sesi yang ditinggalkan
      *                               siswa, sehingga baris itu tidak lagi ikut

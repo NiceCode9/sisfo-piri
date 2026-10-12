@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useExamGuard } from '../hooks/useExamGuard';
 import { useAutosaveAnswer } from '../hooks/useAutosaveAnswer';
+import { useQuestionImage } from '../hooks/useQuestionImage';
 import { useExamStore } from '../store/examStore';
 import QuestionNavigator from '../components/QuestionNavigator';
 import { finishExam } from '../services/examApi';
@@ -44,6 +45,7 @@ function ExamRoomInner({ meta, questions }: { meta: ExamMeta; questions: Questio
   });
 
   const currentQuestion = questions[currentIndex];
+  const gambarSoal = useQuestionImage(currentQuestion?.question_image);
   const isFlagged = !!flagged[currentQuestion.id];
   const hasAnswer = (answers[currentQuestion.id] ?? []).some((v) => v.trim() !== '');
 
@@ -112,8 +114,8 @@ function ExamRoomInner({ meta, questions }: { meta: ExamMeta; questions: Questio
             Soal {currentIndex + 1} dari {questions.length} — {answeredCount} terjawab, {flaggedCount} ragu
           </p>
           <p className="mb-4 font-jakarta text-lg font-medium text-on-surface">{currentQuestion.question_text}</p>
-          {currentQuestion.question_image && (
-            <img src={currentQuestion.question_image} alt="Gambar soal" className="mb-4 max-h-72 rounded-lg border border-outline-variant" />
+          {gambarSoal && (
+            <img src={gambarSoal} alt="Gambar soal" className="mb-4 max-h-72 w-full rounded-lg border border-outline-variant object-contain" />
           )}
 
           {currentQuestion.type === 'essay' ? (

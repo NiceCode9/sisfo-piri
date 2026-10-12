@@ -10,7 +10,6 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
-use Illuminate\Support\Facades\Storage;
 
 class QuestionBankQuestionController extends Controller implements HasMiddleware
 {
@@ -29,7 +28,7 @@ class QuestionBankQuestionController extends Controller implements HasMiddleware
 
         $imagePath = null;
         if ($request->hasFile('question_image')) {
-            $imagePath = $request->file('question_image')->store('cbt/questions', 'public');
+            $imagePath = $request->file('question_image')->store(ExamQuestion::IMAGE_DIR, ExamQuestion::DISK);
         }
 
         ExamQuestion::create([
@@ -59,9 +58,7 @@ class QuestionBankQuestionController extends Controller implements HasMiddleware
 
         $this->authorize('update', $bank);
 
-        if ($question->question_image) {
-            Storage::disk('public')->delete($question->question_image);
-        }
+        $question->hapusGambarJikaTakDipakai();
         $question->delete();
 
         return back()->with('success', 'Soal dihapus dari bank.');

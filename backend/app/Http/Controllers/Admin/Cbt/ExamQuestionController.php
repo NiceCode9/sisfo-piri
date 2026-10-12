@@ -29,7 +29,7 @@ class ExamQuestionController extends Controller implements HasMiddleware
         $data['exam_id'] = $exam->id;
 
         if ($request->hasFile('question_image')) {
-            $data['question_image'] = $request->file('question_image')->store('cbt/questions', 'public');
+            $data['question_image'] = $request->file('question_image')->store(ExamQuestion::IMAGE_DIR, ExamQuestion::DISK);
         }
 
         ExamQuestion::create($data);
@@ -47,6 +47,10 @@ class ExamQuestionController extends Controller implements HasMiddleware
         $this->authorize('update', $question->exam);
 
         $examId = $question->exam_id;
+        // Sebelumnya ExamQuestionController sama sekali tidak menghapus file —
+        // hanya bank controller yang这么做, sehingga soal ujian yang dihapus
+        // meninggalkan berkas yatim di storage.
+        $question->hapusGambarJikaTakDipakai();
         $question->delete();
         Cache::forget("exam:{$examId}:questions");
 
