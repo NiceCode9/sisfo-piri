@@ -6,6 +6,22 @@
 @section('content')
 <div class="page-header d-flex gap-2"><div><h1 class="page-title">{{ $exam->name }}</h1><p class="page-subtitle">{{ $exam->rombel->kelas->nama_kelas ?? '-' }} • {{ $exam->mataPelajaran->nama ?? '-' }} • {{ $exam->duration_minutes }}m</p></div><a href="{{ route('admin.cbt.monitoring.index', $exam) }}" class="btn btn-primary btn-sm">Monitoring</a></div>
 @include('layouts.partials.alert')
+
+<div class="card-nexus mb-3"><div class="card-body-nexus">
+<h6 style="font-size:13px;font-weight:700;">Import soal massal (Excel + gambar)</h6>
+<p style="font-size:12.5px;color:var(--text-secondary);margin:4px 0 8px;">
+  Unggah paket <code>.zip</code> berisi <code>soal.xlsx</code> dan folder <code>gambar/</code>. Soal akan ditampilkan di layar
+  review dulu — kamu bisa mengoreksinya sebelum disimpan.
+</p>
+<div class="d-flex gap-2 flex-wrap">
+  <a href="{{ route('admin.cbt.import.template') }}" class="btn btn-nexus-outline btn-sm">Unduh template Excel</a>
+</div>
+<form method="POST" action="{{ route('admin.cbt.import.unggah', $exam) }}" enctype="multipart/form-data" class="mt-2 d-flex gap-2 flex-wrap align-items-center">
+  @csrf
+  <input type="file" name="paket" accept=".zip,application/zip" class="form-control form-control-sm" style="max-width:340px;" required />
+  <button type="submit" class="btn btn-primary btn-sm">Unggah &amp; review</button>
+</form>
+</div></div>
 <div class="card-nexus"><div class="card-body-nexus">
 <p style="font-size:13px;">{{ $exam->description ?? '—' }}</p>
 <h6 style="font-size:13px;font-weight:700;">Token</h6>

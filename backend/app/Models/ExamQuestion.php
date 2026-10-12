@@ -21,6 +21,13 @@ class ExamQuestion extends Model
 
     public const IMAGE_DIR = 'cbt/questions';
 
+    /**
+     * Folder sementara untuk paket import yang sedang direview. Berisi
+     * `manifest.json`, berkas `.xlsx`, dan gambar yang sudah diacak ulang
+     * namanya. Disapu setelah 24 jam — lihat `cbt:expire-sessions`.
+     */
+    public const IMPORT_DIR = 'cbt/import/';
+
     protected $fillable = [
         'exam_id', 'question_bank_id', 'source_question_id', 'question_text', 'question_image', 'type', 'options', 'correct_answer', 'score', 'order',
     ];

@@ -188,6 +188,23 @@ Seeder tidak lagi membuat berkas; soal yang dulu merujuk gambar placeholder
 sudah ditulis ulang agar tidak merujuk gambar yang tidak ada.
 
 ---
+
+## Tahap 6 — import soal massal (Excel + gambar) ✅
+
+Fitur baru, bukan perbaikan bug. Yang Closed selama pengerjaannya:
+
+| Temuan | Status |
+|---|---|
+| Nama berkas acak tidak cocok dengan pola route pratinjau | ✅ `Str::random()` (alnum) diganti hex murni |
+| Pola validasi nama terdefinisi dua kali | ✅ disatukan di `PaketSoal::POLA_NAMA` |
+| Sweeper paket tidak pernah jalan | ✅ dipindah sebelum `return` dini |
+| `directories()` mengembalikan path lengkap, bukan token | ✅ `basename()` + path penuh untuk hapus |
+
+Rencana: `docs/ROADMAP_IMPORT_SOAL_CBT.md`
+Panduan guru: `docs/PANDUAN_IMPORT_SOAL_CBT.md`
+
+---
+
 # CRITICAL
 
 ## C1. Soal ujian bisa dihapus tanpa satu pun pemeriksaan izin ✅

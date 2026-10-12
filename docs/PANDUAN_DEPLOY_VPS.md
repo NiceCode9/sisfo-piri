@@ -122,6 +122,16 @@ php artisan queue:restart
 sudo cp /var/www/sisfo-piri/docs/server-config/php-fpm-pool.conf.example /etc/php/8.3/fpm/pool.d/www.conf
 sudo systemctl restart php8.3-fpm
 
+# Verifikasi batas unggah (paket import soal CBT perlu 50 MB)
+php -i | grep -E "^(upload_max_filesize|post_max_size|memory_limit)"
+```
+
+> **Batas unggah.** Default PHP adalah 2M/8M — paket soal yang berisi foto HP akan
+> ditolak tanpa pesan yang jelas. Pool di atas menyetel 50M/52M. Kalau ada override
+> ditimpa di tempat lain (mis. `.user.ini` di document root), import akan gagal
+> dengan `$_FILES` kosong. Yang perlu dicek juga: `post_max_size` **harus lebih
+> besar** dari `upload_max_filesize`, kalau tidak PHP membuang seluruh POST.
+
 # MySQL
 sudo cp /var/www/sisfo-piri/docs/server-config/mysql-tuning.cnf.example /etc/mysql/conf.d/cbt-tuning.cnf
 sudo systemctl restart mysql
