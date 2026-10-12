@@ -16,6 +16,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
@@ -266,6 +267,18 @@ class SoalImportController extends Controller implements HasMiddleware
             $berkas->buangYangBaru();
 
             throw $e;
+        }
+
+        // Soal yang baru disimpan harus langsung terlihat siswa. Cache soal
+        // bertahan 6 jam (Api\Cbt\QuestionController), jadi tanpa ini siswa
+        // yang sempat membuka soal sebelum import tetap melihat daftar lama
+        // meski guru baru saja menambah puluhan soal.
+        //
+        // Dipanggil setelah transaksi, bukan di dalamnya: kalau forget berjalan
+        // lalu transaksi di-rollback, cache akan terisi ulang oleh request siswa
+        // berikutnya dengan data yang justru tidak lagi sinkron.
+        if ($tersimpan > 0) {
+            Cache::forget("exam:{$exam->id}:questions");
         }
 
         return [$tersimpan, $ditolak];

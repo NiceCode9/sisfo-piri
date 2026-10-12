@@ -22,6 +22,7 @@ use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
@@ -303,6 +304,74 @@ test('guru lain tidak bisa mengunggah paket ke ujian yang bukan miliknya', funct
             'paket' => UploadedFile::fake()->create('paket.zip', 10),
         ])
         ->assertForbidden();
+});
+
+test('import soal menghilangkan cache soal ujian', function () {
+    [$admin, $exam, $bank] = setupImport();
+
+    // Cache soal dibaca endpoint siswa dan bertahan 6 jam. Kalau import tidak
+    // memorinya, siswa yang sempat membuka soal sebelum import tetap melihat
+    // daftar lama meski guru baru saja menambah soal.
+    Cache::put("exam:{$exam->id}:questions", ['soal lama'], 3600);
+
+    $paket = PaketSoal::dari(new UploadedFile(
+        paketZip(['soal.xlsx' => 'x', 'gambar/a.png' => pngDummy(10, 10)]),
+        'paket.zip',
+        null,
+        null,
+        true,
+    ));
+
+    $this->actingAs($admin)
+        ->post(route('admin.cbt.import.simpan', ['exam' => $exam->id, 'token' => $paket->token]), [
+            'bank_id' => $bank->id,
+            'rows' => [[
+                'question_text' => 'Soal baru dari impor',
+                'type' => 'essay',
+                'score' => 10,
+                'order' => 1,
+                'gambar' => null,
+                'options' => [],
+                'correct_answer' => [],
+            ]],
+        ])
+        ->assertRedirect();
+
+    expect(ExamQuestion::where('exam_id', $exam->id)->count())->toBe(1)
+        ->and(Cache::has("exam:{$exam->id}:questions"))->toBeFalse();
+});
+
+test('import yang menyimpan nol soal tidak menyentuh cache', function () {
+    [$admin, $exam, $bank] = setupImport();
+
+    Cache::put("exam:{$exam->id}:questions", ['soal lama'], 3600);
+
+    $paket = PaketSoal::dari(new UploadedFile(
+        paketZip(['soal.xlsx' => 'x', 'gambar/a.png' => pngDummy(10, 10)]),
+        'paket.zip',
+        null,
+        null,
+        true,
+    ));
+
+    // Semua baris ditolak karena soal pilihan tanpa opsi -> tidak ada yang
+    // tersimpan, jadi cache yang masih relevan tidak perlu dibuang.
+    $this->actingAs($admin)
+        ->post(route('admin.cbt.import.simpan', ['exam' => $exam->id, 'token' => $paket->token]), [
+            'bank_id' => $bank->id,
+            'rows' => [[
+                'question_text' => 'Soal tanpa opsi',
+                'type' => 'single_choice',
+                'score' => 10,
+                'order' => 1,
+                'gambar' => null,
+                'options' => [],
+                'correct_answer' => ['A'],
+            ]],
+        ])
+        ->assertSessionHasErrors('rows');
+
+    expect(Cache::has("exam:{$exam->id}:questions"))->toBeTrue();
 });
 
 test('preview gambar menolak url tanpa tanda tangan', function () {
