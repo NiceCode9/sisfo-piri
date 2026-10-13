@@ -1,13 +1,19 @@
+@use('App\Support\RuteBeranda')
+
 @php
     $sidebarUser = auth()->user();
     $sidebarName = $sidebarUser?->name ?? 'Guest';
     $sidebarRole = $sidebarUser?->getRoleNames()->first() ?? 'Tamu';
     $sidebarInitial = strtoupper(mb_substr($sidebarName, 0, 1));
+
+    // Link brand harus ikut ke dashboard yang sama dengan dispatcher `/admin`.
+    // Keduanya lewat RuteBeranda supaya tidak bisa berbeda.
+    $sidebarBeranda = RuteBeranda::untuk($sidebarUser);
 @endphp
 
 <!-- SIDEBAR -->
 <aside id="sidebar" class="sidebar" aria-label="Main Navigation">
-    <a href="{{ route('admin.dashboard') }}" class="sidebar-brand text-decoration-none">
+    <a href="{{ route($sidebarBeranda) }}" class="sidebar-brand text-decoration-none">
         <div class="brand-logo"><i class="fa-solid fa-hexagon"></i></div>
         <div class="brand-text">
             <span class="brand-name">Nexus</span>

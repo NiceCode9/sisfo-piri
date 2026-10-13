@@ -313,7 +313,11 @@ mysqldump -u sisfo -p sisfo_piri | gzip > /backups/sisfo_piri_$(date +%F).sql.gz
 # WA sesi
 tar czf /backups/wa_auth_$(date +%F).tar.gz -C /var/www/sisfo-piri/wa-gateway .wwebjs_auth
 # Kode
-cd /var/www/sisfo-piri && git pull  # lalu: composer install --no-dev, npm run build (backend+cbt), php artisan migrate --force, config:cache, queue:restart, pm2 restart wa-gateway
+cd /var/www/sisfo-piri && git pull  # lalu: composer install --no-dev, npm run build (backend+cbt), php artisan migrate --force --seed, config:cache, queue:restart, pm2 restart wa-gateway
+# CATATAN: `--seed` wajib, bukan opsional. Permission dan menu datang dari
+# PermissionSeeder/MenuSeeder, bukan dari migration. Tanpa `--seed`, permission
+# baru tidak pernah dibuat dan menu baru tidak muncul untuk user yang sudah ada
+# -- gejalanya diam: aplikasinya jalan, menu cuma tidak ada.
 # Maintenance mode (503 kecuali super-admin)
 php artisan tinker --execute "App\Models\Pengaturan::updateOrCreate(['key'=>'maintenance_mode'],['value'=>'1']);"
 # atau admin/pengaturans → maintenance_mode ON

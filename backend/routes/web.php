@@ -46,6 +46,7 @@ use App\Http\Controllers\Admin\WhatsappController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DokumenController;
 use App\Http\Controllers\Elearning\BerkasController as ElearningBerkasController;
+use App\Http\Controllers\Guru\DashboardController as GuruDashboardController;
 use App\Http\Controllers\Ortu\DashboardController as OrtuDashboardController;
 use App\Http\Controllers\Ortu\ProfilController as OrtuProfilController;
 use App\Http\Controllers\Siswa\BerkasController;
@@ -56,6 +57,7 @@ use App\Http\Controllers\Siswa\RiwayatController;
 use App\Http\Controllers\Siswa\TugasController as SiswaTugasController;
 use App\Http\Controllers\SpmbController;
 use App\Models\BerkasCalonSiswa;
+use App\Support\RuteBeranda;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -123,26 +125,23 @@ Route::prefix('ortu')->name('ortu.')->middleware(['auth', 'role:orang-tua'])->gr
     Route::get('/tugas/{tugas}', [App\Http\Controllers\Ortu\TugasController::class, 'show'])->name('tugas.show');
 });
 
+Route::prefix('guru')->name('guru.')->middleware(['auth', 'role:guru|guru-piket'])->group(function () {
+    Route::get('/dashboard', [GuruDashboardController::class, 'index'])->name('dashboard');
+});
+
 Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
-    // Pintu masuk setelah login sekaligus `/admin`. Siswa dan orang tua
-    // diarahkan ke area mereka; admin dan guru langsung melihat dashboard.
+    // Pintu masuk setelah login sekaligus `/admin`. Men'safar ke dashboard
+    // milik masing-masing: siswa, orang tua, guru, atau laporan sekolah.
     //
     // Namanya tetap `admin.dashboard` dan tetap hidup di `/admin` karena
     // LoginController memakainya sebagai tujuan `redirect()->intended()`, dan
-    // karena menu sidebar sudah menunjuk ke sana. URL `/admin/dashboard` tidak
-    // pernah ada sebelumnya, jadi tidak ada yang perlu dilestarikan.
+    // karena menu sidebar sudah menunjuk ke sana.
     Route::get('/', function () {
-        $user = auth()->user();
+        $tujuan = RuteBeranda::untuk(request()->user());
 
-        if ($user->hasRole('siswa')) {
-            return redirect()->route('siswa.dashboard');
-        }
-
-        if ($user->hasRole('orang-tua')) {
-            return redirect()->route('ortu.dashboard');
-        }
-
-        return app(AdminDashboardController::class)->index();
+        return $tujuan === 'admin.dashboard'
+            ? app(AdminDashboardController::class)->index()
+            : redirect()->route($tujuan);
     })->name('dashboard');
 
     Route::resource('users', UserController::class)->except(['show']);

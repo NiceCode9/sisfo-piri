@@ -137,6 +137,8 @@ class PermissionSeeder extends Seeder
             'tugas.nilai',
             'cbt.view',
             'cbt.manage',
+            'dashboard.admin',
+            'dashboard.guru',
         ];
 
         foreach ($permissions as $name) {
@@ -175,6 +177,7 @@ class PermissionSeeder extends Seeder
                 'wali-kelas.view',
                 'rombels.view', 'rombels.create', 'rombels.edit', 'rombels.delete',
                 'cbt.view', 'cbt.manage',
+                'dashboard.admin',
                 'materis.view', 'materis.create', 'materis.edit', 'materis.delete',
                 'tugas.view', 'tugas.create', 'tugas.edit', 'tugas.delete', 'tugas.nilai',
                 'kenaikan-kelas.view', 'kenaikan-kelas.execute',
@@ -185,13 +188,13 @@ class PermissionSeeder extends Seeder
                 'whatsapp.view', 'whatsapp.manage',
             ]);
 
-        // Guru piket: input dan pantau absensi harian.
+        // Guru piket: input dan pantau absensi harian, plus dashboard sendiri.
         Role::firstOrCreate(['name' => 'guru-piket', 'guard_name' => 'web'])
-            ->syncPermissions(['absensis.view', 'absensis.create', 'absensis.edit']);
+            ->syncPermissions(['absensis.view', 'absensis.create', 'absensis.edit', 'dashboard.guru']);
 
         // Guru: kelola bank soal & ujian untuk mapel yang diampu (policy cek pengampu).
         Role::firstOrCreate(['name' => 'guru', 'guard_name' => 'web'])
-            ->syncPermissions(['absensis.view', 'materis.view', 'materis.create', 'materis.edit', 'materis.delete', 'tugas.view', 'tugas.create', 'tugas.edit', 'tugas.delete', 'tugas.nilai', 'cbt.view', 'cbt.manage']);
+            ->syncPermissions(['absensis.view', 'materis.view', 'materis.create', 'materis.edit', 'materis.delete', 'tugas.view', 'tugas.create', 'tugas.edit', 'tugas.delete', 'tugas.nilai', 'cbt.view', 'cbt.manage', 'dashboard.guru']);
 
         // Siswa dan orang-tua tidak membuka halaman admin.
         // Akses mereka dilayani area khusus (siswa.* dan — menyusul A3 — ortu.*).

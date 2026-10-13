@@ -13,7 +13,15 @@ class MenuSeeder extends Seeder
     public function run(): void
     {
         $menus = [
-            ['name' => 'Dashboard', 'icon' => 'fa-solid fa-th-large', 'route' => 'admin.dashboard', 'order' => 1],
+            // Dua menu dashboard dengan permission berbeda. Dulu baris "Dashboard"
+            // tidak punya permission sama sekali sehingga `scopeUserCanAccess()`
+            // menampilkannya ke setiap user login.
+            //
+            // Namanya harus berbeda karena seeder ini `updateOrCreate` berdasarkan
+            // `name` saja — dua baris sama-sama bernama "Dashboard" akan saling
+            // menimpa dan hanya yang terakhir yang tersisa.
+            ['name' => 'Dashboard', 'icon' => 'fa-solid fa-th-large', 'route' => 'admin.dashboard', 'permission' => 'dashboard.admin', 'order' => 1],
+            ['name' => 'Dashboard Guru', 'icon' => 'fa-solid fa-th-large', 'route' => 'guru.dashboard', 'permission' => 'dashboard.guru', 'order' => 1],
 
             ['name' => 'PPDB', 'is_header' => true, 'order' => 10],
             ['name' => 'Calon Siswa', 'icon' => 'fa-solid fa-user-graduate', 'route' => 'admin.calon-siswas.index', 'permission' => 'calon-siswas.view', 'order' => 11],
