@@ -1,16 +1,26 @@
 @extends('layouts.app')
 
-@section('title', 'Dashboard Siswa')
+@section('title', 'Dashboard')
 @section('breadcrumb', 'Dashboard')
 
 @section('content')
 <div class="page-header d-flex flex-wrap align-items-start justify-content-between gap-3">
     <div>
-        <h1 class="page-title">Dashboard Siswa</h1>
-        <p class="page-subtitle mb-0">Halo, {{ auth()->user()->name }} — NISN {{ auth()->user()->username }}</p>
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-subtitle mb-0">
+            Halo, {{ auth()->user()->name }}
+            @if ($siswa && $siswa->nis)
+                &middot; NIS {{ $siswa->nis }}
+            @endif
+        </p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
-        <a href="{{ route('login') }}" class="btn btn-nexus-outline btn-sm" onclick="event.preventDefault(); document.getElementById('logout-form').submit();"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+        <a href="{{ route('siswa.absensi') }}" class="btn btn-primary btn-sm">
+            <i class="fa-solid fa-clipboard-check"></i> Absensi Saya
+        </a>
+        <a href="{{ route('siswa.tugas.index') }}" class="btn btn-nexus-outline btn-sm">
+            <i class="fa-solid fa-clipboard-question"></i> Tugas
+        </a>
     </div>
 </div>
 
@@ -18,212 +28,195 @@
 
 @include('siswa._nav', ['tabAktif' => 'dashboard'])
 
-@if (!$calon)
+@if (! $siswa)
+    {{-- Akun belum punya baris `siswas`: masih pendaftar, atau belum
+         ditempatkan. Menampilkan angka nol tanpa penjelasan akan membingungkan. --}}
     <div class="card-nexus">
         <div class="card-body-nexus text-center py-5">
-            <p style="color: var(--text-muted);">Belum ada data pendaftaran terkait akun ini.</p>
+            <i class="fa-solid fa-user-graduate fa-2x text-muted mb-3"></i>
+            <h5 class="mb-2">Belum ada data akademik</h5>
+            <p class="text-muted mb-3">
+                Ringkasan kehadiran dan tugas muncul setelah Anda ditempatkan di kelas.
+            </p>
+            <a href="{{ route('siswa.pendaftaran') }}" class="btn btn-primary btn-sm">
+                <i class="fa-solid fa-file-lines"></i> Lihat Status Pendaftaran
+            </a>
         </div>
     </div>
 @else
-    <div class="row g-3">
-        <div class="col-12 col-lg-8">
-            <div class="card-nexus mb-3">
-                <div class="card-header-nexus">
-                    <h5 class="card-title">Status Pendaftaran</h5>
-                    <span class="badge-nexus {{ $calon->status_pendaftaran === 'diterima' ? 'badge-info' : ($calon->status_pendaftaran === 'ditolak' ? 'badge-danger' : 'badge-neutral') }}">{{ $calon->status_pendaftaran }}</span>
+    {{-- Ringkasan. Angkanya dari RiwayatSiswa::ringkas(), jadi sama persis
+         dengan yang tampil di halaman Riwayat dan nol query tambahan. --}}
+    <div class="row g-3 mb-3">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="stat-card h-100">
+                <div class="stat-icon-wrap" style="background:rgba(34,197,94,.12);color:#22c55e">
+                    <i class="fa-solid fa-clipboard-check"></i>
                 </div>
-                <div class="card-body-nexus">
-                    <div class="row g-3" style="font-size: 13px;">
-                        <div class="col-6"><strong>No Pendaftaran:</strong> {{ $calon->no_pendaftaran }}</div>
-                        <div class="col-6"><strong>Jalur:</strong> {{ $calon->jalurPendaftaran->nama_jalur ?? '-' }}</div>
-                        <div class="col-6"><strong>Tahun:</strong> {{ $calon->tahunAjaran->nama_tahun_ajaran ?? '-' }}</div>
-                        <div class="col-6"><strong>Nama:</strong> {{ $calon->nama_lengkap }}</div>
-                        <div class="col-12"><strong>NIK/NISN:</strong> {{ $calon->nik }} / {{ $calon->nisn }}</div>
-                    </div>
-
-                    @if ($siswa)
-                        <div class="alert alert-success mt-3" style="font-size: 13px;">
-                            <i class="fa-solid fa-graduation-cap"></i> Selamat! Anda telah diterima sebagai siswa. NIS: {{ $siswa->nis ?? '-' }} — Kelas akan diinfokan.
-                        </div>
-                    @endif
-
-                    <hr class="my-3" />
-                    <h6 style="font-size: 13px; font-weight: 600;">Riwayat Status</h6>
-                    <div class="d-flex flex-column gap-2">
-                        @forelse ($calon->logStatusPendaftaran->sortByDesc('created_at') as $log)
-                            <div style="font-size: 12px; border-left: 2px solid var(--border-color); padding-left: 8px;">
-                                <div><strong>{{ $log->status_sebelumnya ?? '—' }} → {{ $log->status_baru }}</strong> • {{ $log->created_at->format('d M Y H:i') }}</div>
-                                <div style="color: var(--text-muted);">{{ $log->catatan ?? '' }}</div>
-                            </div>
-                        @empty
-                            <span style="font-size: 12px; color: var(--text-muted);">Belum ada log.</span>
-                        @endforelse
-                    </div>
-                </div>
+                <div class="stat-value">{{ $ringkas['persenAbsen'] === null ? '-' : $ringkas['persenAbsen'].'%' }}</div>
+                <div class="stat-label">Kehadiran</div>
+                <div class="stat-trend trend-neutral">{{ number_format($ringkas['hariAbsen'], 0, ',', '.') }} hari tercatat</div>
             </div>
+        </div>
 
-            <div class="card-nexus mb-3">
-                <div class="card-header-nexus"><h5 class="card-title">Berkas</h5></div>
-                <div class="card-body-nexus">
-                    @if ($calon->berkasCalonSiswa)
-                        @php $b = $calon->berkasCalonSiswa; @endphp
-                        <div class="table-responsive">
-                            <table class="table-nexus w-100" style="font-size: 13px;">
-                                <thead><tr><th>Berkas</th><th>Status</th><th>File</th></tr></thead>
-                                <tbody>
-                                    @foreach (\App\Models\BerkasCalonSiswa::UPLOADABLE as $field)
-                                        <tr>
-                                            <td>{{ \App\Models\BerkasCalonSiswa::LABELS[$field] ?? $field }}</td>
-                                            <td>
-                                                @if(in_array($field, $b->berkas_perlu_perbaikan ?? []))
-                                                    <span class="badge-nexus badge-danger">perlu perbaikan</span>
-                                                @elseif($b->status_verifikasi)
-                                                    <span class="badge-nexus badge-info">terverifikasi</span>
-                                                @else
-                                                    <span class="badge-nexus badge-neutral">menunggu</span>
-                                                @endif
-                                            </td>
-                                            <td>
-                                                @if($b->$field)
-                                                    <a href="{{ route('dokumen.berkas', [$b, $field]) }}" target="_blank" class="text-primary">Lihat</a>
-                                                @else — @endif
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                        @if($b->alasan_penolakan)
-                            <div class="alert alert-warning mt-3" style="font-size: 12px;">Alasan: {{ $b->alasan_penolakan }}</div>
-                        @endif
-                        @if($b->catatan_berkas)
-                            <div style="font-size: 12px; color: var(--text-muted);">Catatan: {{ $b->catatan_berkas }}</div>
-                        @endif
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="stat-card h-100">
+                <div class="stat-icon-wrap" style="background:rgba(245,158,11,.12);color:#f59e0b">
+                    <i class="fa-solid fa-clipboard-question"></i>
+                </div>
+                <div class="stat-value">{{ count($tugasMenunggu) }}</div>
+                <div class="stat-label">Tugas Belum Dikerjakan</div>
+                <div class="stat-trend trend-neutral">{{ $ringkas['tugas'] }} tugas diberikan</div>
+            </div>
+        </div>
 
-                        {{-- Upload ulang: hanya muncul kalau admin memang
-                             menandai ada berkas yang perlu diperbaiki. --}}
-                        @php $perluDiunggah = $b->berkasPerluDiunggahUlang(); @endphp
-                        @if (count($perluDiunggah))
-                            <form method="POST" action="{{ route('siswa.berkas.update') }}" enctype="multipart/form-data" class="mt-3 p-3 border rounded-3" style="border-color: var(--border-color)!important;">
-                                @csrf @method('PUT')
-                                <div class="fw-bold mb-1" style="font-size:13px;">
-                                    <i class="fa-solid fa-cloud-arrow-up me-1"></i>Unggah Ulang Berkas
-                                </div>
-                                <p style="font-size:11.5px; color: var(--text-muted);" class="mb-2">
-                                    Ganti berkas yang ditandai perlu perbaikan di bawah ini.
-                                    Setelah diunggah, berkas menunggu verifikasi admin kembali.
-                                </p>
-                                <div class="d-flex flex-column gap-2">
-                                    @foreach ($perluDiunggah as $field)
-                                        <div>
-                                            <label for="ulang-{{ $field }}" style="font-size:12px;">
-                                                {{ \App\Models\BerkasCalonSiswa::LABELS[$field] ?? $field }}
-                                            </label>
-                                            <input type="file"
-                                                   id="ulang-{{ $field }}"
-                                                   name="{{ $field }}"
-                                                   accept="{{ $field === 'foto_path' ? 'image/*' : '.pdf' }}"
-                                                   class="form-control form-control-sm @error($field) is-invalid @enderror"
-                                                   required />
-                                            @error($field)<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                        </div>
-                                    @endforeach
-                                </div>
-                                <button type="submit" class="btn btn-primary btn-sm mt-3">
-                                    <i class="fa-solid fa-upload me-1"></i>Kirim Berkas
-                                </button>
-                            </form>
-                        @endif
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="stat-card h-100">
+                <div class="stat-icon-wrap" style="background:rgba(79,70,229,.12);color:#4f46e5">
+                    <i class="fa-solid fa-school"></i>
+                </div>
+                <div class="stat-value">{{ $ringkas['rombel'] }}</div>
+                <div class="stat-label">Kelas Diikuti</div>
+                <div class="stat-trend trend-neutral">{{ $ringkas['tahun'] }} tahun ajaran</div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="stat-card h-100">
+                <div class="stat-icon-wrap" style="background:rgba(124,58,237,.12);color:#7c3aed">
+                    <i class="fa-solid fa-file-question"></i>
+                </div>
+                <div class="stat-value">{{ $nilaiCbt === null ? '-' : $nilaiCbt['persen'] }}</div>
+                <div class="stat-label">Nilai CBT Terakhir</div>
+                <div class="stat-trend trend-neutral">
+                    @if ($nilaiCbt)
+                        {{ \Illuminate\Support\Str::limit($nilaiCbt['ujian'], 24) }}
                     @else
-                        <p style="font-size: 13px; color: var(--text-muted);">Belum ada berkas.</p>
-                    @endif
-
-                    @if ($calon->sertifikatPrestasis->isNotEmpty())
-                        <h6 class="mt-3 mb-2" style="font-size: 13px; font-weight: 700;">Sertifikat Prestasi</h6>
-                        <div class="table-responsive">
-                            <table class="table-nexus w-100" style="font-size: 13px;">
-                                <thead><tr><th>Nama Kejuaraan</th><th>Status</th><th>File</th></tr></thead>
-                                <tbody>
-                                    @foreach ($calon->sertifikatPrestasis as $s)
-                                        <tr>
-                                            <td>{{ $s->nama_sertifikat }}</td>
-                                            <td>
-                                                @if(in_array('sertifikat', ($b ?? null)?->berkas_perlu_perbaikan ?? []))
-                                                    <span class="badge-nexus badge-danger">perlu perbaikan</span>
-                                                @elseif(($b ?? null)?->status_verifikasi)
-                                                    <span class="badge-nexus badge-info">terverifikasi</span>
-                                                @else
-                                                    <span class="badge-nexus badge-neutral">menunggu</span>
-                                                @endif
-                                            </td>
-                                            <td><a href="{{ route('dokumen.sertifikat', $s) }}" target="_blank" class="text-primary">Lihat</a></td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
+                        Belum ada nilai
                     @endif
                 </div>
             </div>
         </div>
+    </div>
 
-        <div class="col-12 col-lg-4">
-            <div class="card-nexus">
-                <div class="card-header-nexus"><h5 class="card-title">Riwayat Pendaftaran</h5></div>
+    @if (count($ujianTersedia) > 0)
+        <div class="card-nexus mb-3">
+            <div class="card-header-nexus">
+                <div>
+                    <h5 class="card-title">Ujian CBT Tersedia</h5>
+                    <p class="card-subtitle">Ujian yang belum Anda kerjakan</p>
+                </div>
+            </div>
+            <div class="card-body-nexus">
+                @foreach ($ujianTersedia as $ujian)
+                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                        <div>
+                            <div class="fw-semibold">{{ $ujian->name }}</div>
+                            <div class="small text-muted">
+                                {{ $ujian->rombel?->kelas?->nama_kelas ?? '-' }}
+                                @if ($ujian->mataPelajaran)
+                                    &middot; {{ $ujian->mataPelajaran->nama }}
+                                @endif
+                                @if ($ujian->available_until)
+                                    &middot; s/d {{ $ujian->available_until->translatedFormat('j M H:i') }}
+                                @endif
+                            </div>
+                        </div>
+                        <span class="badge-nexus badge-info">{{ $ujian->duration_minutes }} menit</span>
+                    </div>
+                @endforeach
+                <div class="small text-muted mt-3">
+                    Ujian dikerjakan di aplikasi CBT dengan token dari guru, bukan di halaman ini.
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <div class="row g-3">
+        <div class="col-12 col-xl-7">
+            <div class="card-nexus h-100">
+                <div class="card-header-nexus">
+                    <div>
+                        <h5 class="card-title">Tugas Belum Dikerjakan</h5>
+                        <p class="card-subtitle">Tugas aktif yang belum dikumpulkan</p>
+                    </div>
+                    <a href="{{ route('siswa.tugas.index') }}" class="btn btn-nexus-outline btn-sm">Semua Tugas</a>
+                </div>
                 <div class="card-body-nexus">
-                    @forelse($riwayat as $r)
-                        <div style="font-size: 12px; padding: 6px 0; border-bottom: 1px solid var(--border-color);">
-                            <div><strong>{{ $r->no_pendaftaran }}</strong> — {{ $r->status_pendaftaran }} • {{ $r->tahunAjaran->nama_tahun_ajaran ?? '' }}</div>
+                    @forelse ($tugasMenunggu as $tugas)
+                        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                            <div>
+                                <div class="fw-semibold">{{ $tugas->judul }}</div>
+                                <div class="small text-muted">
+                                    {{ $tugas->mataPelajaran?->nama ?? $tugas->rombel?->kelas?->nama_kelas ?? '-' }}
+                                    @if ($tugas->deadline)
+                                        &middot; tenggat {{ $tugas->deadline->translatedFormat('j M H:i') }}
+                                    @endif
+                                </div>
+                            </div>
+                            @if ($tugas->deadline && $tugas->deadline->isBefore(now()->addDay()))
+                                <span class="badge-nexus badge-danger">Segera</span>
+                            @endif
                         </div>
                     @empty
-                        <span style="font-size: 12px; color: var(--text-muted);">-</span>
+                        <div class="text-center py-4">
+                            <i class="fa-solid fa-circle-check fa-2x text-success mb-2"></i>
+                            <p class="mb-0 text-muted">Semua tugas sudah dikerjakan.</p>
+                        </div>
                     @endforelse
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="card-nexus mt-3">
-        <div class="card-header-nexus"><h5 class="card-title">Riwayat Pembayaran</h5></div>
-        <div class="card-body-nexus">
-            @php
-                $semuaBayar = $calon->pembayaran->map(fn ($p) => [
-                    'kode' => $p->kode_pembayaran,
-                    'nama' => $p->biayaPendaftaran->jenis_biaya ?? $p->kode_pembayaran,
-                    'jumlah' => $p->jumlah,
-                    'status' => $p->status,
-                    'tanggal' => $p->tanggal_pembayaran,
-                ])->concat($calon->pembayaranLainnya->map(fn ($p) => [
-                    'kode' => $p->kode_pembayaran,
-                    'nama' => $p->nama_biaya.' (lainnya)',
-                    'jumlah' => $p->jumlah,
-                    'status' => $p->status,
-                    'tanggal' => $p->tanggal_pembayaran,
-                ]));
-            @endphp
-            @if($semuaBayar->isEmpty())
-                <p class="mb-0" style="font-size:13px;color:var(--text-muted);">Belum ada tagihan. Tagihan dibuat otomatis setelah status diterima.</p>
-            @else
-                <div class="table-responsive">
-                    <table class="table-nexus w-100" style="font-size:13px;">
-                        <thead><tr><th>Kode</th><th>Biaya</th><th>Jumlah</th><th>Status</th><th>Tanggal</th></tr></thead>
-                        <tbody>
-                            @foreach($semuaBayar as $row)
-                                <tr>
-                                    <td style="font-size:12px;">{{ $row['kode'] }}</td>
-                                    <td>{{ $row['nama'] }}</td>
-                                    <td>Rp {{ number_format($row['jumlah'],0,',','.') }}</td>
-                                    <td>
-                                        @php $badge = $row['status']==='berhasil' ? 'badge-info' : ($row['status']==='gagal' ? 'badge-danger' : 'badge-neutral'); @endphp
-                                        <span class="badge-nexus {{ $badge }}">{{ $row['status'] }}</span>
-                                    </td>
-                                    <td>{{ $row['tanggal'] ? \Carbon\Carbon::parse($row['tanggal'])->format('d M Y') : '-' }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+        <div class="col-12 col-xl-5">
+            <div class="card-nexus mb-3">
+                <div class="card-header-nexus">
+                    <div>
+                        <h5 class="card-title">Pengumuman</h5>
+                        <p class="card-subtitle">Informasi terbaru sekolah</p>
+                    </div>
                 </div>
-            @endif
+                <div class="card-body-nexus">
+                    @forelse ($pengumuman as $item)
+                        <div class="py-2 border-bottom">
+                            <div class="fw-semibold">{{ $item->judul }}</div>
+                            <div class="small text-muted">
+                                {{ \Illuminate\Support\Str::limit(strip_tags($item->isi), 140) }}
+                            </div>
+                        </div>
+                    @empty
+                        <p class="text-muted mb-0">Belum ada pengumuman aktif.</p>
+                    @endforelse
+                </div>
+            </div>
+
+            <div class="card-nexus">
+                <div class="card-header-nexus">
+                    <div>
+                        <h5 class="card-title">Tenggat Terdekat</h5>
+                        <p class="card-subtitle">Tugas yang belum lewat batas</p>
+                    </div>
+                </div>
+                <div class="card-body-nexus">
+                    @forelse ($deadlineTerdekat as $tugas)
+                        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                            <div>
+                                <div class="fw-semibold">{{ $tugas->judul }}</div>
+                                <div class="small text-muted">
+                                    {{ $tugas->rombel?->kelas?->nama_kelas ?? '-' }}
+                                    &middot; {{ $tugas->deadline->translatedFormat('j M H:i') }}
+                                </div>
+                            </div>
+                            @if ($tugas->deadline->isBefore(now()->addDay()))
+                                <span class="badge-nexus badge-danger">Segera</span>
+                            @else
+                                <span class="badge-nexus badge-neutral">{{ $tugas->deadline->diffForHumans() }}</span>
+                            @endif
+                        </div>
+                    @empty
+                        <p class="text-muted mb-0">Tidak ada tenggat yang mendekati.</p>
+                    @endforelse
+                </div>
+            </div>
         </div>
     </div>
 @endif

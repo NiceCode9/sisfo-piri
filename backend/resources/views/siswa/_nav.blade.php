@@ -1,9 +1,10 @@
-{{-- Tab navigasi area siswa. $tabAktif: dashboard|profil|kelas|riwayat|absensi|materi|tugas --}}
-<div class="d-flex gap-2 flex-wrap mb-3">
-    @php
-        $tabs = [
-            'dashboard' => ['label' => 'Pendaftaran', 'route' => 'siswa.dashboard', 'icon' => 'fa-solid fa-user-graduate'],
-            'profil' => ['label' => 'Profil Saya', 'route' => 'siswa.profil', 'icon' => 'fa-solid fa-circle-user'],
+    {{-- Tab navigasi area siswa. $tabAktif: dashboard|pendaftaran|profil|kelas|riwayat|absensi|materi|tugas --}}
+    <div class="d-flex gap-2 flex-wrap mb-3">
+        @php
+            $tabs = [
+                'dashboard' => ['label' => 'Dashboard', 'route' => 'siswa.dashboard', 'icon' => 'fa-solid fa-th-large'],
+                'pendaftaran' => ['label' => 'Pendaftaran', 'route' => 'siswa.pendaftaran', 'icon' => 'fa-solid fa-file-lines'],
+                'profil' => ['label' => 'Profil Saya', 'route' => 'siswa.profil', 'icon' => 'fa-solid fa-circle-user'],
             'kelas' => ['label' => 'Riwayat Kelas', 'route' => 'siswa.kelas', 'icon' => 'fa-solid fa-school-flag'],
             'riwayat' => ['label' => 'Riwayat Saya', 'route' => 'siswa.riwayat', 'icon' => 'fa-solid fa-timeline'],
             'absensi' => ['label' => 'Absensi Saya', 'route' => 'siswa.absensi', 'icon' => 'fa-solid fa-clipboard-check'],

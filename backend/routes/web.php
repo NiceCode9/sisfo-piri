@@ -52,6 +52,7 @@ use App\Http\Controllers\Ortu\ProfilController as OrtuProfilController;
 use App\Http\Controllers\Siswa\BerkasController;
 use App\Http\Controllers\Siswa\DashboardController;
 use App\Http\Controllers\Siswa\MateriController as SiswaMateriController;
+use App\Http\Controllers\Siswa\PendaftaranController;
 use App\Http\Controllers\Siswa\ProfilController;
 use App\Http\Controllers\Siswa\RiwayatController;
 use App\Http\Controllers\Siswa\TugasController as SiswaTugasController;
@@ -97,6 +98,7 @@ Route::middleware('auth')->group(function () {
 
 Route::prefix('siswa')->name('siswa.')->middleware(['auth', 'role:siswa'])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::get('/pendaftaran', PendaftaranController::class)->name('pendaftaran');
     Route::get('/profil', [ProfilController::class, 'show'])->name('profil');
     Route::put('/profil', [ProfilController::class, 'update'])->name('profil.update');
     Route::get('/kelas', [RiwayatController::class, 'kelas'])->name('kelas');

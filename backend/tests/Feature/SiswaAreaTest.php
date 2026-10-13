@@ -105,6 +105,7 @@ test('siswa dapat membuka dashboard dan profil sendiri', function () {
     $d = buatAkunSiswaArea('Anak Area Satu', '5001');
 
     $this->actingAs($d['user'])->get(route('siswa.dashboard'))->assertOk();
+    $this->actingAs($d['user'])->get(route('siswa.pendaftaran'))->assertOk();
     $this->actingAs($d['user'])->get(route('siswa.profil'))
         ->assertOk()->assertSee('Anak Area Satu')->assertSee('5001');
 });
@@ -113,6 +114,8 @@ test('siswa tanpa menu tidak melihat header kategori sidebar', function () {
     $d = buatAkunSiswaArea('Anak Area Satu', '5001');
 
     $this->actingAs($d['user'])->get(route('siswa.dashboard'))
+        ->assertOk()->assertDontSee('sidebar-label', false);
+    $this->actingAs($d['user'])->get(route('siswa.pendaftaran'))
         ->assertOk()->assertDontSee('sidebar-label', false);
 });
 
@@ -291,7 +294,8 @@ test('form upload ulang hanya tampil saat ada berkas perlu perbaikan', function 
     Storage::fake('berkas');
     [$user, , $berkas] = buatCalonPerluPerbaikan(['ijazah_path']);
 
-    $this->actingAs($user)->get(route('siswa.dashboard'))
+    // Form ini milik halaman PPDB, yang kini punya route sendiri.
+    $this->actingAs($user)->get(route('siswa.pendaftaran'))
         ->assertOk()
         ->assertSee('Unggah Ulang Berkas')
         ->assertSee('Kirim Berkas');
@@ -299,7 +303,7 @@ test('form upload ulang hanya tampil saat ada berkas perlu perbaikan', function 
     // Setelah semua diperbaiki, form hilang.
     $berkas->update(['berkas_perlu_perbaikan' => []]);
 
-    $this->actingAs($user)->get(route('siswa.dashboard'))
+    $this->actingAs($user)->get(route('siswa.pendaftaran'))
         ->assertOk()
         ->assertDontSee('Unggah Ulang Berkas');
 });
