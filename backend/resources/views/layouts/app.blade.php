@@ -78,6 +78,10 @@
 
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    {{-- Chart.js dipakai dashboard lewat <script type="application/json" data-chart>.
+         Dimuat dari CDN supaya area ini tetap tanpa langkah build, sama seperti
+         Bootstrap dan Font Awesome di atas. --}}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <!-- Nexus custom JS -->
     <script src="{{ asset('assets/script.js') }}"></script>
 

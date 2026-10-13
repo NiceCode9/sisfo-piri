@@ -164,13 +164,50 @@
   }
 
   /* ============================================
-     MINI CHARTS (Canvas-based)
-     ============================================ */
+     CHARTS (Chart.js, konfigurasi dari <script data-chart>)
+     ============================================
+     Konfigurasi ditulis Blade ke dalam
+     <script type="application/json" data-chart data-target="idCanvas">,
+     lalu dibaca di sini. Tidak ada angka yang tertanam di JS lagi.
+
+     Canvas dimuat ulang saat tema berganti karena Chart.js menyimpan warna
+     yang sudah di-resolve di dalam instance-nya. */
   function initCharts() {
-    drawBarChart('revenueChart');
-    drawLineChart('usersChart');
-    drawDonutChart('trafficChart');
-    drawAreaChart('perfChart');
+    const blok = document.querySelectorAll('script[type="application/json"][data-chart]');
+    if (!blok.length) return;
+
+    if (typeof Chart === 'undefined') {
+      // CDN gagal atau diblokir. Angka tetap terbaca sebagai teks di markup,
+      // jadi halaman tidak ikut rusak — chart memang hanya penghias.
+      blok.forEach(b => {
+        const canvas = document.getElementById(b.dataset.target);
+        if (canvas) canvas.closest('.chart-box')?.classList.add('chart-gagal');
+      });
+      return;
+    }
+
+    window.__nexusCharts = [];
+
+    blok.forEach(b => {
+      let config;
+      try {
+        config = JSON.parse(b.textContent);
+      } catch (e) {
+        return; // konfigurasi rusak: biarkan angka teks yang jadi rujukan
+      }
+
+      const canvas = document.getElementById(b.dataset.target);
+      if (!canvas) return;
+
+      const c = getThemeColors();
+      config.options = config.options || {};
+      config.options.responsive = true;
+      config.options.maintainAspectRatio = false;
+
+      const grafik = new Chart(canvas.getContext('2d'), config);
+      grafik.$warnaDasar = c;
+      window.__nexusCharts.push(grafik);
+    });
   }
 
   function getThemeColors() {
@@ -180,218 +217,44 @@
       secondary: '#7c3aed',
       success: '#22c55e',
       warning: '#f59e0b',
+      danger: '#ef4444',
+      info: '#3b82f6',
       grid: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
-      text: isDark ? '#94a3b8' : '#94a3b8',
+      text: '#94a3b8',
+      surface: isDark ? '#111318' : '#ffffff',
     };
   }
 
-  function drawBarChart(id) {
-    const canvas = document.getElementById(id);
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const c = getThemeColors();
-    const data = [42, 67, 55, 78, 90, 82, 74, 95, 88, 110, 98, 115];
-    const labels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const W = canvas.width, H = canvas.height;
-    const pad = { top: 20, right: 16, bottom: 36, left: 40 };
-    const bw = (W - pad.left - pad.right) / data.length;
-    const maxV = Math.max(...data) * 1.15;
-
-    ctx.clearRect(0, 0, W, H);
-
-    for (let i = 0; i <= 4; i++) {
-      const y = pad.top + (H - pad.top - pad.bottom) * (1 - i/4);
-      ctx.strokeStyle = c.grid;
-      ctx.lineWidth = 1;
-      ctx.setLineDash([4, 4]);
-      ctx.beginPath();
-      ctx.moveTo(pad.left, y);
-      ctx.lineTo(W - pad.right, y);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.fillStyle = c.text;
-      ctx.font = '10px Plus Jakarta Sans';
-      ctx.textAlign = 'right';
-      ctx.fillText(Math.round(maxV * i / 4), pad.left - 6, y + 3);
-    }
-
-    data.forEach((v, i) => {
-      const x = pad.left + i * bw + bw * 0.15;
-      const barW = bw * 0.7;
-      const barH = (v / maxV) * (H - pad.top - pad.bottom);
-      const y = H - pad.bottom - barH;
-
-      const grad = ctx.createLinearGradient(0, y, 0, H - pad.bottom);
-      grad.addColorStop(0, c.primary);
-      grad.addColorStop(1, c.secondary + '40');
-
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      roundRect(ctx, x, y, barW, barH, [4, 4, 0, 0]);
-      ctx.fill();
-
-      ctx.fillStyle = c.text;
-      ctx.font = '10px Plus Jakarta Sans';
-      ctx.textAlign = 'center';
-      ctx.fillText(labels[i], x + barW / 2, H - pad.bottom + 14);
-    });
+  /** Opsi dasar yang dipakai semua chart, agar konsisten dan tidak diulang. */
+  function opsiChart(c, extras) {
+    return Object.assign({
+      plugins: {
+        legend: { display: false, labels: { color: c.text } },
+        tooltip: { enabled: true },
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: c.text, maxRotation: 0, autoSkipPadding: 12 } },
+        y: { beginAtZero: true, grid: { color: c.grid }, ticks: { color: c.text } },
+      },
+    }, extras || {});
   }
 
-  function drawLineChart(id) {
-    const canvas = document.getElementById(id);
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const c = getThemeColors();
-    const data = [1200, 1900, 1450, 2100, 2400, 2100, 2800, 3100, 2700, 3500, 3200, 4100];
-    const W = canvas.width, H = canvas.height;
-    const pad = { top: 20, right: 16, bottom: 36, left: 50 };
-    const maxV = Math.max(...data) * 1.1;
-
-    ctx.clearRect(0, 0, W, H);
-
-    const points = data.map((v, i) => ({
-      x: pad.left + (i / (data.length - 1)) * (W - pad.left - pad.right),
-      y: pad.top + (1 - v / maxV) * (H - pad.top - pad.bottom)
-    }));
-
-    const areaGrad = ctx.createLinearGradient(0, pad.top, 0, H - pad.bottom);
-    areaGrad.addColorStop(0, c.success + '35');
-    areaGrad.addColorStop(1, c.success + '00');
-    ctx.beginPath();
-    ctx.moveTo(points[0].x, H - pad.bottom);
-    points.forEach(p => ctx.lineTo(p.x, p.y));
-    ctx.lineTo(points[points.length-1].x, H - pad.bottom);
-    ctx.closePath();
-    ctx.fillStyle = areaGrad;
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.strokeStyle = c.success;
-    ctx.lineWidth = 2.5;
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
-    points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
-    ctx.stroke();
-
-    points.forEach(p => {
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-      ctx.fillStyle = c.success;
-      ctx.fill();
-    });
+  /** Warna rgba dari hex, untuk background bar/donut. */
+  function transparan(hex, alpha) {
+    const n = parseInt(hex.slice(1), 16);
+    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
   }
 
-  function drawDonutChart(id) {
-    const canvas = document.getElementById(id);
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const c = getThemeColors();
-    const W = canvas.width, H = canvas.height;
-    const cx = W/2, cy = H/2;
-    const radius = Math.min(W, H)/2 - 20;
-    const inner = radius * 0.62;
-    const data = [
-      { val: 45, color: c.primary, label: 'Organic' },
-      { val: 28, color: c.secondary, label: 'Direct' },
-      { val: 17, color: c.warning, label: 'Social' },
-      { val: 10, color: c.success, label: 'Referral' },
-    ];
-    const total = data.reduce((s, d) => s + d.val, 0);
-    let startAngle = -Math.PI / 2;
-
-    ctx.clearRect(0, 0, W, H);
-
-    data.forEach(d => {
-      const angle = (d.val / total) * Math.PI * 2;
-      ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.arc(cx, cy, radius, startAngle, startAngle + angle);
-      ctx.closePath();
-      ctx.fillStyle = d.color;
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.arc(cx, cy, inner, 0, Math.PI * 2);
-      ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'dark' ? '#111318' : '#ffffff';
-      ctx.fill();
-
-      startAngle += angle;
-    });
-
-    ctx.fillStyle = '#4f46e5';
-    ctx.font = 'bold 22px Plus Jakarta Sans';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('45%', cx, cy - 8);
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '11px Plus Jakarta Sans';
-    ctx.fillText('Organic', cx, cy + 12);
-  }
-
-  function drawAreaChart(id) {
-    const canvas = document.getElementById(id);
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const c = getThemeColors();
-    const data1 = [60, 72, 58, 80, 75, 90, 85, 95, 88, 100, 92, 108];
-    const data2 = [40, 55, 48, 62, 58, 70, 65, 78, 70, 82, 75, 88];
-    const W = canvas.width, H = canvas.height;
-    const pad = { top: 20, right: 16, bottom: 36, left: 40 };
-    const maxV = Math.max(...data1) * 1.15;
-
-    ctx.clearRect(0, 0, W, H);
-
-    function drawArea(data, color) {
-      const points = data.map((v, i) => ({
-        x: pad.left + (i / (data.length - 1)) * (W - pad.left - pad.right),
-        y: pad.top + (1 - v / maxV) * (H - pad.top - pad.bottom)
-      }));
-      const grad = ctx.createLinearGradient(0, pad.top, 0, H - pad.bottom);
-      grad.addColorStop(0, color + '30');
-      grad.addColorStop(1, color + '00');
-      ctx.beginPath();
-      ctx.moveTo(points[0].x, H - pad.bottom);
-      points.forEach(p => ctx.lineTo(p.x, p.y));
-      ctx.lineTo(points[points.length-1].x, H - pad.bottom);
-      ctx.closePath();
-      ctx.fillStyle = grad;
-      ctx.fill();
-      ctx.beginPath();
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
-      ctx.lineJoin = 'round';
-      points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
-      ctx.stroke();
-    }
-
-    drawArea(data2, c.warning);
-    drawArea(data1, c.primary);
-  }
-
-  function roundRect(ctx, x, y, w, h, radii) {
-    const [tr, br, bl, tl] = Array.isArray(radii)
-      ? [radii[0], radii[1]||radii[0], radii[2]||radii[0], radii[3]||radii[0]]
-      : [radii, radii, radii, radii];
-    ctx.moveTo(x + tl, y);
-    ctx.lineTo(x + w - tr, y);
-    ctx.quadraticCurveTo(x + w, y, x + w, y + tr);
-    ctx.lineTo(x + w, y + h - br);
-    ctx.quadraticCurveTo(x + w, y + h, x + w - br, y + h);
-    ctx.lineTo(x + bl, y + h);
-    ctx.quadraticCurveTo(x, y + h, x, y + h - bl);
-    ctx.lineTo(x, y + tl);
-    ctx.quadraticCurveTo(x, y, x + tl, y);
-  }
-
+  /* Tema berganti -> chart perlu dibangun ulang. Chart.js menyimpan warna yang
+     sudah di-resolve di dalam instance-nya, jadi update warna saja tidak cukup
+     untuk grid, tick, dan legend. Instance lama dibuang supaya tidak menumpuk. */
   document.addEventListener('click', function(e) {
-    if (e.target.closest('[data-theme-toggle]')) {
-      setTimeout(() => {
-        drawBarChart('revenueChart');
-        drawLineChart('usersChart');
-        drawDonutChart('trafficChart');
-        drawAreaChart('perfChart');
-      }, 350);
-    }
+    if (!e.target.closest('[data-theme-toggle]')) return;
+
+    setTimeout(function () {
+      (window.__nexusCharts || []).forEach(grafik => grafik.destroy());
+      initCharts();
+    }, 350);
   });
 
   /* ============================================

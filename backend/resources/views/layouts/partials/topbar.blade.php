@@ -41,45 +41,17 @@
             </button>
             <div class="dropdown-menu dropdown-menu-end notif-dropdown p-0">
                 <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom" style="border-color: var(--border-color) !important">
-                    <span class="fw-bold" style="font-size: 14px; color: var(--text-primary)">Notifications</span>
-                    <span class="badge-nexus badge-purple">4 New</span>
+                    <span class="fw-bold" style="font-size: 14px; color: var(--text-primary)">Notifikasi</span>
                 </div>
-                <div class="notif-item unread">
-                    <div class="notif-icon-wrap" style="background: rgba(79,70,229,0.12); color: #4f46e5"><i class="fa-solid fa-user-plus"></i></div>
-                    <div class="notif-content flex-1">
-                        <div class="notif-title">New User Registered</div>
-                        <div class="notif-text">Sarah Johnson joined your platform</div>
-                        <div class="notif-time">2 minutes ago</div>
-                    </div>
-                    <span class="unread-dot"></span>
-                </div>
-                <div class="notif-item unread">
-                    <div class="notif-icon-wrap" style="background: rgba(34,197,94,0.12); color: #22c55e"><i class="fa-solid fa-cart-shopping"></i></div>
-                    <div class="notif-content flex-1">
-                        <div class="notif-title">Order Completed</div>
-                        <div class="notif-text">Order #4821 has been shipped</div>
-                        <div class="notif-time">18 minutes ago</div>
-                    </div>
-                    <span class="unread-dot"></span>
-                </div>
-                <div class="notif-item">
-                    <div class="notif-icon-wrap" style="background: rgba(245,158,11,0.12); color: #f59e0b"><i class="fa-solid fa-triangle-exclamation"></i></div>
-                    <div class="notif-content flex-1">
-                        <div class="notif-title">Low Inventory Alert</div>
-                        <div class="notif-text">Product "Nexus Pro X" is running low</div>
-                        <div class="notif-time">1 hour ago</div>
-                    </div>
-                </div>
-                <div class="notif-item">
-                    <div class="notif-icon-wrap" style="background: rgba(59,130,246,0.12); color: #3b82f6"><i class="fa-solid fa-chart-line"></i></div>
-                    <div class="notif-content flex-1">
-                        <div class="notif-title">Monthly Report Ready</div>
-                        <div class="notif-text">Your May 2026 report is available</div>
-                        <div class="notif-time">3 hours ago</div>
-                    </div>
-                </div>
-                <div class="p-2 border-top" style="border-color: var(--border-color) !important">
-                    <a href="#" class="btn w-100" style="font-size: 12.5px; color: var(--accent-primary); font-weight: 600;">View all notifications →</a>
+                {{-- Belum ada sumber notifikasi di dalam aplikasi. Versi lama
+                     menampilkan empat notifikasi contoh berbahasa Inggris
+                     ("Sarah Johnson joined your platform", "Order #4821 has
+                     been shipped") yang muncul di SETIAP halaman untuk semua
+                     pengguna. Lebih baik kosong dan jujur daripada data karangan
+                     yang terbaca seperti kenyataan. --}}
+                <div class="text-center px-3 py-4">
+                    <i class="fa-solid fa-bell-slash fa-2x text-muted mb-2"></i>
+                    <div style="font-size: 13px; color: var(--text-secondary)">Belum ada notifikasi</div>
                 </div>
             </div>
         </div>

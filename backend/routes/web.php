@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\Cbt\QuestionBankController;
 use App\Http\Controllers\Admin\Cbt\QuestionBankQuestionController;
 use App\Http\Controllers\Admin\Cbt\SoalImportController;
 use App\Http\Controllers\Admin\Cbt\SoalImportPreviewController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EkstrakurikulerController;
 use App\Http\Controllers\Admin\GaleriController;
 use App\Http\Controllers\Admin\GelombangController;
@@ -123,6 +124,13 @@ Route::prefix('ortu')->name('ortu.')->middleware(['auth', 'role:orang-tua'])->gr
 });
 
 Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
+    // Pintu masuk setelah login sekaligus `/admin`. Siswa dan orang tua
+    // diarahkan ke area mereka; admin dan guru langsung melihat dashboard.
+    //
+    // Namanya tetap `admin.dashboard` dan tetap hidup di `/admin` karena
+    // LoginController memakainya sebagai tujuan `redirect()->intended()`, dan
+    // karena menu sidebar sudah menunjuk ke sana. URL `/admin/dashboard` tidak
+    // pernah ada sebelumnya, jadi tidak ada yang perlu dilestarikan.
     Route::get('/', function () {
         $user = auth()->user();
 
@@ -134,8 +142,9 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
             return redirect()->route('ortu.dashboard');
         }
 
-        return view('admin.dashboard');
+        return app(AdminDashboardController::class)->index();
     })->name('dashboard');
+
     Route::resource('users', UserController::class)->except(['show']);
     Route::resource('roles', RoleController::class)->except(['show']);
     Route::resource('menus', MenuController::class)->except(['show']);
