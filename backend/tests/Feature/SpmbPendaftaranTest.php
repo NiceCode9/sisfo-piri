@@ -798,7 +798,9 @@ test('email yang sudah dipakai akun lain ditolak tanpa membocorkan pesan SQL', f
     $pesan = implode(' ', $errors);
 
     // Pesan ramah, bukan SQL mentah yang membocorkan detail database.
-    expect($pesan)->toContain('email')
+    // `strtolower` dipakai karena nama atribut di awal kalimat sudah dikapitalkan
+    // oleh placeholder `:Attribute`.
+    expect(strtolower($pesan))->toContain('email')
         ->and(strtolower($pesan))->not->toContain('sqlstate')
         ->and(strtolower($pesan))->not->toContain('insert into')
         ->and(strtolower($pesan))->not->toContain('unique constraint');

@@ -15,7 +15,7 @@
     </div>
 </div>
 
-@include('layouts.partials.alert')
+@include('layouts.partials.alert', ['errorDitampilkan' => ['password', 'password_saat_ini']])
 
 <div class="card-nexus">
     <div class="card-body-nexus">

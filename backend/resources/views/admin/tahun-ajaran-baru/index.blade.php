@@ -9,7 +9,7 @@
     <p class="page-subtitle mb-0">Salin rombel tahun tujuan, lalu pindahkan siswa — dalam satu proses</p>
 </div>
 
-@include('layouts.partials.alert')
+@include('layouts.partials.alert', ['errorDitampilkan' => ['pemetaan']])
 
 @if(count($tahunAjarans) < 2)
     <div class="card-nexus">

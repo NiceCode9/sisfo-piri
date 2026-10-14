@@ -16,37 +16,47 @@
 --}}
 <div class="row g-2">
   <div class="col-12">
-    <textarea name="question_text" class="form-control form-control-sm" rows="2"
-              placeholder="Teks soal" required>{{ old('question_text') }}</textarea>
+    <textarea name="question_text" class="form-control form-control-sm @error('question_text') is-invalid @enderror" rows="2"
+              placeholder="Teks soal" maxlength="5000" required>{{ old('question_text') }}</textarea>
+    @error('question_text')<div class="invalid-feedback">{{ $message }}</div>@enderror
   </div>
 
   <div class="col-6 col-md-3">
     <div class="form-floating">
-      <select name="type" id="soal-tipe" class="form-select form-select-sm">
+      <select name="type" id="soal-tipe" class="form-select form-select-sm @error('type') is-invalid @enderror">
         <option value="single_choice" @selected(old('type', 'single_choice') === 'single_choice')>Pilihan Tunggal</option>
         <option value="multiple_choice" @selected(old('type') === 'multiple_choice')>Pilihan Jamak</option>
         <option value="essay" @selected(old('type') === 'essay')>Uraian</option>
       </select>
       <label>Tipe</label>
+      @error('type')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
   </div>
 
   <div class="col-6 col-md-3">
     <input type="number" name="score" value="{{ old('score', 10) }}" min="1" max="100"
-           class="form-control form-control-sm" placeholder="Poin" required />
+           class="form-control form-control-sm @error('score') is-invalid @enderror" placeholder="Poin" required />
+    @error('score')<div class="invalid-feedback">{{ $message }}</div>@enderror
   </div>
 
   <div class="col-6 col-md-2">
     <input type="number" name="order" value="{{ old('order', 0) }}" min="0"
-           class="form-control form-control-sm" placeholder="Urutan" />
+           class="form-control form-control-sm @error('order') is-invalid @enderror" placeholder="Urutan" />
+    @error('order')<div class="invalid-feedback">{{ $message }}</div>@enderror
   </div>
 
   <div class="col-6 col-md-4">
-    <input type="file" name="question_image" class="form-control form-control-sm"
+    <input type="file" name="question_image" class="form-control form-control-sm @error('question_image') is-invalid @enderror"
            accept="image/jpeg,image/png,image/webp" />
+    @error('question_image')<div class="invalid-feedback">{{ $message }}</div>@enderror
   </div>
 
-  {{-- Opsi + kunci. disembunyikan sepenuhnya untuk soal uraian. --}}
+  {{-- Opsi + kunci. disembunyikan sepenuhnya untuk soal uraian.
+
+       Validasi silang kunci jawaban datang dari `ValidasiKunciJawaban` dan
+       menunjuk key `options` / `correct_answer`. Baris opsi dan checkbox kunci
+       dirender JavaScript, jadi tidak ada satu kolom pun yang bisa menempelkan
+       `invalid-feedback` — karena itu pesannya dirangkai di bawah blok ini. --}}
   <div class="col-12" id="soal-opsi">
     <div class="d-flex justify-content-between align-items-center mb-1">
       <span style="font-size:12px;font-weight:600;">Opsi &amp; kunci jawaban</span>
@@ -54,6 +64,20 @@
     </div>
 
     <div id="soal-daftar-opsi" class="d-flex flex-column gap-2"></div>
+
+    @error('options')
+      <div class="invalid-feedback d-block">{{ $message }}</div>
+      @foreach ($errors->get('options.*') as $opsiError)
+        <div class="invalid-feedback d-block">{{ $opsiError }}</div>
+      @endforeach
+    @enderror
+
+    @error('correct_answer')
+      <div class="invalid-feedback d-block">{{ $message }}</div>
+      @foreach ($errors->get('correct_answer.*') as $kunciError)
+        <div class="invalid-feedback d-block">{{ $kunciError }}</div>
+      @endforeach
+    @enderror
 
     <p class="mb-0 mt-1" style="font-size:11px;color:var(--text-muted);">
       Pilih satu kunci untuk soal pilihan tunggal; dua atau lebih untuk soal pilihan jamak.

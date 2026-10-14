@@ -12,7 +12,7 @@
   <a href="{{ route('admin.cbt.exams.show', $exam) }}" class="btn btn-nexus-outline btn-sm">Batal</a>
 </div>
 
-@include('layouts.partials.alert')
+@include('layouts.partials.alert', ['errorDitampilkan' => ['bank_id', 'rows']])
 
 {{-- Baris yang gagal dibaca dari Excel sengaja TIDAK ditampilkan sebagai baris
      yang bisa disunting: sudah ketahuan salah apa yang salah, dan mengeditnya di
@@ -64,11 +64,15 @@
                 <td><input type="checkbox" checked data-pakai /></td>
                 <td style="color:var(--text-muted);">{{ $d['baris'] }}</td>
                 <td>
-                  <textarea name="rows[{{ $i }}][question_text]" data-teks rows="2" class="form-control form-control-sm">{{ $d['question_text'] }}</textarea>
+                  <textarea name="rows[{{ $i }}][question_text]" data-teks rows="2" class="form-control form-control-sm @error('rows.'.$i.'.question_text') is-invalid @enderror">{{ old('rows.'.$i.'.question_text', $d['question_text']) }}</textarea>
+                  @error('rows.'.$i.'.question_text')<div class="invalid-feedback">{{ $message }}</div>@enderror
 
-                  <input type="hidden" name="rows[{{ $i }}][type]" value="{{ $d['type'] }}" data-tipe />
-                  <input type="hidden" name="rows[{{ $i }}][gambar]" value="{{ $d['gambar'] }}" data-gambar />
-                  <input type="hidden" name="rows[{{ $i }}][order]" value="{{ $d['order'] }}" data-urutan />
+                  {{-- Sisipannya ikut dibaca dari old(): draft aslinya disimpan di
+                       session, jadi tanpa ini seluruh suntingan manual guru hilang
+                       begitu validasi menolak simpan. --}}
+                  <input type="hidden" name="rows[{{ $i }}][type]" value="{{ old('rows.'.$i.'.type', $d['type']) }}" data-tipe />
+                  <input type="hidden" name="rows[{{ $i }}][gambar]" value="{{ old('rows.'.$i.'.gambar', $d['gambar']) }}" data-gambar />
+                  <input type="hidden" name="rows[{{ $i }}][order]" value="{{ old('rows.'.$i.'.order', $d['order']) }}" data-urutan />
 
                   @if($d['type'] === 'essay')
                     <div class="mt-1" style="font-size:11.5px;color:var(--text-muted);">
@@ -80,11 +84,11 @@
                            menentukan terkirim atau tidak adalah atribut
                            `disabled` — inilah yang membuat baris yang dibuang
                            atau kuncinya dilepas tidak ikut masuk. --}}
-                      <input type="hidden" name="rows[{{ $i }}][options][{{ $n }}][key]" value="{{ $o['key'] }}" />
-                      <input type="hidden" name="rows[{{ $i }}][options][{{ $n }}][text]" value="{{ $o['text'] }}" />
-                      <input type="hidden" name="rows[{{ $i }}][correct_answer][]" value="{{ $o['key'] }}"
+                      <input type="hidden" name="rows[{{ $i }}][options][{{ $n }}][key]" value="{{ old('rows.'.$i.'.options.'.$n.'.key', $o['key']) }}" />
+                      <input type="hidden" name="rows[{{ $i }}][options][{{ $n }}][text]" value="{{ old('rows.'.$i.'.options.'.$n.'.text', $o['text']) }}" />
+                      <input type="hidden" name="rows[{{ $i }}][correct_answer][]" value="{{ old('rows.'.$i.'.options.'.$n.'.key', $o['key']) }}"
                              data-kunci="{{ $o['key'] }}"
-                             @disabled(! in_array($o['key'], $d['correct_answer'])) />
+                             @disabled(! in_array($o['key'], old('rows.'.$i.'.correct_answer', $d['correct_answer']))) />
                     @endforeach
 
                     <div class="mt-1" style="font-size:11.5px;color:var(--text-muted);">
@@ -98,7 +102,7 @@
                     </div>
                   @endif
                 </td>
-                <td><input type="number" name="rows[{{ $i }}][score]" data-skor value="{{ $d['score'] }}" min="1" max="100" class="form-control form-control-sm" /></td>
+                <td><input type="number" name="rows[{{ $i }}][score]" data-skor value="{{ old('rows.'.$i.'.score', $d['score']) }}" min="1" max="100" class="form-control form-control-sm @error('rows.'.$i.'.score') is-invalid @enderror" />@error('rows.'.$i.'.score')<div class="invalid-feedback">{{ $message }}</div>@enderror</td>
                 <td>
                   @if($d['gambar_ada'] && $d['gambar_url'])
                     <img src="{{ $d['gambar_url'] }}" alt="" style="max-width:90px;max-height:60px;" />
@@ -118,12 +122,13 @@
       <div class="row g-2 mt-3 align-items-end">
         <div class="col-md-5">
           <label class="form-label" style="font-size:12.5px;">Salin juga ke bank soal</label>
-          <select name="bank_id" class="form-select form-select-sm" required>
+          <select name="bank_id" class="form-select form-select-sm @error('bank_id') is-invalid @enderror" required>
             <option value="">— pilih bank —</option>
             @foreach($banks as $b)
-              <option value="{{ $b->id }}">{{ $b->nama }}</option>
+              <option value="{{ $b->id }}" @selected((int) old('bank_id') === $b->id)>{{ $b->nama }}</option>
             @endforeach
           </select>
+          @error('bank_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
           <div class="form-text" style="font-size:11.5px;">
             Bank soal milik Anda pada mata pelajaran yang sama. Buat bank baru dari menu Bank Soal bila belum ada.
           </div>

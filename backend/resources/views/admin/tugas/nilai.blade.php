@@ -5,7 +5,7 @@
 
 @section('content')
 <div class="page-header"><h1 class="page-title">Nilai: {{ $tugas->judul }}</h1></div>
-@include('layouts.partials.alert')
+@include('layouts.partials.alert', ['errorDitampilkan' => ['nilai']])
 <div class="card-nexus"><div class="card-body-nexus p-0">
     <form method="POST" action="{{ route('admin.tugas.nilai.simpan', $tugas) }}">
         @csrf

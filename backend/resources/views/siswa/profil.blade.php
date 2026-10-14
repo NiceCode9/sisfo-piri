@@ -11,7 +11,7 @@
     </div>
 </div>
 
-@include('layouts.partials.alert')
+@include('layouts.partials.alert', ['errorDitampilkan' => ['foto', 'nama_ayah', 'nama_ibu', 'no_hp_orang_tua', 'password', 'password_saat_ini', 'pekerjaan_ayah', 'pekerjaan_ibu']])
 
 @include('siswa._nav', ['tabAktif' => 'profil'])
 

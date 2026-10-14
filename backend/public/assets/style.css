@@ -32,6 +32,13 @@
   --border-color:    #e2e8f0;
   --border-subtle:   rgba(0,0,0,0.06);
 
+  /* Status. Nilainya mengikuti merah yang sudah dipakai tema di
+     `.status-busy` dan `.trend-down`, bukan warna baru.
+     Token ini pernah dipakai view tanpa pernah didefinisikan, jadi
+     `border-left: 3px solid var(--error)` dan `background: var(--error)`
+     diam-diam jadi tidak berlaku sama sekali. */
+  --error:           #ef4444;
+
   --shadow-sm:       0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
   --shadow-md:       0 4px 16px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
   --shadow-lg:       0 20px 40px rgba(0,0,0,0.10), 0 8px 16px rgba(0,0,0,0.06);
@@ -63,6 +70,10 @@
 
   --border-color:    #1e2130;
   --border-subtle:   rgba(255,255,255,0.05);
+
+  /* Sama dengan `.badge-danger` versi gelap — lebih terang supaya kontras
+     di atas surface gelap tetap terbaca. */
+  --error:           #f87171;
 
   --shadow-sm:       0 1px 3px rgba(0,0,0,0.3);
   --shadow-md:       0 4px 16px rgba(0,0,0,0.4);
@@ -1028,6 +1039,30 @@ body {
   background: var(--bg-surface-2);
   border-color: var(--border-color);
   color: var(--text-primary);
+}
+
+/* Status validasi — jangan dihapus.
+   Tanpa blok ini, `is-invalid` di dalam `.form-floating` TIDAK terlihat sama
+   sekali. Aturan `.form-floating .form-control` di atas punya specificity 0,2,0
+   — sama persis dengan `.form-control.is-invalid` milik Bootstrap — dan berkas
+   ini dimuat setelah Bootstrap, jadi yang menang adalah abu-abu. Gejalanya
+   jauh lebih bisu dari yang berbahaya: pesan merahnya muncul di bawah kolom,
+   tapi kolomnya sendiri tidak berubah warna, dan tidak ada tanda lain.
+   Di luar `.form-floating` aturan itu tidak berlaku, jadi form yang datar
+   masih punya border merah.
+   Token dipakai dari Bootstrap yang sudah termuat, jadi tidak menambah token
+   baru ke tema ini. */
+.form-control.is-invalid,
+.form-select.is-invalid {
+  border-color: var(--bs-form-invalid-border-color);
+}
+
+/* `.form-control:focus` di atas menimpanya dengan warna accent. Biarkan tanda
+   error tetap terlihat saat kolom yang ditolak sedang diklik. */
+.form-control.is-invalid:focus,
+.form-select.is-invalid:focus {
+  border-color: var(--bs-form-invalid-border-color);
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.2);
 }
 
 .form-floating label { color: var(--text-muted); font-size: 13px; }

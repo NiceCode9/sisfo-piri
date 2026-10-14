@@ -14,7 +14,7 @@
     </div>
 </div>
 
-@include('layouts.partials.alert')
+@include('layouts.partials.alert', ['errorDitampilkan' => \App\Models\BerkasCalonSiswa::PERLU_PERBAIKAN])
 
 @include('siswa._nav', ['tabAktif' => 'pendaftaran'])
 

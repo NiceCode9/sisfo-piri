@@ -85,8 +85,15 @@ return [
     |
     */
 
-    'locale' => env('APP_LOCALE', 'en'),
+    'locale' => env('APP_LOCALE', 'id'),
 
+    /*
+     * Default fallback `en`, bukan `id`, walau locale utama `id`. Kalau
+     * folder `lang/id/` kebetulan tidak ada di server, memakai `id` sebagai
+     * fallback membuat `Translator::localeArray()` tidak punya kandidat lain
+     * dan UI menampilkan kunci mentah (`validation.required`). `en` membuat
+     * kegagalan yang sama turun ke bahasa Inggris, bukan rusak.
+     */
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
 
     'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),

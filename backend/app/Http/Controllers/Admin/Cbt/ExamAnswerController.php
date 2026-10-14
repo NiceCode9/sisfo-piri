@@ -32,6 +32,13 @@ class ExamAnswerController extends Controller implements HasMiddleware
         $question = $answer->question;
         abort_if($question === null, 404);
 
+        // Semua cell uraian di halaman hasil memakai nama field `score_obtained`
+        // yang sama, jadi tanpa penanda ini pesan error akan muncul di setiap
+        // kolom sekaligus. Nilainya diambil dari URL, bukan dari kiriman form,
+        // supaya pesan selalu menempel pada kolom yang benar. Tidak memengaruhi
+        // nilai yang tersimpan.
+        $request->merge(['answer_id' => $answer->id]);
+
         $data = $request->validate([
             // Batas atas ikut bobot soal, bukan angka tetap 100 — soal
             // 5 poin tidak boleh diberi nilai 100.

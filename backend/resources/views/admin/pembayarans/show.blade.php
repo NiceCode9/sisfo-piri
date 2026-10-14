@@ -18,7 +18,7 @@
     </div>
 </div>
 
-@include('layouts.partials.alert')
+@include('layouts.partials.alert', ['errorDitampilkan' => ['dp_dibayar', 'jumlah_cicilan', 'tanggal_mulai']])
 
 @if ($errors->any())
     <div class="alert alert-danger alert-dismissible fade show" role="alert">

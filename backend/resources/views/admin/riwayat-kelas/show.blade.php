@@ -12,7 +12,7 @@
     <a href="{{ route('admin.riwayat-kelas.index') }}" class="btn btn-nexus-outline btn-sm">Kembali</a>
 </div>
 
-@include('layouts.partials.alert')
+@include('layouts.partials.alert', ['errorDitampilkan' => ['kelas_id', 'status', 'tahun_ajaran_id']])
 
 {{-- Form tambah baris. Hanya muncul kalau siswa belum punya baris `aktif`,
      karena itu keadaan yang membuat siswa lenyap dari rekap dan tidak punya

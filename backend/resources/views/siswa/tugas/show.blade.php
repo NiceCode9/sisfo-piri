@@ -5,7 +5,7 @@
 
 @section('content')
 <div class="page-header d-flex justify-content-between gap-3"><div><h1 class="page-title">{{ $tugas->judul }}</h1><p class="page-subtitle mb-0">{{ $tugas->mataPelajaran->kode ?? '-' }} • {{ $tugas->deadline ? $tugas->deadline->format('d M Y H:i') : 'Tanpa deadline' }}</p></div><a href="{{ route('siswa.tugas.index') }}" class="btn btn-nexus-outline btn-sm">Kembali</a></div>
-@include('layouts.partials.alert')
+@include('layouts.partials.alert', ['errorDitampilkan' => ['file', 'jawaban_text']])
 <div class="card-nexus"><div class="card-body-nexus">
     <p style="font-size:13px;">{{ $tugas->deskripsi ?? '—' }}</p>
     @if($pengumpulan)

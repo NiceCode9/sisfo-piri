@@ -16,7 +16,7 @@
     </div>
 </div>
 
-@include('layouts.partials.alert')
+@include('layouts.partials.alert', ['errorDitampilkan' => ['alasan', 'berkas', 'file', 'status']])
 
 @can('absensis.create')
     <div class="card-nexus mt-3">

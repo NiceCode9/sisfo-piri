@@ -67,6 +67,13 @@ APP_DEBUG=false
 APP_URL=https://admin.sekolahmu.sch.id
 APP_KEY=base64:...  # akan di-generate
 
+# Bahasa antarmuka. `id` aktifkan pesan validasi Indonesia dari `lang/id/`
+# (ikut `git pull`) dan bulan/hari Indonesia pada `translatedFormat`.
+# Fallback ditahan di `en` dengan sengaja: kalau `lang/id/` hilang, sistem
+# turun ke bahasa Inggris, bukan menampilkan kunci `validation.required`.
+APP_LOCALE=id
+APP_FALLBACK_LOCALE=en
+
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
@@ -318,6 +325,10 @@ cd /var/www/sisfo-piri && git pull  # lalu: composer install --no-dev, npm run b
 # PermissionSeeder/MenuSeeder, bukan dari migration. Tanpa `--seed`, permission
 # baru tidak pernah dibuat dan menu baru tidak muncul untuk user yang sudah ada
 # -- gejalanya diam: aplikasinya jalan, menu cuma tidak ada.
+# CATATAN: folder `lang/` ikut lewat `git pull`, tidak perlu langkah tambahan.
+# Jangan pernah dihapus manual di server. Kalau hilang, semua pesan validasi
+# turun ke bahasa Inggris karena `APP_FALLBACK_LOCALE=en`; kalau fallback ikut
+# diubah jadi `id`, UI menampilkan kunci mentah `validation.required`.
 # Maintenance mode (503 kecuali super-admin)
 php artisan tinker --execute "App\Models\Pengaturan::updateOrCreate(['key'=>'maintenance_mode'],['value'=>'1']);"
 # atau admin/pengaturans → maintenance_mode ON
@@ -346,4 +357,6 @@ sudo apt install -y fail2ban unattended-upgrades
 | WA tidak terkirim `notifikasi_logs=gagal` | `pm2 logs wa-gateway`, `curl /status`, `.wwebjs_auth` terhapus, token mismatch `GATEWAY_TOKEN vs WHATSAPP_TOKEN` |
 | `throttle:heartbeat 429` di ExamRoom | Normal 6/min, spam 7× → tunggu 1 menit |
 | Cron tidak jalan | `crontab -l -u www-data` + `grep CRON /var/log/syslog` + `php artisan schedule:list` |
+| Form tidak menyimpan, dan UI menampilkan `validation.required` / `validation.max` mentah | `lang/id/` tidak ada di server → `git -C /var/www/sisfo-piri status` + `ls backend/lang/id`, lalu `git pull` dan `php artisan config:clear && php artisan config:cache`. `config:cache` membekukan nilai `APP_LOCALE`/`APP_FALLBACK_LOCALE` jadi wajib di-cache ulang tiap `.env` berubah. |
+| Pesan validasi muncul dalam bahasa Inggris padahal UI Indonesia | `APP_LOCALE` belum `id` di `.env` production. `.env` tidak ikut `git pull` — server yang sudah jalan harus menambahkannya manual, lalu `config:clear && config:cache` |
 ```

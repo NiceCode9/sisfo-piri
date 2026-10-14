@@ -17,7 +17,7 @@
     </div>
 </div>
 
-@include('layouts.partials.alert')
+@include('layouts.partials.alert', ['errorDitampilkan' => ['guru']])
 
 <div class="card-nexus">
     <div class="card-header-nexus">

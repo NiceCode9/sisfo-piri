@@ -11,7 +11,7 @@
     </div>
 </div>
 
-@include('layouts.partials.alert')
+@include('layouts.partials.alert', ['errorDitampilkan' => ['akreditasi', 'alamat', 'email', 'maps_embed_url', 'misi', 'nama_kepala', 'nama_sekolah', 'npsn', 'sambutan', 'tahun_berdiri', 'telp', 'visi', 'website', 'logo', 'foto_gedung', 'foto_kepala']])
 
 <form method="POST" action="{{ route('admin.profil-sekolah.update') }}" enctype="multipart/form-data">
     @csrf

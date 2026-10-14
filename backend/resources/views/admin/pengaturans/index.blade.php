@@ -11,7 +11,7 @@
     </div>
 </div>
 
-@include('layouts.partials.alert')
+@include('layouts.partials.alert', ['errorDitampilkan' => ['batas_terlambat', 'jam_cek_belum_hadir', 'maintenance_pesan', 'semester_ganjil_mulai', 'semester_ganjil_selesai', 'semester_genap_mulai', 'semester_genap_selesai']])
 
 <form method="POST" action="{{ route('admin.pengaturans.update') }}">
     @csrf @method('PUT')
