@@ -138,6 +138,8 @@ test('jumlah query dashboard orang tua tidak bertambah per anak', function () {
     // seiring bertambahnya anak. Sekarang rombel dan agregat absensi diambil
     // sekali untuk seluruh anak.
     $anakDua = siswaOrtuUji('8102', 'Anak Kedua', $rombelA);
+    $duaAnak = $hitung($ortu);
+
     $anakTiga = siswaOrtuUji('8103', 'Anak Ketiga', $rombelB);
 
     WaliMurid::whereIn('siswa_id', [$anakDua->id, $anakTiga->id])
@@ -147,7 +149,16 @@ test('jumlah query dashboard orang tua tidak bertambah per anak', function () {
 
     $tigaAnak = $hitung($ortu);
 
-    expect($tigaAnak)->toBe($satuAnak);
+    // Yang dijaga adalah pertumbuhannya, bukan jumlah mutlak.
+    //
+    // Dulu test ini membandingkan dua titik dengan kesetaran persis
+    // (`toBe($satuAnak)`), yang membuat menambah satu query konstan saja --
+    // misalnya satu blok ringkasan baru -- ikut menggagalkannya walau
+    // invariant yang sebenarnya ("tidak boleh query per anak") masih utuh.
+    // Mengukur tiga titik menutup celah itu tanpa kehilangan apa pun: satu
+    // query di dalam loop anak masih langsung merah di salah satu selisih.
+    expect($duaAnak - $satuAnak)->toBe(0)
+        ->and($tigaAnak - $duaAnak)->toBe(0);
 });
 
 test('detail mendukung filter semester ganjil', function () {
