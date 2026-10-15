@@ -1,3 +1,81 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    font-family: theme('fontFamily.jakarta');
+    color: theme('colors.on-surface');
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /*
+    Mockup memakai `::-webkit-scrollbar { display: none }`. Sengaja TIDAK
+    disalin: di ruang ujian, siswa harus tetap bisa melihat ada konten di
+    bawah lipatan. Scrollback-nya dibuat tipis supaya tidak memenuhi layar,
+    tapi tetap kelihatan saat muncul.
+  */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: theme('colors.outline-variant');
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: theme('colors.outline');
+  }
+}
+
+@layer components {
+  /*
+    Material Symbols dikirim sebagai webfont, bukan sebagai kelas utility,
+    jadi nama ikon lewat <Icon> menghasilkan
+    <span class="material-symbols-outlined ...">flag</span>.
+  */
+  .material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    font-feature-settings: 'liga';
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+  }
+
+  /* State terisi (FILL 1) — dipakai untuk bookmark ragu-ragu & check. */
+  .material-symbols-outlined[data-filled='true'] {
+    font-variation-settings: 'FILL' 1;
+  }
+
+  /*
+    Angka tabular dipakai di mana pun angka berubah tiap detik (timer) atau
+    berada di dalam grid (nomor soal). Tanpa ini digit "bergeser" bolak-balik
+    tiap hitungan, yang sangat mengganggu saat countdown.
+  */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+}

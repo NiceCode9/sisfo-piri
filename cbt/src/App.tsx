@@ -56,7 +56,18 @@ function AppRoutes() {
     checkActiveSession();
   }, [setExamData]);
 
-  if (checking) return <div className="flex h-screen items-center justify-center">Memuat...</div>;
+  if (checking) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center gap-3 bg-surface">
+        <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-container/10">
+          <span className="material-symbols-outlined animate-spin text-primary-container" style={{ fontSize: '26px' }}>
+            progress_activity
+          </span>
+        </span>
+        <p className="font-label-md text-label-md text-on-surface-variant">Memuat sesi ujian...</p>
+      </div>
+    );
+  }
 
   return (
     <Routes>
