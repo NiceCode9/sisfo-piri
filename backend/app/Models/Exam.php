@@ -11,6 +11,21 @@ class Exam extends Model
 {
     use HasFactory;
 
+    /**
+     * Label tampilan dan kelas badge untuk tiap status.
+     *
+     * Form, daftar ujian, dan halaman detail membaca dari sini. Kalau tiap
+     * view menulis label sendiri, ketiganya pasti berbeda begitu satu
+     * tempat diubah.
+     *
+     * @var array<string, array{label: string, badge: string}>
+     */
+    public const STATUS = [
+        'draft' => ['label' => 'Draf', 'badge' => 'badge-status-draft'],
+        'published' => ['label' => 'Diterbitkan', 'badge' => 'badge-status-published'],
+        'archived' => ['label' => 'Diarsipkan', 'badge' => 'badge-status-archived'],
+    ];
+
     protected $fillable = [
         'rombel_id', 'mata_pelajaran_id', 'name', 'description', 'duration_minutes', 'available_from', 'available_until',
         'max_violation_count', 'shuffle_questions', 'shuffle_options', 'status', 'created_by',
@@ -80,5 +95,15 @@ class Exam extends Model
     public function nilaiKelompok(): int
     {
         return $this->remedial_of_id ?? $this->id;
+    }
+
+    public function statusLabel(): string
+    {
+        return self::STATUS[$this->status]['label'] ?? (string) $this->status;
+    }
+
+    public function statusBadge(): string
+    {
+        return self::STATUS[$this->status]['badge'] ?? 'badge-status-draft';
     }
 }

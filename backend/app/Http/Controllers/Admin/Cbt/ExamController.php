@@ -123,7 +123,7 @@ class ExamController extends Controller implements HasMiddleware
     {
         $this->authorize('view', $exam);
 
-        $exam->load(['rombel.kelas', 'mataPelajaran', 'questions', 'tokens', 'participants', 'sessions']);
+        $exam->load(['rombel.kelas', 'mataPelajaran', 'questions', 'tokens', 'participants', 'sessions', 'remedialOf']);
         $banks = QuestionBank::withCount('questions')
             ->where('mata_pelajaran_id', $exam->mata_pelajaran_id)
             ->when(! $request->user()->hasRole(['super-admin', 'admin']), function ($q) use ($request) {
@@ -184,7 +184,10 @@ class ExamController extends Controller implements HasMiddleware
         $exam->update($data);
         Cache::forget("exam:{$exam->id}:questions");
 
-        return redirect()->route('admin.cbt.exams.index')->with('success', 'Ujian diperbarui.');
+        // Kembali ke detail, bukan ke daftar: status yang baru diubah langsung
+        // kelihatan di sana. `back()` tidak dipakai karena referer POST sukses
+        // menunjuk halaman edit, jadi guru akan terlempar balik ke form.
+        return redirect()->route('admin.cbt.exams.show', $exam)->with('success', 'Ujian diperbarui.');
     }
 
     public function destroy(Exam $exam): RedirectResponse

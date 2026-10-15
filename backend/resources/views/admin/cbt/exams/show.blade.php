@@ -4,8 +4,62 @@
 @section('breadcrumb', 'Detail Ujian')
 
 @section('content')
-<div class="page-header d-flex gap-2"><div><h1 class="page-title">{{ $exam->name }}</h1><p class="page-subtitle">{{ $exam->rombel->kelas->nama_kelas ?? '-' }} • {{ $exam->mataPelajaran->nama ?? '-' }} • {{ $exam->duration_minutes }}m</p></div><a href="{{ route('admin.cbt.results.index', $exam) }}" class="btn btn-nexus-outline btn-sm">Hasil</a><a href="{{ route('admin.cbt.monitoring.index', $exam) }}" class="btn btn-primary btn-sm">Monitoring</a></div>
+<div class="page-header d-flex justify-content-between gap-2 flex-wrap">
+<div><h1 class="page-title">{{ $exam->name }}</h1><p class="page-subtitle">{{ $exam->rombel->kelas->nama_kelas ?? '-' }} • {{ $exam->mataPelajaran->nama ?? '-' }} • {{ $exam->duration_minutes }}m</p></div>
+<div class="d-flex gap-2">
+@can('update', $exam)<a href="{{ route('admin.cbt.exams.edit', $exam) }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit Ujian</a>@endcan
+<a href="{{ route('admin.cbt.results.index', $exam) }}" class="btn btn-nexus-outline btn-sm">Hasil</a>
+<a href="{{ route('admin.cbt.monitoring.index', $exam) }}" class="btn btn-nexus-outline btn-sm">Monitoring</a>
+</div>
+</div>
 @include('layouts.partials.alert', ['errorDitampilkan' => ['active_from', 'active_until', 'max_usage', 'paket']])
+
+{{--
+  Ringkasan ini menjawab satu pertanyaan yang selalu muncul di halaman ini:
+  apakah ujiannya sudah siap dijalankan. Status, durasi, dan jendela waktu
+  menentukan itu, jadi ditampilkan di atas soal dan token, bukan dikubur di
+  form edit.
+--}}
+<div class="card-nexus mb-3"><div class="card-body-nexus">
+<div class="d-flex flex-wrap gap-4">
+<div>
+<p style="font-size:12px;color:var(--text-muted);margin:0 0 3px;">Status</p>
+<span class="badge-nexus {{ $exam->statusBadge() }}">{{ $exam->statusLabel() }}</span>
+</div>
+<div>
+<p style="font-size:12px;color:var(--text-muted);margin:0 0 3px;">Durasi</p>
+<p style="font-size:13px;margin:0;">{{ $exam->duration_minutes }} menit</p>
+</div>
+<div>
+<p style="font-size:12px;color:var(--text-muted);margin:0 0 3px;">Batas Pelanggaran</p>
+<p style="font-size:13px;margin:0;">{{ $exam->max_violation_count }} kali</p>
+</div>
+<div>
+<p style="font-size:12px;color:var(--text-muted);margin:0 0 3px;">Jendela Waktu</p>
+<p style="font-size:13px;margin:0;">
+@if($exam->available_from && $exam->available_until)
+{{ $exam->available_from->format('d M Y H:i') }} - {{ $exam->available_until->format('d M Y H:i') }}
+@elseif($exam->available_from)
+Mulai {{ $exam->available_from->format('d M Y H:i') }}, tanpa batas akhir
+@elseif($exam->available_until)
+Sampai {{ $exam->available_until->format('d M Y H:i') }}
+@else
+Tanpa batas waktu
+@endif
+</p>
+</div>
+<div>
+<p style="font-size:12px;color:var(--text-muted);margin:0 0 3px;">Pengacakan</p>
+<p style="font-size:13px;margin:0;">Soal {{ $exam->shuffle_questions ? 'acak' : 'berurutan' }}, opsi {{ $exam->shuffle_options ? 'acak' : 'berurutan' }}</p>
+</div>
+@if($exam->is_remedial)
+<div>
+<p style="font-size:12px;color:var(--text-muted);margin:0 0 3px;">Remedial dari</p>
+<p style="font-size:13px;margin:0;">{{ $exam->remedialOf->name ?? 'ujian asal tidak ditemukan' }}</p>
+</div>
+@endif
+</div>
+</div></div>
 
 <div class="card-nexus mb-3"><div class="card-body-nexus">
 <h6 style="font-size:13px;font-weight:700;">Import soal massal (Excel + gambar)</h6>

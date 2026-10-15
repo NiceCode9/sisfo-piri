@@ -891,6 +891,19 @@ body {
 [data-theme="dark"] .badge-info    { background: rgba(59,130,246,0.15); color: #60a5fa; }
 [data-theme="dark"] .badge-purple  { background: rgba(124,58,237,0.15); color: #a78bfa; }
 
+/* Badge status ujian.
+   Warna teks memakai foreground yang lebih gelap dari `.badge-success` / `.badge-warning`
+   bawaan: pasangan bawaan hanya 2.9:1 di atas tint-nya sendiri dan gagal WCAG AA.
+   Terverifikasi di kedua tema: draft 8.9:1, published 6.4:1, archived 6.4:1 (terang);
+   8.3:1, 8.6:1, 9.2:1 (gelap). */
+.badge-status-draft     { background: rgba(148,163,184,0.18); color: #334155; }
+.badge-status-published { background: rgba(34,197,94,0.12);    color: #166534; }
+.badge-status-archived  { background: rgba(245,158,11,0.14);   color: #92400e; }
+
+[data-theme="dark"] .badge-status-draft     { background: rgba(148,163,184,0.20); color: #cbd5e1; }
+[data-theme="dark"] .badge-status-published { background: rgba(34,197,94,0.16);    color: #6ee7a0; }
+[data-theme="dark"] .badge-status-archived  { background: rgba(245,158,11,0.16);   color: #fcd34d; }
+
 /* ============================================
    ACTIVITY TIMELINE
    ============================================ */

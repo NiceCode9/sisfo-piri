@@ -196,7 +196,7 @@ test('edit ujian tidak menghapus deskripsi, durasi, dan batas pelanggaran', func
 
     $this->actingAs(superAdmin())
         ->put(route('admin.cbt.exams.update', $exam), isianFormUjian($exam))
-        ->assertRedirect(route('admin.cbt.exams.index'))
+        ->assertRedirect(route('admin.cbt.exams.show', $exam))
         ->assertSessionHasNoErrors();
 
     $exam->refresh();

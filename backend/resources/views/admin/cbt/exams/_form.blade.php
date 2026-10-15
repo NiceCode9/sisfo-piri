@@ -93,9 +93,11 @@
 
     <div class="col-12 col-sm-4">
         <div class="form-floating">
+            {{-- Label dan warna badge dibaca dari `Exam::STATUS` supaya form ini
+                 dan badge di daftar/detail tidak bisa berbeda kata. --}}
             <select name="status" id="status" class="form-select @error('status') is-invalid @enderror" required>
-                @foreach(['draft' => 'Draft', 'published' => 'Published', 'archived' => 'Archived'] as $value => $label)
-                    <option value="{{ $value }}" @selected(old('status', $exam->status ?? 'draft') === $value)>{{ $label }}</option>
+                @foreach(\App\Models\Exam::STATUS as $value => $meta)
+                    <option value="{{ $value }}" @selected(old('status', $exam->status ?? 'draft') === $value)>{{ $meta['label'] }}</option>
                 @endforeach
             </select>
             <label for="status">Status <span class="text-danger">*</span></label>

@@ -57,6 +57,10 @@ class ExamPolicy
 
     public function delete(User $user, Exam $exam): bool
     {
-        return $this->update($user, $exam);
+        // Ujian yang sudah punya sesi tidak boleh dihapus: cascade-nya ikut
+        // menghapus jawaban dan pelanggaran, dan `remedial_of_id` pada anak
+        // remedial ikut jadi NULL karena kolom itu nullOnDelete, yang mengubah
+        // remedial menjadi ujian biasa tanpa jejak di rapor.
+        return $this->update($user, $exam) && ! $exam->sessions()->exists();
     }
 }
