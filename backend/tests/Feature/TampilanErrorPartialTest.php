@@ -245,10 +245,39 @@ test('partial alert hanya menyaring pesan, tidak menyembunyikan semua', function
 
     // Penyingkiran harus bersyarat per kunci, bukan memblokir semua
     // ketika daftarnya terisi.
-    expect($isi)->toContain('str_starts_with($kunci, $d');
+    expect($isi)->toContain('$kunci === $d');
+
+    /*
+     * Prefiks TIDAK boleh otomatis menyingkirkan. Dulu `misi` menutupi
+     * `misi.0`, padahal view profil-sekolah hanya menulis `@error('misi')`
+     * yang tidak menangkap `misi.0`. Errornya hilang dari ringkasan DAN tidak
+     * pernah tampil di kolomnya: penyimpanan profil gagal tanpa satu pesan.
+     *
+     * Sekarang view yang menangani kunci bertingkat harus mendaftarkan
+     * wildcard-nya secara sadar, dan itu yang diperiksa di sini.
+     */
+    expect($isi)->not->toContain('str_starts_with($kunci, $d');
+    expect($isi)->toContain('str_ends_with($d,');
 
     // Kotak ringkasan tetap dirender kalau ada sisa pesan.
     expect($isi)->toContain('data belum disimpan');
+});
+
+test('kunci bertingkat yang tidak punya pasangan tidak boleh hilang dari layar', function () {
+    // Ini pengaman yang paling penting dari kelompok tes ini: apa pun yang
+    // terjadi pada aturan saringan, satu pesan validasi tidak boleh hilang
+    // dari BOTH tempat sekaligus.
+    //
+    // Disimulasikan lewat halaman profil-sekolah: `misi` didaftarkan (dan
+    // view-nya menulis `@error('misi')`), `misi.*` juga didaftarkan karena
+    // view-nya memang mengumpulkan semua kunci misi. Kalau view lupa
+    // mendaftarkan wildcard-nya, `misi.0` akan hilang dari ringkasan tanpa
+    // ada yang menampilkannya.
+    $view = File::get(resource_path('views/admin/profil-sekolah/edit.blade.php'));
+
+    expect($view)
+        ->toContain("'misi'")
+        ->toContain("'misi.*'");
 });
 
 /*

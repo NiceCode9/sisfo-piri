@@ -11,7 +11,7 @@
     </div>
 </div>
 
-@include('layouts.partials.alert', ['errorDitampilkan' => ['akreditasi', 'alamat', 'email', 'maps_embed_url', 'misi', 'nama_kepala', 'nama_sekolah', 'npsn', 'sambutan', 'tahun_berdiri', 'telp', 'visi', 'website', 'logo', 'foto_gedung', 'foto_kepala']])
+@include('layouts.partials.alert', ['errorDitampilkan' => ['akreditasi', 'alamat', 'email', 'maps_embed_url', 'misi', 'misi.*', 'nama_kepala', 'nama_sekolah', 'npsn', 'sambutan', 'tahun_berdiri', 'telp', 'visi', 'website', 'logo', 'foto_gedung', 'foto_kepala']])
 
 <form method="POST" action="{{ route('admin.profil-sekolah.update') }}" enctype="multipart/form-data">
     @csrf
@@ -153,7 +153,45 @@
                         @endforelse
                     </div>
                     <button type="button" id="misi-add" class="btn btn-nexus-outline btn-sm mt-2"><i class="fa-solid fa-plus"></i> Tambah Misi</button>
-                    @error('misi')<div class="text-danger" style="font-size: 12.5px;">{{ $message }}</div>@enderror
+
+                    {{-- Semua baris misi yang bermasalah dikumpulkan di sini.
+
+                         `@error('misi')` saja TIDAK cukup. Validasi silang pada
+                         array menghasilkan kunci berindeks seperti `misi.0`
+                         dan `misi.3`, bukan `misi`. Dulu aturan `misi.*`
+                         memakai `required_with:misi`, jadi begitu baris misi
+                         dikosongkan, kuncinya jadi `misi.0`: tidak tampil di
+                         bawah kolom karena `@error('misi')` tidak
+                         menangkapnya, dan tidak muncul di ringkasan atas
+                         karena `layouts.partials.alert` menyingkirkan
+                         `misi.0` yang cocok prefiks `misi.`. Simpanannya
+                         gagal tanpa pesan apa pun.
+
+                         Sekarang baris kosong tidak lagi ditolak, tapi
+                         `misi` sendiri masih bisa gagal (lebih dari 20 baris,
+                         atau bukan array). Semua kunci dikumpulkan supaya
+                         tidak ada lagi kunci yang luput dari layar. --}}
+                    @php
+                        // Kunci `misi` (misalnya "misi tidak boleh lebih dari 20
+                        // item") digabung dengan kunci bertingkat `misi.0`,
+                        // `misi.3`, dan seterusnya. Satu blok pesan, bukan dua.
+                        $pesanMisi = $errors->get('misi');
+
+                        foreach ($errors->keys() as $kunciMisi) {
+                            if (str_starts_with((string) $kunciMisi, 'misi.')) {
+                                $pesanMisi = array_merge($pesanMisi, $errors->get($kunciMisi));
+                            }
+                        }
+
+                        $pesanMisi = array_values(array_unique($pesanMisi));
+                    @endphp
+                    @if ($pesanMisi)
+                        <div class="text-danger mt-1" style="font-size: 12.5px;">
+                            @foreach ($pesanMisi as $pesan)
+                                <div>{{ $pesan }}</div>
+                            @endforeach
+                        </div>
+                    @endif
                 </div>
                 <div class="col-12">
                     <div class="form-floating">
