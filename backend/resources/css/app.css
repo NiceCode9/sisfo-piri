@@ -1,159 +1,596 @@
 @import "tailwindcss";
 
 /**
- * Tailwind CSS v4 Custom Theme
- * Styling untuk SPMB Landing Page
+ * Design system situs publik SPMB.
+ *
+ * Arah desain: "Youth" — modern, interaktif, ramah orang tua.
+ *
+ * Palet ini menggantikan Hijau Imtaq/Emas yang sebelumnya dipakai. Alasannya
+ * bukan selera: pada versi lama slot "emas" bernilai #b45309 dan #92400e, yang
+ * sebenarnya cokelat (amber-700/800). Karena slot itu dipakai untuk
+ * `outline` focus-visible, `.btn-accent`, dan `.motif-star`, cincin fokus,
+ * tombol utama, dan ornamen situs ini semuanya berwarna cokelat keruh. Itu
+ * sebabnya seluruh halaman terasa lifeless, bukan karena susunannya.
+ *
+ * Aturan warna yang berasal dari pengukuran kontras, bukan perkiraan:
+ * - Coral terang (secondary-500) dan cyan (accent-400) HANYA aman di panel
+ *   gelap. Di atas kertas masing-masing hanya 3.16:1 dan 1.75:1.
+ * - secondary-600 (coral gelap) aman di area terang dan jadi warna tombol.
+ * - Cincin fokus harus dua warna: coral gelap 2.78:1 di panel gelap, jadi
+ *   tidak bisa satu warna untuk dua latar. Lihat blok focus di bawah.
+ * - ink-400 hanya untuk garis. 2.00:1, gagal kalau jadi teks.
+ *
+ * Aturan yang mengikat: R-29 (warna inti terbatas), R-11 (radius alat
+ * hierarki), R-12 (bayangan menandai elevasi), R-19 (gerak wajib punya tujuan).
  */
 
 @theme {
-    /* Typography */
+    /*
+     * Display: Nunito. Terminal membulat dan konter lebar; pada 40px+ tetap
+     * terbaca anak SMP 12-15 tahun, sementara bobot 800-nya tetap memberi
+     * rasa resmi yang dicari orang tua. Bukan Inter/Geist, jadi bukan
+     * pilihan default (R-06).
+     */
+    --font-display: "Nunito", "Poppins", ui-sans-serif, system-ui, sans-serif;
+
+    /* Body: Poppins. Tetap dipakai karena legibilitas Bahasa Indonesia-nya
+     * paling baik di antara sans geometric. */
     --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
 
     /*
-     * Primary Colors - Hijau Imtaq
-     *
-     * SMP PIRI NGAGLIK bernaung di bawah Yayasan Perguruan Islam Republik
-     * Indonesia, dan visinya "Unggul dalam prestasi dan iptek berlandaskan
-     * Imtaq". Warna hijau dipilih karena itu identitas sekolah, bukan pilihan
-     * dekoratif.
-     *
-     * PENTING - kenapa slot 600 dan seterusnya lebih gelap dari ramp hijau
-     * bawaan Tailwind: view memakai `bg-primary-600 text-white` di 6 tempat
-     * (tombol CTA, ikon langkah, dsb). Hijau bawaan `#059669` hanya 3.77:1
-     * terhadap teks putih - di bawah ambang WCAG AA 4.5:1. Slot 500 di sini
-     * tetap terang dan hanya untuk dekoratif. Test "tidak ada teks putih di
-     * atas background yang kontrasnya gagal" menghitung rasio aslinya, jadi
-     * slot 500 pun tetap boleh selama warnanya cukup gelap.
+     * Primary: Deep Teal. Menempati semua panel besar, tombol solid, dan
+     * header. 900 = 16.87:1 terhadap putih, 700 = 10.84:1.
      */
-    --color-primary-50: #f0fdf4;
-    --color-primary-100: #dcfce7;
-    --color-primary-200: #bbf7d0;
-    --color-primary-300: #86efac;
-    --color-primary-400: #4ade80;
-    --color-primary-500: #16a34a;
-    --color-primary-600: #15803d;
-    --color-primary-700: #166534;
-    --color-primary-800: #14532d;
-    --color-primary-900: #052e16;
-    --color-primary-950: #041407;
+    --color-primary-50: #eff6f8;
+    --color-primary-100: #d7e8ee;
+    --color-primary-200: #afd0dd;
+    --color-primary-300: #7fb2c7;
+    --color-primary-400: #4a8eac;
+    --color-primary-500: #2e7d9a;
+    --color-primary-600: #235a76;
+    --color-primary-700: #1a4157;
+    --color-primary-800: #123041;
+    --color-primary-900: #0c1f2a;
+    --color-primary-950: #07161e;
 
     /*
-     * Secondary Colors - Emas, digelapkan
+     * Secondary: Coral. Warna energi situs ini.
      *
-     * Emas adalah pasangan tradisional hijau pada identitas sekolah islami,
-     * jadi tetap dipertahankan. Hanya nilainya yang digelapkan: `--color-secondary-500`
-     * dipakai 6 kali sebagai background teks putih (termasuk tombol "Daftar"
-     * di navbar), dan amber terang `#f59e0b` cuma 2.15:1 - praktis tidak
-     * terbaca. Slot 400 tetap terang karena hanya dipakai untuk blob
-     * dekoratif beropasitas rendah, bukan teks di atas putih.
+     * Slot 400-500 terang dan hanya boleh di panel gelap. Slot 600 ke bawah
+     * adalah versi yanggelap untuk dipakai di area terang.
      */
-    --color-secondary-50: #fffbeb;
-    --color-secondary-100: #fef3c7;
-    --color-secondary-200: #fde68a;
-    --color-secondary-300: #fcd34d;
-    --color-secondary-400: #fbbf24;
-    --color-secondary-500: #b45309;
-    --color-secondary-600: #92400e;
-    --color-secondary-700: #78350f;
-    --color-secondary-800: #451a03;
-    --color-secondary-900: #1c1917;
+    --color-secondary-50: #fff5f1;
+    --color-secondary-100: #ffe9e1;
+    --color-secondary-200: #ffd4c7;
+    --color-secondary-300: #ffb29b;
+    --color-secondary-400: #ff8a6b;
+    --color-secondary-500: #f4623a;
+    --color-secondary-600: #b03a16;
+    --color-secondary-700: #8a2a14;
+    --color-secondary-800: #6b1f0e;
+    --color-secondary-900: #4a1408;
 
     /*
-     * Accent Colors - Sky
-     *
-     * Dulu hijau, sekarang biru langit. Setelah primary jadi hijau, accent
-     * tidak boleh tetap hijau juga - dua hijau di satu halaman membuat
-     * `--color-accent-*` tidak bisa dibedakan dari primary dan merusak hierarki
-     * warna. Sky dipakai sebagai aksen untuk penanda "sedang berlangsung".
+     * Accent: Cyan elektrik. Satu-satunya warna "digital" di situs ini, dipakai
+     * untuk status hidup (kuota bergerak, berkas sudah dipilih) dan badge
+     * langkah. Seperti secondary terang, hanya aman di panel gelap:
+     * 7.62:1 di teal-800, 1.75:1 di kertas.
      */
-    --color-accent-50: #f0f9ff;
-    --color-accent-100: #e0f2fe;
-    --color-accent-200: #bae6fd;
-    --color-accent-300: #7dd3fc;
-    --color-accent-400: #38bdf8;
-    --color-accent-500: #0ea5e9;
-    --color-accent-600: #0369a1;
-    --color-accent-700: #075985;
-    --color-accent-800: #0c4a6e;
-    --color-accent-900: #082f49;
+    --color-accent-50: #ecfeff;
+    --color-accent-100: #cffafe;
+    --color-accent-200: #a5f3fc;
+    --color-accent-300: #67e8f9;
+    --color-accent-400: #22d3ee;
+    --color-accent-500: #06b6d4;
+    --color-accent-600: #0e7490;
+    --color-accent-700: #155e75;
+    --color-accent-800: #164e63;
+    --color-accent-900: #083344;
+
+    /*
+     * Kertas: basis netral hangat. Menggantikan abu-abu biru yang membuat
+     * halaman terasa seperti lembar formulir resmi, bukan lancaran
+     * sekolah. Berbeda dari paper putih murni supaya panel putih di atasnya
+     * (kartu, kolom form) tetap terlihat sebagai lapisan di atas.
+     */
+    --color-kertas-50: #fdfbf7;
+    --color-kertas-100: #f7f4ef;
+    --color-kertas-200: #ede8e0;
+    --color-kertas-300: #dcd5ca;
+    --color-kertas-400: #c4bbae;
+
+    /*
+     * Ink: skala teks, diberi rona teal supaya berasal dari identitas warna
+     * dan bukan abu-abu netral yang terlihat asing di atas kertas hangat.
+     * Semua rasio dicatat terhadap kertas-50.
+     */
+    --color-ink-400: #7c919a; /* 3.19:1 - HANYA garis/border */
+    --color-ink-500: #58707d; /* 5.04:1 - placeholder, caption */
+    --color-ink-600: #55707c; /* 5.09:1 - teks sekunder */
+    --color-ink-700: #3d5a66; /* 7.12:1 - label */
+    --color-ink-800: #1d3a45; /* 11.65:1 - badan teks */
+    --color-ink-900: #142a33; /* 13.59:1 - judul */
+
+    /*
+     * Radius: hanya tiga nilai. 8px kontrol kecil, 14px kartu dan tombol,
+     * 24px panel besar. Tidak ada bentuk pil di mana pun, karena pil yang
+     * ada di setiap tempat menghapus bahasa visual "ini input, ini kartu"
+     * (R-11).
+     */
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 24px;
+
+    /*
+     * Bayangan: satu, dan punya pekerjaan yang jelas. Dipakai hanya pada
+     * tiga hal yang benar-benar di atas halaman: skip link saat terfokus,
+     * navbar setelah digulir, dan dialog lightbox. Kartu sengaja rata:
+     * batasnya yang membatasi, bukan bayangannya (R-12).
+     */
+    --shadow-float: 0 12px 32px -12px rgb(12 31 42 / 0.28);
 }
 
-/* Smooth scroll behavior */
+/* ------------------------------------------------------------------ */
+/* Dasar dokumen                                                       */
+/* ------------------------------------------------------------------ */
+
 html {
     scroll-behavior: smooth;
+    /* Judul section tidak pernah tertutup navbar fixed. */
+    scroll-padding-top: 5.5rem;
 }
 
-/* Custom animations */
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
+body {
+    background-color: var(--color-kertas-100);
+    color: var(--color-ink-800);
+}
+
+/*
+ * Indikator fokus.
+ *
+ * R-32 melarang `outline: none` tanpa pengganti. Cincinnya 3px dengan
+ * offset 2px. Warnanya harus dua warna: coral gelap (#B03A16) di atas kertas
+ * mencapai 5.53:1, tapi hanya 2.78:1 di atas teal gelap. Satu warna untuk
+ * dua latar mustahil secara matematis ketika luminance latar bergerak dari
+ * 0.95 sampai 0.02, jadi cincinnya ditoggle lewat `.on-dark` dan selektor
+ * panel di bawah.
+ */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 3px solid var(--color-secondary-600);
+    outline-offset: 2px;
+    /* Sengaja TIDAK ada `border-radius` di sini. Aturan ini memakai `:where()`,
+     * jadi spesifikasinya nol. Kalau diisi `border-radius`, aturan ini
+     * menimpa `rounded-lg`/`rounded-full` milik elemen apa pun yang sedang
+     * fokus: sudut kartu 24px berubah jadi 8px tepat di frame fokus.
+     * `outline` mengikuti `border-radius` elemen itu sendiri, jadi bentuknya
+     * sudah benar tanpa perlu mendeklarasikan apa pun. */
+}
+
+.on-dark :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible,
+.bg-primary-900 :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible,
+.bg-primary-800 :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline-color: var(--color-secondary-400);
+}
+
+/* Hormati preferensi sistem. Gerak adalah pelengkap, bukan isi. */
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
     }
-    to {
-        opacity: 1;
-        transform: translateY(0);
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
     }
 }
 
-@keyframes float {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-20px);
-    }
+/* ------------------------------------------------------------------ */
+/* Kontrol sentuh                                                       */
+/* ------------------------------------------------------------------ */
+
+/*
+ * Tanpa ini, ketukan ganda di perangkat sentuh menambah sekitar 300ms jeda
+ * sebelum `click` terbakar. Tidak ada efek visual yang hilang.
+ */
+:where(a, button, [role='button'], label, summary) {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgb(12 31 42 / 0.08);
 }
 
-.animate-fade-in-up {
-    animation: fadeInUp 0.6s ease-out;
+/* ------------------------------------------------------------------ */
+/* Tipografi                                                          */
+/* ------------------------------------------------------------------ */
+
+/*
+ * Angka yang dibandingkan atau dihitung naik harus memakai glyph selebar
+ * sama. Tanpa ini, counter yang menghitung dari 9 ke 10 membuat seluruh
+ * baris melompat ke samping.
+ */
+.tabular {
+    font-variant-numeric: tabular-nums;
 }
 
-.animate-float {
-    animation: float 3s ease-in-out infinite;
+/* Judul panjang sering berakhir dengan satu kata sendirian di baris
+ * terakhir. `balance` membagi baris secara gratis dan hanya untuk
+ * beberapa baris pertama. */
+:where(h1, h2, h3) {
+    text-wrap: balance;
 }
 
-/* Custom gradient backgrounds */
-.bg-gradient-primary {
-    background: linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-800) 100%);
+/* ------------------------------------------------------------------ */
+/* Motif identitas: bintang delapan (Rub el Hizb)                      */
+/* ------------------------------------------------------------------ */
+/*
+ * Lambang delapan sudut yang paling dikenal dan dipakai luas pada
+ * arsitektur Nusantara serta SPS. Dipakai sebagai motif, bukan gambar: ia
+ * menggantikan bentuk blob dekoratif yang sebelumnya mengisi setiap
+ * section, dan muncul di tempat yang sama setiap kali sehingga halaman
+ * terasa punya milik sendiri (R-07, R-20).
+ */
+
+.motif-rule {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
 }
 
-.bg-gradient-secondary {
-    background: linear-gradient(135deg, var(--color-secondary-400) 0%, var(--color-secondary-600) 100%);
+.motif-rule::before,
+.motif-rule::after {
+    content: "";
+    height: 1px;
+    flex: 1;
+    background-color: currentColor;
+    opacity: 0.35;
 }
 
-.bg-gradient-accent {
-    background: linear-gradient(135deg, var(--color-accent-400) 0%, var(--color-accent-600) 100%);
+.motif-star {
+    width: 1.25rem;
+    height: 1.25rem;
+    flex-shrink: 0;
+    color: currentColor;
 }
 
-/* Decorative shapes */
-.blob-shape {
-    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+/* Watermark besar untuk panel gelap. Bintang delapan sekarang jadi
+ * graphical system, bukan ornamen 20px di samping judul. */
+.motif-watermark {
+    position: absolute;
+    pointer-events: none;
+    color: var(--color-primary-400);
+    opacity: 0.07;
 }
 
-/* Card hover effects */
-.card-hover {
-    transition: all 0.3s ease;
+/*
+ * Bingkai kotak hias. Sudut bertingkat yang lazim dipakai pada bingkai
+ * kaligrafi Nusantara. Dipakai pada foto utama sekolah supaya foto itu
+ * terbaca sebagai barang milik sekolah, bukan gambar stok.
+ */
+.bingkai {
+    position: relative;
 }
 
-.card-hover:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+.bingkai::before,
+.bingkai::after {
+    content: "";
+    position: absolute;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-color: var(--color-secondary-500);
+    border-style: solid;
+    border-width: 0;
+    pointer-events: none;
 }
 
-/* Custom scrollbar */
+.bingkai::before {
+    inset-block-start: -0.75rem;
+    inset-inline-start: -0.75rem;
+    border-top-width: 2px;
+    border-left-width: 2px;
+}
+
+.bingkai::after {
+    inset-block-end: -0.75rem;
+    inset-inline-end: -0.75rem;
+    border-bottom-width: 2px;
+    border-right-width: 2px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Gerak                                                               */
+/* ------------------------------------------------------------------ */
+/*
+ * MOTION 2: satu kali saat elemen masuk viewport, jarak pendek, tanpa
+ * delay bertingkat. Gunanya membantu mata menemukan urutan baca, bukan
+ * menghibur. Tidak ada satu pun animasi yang berjalan tanpa ujung di
+ * seluruh situs ini (R-19).
+ */
+.reveal {
+    opacity: 0;
+    transform: translateY(12px);
+    transition:
+        opacity 0.5s ease-out,
+        transform 0.5s ease-out;
+}
+
+.reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ------------------------------------------------------------------ */
+/* Kontrol                                                             */
+/* ------------------------------------------------------------------ */
+
+/*
+ * Target sentuh. Gaya fokus memakai :focus-visible, jadi ini yang memberi
+ * umpan balik saat jari menekan di layar sentuh (R-03).
+ */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    padding-inline: 1.25rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    line-height: 1;
+    text-align: center;
+    transition:
+        background-color 0.18s ease-out,
+        color 0.18s ease-out,
+        border-color 0.18s ease-out,
+        transform 0.18s ease-out;
+}
+
+.btn:active {
+    transform: translateY(1px);
+}
+
+/* Tombol utama: coral gelap, bukan coral terang. #F4623A + teks putih
+ * hanya 3.16:1 dan gagal; #B03A16 mencapai 6.06:1. */
+.btn-primary {
+    background-color: var(--color-primary-700);
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background-color: var(--color-primary-800);
+}
+
+/*
+ * Tombol aksen. Ini tombol panggilan utama di hero, navbar, dan Tentang.
+ *
+ * `.btn-accent` sebelumnya memakai secondary-600 (#B03A16) karena putih di
+ * atasnya lolos 6.06:1. Itu mengukur constraint yang salah.
+ *
+ * Ada dua hal yang harus benar pada tombol, dan keduanya terpisah:
+ *
+ * 1. Teks di atas tombol harus terbaca. #B03A16 + putih = 6.06:1. Lolos.
+ * 2. Tombol harus terlihat sebagai target klik terhadap LATAR di belakang
+ *   nya. Di hero, latarnya primary-900. #B03A16 vs #0C1F2A cuma 2.78:1,
+ *    di bawah batas 3:1, dan lebih buruk dari emas #B45309 (3.36:1) yang
+ *    sebelumnya di sana. Tombol panggilan utama jadi satu hal yang paling
+ *    sulit diklik di halaman.
+ *
+ * Yang dipakai sekarang coral terang #F4623A dengan teks teal tua:
+ *
+ * - tombol vs latar hero : 5.34:1  (butuh 3:1)
+ * - teks vs tombol       : 5.34:1  (butuh 4.5:1)
+ *
+ * Tombol ini dipakai juga di atas kertas (Tentang, Pendaftaran), dan di sana
+ * latarnya terang. Coral terang + teks teal tua tetap terbaca di situ, dan
+ * warna coral-nya masih terbaca sebagai warna identitas.
+
+ */
+.btn-accent {
+    background-color: var(--color-secondary-500);
+    color: var(--color-primary-900);
+}
+
+.btn-accent:hover {
+    background-color: var(--color-secondary-400);
+}
+
+/* Tombol untuk dipakai di atas panel gelap: coral terang dengan teks
+ * teal tua. Kombinasi ini 5.34:1, jauh di atas putih di coral. */
+.btn-glow {
+    background-color: var(--color-secondary-500);
+    color: var(--color-primary-900);
+}
+
+.btn-glow:hover {
+    background-color: var(--color-secondary-400);
+}
+
+.btn-quiet {
+    background-color: transparent;
+    color: var(--color-primary-700);
+    border: 1px solid var(--color-primary-200);
+}
+
+.btn-quiet:hover {
+    background-color: var(--color-primary-50);
+    border-color: var(--color-primary-300);
+}
+
+.btn-quiet-light {
+    background-color: transparent;
+    color: #fff;
+    border: 1px solid rgb(255 255 255 / 0.35);
+}
+
+.btn-quiet-light:hover {
+    background-color: rgb(255 255 255 / 0.12);
+    border-color: rgb(255 255 255 / 0.6);
+}
+
+/* Kolom form: label selalu di atas, bukan placeholder-as-label. */
+.field {
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.625rem 0.875rem;
+    border-radius: var(--radius-sm);
+    /* 3.19:1 terhadap putih. Batas kolom harus terlihat oleh orang yang
+     * kehilangan penglihatan warna, bukan hanya yang membedakan bentuk
+     * (WCAG 1.4.11). */
+    border: 1px solid var(--color-ink-400);
+    background-color: #fff;
+    color: var(--color-ink-900);
+    font-size: 1rem;
+}
+
+.field::placeholder {
+    color: var(--color-ink-500);
+}
+
+.field:focus-visible {
+    outline: 3px solid var(--color-secondary-600);
+    outline-offset: 1px;
+    border-color: var(--color-primary-600);
+}
+
+.on-dark .field:focus-visible,
+.bg-primary-900 .field:focus-visible,
+.bg-primary-800 .field:focus-visible {
+    outline-color: var(--color-secondary-400);
+}
+
+.field[aria-invalid='true'] {
+    border-color: #b91c1c;
+}
+
+/*
+ * Kolom dengan ikon di dalamnya.
+ *
+ * Padding kiri dilebihkan supaya teks tidak menimpa ikon, dan ikon dibuat
+ * buram serta tidak bisa diklik supaya tidak mengganggu saat mengetik.
+ * Ikon selalu berupa gambar, bukan teks: kalau warnanya berubah jadi
+ * redup saat ada isi, teksnya sendiri yang jadi penanda (C-4).
+ */
+.field-icon {
+    padding-left: 3rem;
+}
+
+.field-icon-slot {
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-start: 0.875rem;
+    transform: translateY(-50%);
+    width: 1.25rem;
+    height: 1.25rem;
+    pointer-events: none;
+    color: var(--color-ink-400);
+}
+
+/*
+ * Pesan galat di bawah kolom form.
+ *
+ * Warnanya #b91c1c, bukan `text-red-600` (#dc2626) yang biasa dipakai
+ * Tailwind. Yang merah bawaan itu hanya 4.83:1, sedangkan yang di sini
+ * 6.47:1 (R-25).
+ */
+.field-error {
+    display: block;
+    margin-top: 0.375rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #b91c1c;
+}
+
+/*
+ * State galat lain.
+ *
+ * Markup form sebelumnya menulis `border-red-500 ring-2 ring-red-200` dan
+ * `bg-red-50 border-red-200` langsung, jadi merapikan satu tempat saja
+ * tidak cukup: warna merah ada di empat slot sekaligus dan tiga di
+ * antaranya memakai ramp bawaan Tailwind yang tidak diukur.
+ *
+ * Semua digabung ke sini, dengan alasan yang sama seperti `.field-error`:
+ * #B91C1C punya 6.47:1 di atas kertas. `red-500` (#ef4444) hanya 3.76:1 dan
+ * gagal sebagai teks; `red-700` (#b91c1c) memang sama dengan yang di sini.
+ *
+ * Warna galat bukan palet inti, jadi tidak diberi ramp sendiri. Ia muncul
+ * hanya saat isinya salah, dan merah adalah satu-satunya cara
+ * memberitahu orang buta warna bahwa ada yang perlu diperbaiki.
+ */
+.field.is-invalid {
+    border-color: #b91c1c;
+    box-shadow: 0 0 0 3px rgb(185 28 28 / 0.15);
+}
+
+.error-box {
+    border: 1px solid rgb(185 28 28 / 0.35);
+    background-color: #fef2f2;
+    border-radius: var(--radius-md);
+    color: #7f1d1d;
+}
+
+.error-text {
+    color: #b91c1c;
+}
+
+.error-heading {
+    color: #7f1d1d;
+}
+
+/*
+ * Tombol hapus satu baris (baris sertifikat pada langkah 3).
+ *
+ * Tombol ini menghapus data yang sudah diisi orang, jadi ia memakai warna
+ * galat, bukan warna netral. `#B91C1C` di atas `#FEF2F2` diukur 5.91:1.
+ * Versi sebelumnya memakai `text-red-700` dengan `bg-red-50`, yang kebetulan
+ * angkanya sama, tapi `hover:bg-red-100` menarik latar ke arah teksnya dan
+ * tidak pernah diukur.
+ */
+.btn-remove {
+    background-color: #fef2f2;
+    color: #b91c1c;
+}
+
+.btn-remove:hover {
+    background-color: #fee2e2;
+}
+
+/* Kolom unggah berkas: nama file biasanya panjang dan memuat garis miring
+   atau spasi, jadi lebarnya dibiarkan mengalir. */
+.field.file {
+    padding: 0.625rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.field.file::file-selector-button {
+    margin-inline-end: 0.75rem;
+    min-height: 2.25rem;
+    padding-inline: 0.875rem;
+    border: 1px solid var(--color-primary-200);
+    border-radius: var(--radius-sm);
+    background-color: var(--color-primary-50);
+    color: var(--color-primary-800);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* Scrollbar tipis yang mengikuti identitas, bukan warna bawaan browser. */
 ::-webkit-scrollbar {
     width: 10px;
 }
 
 ::-webkit-scrollbar-track {
-    background: #f1f5f9;
+    background: var(--color-kertas-200);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--color-primary-400);
-    border-radius: 5px;
+    background: var(--color-kertas-400);
+    border: 2px solid var(--color-kertas-200);
+    border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--color-primary-600);
+    background: var(--color-ink-400);
 }

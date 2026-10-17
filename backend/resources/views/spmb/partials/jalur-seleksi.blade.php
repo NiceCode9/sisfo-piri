@@ -1,276 +1,269 @@
-{{-- TODO: ganti dengan data asli jalur seleksi --}}
+{{--
+    Jalur pendaftaran.
 
-<section id="jalur" class="py-20 bg-slate-50">
-    <div class="container mx-auto px-4">
-        
-        {{-- Section Header --}}
-        <div class="text-center max-w-3xl mx-auto mb-16">
-            <h2 class="text-3xl md:text-4xl font-extrabold text-gray-800 mb-4">
-                Jalur <span class="text-primary-600">Pendaftaran</span>
+    Section ini diletakkan di panel gelap, bukan di atas kertas. Alasannya isi:
+    section lain di halaman ini terang, dan jalur pendaftaran adalah bagian yang
+    paling butuh dipisah secara visual karena orang tua berhenti membacanya di
+    sini untuk mengambil keputusan. Panel gelap memberi jeda, dan panel gelap
+    juga membuat isinya terbaca sebagai satu blok utuh.
+
+    Jalur ditampilkan sebagai kartu yang terbuka semua, bukan sebagai tab.
+
+    Tab terlihat lebih ringkas, dan versi lama section ini memang memakai tab
+    (Reguler dan Prestasi/Beasiswa). Tapi pekerjaan yang sedang dilakukan orang
+    tua di sini bukan memilih satu jalur, melainkan membandingkan dua jalur:
+    kuota jalur mana yang lebih longgar, dokumen mana yang lebih banyak, apakah
+    ada jalur yang tidak perlu tes. Tab menutup dua dari tiga perbandingan itu
+    di balik klik, dan angka yang tertutup tidak bisa dibandingkan tanpa dibuka
+    satu per satu. Dengan semua kartu terbuka, kuota Reguler dan kuota Prestasi
+    terbandingkan dalam satu pandangan.
+
+    Menghemat tinggi halaman tidak sebanding dengan harga yang dibayar di sini,
+    jadi kartu terbuka. Panel gelap di belakang keduanya tetap membuat halaman
+    terasa punya jeda.
+
+    Rincian syarat per jalur masih hardcode karena tabel
+    `jalur_pendaftarans` tidak punya kolom untuk itu, dan dicocokkan lewat
+    `nama_jalur`. Kalau sekolah mengganti nama jalurnya lewat panel
+    administrasi, kartunya tetap tampil, hanya daftar rinciannya yang kosong.
+--}}
+
+@php
+    $jalurList = $jalurPendaftarans ?? collect();
+
+    // Rincian syarat per jalur, dikembalikan dari versi lama. Saat itu section
+    // ini memakai tab "Reguler" dan "Prestasi/Beasiswa" yang ditulis mati,
+    // lengkap dengan syarat rata-rata rapor, batas usia, daftar berkas, dan
+    // persentase beasiswa.
+    //
+    // Semuanya masih hardcode karena tabel jalur_pendaftarans tidak punya
+    // kolom untuk itu. Yang berubah cuma cara menampilkannya: jalur tetap
+    // diambil dari database supaya sekolah bisa memakai nama sendiri, lalu
+    // rinciannya dicocokkan lewat nama_jalur.
+    $rincianJalur = [
+        'Jalur Reguler' => [
+            'persyaratan' => [
+                'Siswa kelas 6 SD/MI atau sederajat',
+                'Usia maksimal 15 tahun pada awal tahun pelajaran',
+                'Mengikuti tes seleksi akademik dan wawancara',
+            ],
+            'dokumen' => [
+                'Fotocopy Akta Kelahiran (2 lembar)',
+                'Fotocopy Kartu Keluarga (2 lembar)',
+                'Rapor semester 1-5 SD/MI (upload PDF)',
+                'Pas foto berwarna 3x4 (3 lembar)',
+                'Surat Keterangan Sehat dari dokter',
+            ],
+            'catatan' => 'Semua dokumen harus asli dan masih berlaku. Pastikan data yang diisi sesuai dengan dokumen resmi.',
+        ],
+        'Jalur Prestasi' => [
+            'persyaratan' => [
+                'Rata-rata rapor semester 1-5 minimal <strong>85</strong> (prestasi akademik)',
+                'Memiliki prestasi juara 1-3 tingkat Kabupaten/Kota atau lebih tinggi',
+                'Prestasi dicapai maksimal 2 tahun terakhir',
+                'Bebas tes tulis, hanya wawancara dan verifikasi dokumen',
+            ],
+            'dokumen' => [
+                'Semua dokumen persyaratan jalur reguler',
+                'Fotocopy piagam/sertifikat prestasi (dilegalisir)',
+                'Surat rekomendasi dari kepala sekolah asal',
+                'Portofolio prestasi (jika ada)',
+            ],
+            'kategori' => [
+                'Akademik' => ['Olimpiade Sains/Matematika', 'Olimpiade Bahasa', 'Lomba Karya Ilmiah'],
+                'Non-Akademik' => ['Olahraga (minimal Kabupaten)', 'Seni & Budaya', 'Teknologi & Robotik'],
+            ],
+            'catatan' => 'Siswa yang lolos jalur prestasi berpeluang mendapatkan <strong>beasiswa 25%-100%</strong> biaya pendidikan sesuai tingkat prestasi yang dicapai.',
+        ],
+    ];
+
+    $centangJalur = 'M5 13l4 4L19 7';
+@endphp
+
+<section id="jalur" class="on-dark bg-primary-900 py-24 sm:py-32">
+    <div class="mx-auto max-w-6xl px-5 sm:px-6">
+
+        <div class="max-w-2xl">
+            <p class="motif-rule mb-4 w-32 justify-self-start text-sm font-semibold uppercase tracking-[0.14em] text-secondary-300">
+                @include('spmb.partials.motif-star', ['ukuran' => 'h-4 w-4', 'kelas' => 'shrink-0'])
+                <span class="shrink-0">Pilih jalur</span>
+            </p>
+            <h2 class="reveal font-display text-3xl font-extrabold leading-tight text-white sm:text-4xl">
+                Jalur pendaftaran
             </h2>
-            <p class="text-lg text-gray-600">
-                Pilih jalur pendaftaran yang sesuai dengan kemampuan dan prestasi Anda
+            <p class="reveal mt-5 text-base leading-relaxed text-primary-200">
+                Daftar di bawah diambil dari data sekolah. Kuotanya ikut terisi seiring
+                pendaftaran berlangsung, jadi angkanya bisa berubah kapan saja.
             </p>
         </div>
 
-        {{-- Tab Navigation --}}
-        <div class="flex justify-center mb-12">
-            <div class="inline-flex bg-white rounded-2xl p-2 shadow-lg">
-                <button onclick="switchTab('reguler')" id="tab-reguler" class="tab-button active px-8 py-3 rounded-xl font-semibold text-sm transition">
-                    Jalur Reguler
-                </button>
-                <button onclick="switchTab('prestasi')" id="tab-prestasi" class="tab-button px-8 py-3 rounded-xl font-semibold text-sm transition">
-                    Jalur Prestasi/Beasiswa
-                </button>
-            </div>
-        </div>
+        @forelse ($jalurList as $jalur)
+            @php
+                $kuota = ($kuotaMap ?? collect())->get($jalur->id);
+                $kapasitas = $kuota?->kuota;
+                $terisi = $kuota?->terisi ?? 0;
+                $tanpaBatas = $kapasitas === null;
+                $persen = ($kapasitas && $kapasitas > 0) ? (int) round(min($terisi / $kapasitas, 1) * 100) : null;
 
-        {{-- Tab Content: Reguler --}}
-        <div id="content-reguler" class="tab-content">
-            <div class="max-w-4xl mx-auto bg-white rounded-3xl shadow-xl p-8 md:p-12">
-                <div class="flex items-start space-x-4 mb-8">
-                    <div class="w-16 h-16 bg-primary-100 rounded-2xl flex items-center justify-center flex-shrink-0">
-                        <svg class="w-8 h-8 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                        </svg>
+                // Rincian dicocokkan lewat nama jalur. Kalau sekolah mengganti
+                // nama jalurnya lewat panel administrasi, tabnya tetap tampil,
+                // hanya tanpa daftar rincian yang tidak cocok.
+                $rincian = $rincianJalur[$jalur->nama_jalur] ?? null;
+            @endphp
+
+            {{-- Kartu jalur. Isinya terang di atas panel gelap: kontrasnya
+                 jauh di atas batas, dan bentuk kartu jadi batas yang jelas
+                 antara isi satu jalur dan isi jalur berikutnya tanpa perlu
+                 garis pemisah. --}}
+            <article class="reveal mt-8 rounded-lg bg-kertas-50 p-6 text-ink-800 sm:p-8">
+                <div class="grid gap-8 md:grid-cols-12 md:gap-10">
+                    <div class="md:col-span-7">
+                        <h3 class="font-display text-xl font-extrabold text-ink-900">{{ $jalur->nama_jalur }}</h3>
+
+                        @if ($jalur->deskripsi)
+                            <p class="mt-3 text-base leading-relaxed text-ink-600">{!! nl2br(e($jalur->deskripsi)) !!}</p>
+                        @else
+                            <p class="mt-3 text-base leading-relaxed text-ink-500">
+                                Sekolah belum menulis keterangan jalur ini.
+                            </p>
+                        @endif
+
+                        @if ($jalur->wajib_sertifikat)
+                            <p class="mt-4 inline-flex items-start gap-2 rounded-md bg-secondary-50 px-3 py-2 text-sm text-secondary-700 ring-1 ring-secondary-200">
+                                <svg class="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2"
+                                     viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                          d="M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/>
+                                </svg>
+                                <span>Jalur ini mewajibkan sertifikat prestasi. Kolomnya ada di langkah 4 saat mengunggah berkas.</span>
+                            </p>
+                        @endif
                     </div>
-                    <div>
-                        <h3 class="text-2xl font-bold text-gray-800 mb-2">Jalur Reguler</h3>
-                        <p class="text-gray-600">Jalur pendaftaran umum untuk semua calon siswa</p>
+
+                    {{-- Kuota jalur ini. Angka di sini juga ikut menghitung
+                         naik lewat `data-hitung`, karena inilah angka yang
+                         paling sering ditanyakan orang tua sebelum memilih. --}}
+                    <div class="md:col-span-5">
+                        <div class="rounded-md border border-kertas-300 bg-kertas-100 p-5">
+                            <p class="text-sm font-semibold text-ink-600">Kuota jalur ini</p>
+
+                            @if ($tanpaBatas)
+                                <p class="mt-2 font-display text-lg font-extrabold text-ink-900">Tidak dibatasi</p>
+                                <p class="mt-1 text-sm text-ink-600">
+                                    Sekolah tidak menetapkan batas jumlah peserta untuk jalur ini.
+                                </p>
+                            @elseif ($kapasitas)
+                                {{-- `tabular` di elemen pembungkus, bukan di tiap angka: lihat catatan
+                                         yang sama di kartu Kuota Pendaftaran. --}}
+                                <p class="mt-2 font-display text-lg font-extrabold text-ink-900 tabular">
+                                    {{ $terisi }} dari {{ $kapasitas }} kursi terisi
+                                </p>
+                                <div class="mt-3 h-2 w-full overflow-hidden rounded-full bg-kertas-300">
+                                    <div class="h-2 rounded-full bg-primary-600" style="width: {{ max($persen ?? 0, $terisi > 0 ? 2 : 0) }}%"></div>
+                                </div>
+                                @if ($kuota?->keterangan)
+                                    <p class="mt-3 text-sm text-ink-600">{{ $kuota->keterangan }}</p>
+                                @endif
+                            @else
+                                <p class="mt-2 font-display text-lg font-extrabold text-ink-900">Belum ditetapkan</p>
+                                <p class="mt-1 text-sm text-ink-600">
+                                    Sekolah belum mengatur kuota jalur ini untuk tahun ajaran berjalan.
+                                </p>
+                            @endif
+                        </div>
                     </div>
                 </div>
 
-                <div class="space-y-6">
-                    <div>
-                        <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                            <span class="w-8 h-8 bg-secondary-500 text-white rounded-lg flex items-center justify-center text-sm font-bold mr-3">1</span>
-                            Persyaratan Umum
-                        </h4>
-                        <ul class="space-y-3 ml-11">
-                            <li class="flex items-start">
-                                <svg class="w-5 h-5 text-accent-600 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
-                                <span class="text-gray-700">Siswa kelas 6 SD/MI atau sederajat</span>
-                            </li>
-                            <li class="flex items-start">
-                                <svg class="w-5 h-5 text-accent-600 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
-                                <span class="text-gray-700">Usia maksimal 15 tahun pada 1 Juli 2026</span>
-                            </li>
-                            <li class="flex items-start">
-                                <svg class="w-5 h-5 text-accent-600 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
-                                <span class="text-gray-700">Mengikuti tes seleksi akademik dan wawancara</span>
-                            </li>
-                        </ul>
-                    </div>
+                {{-- Rincian syarat dan dokumen. Semuanya tetap terbuka, jadi
+                     jalur bisa dibaca lengkap tanpa satu klik pun. --}}
+                @if ($rincian)
+                    <div class="mt-8 space-y-8 border-t border-kertas-200 pt-8">
 
-                    <div class="border-t pt-6">
-                        <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                            <span class="w-8 h-8 bg-secondary-500 text-white rounded-lg flex items-center justify-center text-sm font-bold mr-3">2</span>
-                            Dokumen yang Diperlukan
-                        </h4>
-                        <ul class="space-y-3 ml-11">
-                            <li class="flex items-start">
-                                <svg class="w-5 h-5 text-accent-600 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
-                                <span class="text-gray-700">Fotocopy Akta Kelahiran (2 lembar)</span>
-                            </li>
-                            <li class="flex items-start">
-                                <svg class="w-5 h-5 text-accent-600 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
-                                <span class="text-gray-700">Fotocopy Kartu Keluarga (2 lembar)</span>
-                            </li>
-                            <li class="flex items-start">
-                                <svg class="w-5 h-5 text-accent-600 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
-                                <span class="text-gray-700">Rapor semester 1-5 SD/MI (upload PDF)</span>
-                            </li>
-                            <li class="flex items-start">
-                                <svg class="w-5 h-5 text-accent-600 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
-                                <span class="text-gray-700">Pas foto berwarna 3x4 (3 lembar)</span>
-                            </li>
-                            <li class="flex items-start">
-                                <svg class="w-5 h-5 text-accent-600 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
-                                <span class="text-gray-700">Surat Keterangan Sehat dari dokter</span>
-                            </li>
-                        </ul>
-                    </div>
+                        <div class="grid gap-8 md:grid-cols-2">
+                            @foreach (['persyaratan' => 'Persyaratan', 'dokumen' => 'Dokumen yang diperlukan'] as $kunci => $judul)
+                                @if (! empty($rincian[$kunci]))
+                                    <div>
+                                        <h4 class="flex items-center gap-3 font-display text-base font-extrabold text-ink-900">
+                                            <span aria-hidden="true"
+                                                  class="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-secondary-600 font-display text-xs font-extrabold text-white">{{ $loop->iteration }}</span>
+                                            {{ $judul }}
+                                        </h4>
+                                        <ul class="mt-4 space-y-2.5">
+                                            @foreach ($rincian[$kunci] as $butir)
+                                                {{-- `min-w-0` di `<li>` dan `<span>`: tanpa itu butir
+                                                     panjang seperti "Rata-rata rapor semester 1-5
+                                                     minimal 85" menolak turun dan flex
+                                                     memotong sisanya jadi baris yang meluber. --}}
+                                                <li class="flex min-w-0 gap-2.5 text-sm leading-relaxed text-ink-700">
+                                                    <svg class="mt-0.5 h-4 w-4 shrink-0 text-primary-600" fill="none"
+                                                         stroke="currentColor" stroke-width="3" viewBox="0 0 24 24" aria-hidden="true">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="{{ $centangJalur }}"/>
+                                                    </svg>
+                                                    <span class="min-w-0">{!! $butir !!}</span>
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    </div>
+                                @endif
+                            @endforeach
+                        </div>
 
-                    <div class="bg-primary-50 rounded-2xl p-6 border-l-4 border-primary-600">
-                        <div class="flex items-start">
-                            <svg class="w-6 h-6 text-primary-600 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                            </svg>
+                        @if (! empty($rincian['kategori']))
                             <div>
-                                <h5 class="font-bold text-gray-800 mb-1">Catatan Penting</h5>
-                                <p class="text-sm text-gray-700">Semua dokumen harus asli dan masih berlaku. Pastikan data yang diisi sesuai dengan dokumen resmi.</p>
+                                <h4 class="flex items-center gap-3 font-display text-base font-extrabold text-ink-900">
+                                    <span aria-hidden="true"
+                                          class="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-secondary-600 font-display text-xs font-extrabold text-white">3</span>
+                                    Kategori prestasi yang diterima
+                                </h4>
+                                <div class="mt-4 grid gap-4 md:grid-cols-2">
+                                    @foreach ($rincian['kategori'] as $judul => $butir)
+                                        <div class="rounded-md border border-kertas-300 bg-kertas-100 p-5">
+                                            <h5 class="font-display text-sm font-extrabold text-ink-900">{{ $judul }}</h5>
+                                            <ul class="mt-2.5 space-y-1.5">
+                                                @foreach ($butir as $item)
+                                                    <li class="flex min-w-0 gap-2 text-sm leading-relaxed text-ink-700">
+                                                        <span aria-hidden="true" class="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary-600"></span>
+                                                        <span class="min-w-0">{{ $item }}</span>
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                        </div>
+                                    @endforeach
+                                </div>
                             </div>
-                        </div>
+                        @endif
+
+                        @if (! empty($rincian['catatan']))
+                            <p class="flex items-start gap-3 rounded-md border border-primary-200 bg-primary-50 p-5 text-sm leading-relaxed text-ink-700">
+                                <svg class="mt-0.5 h-5 w-5 shrink-0 text-primary-700" fill="none" stroke="currentColor"
+                                     stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                          d="M8.228 9c.549-1.165 2.03-2 3.772-2s3.223.835 3.772 2m-7.544 0a8.25 8.25 0 113.772 0M12 12.75h.008v.008H12v-.008zm.375 3h-.75v4.5h3v-3.75m-3-3h3v2.25H9.375z"/>
+                                </svg>
+                                <span>{!! $rincian['catatan'] !!}</span>
+                            </p>
+                        @endif
                     </div>
-                </div>
+                @endif
+            </article>
+        @empty
+            {{-- Empty state (R-27): belum ada jalur aktif. Menyebutkan sebabnya
+                 dan jalan keluarnya, bukan cuma menampilkan halaman kosong.
+
+                 Panelnya tetap gelap, bukan kartu putih, supaya "tidak ada
+                 jalur" terbaca sebagai keadaan halaman, bukan kelihatan seperti
+                 yang biasanya berisi isi. --}}
+            <div class="reveal mt-8 rounded-lg bg-primary-800 p-8">
+                <h3 class="font-display text-lg font-extrabold text-white">Belum ada jalur pendaftaran yang aktif</h3>
+                <p class="mt-2 max-w-lg text-base leading-relaxed text-primary-200">
+                    Sekolah belum membuka jalur pendaftaran untuk tahun ajaran ini,
+                    atau seluruhnya sudah ditutup. Padahal begitu ada yang dibuka,
+                    halaman ini langsung menampilkannya.
+                </p>
+                <a href="{{ route('spmb.pengumuman.index') }}" class="btn btn-quiet-light mt-6">
+                    Lihat Pengumuman
+                </a>
             </div>
-        </div>
-
-        {{-- Tab Content: Prestasi --}}
-        <div id="content-prestasi" class="tab-content hidden">
-            <div class="max-w-4xl mx-auto bg-white rounded-3xl shadow-xl p-8 md:p-12">
-                <div class="flex items-start space-x-4 mb-8">
-                    <div class="w-16 h-16 bg-secondary-100 rounded-2xl flex items-center justify-center flex-shrink-0">
-                        <svg class="w-8 h-8 text-secondary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <h3 class="text-2xl font-bold text-gray-800 mb-2">Jalur Prestasi/Beasiswa</h3>
-                        <p class="text-gray-600">Untuk siswa berprestasi akademik atau non-akademik</p>
-                    </div>
-                </div>
-
-                <div class="space-y-6">
-                    <div>
-                        <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                            <span class="w-8 h-8 bg-secondary-500 text-white rounded-lg flex items-center justify-center text-sm font-bold mr-3">1</span>
-                            Persyaratan Khusus
-                        </h4>
-                        <ul class="space-y-3 ml-11">
-                            <li class="flex items-start">
-                                <svg class="w-5 h-5 text-accent-600 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
-                                <span class="text-gray-700">Rata-rata rapor semester 1-5 minimal <strong>85</strong> (prestasi akademik)</span>
-                            </li>
-                            <li class="flex items-start">
-                                <svg class="w-5 h-5 text-accent-600 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
-                                <span class="text-gray-700">Memiliki prestasi juara 1-3 tingkat Kabupaten/Kota atau lebih tinggi</span>
-                            </li>
-                            <li class="flex items-start">
-                                <svg class="w-5 h-5 text-accent-600 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
-                                <span class="text-gray-700">Prestasi diraih maksimal 2 tahun terakhir</span>
-                            </li>
-                            <li class="flex items-start">
-                                <svg class="w-5 h-5 text-accent-600 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
-                                <span class="text-gray-700">Bebas tes tulis, hanya wawancara dan verifikasi dokumen</span>
-                            </li>
-                        </ul>
-                    </div>
-
-                    <div class="border-t pt-6">
-                        <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                            <span class="w-8 h-8 bg-secondary-500 text-white rounded-lg flex items-center justify-center text-sm font-bold mr-3">2</span>
-                            Dokumen Tambahan
-                        </h4>
-                        <ul class="space-y-3 ml-11">
-                            <li class="flex items-start">
-                                <svg class="w-5 h-5 text-accent-600 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
-                                <span class="text-gray-700">Semua dokumen persyaratan jalur reguler</span>
-                            </li>
-                            <li class="flex items-start">
-                                <svg class="w-5 h-5 text-accent-600 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
-                                <span class="text-gray-700">Fotocopy piagam/sertifikat prestasi (dilegalisir)</span>
-                            </li>
-                            <li class="flex items-start">
-                                <svg class="w-5 h-5 text-accent-600 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
-                                <span class="text-gray-700">Surat rekomendasi dari kepala sekolah asal</span>
-                            </li>
-                            <li class="flex items-start">
-                                <svg class="w-5 h-5 text-accent-600 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
-                                <span class="text-gray-700">Portofolio prestasi (jika ada)</span>
-                            </li>
-                        </ul>
-                    </div>
-
-                    <div class="border-t pt-6">
-                        <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                            <span class="w-8 h-8 bg-secondary-500 text-white rounded-lg flex items-center justify-center text-sm font-bold mr-3">3</span>
-                            Kategori Prestasi yang Diterima
-                        </h4>
-                        <div class="ml-11 grid md:grid-cols-2 gap-4">
-                            <div class="bg-accent-50 rounded-xl p-4">
-                                <h5 class="font-bold text-gray-800 mb-2">Akademik</h5>
-                                <ul class="text-sm text-gray-700 space-y-1">
-                                    <li>• Olimpiade Sains/Matematika</li>
-                                    <li>• Olimpiade Bahasa</li>
-                                    <li>• Lomba Karya Ilmiah</li>
-                                </ul>
-                            </div>
-                            <div class="bg-accent-50 rounded-xl p-4">
-                                <h5 class="font-bold text-gray-800 mb-2">Non-Akademik</h5>
-                                <ul class="text-sm text-gray-700 space-y-1">
-                                    <li>• Olahraga (minimal Kabupaten)</li>
-                                    <li>• Seni & Budaya</li>
-                                    <li>• Teknologi & Robotik</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-secondary-50 rounded-2xl p-6 border-l-4 border-secondary-600">
-                        <div class="flex items-start">
-                            <svg class="w-6 h-6 text-secondary-600 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                            </svg>
-                            <div>
-                                <h5 class="font-bold text-gray-800 mb-1">Keuntungan Jalur Prestasi</h5>
-                                <p class="text-sm text-gray-700">Siswa yang lolos jalur prestasi berpeluang mendapatkan <strong>beasiswa 25%-100%</strong> biaya pendidikan sesuai tingkat prestasi yang diraih.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
+        @endforelse
     </div>
 </section>
-
-<script>
-    function switchTab(tab) {
-        // Hide all tab contents
-        document.querySelectorAll('.tab-content').forEach(content => {
-            content.classList.add('hidden');
-        });
-        
-        // Remove active class from all buttons
-        document.querySelectorAll('.tab-button').forEach(button => {
-            button.classList.remove('active', 'bg-primary-600', 'text-white');
-            button.classList.add('text-gray-600');
-        });
-        
-        // Show selected tab content
-        document.getElementById('content-' + tab).classList.remove('hidden');
-        
-        // Add active class to selected button
-        const activeButton = document.getElementById('tab-' + tab);
-        activeButton.classList.add('active', 'bg-primary-600', 'text-white');
-        activeButton.classList.remove('text-gray-600');
-    }
-    
-    // Initialize first tab as active
-    document.addEventListener('DOMContentLoaded', function() {
-        switchTab('reguler');
-    });
-</script>

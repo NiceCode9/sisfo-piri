@@ -2,11 +2,14 @@
 
 namespace App\Providers;
 
+use App\Models\Brosur;
+use App\Models\Galeri;
 use App\Models\Guru;
 use App\Models\Menu;
 use App\Models\ProfilSekolah;
 use App\Models\Siswa;
 use App\Observers\SiswaObserver;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -60,6 +63,34 @@ class AppServiceProvider extends ServiceProvider
             $view->with('lamaBerdiri', $profil?->tahun_berdiri
                 ? now()->year - (int) $profil->tahun_berdiri
                 : null);
+        });
+
+        /*
+         * Footer dirender di semua halaman publik, tapi section "#unduhan" dan
+         * "#galeri" hanya muncul kalau isinya ada. Tanpa ini, dua dari enam
+         * tautan footer mati setiap kali tabelnya kosong.
+         *
+         * exists() dipakai supaya tabelnya tidak ditarik utuh hanya untuk
+         * dicek. Syaratnya harus sama persis dengan syarat section di
+         * unduhan.blade.php dan galeri.blade.php, kalau tidak tautan dan
+         * section bisa berbeda pendapat.
+         */
+        View::composer('spmb.partials.footer', function ($view) {
+            $view->with('adaBerkasUnduhan', Schema::hasTable('brosurs')
+                && Brosur::aktif()->whereNotNull('image_path')->where('image_path', '!=', '')->exists());
+
+            $view->with('adaGaleri', Schema::hasTable('galeris') && (
+                Galeri::aktif()->foto()->whereNotNull('image_path')->where('image_path', '!=', '')->exists()
+                || Galeri::aktif()->prestasi()->exists()
+            ));
+        });
+
+        // Font dari `fonts` di vite.config.js tidak ikut otomatis oleh
+        // directive @vite, dan Laravel belum menyediakan directive untuk
+        // Vite::fonts(). Tanpa ini, file .woff-nya ikut terbangun tapi tidak
+        // pernah dimuat dan halaman jatuh ke font sistem.
+        Blade::directive('fonts', function ($expression) {
+            return "<?php echo app(Illuminate\\Foundation\\Vite::class)->fonts({$expression}); ?>";
         });
     }
 }

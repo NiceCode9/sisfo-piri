@@ -247,18 +247,199 @@ test('hero tidak lagi menulis klaim yang tidak punya sumber data', function () {
         ->and($hero)->toContain('Penerimaan Murid Baru');
 });
 
-test('palet publik memakai hijau Imtaq dan bukan biru lama', function () {
+test('halaman tentang menampilkan identitas sekolah dari profil', function () {
+    // `npsn` dan `website` ada di `$fillable` sejak awal tapi tidak pernah
+    // dirender di view mana pun. Admin yang sudah mengisinya tetap tidak
+    // melihatnya di situs, dan dua kolom itu justru termasuk yang paling
+    // sering ditanyakan orang tua.
+    ProfilSekolah::create([
+        'nama_sekolah' => 'SMP PIRI NGAGLIK',
+        'npsn' => '20812345',
+        'alamat' => 'Jl. Raya Ngaglik No. 12, Sleman, Yogyakarta',
+        'telp' => '(0274) 1234567',
+        'email' => 'info@piringaglik.sch.id',
+        'website' => 'piringaglik.sch.id',
+        'tahun_berdiri' => 1998,
+        'akreditasi' => 'A',
+    ]);
+
+    $html = $this->get(route('spmb.about'))->assertOk()->getContent();
+
+    expect($html)->toContain('Identitas sekolah')
+        ->and($html)->toContain('20812345')
+        ->and($html)->toContain('Jl. Raya Ngaglik No. 12')
+        ->and($html)->toContain('(0274) 1234567')
+        ->and($html)->toContain('info@piringaglik.sch.id')
+        ->and($html)->toContain('1998');
+
+    // Website diisi tanpa protokol harus tetap jadi tautan yang bisa diklik.
+    // `href="piringaglik.sch.id"` dibaca browser sebagai path relatif, bukan
+    // alamat web, jadi orang tua mendarat di 404.
+    expect($html)->toContain('href="https://piringaglik.sch.id"');
+
+    // Nomor telepon harus jadi `tel:` yang bisa langsung dialing di ponsel.
+    expect($html)->toContain('href="tel:+622741234567"');
+});
+
+test('halaman tentang menyembunyikan baris identitas yang belum diisi', function () {
+    // Daftar identitas yang setengah kosong lebih buruk daripada tidak ada:
+    // yang hilang itu menandakan datanya sengaja belum diisi, bukan lupa.
+    ProfilSekolah::create([
+        'nama_sekolah' => 'SMP PIRI NGAGLIK',
+        'npsn' => '20812345',
+        'alamat' => 'GANTI: alamat belum diisi',
+    ]);
+
+    $html = $this->get(route('spmb.about'))->assertOk()->getContent();
+
+    expect($html)->toContain('Identitas sekolah')
+        ->and($html)->toContain('20812345')
+        // Placeholder tidak boleh bocor sebagai alamat sekolah.
+        ->and($html)->not->toContain('GANTI:')
+        // Baris yang kosong tidak boleh muncul sebagai label kosong.
+        ->and($html)->not->toContain('>WhatsApp<');
+});
+
+test('blok identitas hilang sepenuhnya kalau tidak ada satu pun data', function () {
+    // Kalau tidak ada satu baris pun yang punya nilai, bloknya tidak boleh
+    // menyisakan judul tanpa isi.
+    ProfilSekolah::create(['nama_sekolah' => 'SMP PIRI NGAGLIK']);
+
+    $html = $this->get(route('spmb.about'))->assertOk()->getContent();
+
+    expect($html)->not->toContain('Identitas sekolah');
+});
+
+test('npsn placeholder tidak bocor sebagai nomor sekolah', function () {
+    // `npsn` nullable-unique, jadi bisa diisi `GANTI: ...` seperti kolom lain.
+    // Sebelum ada accessor `npsn_bersih`, nilai itu bocor sebagai nomor
+    // sekolah yang terlihat sah.
+    $profil = ProfilSekolah::create([
+        'nama_sekolah' => 'SMP PIRI NGAGLIK',
+        'npsn' => 'GANTI: nomor belum diisi',
+    ]);
+
+    expect($profil->npsn_bersih)->toBeNull();
+
+    $html = $this->get(route('spmb.about'))->assertOk()->getContent();
+
+    expect($html)->not->toContain('GANTI:');
+});
+
+test('setiap tag img punya tepat satu pasangan width dan height', function () {
+    // `<img>` sempat punya `width="480" height="360"` DAN `width="48"
+    // height="48"` sekaligus. HTML mengabaikan atribut pertama yang diulang,
+    // jadi tampilannya kebetulan benar, tapi rasio intrinsik yang dipakai
+    // browser untuk memesan ruang adalah 4:3, bukan 1:1 milik slot 48px.
+    // Layout melompat saat gambar dimuat.
+    foreach (['spmb.home', 'spmb.about', 'spmb.pendaftaran', 'spmb.pengumuman.index'] as $route) {
+        $html = $this->get(route($route))->assertOk()->getContent();
+
+        // Potongan dipecah sebelum tiap `<img`, lalu hanya tag pembuka yang
+        // diambil. Menghitung `width=` di seluruh isi potongan akan ikut menghitung
+        // atribut `width` milik SVG dan elemen lain yang ada di antaranya.
+        foreach (preg_split('#(?=<img\b)#i', $html) as $potongan) {
+            if (! preg_match('#^<img\b[^>]*>#i', $potongan, $img)) {
+                continue;
+            }
+
+            foreach (['width', 'height'] as $attr) {
+                $n = preg_match_all('/\b'.$attr.'\s*=/i', $img[0]);
+
+                expect($n)->toBeLessThanOrEqual(1, "{$route}: <img> punya {$n} atribut {$attr} sekaligus");
+            }
+        }
+    }
+});
+
+test('setiap halaman publik menutup semua tag script yang dibukanya', function () {
+    // Tag `<script>` yang tidak ditutup tidak menghasilkan error PHP, tidak
+    // merusak HTML validator pun, dan tidak menggagalkan satu pun assertion
+    // lain. Browser malah memperlakukan seluruh sisa dokumen sebagai isi
+    // skrip, jadi skrip yang sebenarnya tidak pernah jalan.
+    //
+    // Yang hilang waktu itu adalah `pasangReveal()`, yang memberi class
+    // `is-visible` ke elemen ber-`.reveal`. Tanpa itu seluruh isi section
+    // tetap di `opacity: 0`: h1, paragraf, tombol, kartu, semuanya. Markup
+    // utuh, 867 assertion lain tetap hijau, dan halamannya kosong.
+    foreach (['spmb.home', 'spmb.about', 'spmb.pendaftaran', 'spmb.pengumuman.index'] as $route) {
+        $html = $this->get(route($route))->assertOk()->getContent();
+
+        // `<script` dihitung terpisah dari `</script>` supaya atribut seperti
+        // `type="module"` atau `id` tidak ikut dihitung dua kali.
+        $buka = preg_match_all('/<script\b/i', $html);
+        $tutup = preg_match_all('#</script\s*>#i', $html);
+
+        expect($tutup)->toBe($buka, "halaman {$route} punya {$buka} tag <script> tapi hanya {$tutup} penutup");
+    }
+});
+
+test('isi section tidak pernah bergantung pada JavaScript untuk terlihat', function () {
+    // `.reveal` mulai dari `opacity: 0` dan hanya jadi terlihat setelah
+    // IntersectionObserver berjalan. Kalau JS tidak ada atau gagal, isinya
+    // hilang total.
+    //
+    // Pengaman kedua setelah tag `<script>` balanced: yang diuji di sini
+    // adalah akibatnya, bukan mekanismenya. Keduanya perlu karena bisa
+    // rusak secara terpisah.
     $css = file_get_contents(resource_path('css/app.css'));
 
-    expect($css)->toContain('--color-primary-600: #15803d')
-        ->and($css)->toContain('--color-primary-700: #166534')
-        ->and($css)->toContain('--color-accent-600: #0369a1')
-        ->and($css)->toContain('--color-secondary-500: #b45309');
+    // `.reveal` tidak boleh memakai `visibility: hidden` atau `display: none`,
+    // karena keduanya memblokir elemen dari accessibility tree, bukan cuma
+    // dari layar.
+    expect($css)->not->toMatch('/\.reveal\s*\{[^}]*display\s*:\s*none/')
+        ->and($css)->not->toMatch('/\.reveal\s*\{[^}]*visibility\s*:\s*hidden/');
 
-    // Warna biru lama harus hilang total, kalau tidak ada bagian halaman
-    // yang somehow masih pakai token lama.
-    foreach (['#eff6ff', '#dbeafe', '#bfdbfe', '#93c5fd', '#60a5fa', '#3b82f6', '#2563eb', '#1d4ed8', '#1e40af', '#1e3a8a', '#172554'] as $biru) {
-        expect($css)->not->toContain($biru);
+    $html = $this->get(route('spmb.home'))->assertOk()->getContent();
+
+    // Hanya `h2` yang diperiksa, karena hanya itu yang memakai `.reveal`.
+    //
+    // `h1` sengaja TIDAK diberi `.reveal`: di atas lipatan, judul utama tidak
+    // boleh bergantung pada satu frame animasi untuk muncul. Itu Dicek di
+    // bawah.
+    expect($html)->toMatch(
+        '/<h2[^>]*class="[^"]*\breveal\b[^"]*"[^>]*>\s*([^<]{3,})/',
+        'ada h2 ber-.reveal tapi isinya tidak ada di markup'
+    );
+
+    // H1 tidak boleh punya `.reveal`. Kalau suatu saat ia ditambahkan,
+    // halaman akan dibuka dengan judul utama yang tak terlihat.
+    expect($html)->not->toMatch('/<h1[^>]*class="[^"]*\breveal\b/');
+});
+
+test('palet publik memakai teal muda dan bukan palet lama', function () {
+    $css = strtolower(file_get_contents(resource_path('css/app.css')));
+
+    // Arah desain diganti dari Hijau Imtaq/Emas ke Deep Teal + Coral. Yang
+    // dijaga test ini bukan warna merahnya, tapi tiga hal yang membuat
+    // palet lama gagal dipakai: teal dalam untuk panel besar, coral gelap
+    // untuk teks putih di atasnya, dan slot cyan yang bergeser cukup jauh
+    // supaya `bg-accent-600` + teks putih masih lolos 4.5:1.
+    expect($css)->toContain('--color-primary-900: #0c1f2a')
+        ->and($css)->toContain('--color-primary-700: #1a4157')
+        ->and($css)->toContain('--color-secondary-600: #b03a16')
+        ->and($css)->toContain('--color-secondary-500: #f4623a')
+        ->and($css)->toContain('--color-accent-600: #0e7490');
+
+    // Dua palet lama harus hilang total, kalau tidak ada bagian halaman
+    // yang somehow masih memakai token lamanya.
+    //
+    // `#b45309` dan `#92400e` adalah amber-700/800: cokelat. Slot "emas" ini
+    // sebelumnya jadi warna `outline` focus-visible, `.btn-accent`, dan
+    // `.motif-star`, sehingga cincin fokus, tombol utama, dan ornamen situs
+    // semuanya berwarna keruh. Dicoret juga satu-satunya cokelat di ramp Hijau
+    // Imtaq, jadi kalau muncul lagi berarti ada sisa palet lama.
+    // Slot "emas" Hijau Imtaq itu amber-700/800, yaitu cokelat. Comment di
+    // app.css menyebut hex lamanya sebagai alasan palet itu diganti, jadi
+    // yang diperiksa hanya nilai yang benar-benar dideklarasikan.
+    $dideklarasikan = preg_replace('#/\*.*?\*/#s', '', $css);
+
+    foreach ([
+        '#b45309', '#92400e', '#15803d', '#166534', '#0369a1',
+        '#eff6ff', '#dbeafe', '#bfdbfe', '#93c5fd', '#60a5fa', '#3b82f6',
+        '#2563eb', '#1d4ed8', '#1e40af', '#1e3a8a', '#172554',
+    ] as $lama) {
+        expect($dideklarasikan)->not->toContain($lama);
     }
 });
 
@@ -266,7 +447,6 @@ test('tidak ada teks putih di atas background yang kontrasnya gagal', function (
     // Tombol "Daftar" di navbar pernah `bg-secondary-500` + teks putih dengan
     // rasio 2.15:1 - praktis tidak terbaca. Test ini menghitung kontrasnya
     // secara nyata, bukan cuma melarang pola kelas tertentu, karena aturan
-    // "jangan pakai 500" terlalu kasar: setelah palet digelapkan, `secondary-500`
     // "jangan pakai 500" terlalu kasar: setelah palet digelapkan,
     // secondary-500 sudah 5.02:1 dan aman.
     $css = file_get_contents(resource_path('css/app.css'));
@@ -550,9 +730,35 @@ test('halaman pendaftaran menampilkan peringatan ketika ditutup', function () {
 
     $this->get(route('spmb.pendaftaran'))
         ->assertOk()
-        ->assertSee('Pendaftaran Belum Dibuka')
+        ->assertSee('Pendaftaran belum dibuka')
         // Pesan menyebut batch dan tanggalnya, bukan tanggal global.
         ->assertSee('Akan Segera');
+});
+
+test('langkah pertama wizard tampil tanpa perlu JavaScript', function () {
+    // Regresi: keempat langkah sempat dirender dengan `class="hidden"` dan
+    // JS tidak pernah memanggil showStep(1) saat inisialisasi.
+    // Tombol "Lanjut" ada di DALAM panel yang tersembunyi, jadi form-nya
+    // tidak bisa dipakai sama sekali — dan test lain tetap lolos karena mereka
+    // cuma memeriksa markup, bukan kondisi tampilnya.
+    //
+    // Yang dijaga di sini adalah sisi server: langkah 1 harus sudah terlihat
+    // di HTML, supaya halaman tetap bisa diisi kalau JS gagal dimuat.
+    $html = $this->get(route('spmb.pendaftaran'))->assertOk()->getContent();
+
+    expect($html)->toContain('id="form-wizard"')
+        ->and($html)->not->toContain('<div data-step="1" class="hidden">');
+
+    // Langkah 2-4 boleh tersembunyi, tapi harus tetap ada di DOM supaya JS
+    // bisa membukanya. Kalau salah satunya hilang, form hanya bisa diisi
+    // sampai langkah 1 lalu buntu.
+    foreach ([2, 3, 4] as $nomor) {
+        expect($html)->toContain('<div data-step="'.$nomor.'"');
+    }
+
+    // Pemanggil inisialisasi wajib ada, kalau tidak langkah 2-4 tidak pernah
+    // disembunyikan kembali setelah langkah 1 di-render terbuka.
+    expect($html)->toContain('showStep(current');
 });
 
 test('wizard menampilkan sisa kuota pendaftaran dari database', function () {
@@ -669,8 +875,8 @@ test('halaman publik tidak lagi menjanjikan pembuatan akun terpisah', function (
         ->and($html)->not->toContain('dengan email dan password')
         ->and($html)->not->toContain('membuat akun')
         // Penjelasan baru: akun terbit otomatis, username = NISN.
-        ->and($html)->toContain('dibuat otomatis')
-        ->and($html)->toContain('username memakai NISN');
+        ->and($html)->toContain('terbit otomatis')
+        ->and($html)->toContain('Username memakai NISN');
 });
 
 test('halaman publik tidak lagi menjanjikan batas 2MB untuk dokumen PDF', function () {
@@ -678,8 +884,8 @@ test('halaman publik tidak lagi menjanjikan batas 2MB untuk dokumen PDF', functi
 
     // Validasi menerima PDF sampai 5MB; teks lama "max 2MB" menyesatkan.
     expect($html)->not->toContain('max 2MB')
-        ->and($html)->toContain('dokumen PDF maks 5MB')
-        ->and($html)->toContain('pas foto JPG/PNG maks 2MB');
+        ->and($html)->toContain('PDF maks 5MB')
+        ->and($html)->toContain('JPG atau PNG maks 2MB');
 });
 
 test('jadwal hasil seeder membuka satu gelombang dan punya tahap berurutan', function () {
@@ -1005,12 +1211,16 @@ test('kartu kuota pendaftaran memakai angka nyata dari database, bukan hardcoded
 
     $html = $this->get(route('spmb.home'))->assertOk()->getContent();
 
-    expect($html)->toContain('>'.$kapasitas.'</span>')
+    expect($html)->toContain($terisi.' dari '.$kapasitas.' kursi terisi')
         ->and($html)->toContain('width: '.$persen.'%')
-        ->and($html)->toContain($persen.'% kuota pendaftaran terisi')
-        ->and($html)->toContain($terisi.'/'.$kapasitas.' terisi')
-        // Batch tanpa batas tidak boleh menambah kapasitas maupun terisi.
-        ->and($html)->not->toContain('>'.($kapasitas + 999).'</span>');
+        ->and($html)->toContain($persen.'% dari kursi sudah terisi');
+
+    // Batch tanpa batas tidak boleh menambah kapasitas maupun terisi. Kalau
+    // seed tidak punya batch tanpa batas, tidak ada angka yang bisa diselipkan
+    // ke sini, jadi assertion-nya dilewati.
+    if ($tanpaBatas->isNotEmpty()) {
+        expect($html)->not->toContain('dari '.($kapasitas + 999 * $tanpaBatas->count()).' kursi');
+    }
 });
 
 test('kartu kuota pendaftaran jujur saat semua batch tanpa batas', function () {
@@ -1021,7 +1231,7 @@ test('kartu kuota pendaftaran jujur saat semua batch tanpa batas', function () {
 
     $html = $this->get(route('spmb.home'))->assertOk()->getContent();
 
-    expect($html)->toContain('Kuota pendaftaran tidak dibatasi')
+    expect($html)->toContain('Sekolah membuka pendaftaran tanpa batas jumlah peserta')
         ->and($html)->not->toContain('Total kuota pendaftaran yang tersedia');
 });
 
@@ -1032,10 +1242,12 @@ test('kartu kuota terbatas tidak menampilkan angka palsu saat belum ada data', f
     $html = $this->get(route('spmb.home'))->assertOk()->getContent();
 
     // Angka lama (180 siswa / 6 kelas / 45%) tidak boleh muncul sebagai
-    // cadangan ketika sumber datanya kosong.
+    // cadangan ketika sumber datanya kosong. Barisnya sekarang lenyap total
+    // alih-alih diisi tanda pisah, karena tanda pisah di sela angka terlihat
+    // seperti data yang hilang, bukan seperti sekolah yang belum punya data.
     expect($html)->not->toContain('>180</span>')
         ->and($html)->not->toContain('6 Kelas Tersedia')
-        ->and($html)->toContain('—</span>');
+        ->and($html)->not->toContain('siswa</dd>');
 });
 
 test('statistik hero memakai jumlah siswa dan guru aktif dari database', function () {
@@ -1044,12 +1256,26 @@ test('statistik hero memakai jumlah siswa dan guru aktif dari database', functio
     $siswa = Siswa::where('is_aktif', true)->count();
     $guru = Guru::where('is_aktif', true)->count();
 
-    expect($hero)->toContain('>'.($siswa ?: '—').'</div>')
-        ->and($hero)->toContain('>'.($guru ?: '—').'</div>')
-        // Angka karangan lama harus hilang.
-        ->and($hero)->not->toContain('500+')
-        ->and($hero)->not->toContain('25+')
-        ->and($hero)->not->toContain('15+');
+    // Kalau angkanya nol, barisnya tidak dirender sama sekali, jadi
+    // assertion-nya hanya berlaku kalau datanya memang ada.
+    expect($hero)->not->toContain('500+')
+        ->and($hero)->not->toContain('25+');
+
+    // Angka hero dirender di baris sendiri di dalam <dd>, jadi polanya harus
+    // tahan whitespace. <label>\n    25\n</label> tetap satu nilai.
+    if ($siswa > 0) {
+        expect($hero)->toMatch('/>\s*'.preg_quote((string) $siswa, '/').'\s*<\/dd>/');
+    } else {
+        expect($hero)->not->toContain('Siswa aktif');
+    }
+
+    if ($guru > 0) {
+        expect($hero)->toMatch('/>\s*'.preg_quote((string) $guru, '/').'\s*<\/dd>/');
+    } else {
+        expect($hero)->not->toContain('Guru aktif');
+    }
+
+    expect($hero)->not->toContain('15+');
 });
 
 test('tahun ajaran pada hero diambil dari tahun ajaran aktif', function () {
@@ -1133,11 +1359,13 @@ test('badge hero menampilkan kuota penuh saat semua gelombang yang terbuka penuh
 
     $hero = heroHtml($this->get(route('spmb.home'))->assertOk()->getContent());
 
+    // Label badge hero berasal dari App\Support\StatusPendaftaran, yang belum
+    // disentuh perombakan tampilan ini.
     expect($hero)->toContain('Kuota Gelombang Penuh')
         ->and($hero)->not->toContain('Pendaftaran Dibuka!')
         // Dan form-nya benar-benar tertutup, bukan cuma badge-nya.
         ->and($this->get(route('spmb.pendaftaran'))->assertOk()->getContent())
-        ->toContain('Kuota Gelombang Penuh');
+        ->toContain('Kuota gelombang ini penuh');
 });
 
 test('badge hero disembunyikan ketika sekolah belum punya gelombang', function () {
@@ -1147,6 +1375,8 @@ test('badge hero disembunyikan ketika sekolah belum punya gelombang', function (
 
     $hero = heroHtml($this->get(route('spmb.home'))->assertOk()->getContent());
 
+    // Label badge hero tetap "Kuota Gelombang Penuh" karena berasal dari
+    // App\Support\StatusPendaftaran.
     expect($hero)->not->toContain('Pendaftaran Dibuka')
         ->and($hero)->not->toContain('Pendaftaran Ditutup')
         ->and($hero)->not->toContain('Kuota Gelombang Penuh');
@@ -1317,7 +1547,12 @@ test('landing page menampilkan empty state saat belum ada ekstrakurikuler', func
 
     $html = $this->get(route('spmb.home'))->assertOk()->getContent();
 
-    expect($html)->toContain('Belum ada kegiatan ekstrakurikuler');
+    // Teks empty state ikut berubah mengikuti bahasa section yang baru
+    // ("Kegiatan sekolah di luar jam pelajaran"). Yang diuji di sini adalah
+    // bahwa section tetap muncul dan menjelaskan keadaannya, bukan
+    // rumusan kalimatnya.
+    expect($html)->toContain('Belum ada kegiatan yang terdaftar')
+        ->and($html)->toContain('id="ekskul"');
 });
 
 test('nama sekolah konsisten di semua halaman publik', function () {

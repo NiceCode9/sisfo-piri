@@ -4,28 +4,15 @@
 
 @php
     // $profileSekolah dishare otomatis via View composer (spmb.*). Tidak ada
-    // lagi objek cadangan berisi data karangan: nama sekolah, alamat, telepon,
-    // email, visi/misi, dan sambutan diambil apa adanya dari database.
-    // Nilai yang masih placeholder "GANTI: ..." disaring oleh accessor
-    // `*Bersih`, dan bagian yang kosong tidak ditampilkan sama sekali.
-    //
-    // Daftar nilai & fasilitas di bawah masih contoh desain (belum ada tabel
-    // sumbernya) dan perlu diganti saat modul profilnya tersedia.
+    // objek cadangan berisi data karangan: nama sekolah, alamat, telepon,
+    // email, visi/misi, dan sambutan diambil apa adanya dari database. Nilai
+    // yang masih placeholder "GANTI: ..." disaring oleh accessor `*Bersih`,
+    // dan bagian yang kosong tidak ditampilkan sama sekali.
 
-    // Angka statistik diambil dari view composer spmb.* supaya sama dengan
-    // yang tampil di hero. Nilai kosong berarti data belum diisi, jadi
-    // menampilkan tanda pisah - bukan angka cadangan seperti 500+/35+/A.
     $tahunBerjalan = $lamaBerdiri ?? null;
 
-    $stats = [
-        ['value' => $jumlahSiswaAktif ?: '-', 'label' => 'Siswa Aktif'],
-        ['value' => $jumlahGuruAktif ?: '-', 'label' => 'Tenaga Pendidik'],
-        ['value' => $tahunBerjalan ?: '-', 'label' => 'Tahun Berdiri'],
-        ['value' => $profileSekolah?->akreditasi ?: '-', 'label' => 'Akreditasi'],
-    ];
-
-    // Misi hanya tampil kalau benar-benar diisi di profil. Versi lama mengarang
-    // lima butir misi sehingga sekolah tampak punya visi-misi padahal kosong.
+    // Daftar nilai dan fasilitas di bawah masih contoh desain, belum ada
+    // tabel sumbernya. Selama begitu, isinya tetap ditulis di view.
     $misiList = $profileSekolah?->misi_bersih ?? [];
 
     $nilaiList = [
@@ -37,17 +24,19 @@
         ['icon' => 'shield-check', 'title' => 'Karakter', 'desc' => 'Berakhlak mulia dan menghargai perbedaan'],
     ];
 
+    // Fasilitas dirender sebagai kartu ikon, bukan foto. Versi lama memakai
+    // `via.placeholder.com`, layanan pihak ketiga yang sudah tidak bisa
+    // diandalkan: appearnya kotak abu-abu bertuliskan teks, bukan gambar
+    // fasilitas sekolah (R-36).
     $fasilitasList = [
-        ['title' => 'Laboratorium IPA', 'desc' => 'Ruang praktikum sains lengkap dengan alat modern', 'image' => 'https://via.placeholder.com/500x400?text=Lab+IPA'],
-        ['title' => 'Perpustakaan', 'desc' => 'Koleksi ribuan buku dan area baca yang nyaman', 'image' => 'https://via.placeholder.com/500x400?text=Perpustakaan'],
-        ['title' => 'Lapangan Olahraga', 'desc' => 'Lapangan multifungsi untuk berbagai cabang olahraga', 'image' => 'https://via.placeholder.com/500x400?text=Lapangan'],
-        ['title' => 'Ruang Komputer', 'desc' => 'Lab komputer dengan akses internet untuk pembelajaran digital', 'image' => 'https://via.placeholder.com/500x400?text=Lab+Komputer'],
-        ['title' => 'Ruang Kesenian', 'desc' => 'Fasilitas untuk mengembangkan bakat seni dan musik siswa', 'image' => 'https://via.placeholder.com/500x400?text=Ruang+Kesenian'],
-        ['title' => 'Masjid Sekolah', 'desc' => 'Tempat ibadah yang nyaman untuk kegiatan keagamaan', 'image' => 'https://via.placeholder.com/500x400?text=Masjid'],
+        ['icon' => 'beaker', 'title' => 'Laboratorium IPA', 'desc' => 'Ruang praktikum sains lengkap dengan alat modern'],
+        ['icon' => 'book', 'title' => 'Perpustakaan', 'desc' => 'Koleksi ribuan buku dan area baca yang nyaman'],
+        ['icon' => 'bolt', 'title' => 'Lapangan Olahraga', 'desc' => 'Lapangan multifungsi untuk berbagai cabang olahraga'],
+        ['icon' => 'desktop', 'title' => 'Ruang Komputer', 'desc' => 'Lab komputer dengan akses internet untuk pembelajaran digital'],
+        ['icon' => 'sparkles', 'title' => 'Ruang Kesenian', 'desc' => 'Fasilitas untuk mengembangkan bakat seni dan musik siswa'],
+        ['icon' => 'mosque', 'title' => 'Masjid Sekolah', 'desc' => 'Tempat ibadah yang nyaman untuk kegiatan keagamaan'],
     ];
-// Nama & sambutan kepala sekolah diambil apa adanya dari profil. Versi lama
-    // mengarang nama ("Dr. Ahmad Fauzi, M.Pd.") dan satu paragraf sambutan, jadi
-    // halaman publik mencantumkan orang yang tidak ada datanya.
+
     $kepalaSekolah = (object) [
         'nama' => $profileSekolah?->nama_kepala_bersih,
         'jabatan' => 'Kepala Sekolah',
@@ -59,10 +48,79 @@
 
     $fotoGedung = ! empty($profileSekolah?->foto_gedung_path)
         ? Storage::disk('public')->url($profileSekolah->foto_gedung_path)
-        : null;
+        : '/images/sekolah/gedung-960w.jpg';
 
     $visiSekolah = $profileSekolah?->visi_bersih;
 
+    /*
+     * Identitas sekolah, dibaca apa adanya dari `profil_sekolahs`.
+     *
+     * Dua kolom yang paling sering ditanyakan orang tua dan sama sekali
+     * belum tampil di halaman mana pun: `npsn` dan `website`. Keduanya ada
+     * di `$fillable` sejak awal, tapi tidak pernah dirender di view mana pun,
+     * jadi admin yang sudah mengisinya tetap tidak melihatnya di situs.
+     *
+     * Baris yang nilainya kosong atau masih placeholder TIDAK dirender. Daftar
+     * identitas yang setengah kosong lebih buruk daripada tidak ada: yang
+     * hilang itu menandakan datanya sengaja belum diisi, bukan lupa. Kalau
+     * ternyata tidak ada satu baris pun yang punya nilai, blok ini tidak
+     * dirender sama sekali (lihat `@if ($identitas)`).
+     */
+    $identitas = array_values(array_filter([
+        $profileSekolah?->npsn_bersih ? [
+            'label' => 'NPSN',
+            'nilai' => $profileSekolah->npsn_bersih,
+            'tabular' => true,
+        ] : null,
+        $profileSekolah?->akreditasi_bersih ? [
+            'label' => 'Akreditasi',
+            'nilai' => $profileSekolah->akreditasi_bersih,
+        ] : null,
+        $profileSekolah?->tahun_berdiri ? [
+            'label' => 'Tahun Berdiri',
+            'nilai' => $profileSekolah->tahun_berdiri,
+            'tabular' => true,
+        ] : null,
+        $profileSekolah?->alamat_bersih ? [
+            'label' => 'Alamat',
+            // Alamat boleh panjang dan bisa berisi baris baru, jadi ia
+            // di-return sebagai HTML yang sudah di-escape per baris.
+            'nilai' => nl2br(e($profileSekolah->alamat_bersih)),
+            'html' => true,
+        ] : null,
+        $profileSekolah?->telp_bersih ? [
+            'label' => 'Telepon',
+            'nilai' => $profileSekolah->telp_bersih,
+            'tel' => $profileSekolah->telp_tel,
+            'tabular' => true,
+        ] : null,
+        $profileSekolah?->whatsapp ? [
+            'label' => 'WhatsApp',
+            'nilai' => 'wa.me/'.$profileSekolah->whatsapp,
+            'url' => 'https://wa.me/'.$profileSekolah->whatsapp,
+            'tabular' => true,
+        ] : null,
+        $profileSekolah?->email_bersih ? [
+            'label' => 'Email',
+            'nilai' => $profileSekolah->email_bersih,
+            'url' => 'mailto:'.$profileSekolah->email_bersih,
+        ] : null,
+        $profileSekolah?->website_bersih ? [
+            'label' => 'Website',
+            'nilai' => $profileSekolah->website_bersih,
+            'url' => Str::startsWith($profileSekolah->website_bersih, ['http://', 'https://'])
+                ? $profileSekolah->website_bersih
+                // Admin sering mengetik `sekolah.sch.id` tanpa protokol, dan
+                // `href="sekolah.sch.id"` akan dibaca browser sebagai path
+                // relatif, bukan alamat web.
+                : 'https://'.$profileSekolah->website_bersih,
+            'tabular' => true,
+        ] : null,
+    ]));
+
+    // Ikon inline, satu jalur `<path>` per ikon. Tidak ada paket ikon di
+    // proyek ini, dan memuat 12 berkas SVG hanya untuk gambar 20px lebih
+    // lambat daripada menuliskannya langsung.
     $icons = [
         'heart' => ['M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z'],
         'sparkles' => ['M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-6.714 2.143L12 21l-2.286-6.857L3 12l6.714-2.143L12 3z'],
@@ -73,272 +131,437 @@
         'check' => ['M5 13l4 4L19 7'],
         'flag' => ['M3 3v18M3 4h13l-2 4 2 4H3'],
         'target' => ['M12 8a4 4 0 100 8 4 4 0 000-8zm0-6a10 10 0 100 20 10 10 0 000-20zm0 3a7 7 0 100 14 7 7 0 000-14z'],
-        'quote' => ['M9.983 3v7.391c0 5.704-3.731 9.57-8.983 10.609l-.995-2.151c2.432-.917 3.995-3.638 3.995-5.849h-4v-10h9.983zm14.017 0v7.391c0 5.704-3.748 9.57-9 10.609l-.996-2.151c2.433-.917 3.996-3.638 3.996-5.849h-4v-10h10z'],
+        'beaker' => ['M9 3v6.692L4.5 18a2 2 0 001.7 3h11.6a2 2 0 001.7-3L15 9.692V3M8 3h8M7 14h10'],
+        'book' => ['M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253'],
         'bolt' => ['M13 10V3L4 14h7v7l9-11h-7z'],
+        'desktop' => ['M3 5a2 2 0 012-2h14a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V5zM8 21h8m-4-4v4'],
+        'mosque' => ['M12 2c1.5 2 2.5 3.5 2.5 5a2.5 2.5 0 01-5 0C9.5 5.5 10.5 4 12 2zM4 22v-7a8 8 0 0116 0v7M4 22h16M3 22h18M12 12v3m0 0l-2 2m2-2l2 2'],
     ];
 
     $renderIcon = fn ($key) => $icons[$key] ?? $icons['check'];
 @endphp
 
 @section('content')
+    <main id="konten-utama">
+        @include('spmb.partials.navbar', ['transparent' => true])
 
-    @include('spmb.partials.navbar', ['transparent' => true])
+        {{-- ============ HERO ============ --}}
+        {{-- ============ HERO ============ --}}
+        {{-- Blob dekoratif dan `animate-float` yang dulu memenuhi halaman ini
+             dihapus: keduanya bergerak tanpa ujung dan tidak menambah informasi
+             apa pun (R-19). Yang mengisi ruang kosong sekarang adalah deretan
+             angka yang bisa diperiksa orang tua.
 
-    {{-- ============ HERO ============ --}}
-    <section class="relative bg-gradient-primary py-28 overflow-hidden">
-        <div class="absolute inset-0 bg-black/10"></div>
-        <div class="absolute top-10 right-10 w-72 h-72 bg-secondary-400/20 blob-shape animate-float"></div>
-        <div class="absolute bottom-10 left-10 w-80 h-80 bg-accent-400/20 blob-shape animate-float" style="animation-delay: 1s;"></div>
+             `on-dark` wajib ada di sini. Tanpa itu, cincin fokus memakai
+             coral gelap yang hanya 2.78:1 di atas teal-900, dan hasilnya tidak
+             terlihat sama sekali. --}}
+        <section class="on-dark bg-primary-900 pt-28 pb-20 text-white sm:pt-36 sm:pb-28">
+            <div class="mx-auto max-w-6xl px-5 sm:px-6">
 
-        <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <div class="inline-flex items-center px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-white text-sm mb-6 border border-white/20">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    @foreach ($renderIcon('flag') as $d)
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
-                    @endforeach
-                </svg>
-                Tentang Kami
-            </div>
+                <p class="inline-flex items-center gap-2 rounded-md bg-white/10 px-3 py-1.5 text-sm font-semibold text-secondary-300">
+                    Tentang Kami
+                </p>
 
-            <h1 class="text-4xl md:text-6xl font-extrabold text-white mb-6 leading-tight">
-                Mengenal Lebih Dekat<br/>
-                <span class="text-secondary-300">{{ $namaSekolah }}</span>
-            </h1>
+                {{-- `h1` sengaja tanpa `.reveal`. Di atas lipatan, judul utama
+                     tidak boleh bergantung pada satu frame animasi untuk muncul:
+                     kalau `pasangReveal()` tidak jalan, halaman ini terbuka tanpa
+                     judul sama sekali. --}}
+                <h1 class="mt-6 max-w-3xl text-balance font-display text-4xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl">
+                    Mengenal lebih dekat
+                    <span class="text-secondary-300">{{ $namaSekolah }}</span>
+                </h1>
 
-            <p class="text-lg md:text-xl text-white/90 max-w-2xl mx-auto mb-10 leading-relaxed">
-                Sejak {{ $profileSekolah->tahun_berdiri ?? '-' }}, kami berkomitmen membentuk generasi cerdas, berkarakter, dan berprestasi untuk masa depan Indonesia yang gemilang.
-            </p>
-
-            {{-- Stats --}}
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-                @foreach ($stats as $stat)
-                    <div class="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl py-6 px-3">
-                        <div class="text-3xl md:text-4xl font-extrabold text-secondary-300">{{ $stat['value'] }}</div>
-                        <div class="text-sm text-white/80 mt-1">{{ $stat['label'] }}</div>
-                    </div>
-                @endforeach
-            </div>
-        </div>
-    </section>
-
-    {{-- ============ SEJARAH ============ --}}
-    <section class="py-20 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="grid lg:grid-cols-2 gap-12 items-center">
-                <div class="relative">
-                    @if ($fotoGedung)
-                        <img src="{{ $fotoGedung }}"
-                             alt="Gedung {{ $namaSekolah }}"
-                             class="rounded-3xl shadow-2xl w-full h-auto object-cover">
-                    @endif
-                    @if ($profileSekolah?->tahun_berdiri)
-                        <div class="absolute -bottom-6 -right-6 z-10 bg-white rounded-2xl p-5 shadow-xl hidden md:block">
-                            <div class="text-3xl font-extrabold text-primary-600">{{ $profileSekolah->tahun_berdiri }}</div>
-                            <div class="text-sm text-gray-500">Tahun Berdiri</div>
-                        </div>
-                    @endif
-                </div>
-
-                <div class="space-y-6">
-                    <span class="inline-block px-4 py-1.5 bg-primary-100 text-primary-700 rounded-full text-sm font-semibold">Sejarah Kami</span>
-                    <h2 class="text-3xl md:text-4xl font-extrabold text-gray-800 leading-tight">
-                        Perjalanan Membentuk Generasi Unggul
-                    </h2>
-                    {{-- TODO: ganti dengan narasi sejarah asli sekolah --}}
-                    <p class="text-gray-600 leading-relaxed">
-                        {{ $namaSekolah }} didirikan pada tahun {{ $profileSekolah?->tahun_berdiri ?? '-' }} dengan visi menghadirkan pendidikan yang berkualitas dan terjangkau bagi masyarakat sekitar.
+                {{-- Kalimat pembuka hanya ditulis kalau tahun berdiri benar-benar ada.
+                     `?? 'berdiri'` di versi lama menghasilkan "Sejak berdiri,
+                     kami berkomitmen" yang tidak gramatikal, sekaligus memberi
+                     kesan ada sejarahnya padahal tidak ada datanya. --}}
+                @if ($profileSekolah?->tahun_berdiri)
+                    <p class="reveal mt-6 max-w-2xl text-base leading-relaxed text-primary-200 sm:text-lg">
+                        Sejak {{ $profileSekolah->tahun_berdiri }}, kami berkomitmen
+                        membentuk generasi cerdas, berkarakter, dan berprestasi untuk masa depan
+                        Indonesia yang gemilang.
                     </p>
-                    <p class="text-gray-600 leading-relaxed">
-                        Selama {{ $tahunBerjalan }} tahun perjalanan, kami terus berkembang — dari fasilitas, kurikulum, hingga kualitas tenaga pendidik — untuk memastikan setiap siswa mendapatkan pengalaman belajar terbaik dan siap melangkah ke jenjang pendidikan berikutnya.
-                    </p>
-                    <div class="flex items-center gap-3 pt-2">
-                        @if ($profileSekolah?->akreditasi)
-                            <div class="w-10 h-10 bg-accent-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                <svg class="w-5 h-5 text-accent-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                    @foreach ($renderIcon('check') as $d)
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
-                                    @endforeach
-                                </svg>
-                            </div>
-                            <span class="text-gray-700 font-medium">Terakreditasi {{ $profileSekolah->akreditasi }} - Standar Nasional</span>
-                        @endif
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    {{-- ============ VISI & MISI ============ --}}
-    <section class="py-20 bg-slate-50">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-14">
-                <span class="inline-block px-4 py-1.5 bg-accent-100 text-accent-700 rounded-full text-sm font-semibold mb-4">Arah Kami</span>
-                <h2 id="visi-misi" class="text-3xl md:text-4xl font-extrabold text-gray-800">Visi &amp; Misi</h2>
-            </div>
-
-            <div class="grid lg:grid-cols-5 gap-8">
-                {{-- Visi & Misi. Seluruh bagian ini disembunyikan kalau profil belum diisi,
-                     supaya halaman tidak menampilkan visi-misi karangan. --}}
-                @if ($visiSekolah)
-                    <div class="lg:col-span-2 bg-gradient-primary rounded-3xl p-8 md:p-10 text-white shadow-xl flex flex-col justify-center">
-                        <div class="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-6">
-                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                @foreach ($renderIcon('target') as $d)
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
-                                @endforeach
-                            </svg>
-                        </div>
-                        <h3 class="text-2xl font-bold mb-4">Visi</h3>
-                        <p class="text-white/90 leading-relaxed text-lg">
-                            {{ $visiSekolah }}
-                        </p>
-                    </div>
                 @endif
 
-                {{-- Misi --}}
-                @if (count($misiList))
-                <div class="lg:col-span-3 bg-white rounded-3xl p-8 md:p-10 shadow-xl border border-gray-100">
-                    <div class="w-14 h-14 bg-primary-100 rounded-2xl flex items-center justify-center mb-6">
-                        <svg class="w-7 h-7 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            @foreach ($renderIcon('flag') as $d)
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
-                            @endforeach
-                        </svg>
-                    </div>
-                    <h3 class="text-2xl font-bold text-gray-800 mb-6">Misi</h3>
-                    <div class="space-y-4">
-                        @foreach ($misiList as $index => $misi)
-                            <div class="flex items-start gap-4">
-                                <div class="w-8 h-8 bg-primary-600 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
-                                    {{ $index + 1 }}
-                                </div>
-                                <span class="text-gray-700 leading-relaxed pt-0.5">{{ $misi }}</span>
+                {{-- Baris hilang kalau angkanya nol, bukan diisi tanda pisah.
+                     `filled(0)` bernilai true di Laravel, jadi penyaringan
+                     memakai perbandingan langsung.
+
+                     Label "Tahun Berjalan" dulu dipakai untuk `$tahunBerjalan`,
+                     yang isinya `now()->year - tahun_berdiri`. Itu JUMLAH
+                     tahun, bukan tahun. Angka 40 dengan label "Tahun Berjalan"
+                     dibaca orang tua sebagai "tahun 40". Sekarang labelnya
+                     menyebut apa yang benar-benar diukur.
+
+                     `border-primary-500`, bukan `primary-800`: di atas
+                     primary-900, primary-800 cuma 1.22:1 dan primary-600
+                     2.25:1, keduanya di bawah batas 3:1 untuk garis yang
+                     harus terlihat. primary-500 mencapai 3.63:1. --}}
+                @php
+                    $statistik = array_values(array_filter([
+                        $jumlahSiswaAktif > 0 ? ['nilai' => $jumlahSiswaAktif, 'label' => 'Siswa Aktif', 'tabular' => true] : null,
+                        $jumlahGuruAktif > 0 ? ['nilai' => $jumlahGuruAktif, 'label' => 'Tenaga Pendidik', 'tabular' => true] : null,
+                        $tahunBerjalan ? ['nilai' => $tahunBerjalan, 'label' => 'Tahun Mengajar', 'tabular' => true] : null,
+                        $profileSekolah?->akreditasi_bersih ? ['nilai' => $profileSekolah->akreditasi_bersih, 'label' => 'Akreditasi'] : null,
+                    ]));
+                @endphp
+
+                @if ($statistik)
+                    <dl class="mt-12 grid grid-cols-2 gap-x-6 gap-y-8 border-t border-primary-500 pt-8 sm:grid-cols-4">
+                        @foreach ($statistik as $stat)
+                            <div>
+                                <dd class="font-display text-3xl font-extrabold text-secondary-300 tabular sm:text-4xl">{{ $stat['nilai'] }}</dd>
+                                <dt class="mt-1 text-sm text-primary-200">{{ $stat['label'] }}</dt>
                             </div>
                         @endforeach
-                    </div>
-                </div>
+                    </dl>
                 @endif
             </div>
-        </div>
-    </section>
+        </section>
 
-    {{-- ============ NILAI-NILAI ============ --}}
-    <section class="py-20 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-14">
-                <span class="inline-block px-4 py-1.5 bg-secondary-100 text-secondary-700 rounded-full text-sm font-semibold mb-4">Yang Kami Junjung</span>
-                <h2 class="text-3xl md:text-4xl font-extrabold text-gray-800 mb-4">Nilai-Nilai Sekolah</h2>
-                <p class="text-lg text-gray-600 max-w-2xl mx-auto">Enam nilai yang membentuk karakter setiap siswa kami</p>
-            </div>
+        {{-- ============ SEJARAH ============ --}}
+        <section class="bg-kertas-100 py-20 sm:py-24">
+            <div class="mx-auto max-w-6xl px-5 sm:px-6">
+                <div class="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
 
-            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                @foreach ($nilaiList as $nilai)
-                    <div class="bg-slate-50 hover:bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-xl transition-all duration-300 card-hover">
-                        <div class="w-14 h-14 bg-gradient-primary rounded-2xl flex items-center justify-center text-white mb-4 shadow-md">
-                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                @foreach ($renderIcon($nilai['icon']) as $d)
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
-                                @endforeach
-                            </svg>
+                    <div class="relative">
+                        <div class="bingkai inline-block max-w-lg border border-kertas-300">
+                            <img src="{{ $fotoGedung }}" alt="Gedung {{ $namaSekolah }}"
+                                 width="1600" height="900"
+                                 class="block w-full rounded-lg object-cover"
+                                 loading="lazy" decoding="async">
                         </div>
-                        <h3 class="text-lg font-bold text-gray-800 mb-2">{{ $nilai['title'] }}</h3>
-                        <p class="text-gray-600 text-sm leading-relaxed">{{ $nilai['desc'] }}</p>
+
+                        @if ($profileSekolah?->tahun_berdiri)
+                            <div class="mt-6 inline-flex items-baseline gap-3 rounded-md border border-kertas-300 bg-kertas-200 px-5 py-3">
+                                <span class="font-display text-2xl font-extrabold text-primary-700">{{ $profileSekolah->tahun_berdiri }}</span>
+                                <span class="text-sm text-ink-600">Tahun Berdiri</span>
+                            </div>
+                        @endif
                     </div>
-                @endforeach
-            </div>
-        </div>
-    </section>
 
-    {{-- ============ SAMBUTAN KEPALA SEKOLAH ============ --}}
-    @if ($kepalaSekolah->sambutan || $kepalaSekolah->nama)
-    <section class="py-20 bg-slate-50">
-        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
-                <div class="grid md:grid-cols-5">
-                    @if ($kepalaSekolah->foto)
-                        <div class="md:col-span-2 relative">
-                            <img src="{{ $kepalaSekolah->foto }}" alt="{{ $kepalaSekolah->nama }}"
-                                 class="w-full h-64 md:h-full object-cover">
-                        </div>
-                    @endif
-                    <div class="md:col-span-3 p-8 md:p-10 flex flex-col justify-center relative">
-                        @if ($kepalaSekolah->sambutan)
-                            <svg class="w-10 h-10 text-primary-100 mb-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                @foreach ($renderIcon('quote') as $d)
-                                    <path d="{{ $d }}"/>
-                                @endforeach
-                            </svg>
-                            <p class="text-gray-700 text-lg leading-relaxed mb-6 italic">
-                                &ldquo;{{ $kepalaSekolah->sambutan }}&rdquo;
+                    <div>
+                        <h2 class="reveal font-display text-3xl font-extrabold leading-tight text-ink-900 sm:text-4xl">
+                            Perjalanan membentuk generasi unggul
+                        </h2>
+
+                        <p class="reveal mt-6 text-base leading-relaxed text-ink-600">
+                            {{ $namaSekolah }} didirikan pada tahun {{ $profileSekolah?->tahun_berdiri ?? '-' }}
+                            dengan visi menghadirkan pendidikan yang berkualitas dan terjangkau bagi masyarakat sekitar.
+                        </p>
+
+                        @if ($tahunBerjalan)
+                            <p class="reveal mt-4 text-base leading-relaxed text-ink-600">
+                                Selama {{ $tahunBerjalan }} tahun perjalanan, kami terus berkembang, dari
+                                fasilitas, kurikulum, hingga kualitas tenaga pendidik, untuk memastikan setiap
+                                siswa mendapatkan pengalaman belajar terbaik dan siap melangkah ke jenjang
+                                pendidikan berikutnya.
                             </p>
                         @endif
-                        @if ($kepalaSekolah->nama)
-                            <div>
-                                <div class="font-bold text-gray-800 text-lg">{{ $kepalaSekolah->nama }}</div>
-                                <div class="text-primary-600 text-sm font-medium">{{ $kepalaSekolah->jabatan }}</div>
-                            </div>
+
+                        {{-- Klaim "Standar Nasional" dihapus. Kolom `akreditasi` cuma menyimpan
+                             A/B/C; tidak ada kolom yang menyatakan standar mana,
+                             dan tidak ada sumber yang bisa menopang klaim itu.
+                             Yang tampil hanya hurufnya (R-36). --}}
+                        @if ($profileSekolah?->akreditasi_bersih)
+                            <p class="reveal mt-6 inline-flex items-center gap-2 text-sm font-semibold text-ink-700">
+                                <svg class="h-5 w-5 shrink-0 text-primary-600" fill="none" stroke="currentColor"
+                                     stroke-width="3" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="{{ $renderIcon('check')[0] }}"/>
+                                </svg>
+                                Terakreditasi {{ $profileSekolah->akreditasi_bersih }}
+                            </p>
                         @endif
                     </div>
                 </div>
             </div>
-        </div>
-    </section>
-    @endif
+        </section>
 
-    {{-- ============ FASILITAS ============ --}}
-    <section class="py-20 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-14">
-                <span class="inline-block px-4 py-1.5 bg-accent-100 text-accent-700 rounded-full text-sm font-semibold mb-4">Fasilitas</span>
-                <h2 class="text-3xl md:text-4xl font-extrabold text-gray-800 mb-4">Fasilitas Penunjang Belajar</h2>
-                <p class="text-lg text-gray-600 max-w-2xl mx-auto">Lingkungan belajar yang lengkap dan nyaman untuk mendukung tumbuh kembang siswa</p>
-            </div>
+        {{-- ============ IDENTITAS SEKOLAH ============ --}}
+        {{-- Ditaruh tepat setelah Sejarah, bukan di bawah. Orang tua yang
+             datang ke halaman "Tentang" hampir selalu mencari satu dari dua
+             hal: apakah ini sekolah yang benar, dan bagaimana cara
+             endometukannya. Jawaban kedua seharusnya tidak menuntut menggulir
+             ke bawah footer.
 
-            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                @foreach ($fasilitasList as $fasilitas)
-                    <div class="group relative rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 card-hover">
-                        <img src="{{ $fasilitas['image'] }}" alt="{{ $fasilitas['title'] }}"
-                             class="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-500">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent"></div>
-                        <div class="absolute bottom-0 left-0 right-0 p-5">
-                            <h3 class="text-white font-bold text-lg mb-1">{{ $fasilitas['title'] }}</h3>
-                            <p class="text-white/80 text-sm">{{ $fasilitas['desc'] }}</p>
-                        </div>
+             Baris yang kosong tidak dirender, jadi tabel ini hanya berisi
+             data yang benar-benar ada. Kalau tidak ada satu pun, blok ini
+             hilang total dan tidak meninggalkan tempat kosong. --}}
+        @if ($identitas)
+            <section id="identitas" class="bg-kertas-200 py-20 sm:py-24">
+                <div class="mx-auto max-w-6xl px-5 sm:px-6">
+
+                    <div class="max-w-2xl">
+                        <p class="motif-rule mb-4 w-32 justify-self-start text-sm font-semibold uppercase tracking-[0.14em] text-primary-700">
+                            @include('spmb.partials.motif-star', ['ukuran' => 'h-4 w-4', 'kelas' => 'shrink-0'])
+                            <span class="shrink-0">Data resmi</span>
+                        </p>
+                        <h2 class="reveal font-display text-3xl font-extrabold leading-tight text-ink-900 sm:text-4xl">
+                            Identitas sekolah
+                        </h2>
+                        <p class="reveal mt-5 text-base leading-relaxed text-ink-600">
+                            Data berikut diisi dari panel administrasi sekolah. Baris
+                            yang belum diisi sengaja tidak ditampilkan, bukan
+                            diganti dengan contoh.
+                        </p>
                     </div>
-                @endforeach
-            </div>
-        </div>
-    </section>
 
-    {{-- ============ CTA ============ --}}
-    <section class="relative bg-gradient-primary py-20 overflow-hidden">
-        <div class="absolute top-0 left-1/4 w-64 h-64 bg-secondary-400/20 blob-shape animate-float"></div>
-        <div class="absolute bottom-0 right-1/4 w-72 h-72 bg-accent-400/20 blob-shape animate-float" style="animation-delay: 1.2s;"></div>
-
-        <div class="relative max-w-3xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-            <h2 class="text-3xl md:text-4xl font-extrabold text-white mb-4">Siap Bergabung Bersama Kami?</h2>
-            <p class="text-lg text-white/90 mb-8">
-                Wujudkan langkah pertama menuju masa depan cerah putra-putri Anda
-            </p>
-            <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="{{ route('spmb.pendaftaran') }}"
-                   class="inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-primary-700 bg-white rounded-2xl hover:bg-gray-50 transition shadow-xl hover:shadow-2xl hover:scale-105 transform">
-                    <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        @foreach ($renderIcon('bolt') as $d)
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                    {{-- `sm:grid-cols-2` dengan label di kiri dan nilai di kanan,
+                         bukan grid kartu. Kartu membuat delapan baris data
+                         admin terbaca sebagai delapan hal yang sama pentingnya,
+                         padahal yang paling dicari orang tua cuma satu: alamat
+                         dan telepon. --}}
+                    <dl class="mt-10 overflow-hidden rounded-lg border border-kertas-300 bg-kertas-100">
+                        @foreach ($identitas as $baris)
+                            <div class="grid gap-1 border-b border-kertas-200 px-5 py-4 last:border-b-0 sm:grid-cols-3 sm:items-baseline sm:gap-6 sm:px-6">
+                                <dt class="text-sm font-semibold text-ink-600">{{ $baris['label'] }}</dt>
+                                <dd class="min-w-0 text-base text-ink-900 sm:col-span-2{{ ($baris['tabular'] ?? false) ? ' tabular' : '' }}">
+                                    {{-- `tel` diperiksa sebelum `url`: nomor telepon di bawahnya
+                                         tetap teks biasa supaya tidak terpotong
+                                         underline panjang. --}}
+                                    @if ($baris['tel'] ?? false)
+                                        <a href="tel:{{ $baris['tel'] }}"
+                                           class="inline-flex min-h-11 items-center text-primary-700 underline decoration-primary-200 underline-offset-4 transition-colors hover:decoration-primary-600">
+                                            {{ $baris['nilai'] }}
+                                        </a>
+                                    @elseif ($baris['url'] ?? false)
+                                        <a href="{{ $baris['url'] }}"
+                                           class="inline-flex min-h-11 items-center break-all text-primary-700 underline decoration-primary-200 underline-offset-4 transition-colors hover:decoration-primary-600">
+                                            {{ $baris['nilai'] }}
+                                        </a>
+                                    @elseif ($baris['html'] ?? false)
+                                        {{-- Alamat sudah di-escape per baris di dalam
+                                             `$identitas`, dengan `e()` lalu `nl2br()`.
+                                             Di-cast dua kali di sini akan
+                                             menghasilkan `&amp;lt;` yang tampil
+                                             sebagai teks mentah. --}}
+                                        {!! $baris['nilai'] !!}
+                                    @else
+                                        <span class="break-words">{{ $baris['nilai'] }}</span>
+                                    @endif
+                                </dd>
+                            </div>
                         @endforeach
-                    </svg>
-                    Daftar Sekarang
-                </a>
-                <a href="{{ route('spmb.home') }}#kontak"
-                   class="inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white border-2 border-white/60 rounded-2xl hover:bg-white hover:text-primary-700 transition">
-                    Hubungi Kami
-                </a>
+                    </dl>
+
+                </div>
+            </section>
+        @endif
+
+        {{-- ============ PETA LOKASI ============ --}}
+        {{-- Section sendiri, bukan digabung ke tabel Identitas.
+
+             Versi pertama menaruh peta di dalam `@if ($identitas)`, jadi peta
+             ikut hilang begitu tabel itu kosong. Padahal keduanya dua hal yang
+             berbeda: peta selalu punya sumber (peta cadangan kalau admin belum
+             mengisi URL), sedangkan baris identitas tidak punya satu pun nilai
+             sampai admin mengisinya. Sekolah yang sudah memasang peta tapi belum
+             mengisi alamat atau telepon akan kehilangan petanya sendiri.
+
+             Lebarnya penuh, bukan seperempat kolom: peta yang sempit tidak bisa
+             dibaca jalan. --}}
+        <section id="lokasi" class="bg-kertas-100 py-20 sm:py-24">
+            {{-- `kertas-100` di sini, bukan `kertas-200`. Section Identitas di
+                 atasnya sudah `kertas-200`, dan dua latar kertas yang sama
+                 bersebelahan terbaca seperti satu blok besar, jadi jeda yang
+                 seharusnya ada justru hilang. --}}
+            <div class="mx-auto max-w-6xl px-5 sm:px-6">
+
+                <div class="max-w-2xl">
+                    <p class="motif-rule mb-4 w-32 justify-self-start text-sm font-semibold uppercase tracking-[0.14em] text-primary-700">
+                        @include('spmb.partials.motif-star', ['ukuran' => 'h-4 w-4', 'kelas' => 'shrink-0'])
+                        <span class="shrink-0">Di sini</span>
+                    </p>
+                    <h2 class="reveal font-display text-3xl font-extrabold leading-tight text-ink-900 sm:text-4xl">
+                        Lokasi sekolah
+                    </h2>
+                </div>
+
+                <div class="mt-10">
+                    @include('spmb.partials.peta-sekolah')
+                </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    @include('spmb.partials.footer')
+        {{-- ============ VISI & MISI ============ --}}
+        {{-- Ritme halaman ini: gelap, 100, 200, 100, 200, 100, 200, gelap.
+             Dipisah-pisah begini karena dua section bersebelahan dengan warna
+             yang sama terbaca seperti satu blok besar, dan jeda di
+             antaranya yang seharusnya ada justru hilang. Identitas dan
+             Visi-Misi pernah sama-sama `kertas-200` setelah blok Identitas
+             disisipkan. --}}
+        @if ($visiSekolah || $misiList)
+            <section id="visi-misi" class="bg-kertas-200 py-20 sm:py-24">
+                <div class="mx-auto max-w-6xl px-5 sm:px-6">
+                    <h2 class="reveal font-display text-3xl font-extrabold leading-tight text-ink-900 sm:text-4xl">
+                        Visi &amp; Misi
+                    </h2>
 
+                    <div class="mt-10 grid gap-8 lg:grid-cols-5 lg:gap-10">
+                        {{-- Visi jadi panel hijau tua karena itu satu kalimat
+                             yang paling ingin dibaca orang tua; misi jadi daftar
+                             bernomor ringan di sebelahnya. --}}
+                        @if ($visiSekolah)
+                            <div class="lg:col-span-2">
+                                <div class="flex h-full flex-col rounded-lg bg-primary-800 p-8 text-white">
+                                    <h3 class="font-display text-sm font-extrabold uppercase tracking-wider text-secondary-300">
+                                        Visi
+                                    </h3>
+                                    <p class="mt-4 font-display text-2xl font-semibold leading-snug">
+                                        {{ $visiSekolah }}
+                                    </p>
+                                </div>
+                            </div>
+                        @endif
+
+                        @if ($misiList)
+                            <div class="{{ $visiSekolah ? 'lg:col-span-3' : 'lg:col-span-5' }}">
+                                <h3 class="font-display text-sm font-extrabold uppercase tracking-wider text-ink-500">
+                                    Misi
+                                </h3>
+                                <ol class="mt-5 space-y-4">
+                                    @foreach ($misiList as $index => $misi)
+                                        <li class="flex gap-4 border-b border-kertas-300 pb-4 last:border-b-0">
+                                            <span aria-hidden="true"
+                                                  class="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-primary-200 bg-primary-50 font-display text-sm font-extrabold text-primary-800">
+                                                {{ $index + 1 }}
+                                            </span>
+                                            <p class="min-w-0 flex-1 text-base leading-relaxed text-ink-700">{{ $misi }}</p>
+                                        </li>
+                                    @endforeach
+                                </ol>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </section>
+        @endif
+
+        {{-- ============ NILAI-NILAI ============ --}}
+        <section class="bg-kertas-100 py-20 sm:py-24">
+            <div class="mx-auto max-w-6xl px-5 sm:px-6">
+
+                <div class="max-w-2xl">
+                    <h2 class="reveal font-display text-3xl font-extrabold leading-tight text-ink-900 sm:text-4xl">
+                        Nilai-nilai sekolah
+                    </h2>
+                    <p class="reveal mt-5 text-base leading-relaxed text-ink-600">
+                        Enam nilai yang membentuk karakter setiap siswa kami.
+                    </p>
+                </div>
+
+                {{-- Grid tiga kolom, kartu rata. Versi lama memberi tiap kartu
+                     gradien sendiri sehingga enam nilai ini terbaca sebagai
+                     enam hal yang sama besar, padahal tidak ada yang perlu
+                     dibedakan (R-05). --}}
+                <ul class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    @foreach ($nilaiList as $nilai)
+                        <li class="reveal rounded-lg border border-kertas-300 bg-kertas-200 p-6">
+                            <span class="grid h-10 w-10 place-items-center rounded-md bg-primary-800 text-secondary-300">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8"
+                                     viewBox="0 0 24 24" aria-hidden="true">
+                                    @foreach ($renderIcon($nilai['icon']) as $d)
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="{{ $d }}"/>
+                                    @endforeach
+                                </svg>
+                            </span>
+                            <h3 class="mt-5 font-display text-lg font-extrabold text-ink-900">{{ $nilai['title'] }}</h3>
+                            <p class="mt-2 text-sm leading-relaxed text-ink-600">{{ $nilai['desc'] }}</p>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        </section>
+
+        {{-- ============ SAMBUTAN KEPALA SEKOLAH ============ --}}
+        @if ($kepalaSekolah->sambutan)
+            <section class="bg-kertas-200 py-20 sm:py-24">
+                <div class="mx-auto max-w-5xl px-5 sm:px-6">
+                    <div class="grid gap-8 sm:grid-cols-12 sm:gap-10">
+                        @if ($kepalaSekolah->foto)
+                            <div class="sm:col-span-4">
+                                <img src="{{ $kepalaSekolah->foto }}"
+                                     alt="{{ $kepalaSekolah->nama ?: 'Kepala sekolah' }}"
+                                     width="400" height="500"
+                                     class="aspect-[4/5] w-full rounded-md object-cover"
+                                     loading="lazy" decoding="async">
+                            </div>
+                        @endif
+
+                        <blockquote class="{{ $kepalaSekolah->foto ? 'sm:col-span-8' : 'sm:col-span-12' }}">
+                            <h2 class="font-display text-sm font-extrabold uppercase tracking-wider text-ink-500">
+                                Sambutan Kepala Sekolah
+                            </h2>
+                            <p class="mt-5 text-lg leading-relaxed text-ink-800">{{ $kepalaSekolah->sambutan }}</p>
+                            @if ($kepalaSekolah->nama)
+                                <footer class="mt-6 border-t border-kertas-300 pt-4">
+                                    <span class="font-display text-base font-extrabold text-ink-900">{{ $kepalaSekolah->nama }}</span>
+                                    <span class="mt-0.5 block text-sm text-ink-500">{{ $kepalaSekolah->jabatan }} {{ $namaSekolah }}</span>
+                                </footer>
+                            @endif
+                        </blockquote>
+                    </div>
+                </div>
+            </section>
+        @endif
+
+        {{-- ============ FASILITAS ============ --}}
+        <section class="bg-kertas-200 py-20 sm:py-24">
+            <div class="mx-auto max-w-6xl px-5 sm:px-6">
+
+                <div class="max-w-2xl">
+                    <h2 class="reveal font-display text-3xl font-extrabold leading-tight text-ink-900 sm:text-4xl">
+                        Fasilitas penunjang belajar
+                    </h2>
+                    <p class="reveal mt-5 text-base leading-relaxed text-ink-600">
+                        Lingkungan belajar yang lengkap dan nyaman untuk mendukung
+                        tumbuh kembang siswa.
+                    </p>
+                </div>
+
+                <ul class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    @foreach ($fasilitasList as $fasilitas)
+                        <li class="reveal rounded-lg border border-kertas-300 bg-kertas-200 p-6">
+                            <span class="grid h-10 w-10 place-items-center rounded-md bg-secondary-50 text-secondary-700">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8"
+                                     viewBox="0 0 24 24" aria-hidden="true">
+                                    @foreach ($renderIcon($fasilitas['icon']) as $d)
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="{{ $d }}"/>
+                                    @endforeach
+                                </svg>
+                            </span>
+                            <h3 class="mt-5 font-display text-lg font-extrabold text-ink-900">{{ $fasilitas['title'] }}</h3>
+                            <p class="mt-2 text-sm leading-relaxed text-ink-600">{{ $fasilitas['desc'] }}</p>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        </section>
+
+        {{-- ============ CTA ============ --}}
+        <section class="on-dark bg-primary-900 py-20 sm:py-24">
+            <div class="mx-auto max-w-6xl px-5 sm:px-6">
+                <div class="bingkai inline-block max-w-lg border border-primary-800">
+                    <img src="{{ $fotoGedung }}"
+                         alt="Gedung {{ $namaSekolah }}"
+                         width="1600" height="900"
+                         class="block w-full rounded-lg object-cover"
+                         loading="lazy" decoding="async">
+                </div>
+
+                <div class="mt-10 max-w-xl">
+                    <h2 class="font-display text-3xl font-extrabold leading-tight text-white">
+                        Siap bergabung bersama kami?
+                    </h2>
+                    <p class="mt-5 text-base leading-relaxed text-secondary-100/90">
+                        Wujudkan langkah pertama menuju masa depan cerah
+                        putra-putri Anda.
+                    </p>
+                    <a href="{{ route('spmb.pendaftaran') }}" class="btn btn-accent mt-7">
+                        Mulai Pendaftaran
+                    </a>
+                </div>
+            </div>
+        </section>
+    </main>
 @endsection
-

@@ -1,153 +1,167 @@
-@php $gelombangs = $gelombangs ?? collect(); @endphp
+@php
+    $gelombangs = $gelombangs ?? collect();
+    $gelombangList = $gelombangs->sortBy('nomor_urut')->values();
+@endphp
 
-<section id="gelombang" class="py-20 bg-slate-50">
-    <div class="container mx-auto px-4">
-        
-        {{-- Section Header --}}
-        <div class="text-center max-w-3xl mx-auto mb-16">
-            <h2 class="text-3xl md:text-4xl font-extrabold text-gray-800 mb-4">
-                Timeline <span class="text-primary-600">Gelombang Pendaftaran</span>
-            </h2>
-            <p class="text-lg text-gray-600">
-                Daftar sekarang dan dapatkan keuntungan dari setiap gelombang
-            </p>
-        </div>
+{{--
+    Catatan penting di bagian bawah versi lama dihapus. Isinya "pembayaran
+    tidak dapat dikembalikan", "jadwal tes seleksi dikonfirmasi via email",
+    dan "daftar ulang maksimal 7 hari setelah pengumuman" adalah kebijakan
+    sekolah yang tidak ada di mana pun dalam sistem ini, dan tidak satu pun
+    bisa diverifikasi calon siswa. Sistem ini juga tidak punya tes seleksi sama
+    sekali, jadi menyebut "jadwal tes" ikut mengarang proses yang tidak ada
+    (R-36). Kalau sekolah memang punya aturan seperti itu, aturan itu ditulis
+    di kolom keterangan tiap gelombang, bukan di sini sebagai ketetapan.
 
-        {{-- Gelombang Cards --}}
-        <div class="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            @forelse ($gelombangs as $g)
-                @php
-                    $border = $g->warna_border ?? 'primary-600';
-                    $gradient = match($border) {
-                        'secondary-600' => 'from-secondary-500 to-secondary-700',
-                        'accent-600' => 'from-accent-500 to-accent-700',
-                        default => 'from-primary-600 to-primary-800',
-                    };
-                    $borderClass = 'border-'.$border;
-                    $persen = $g->persentase;
-                    $sisa = $g->sisa_kursi;
-                    $barColor = $border === 'accent-600' ? 'bg-amber-500' : 'bg-accent-500';
-                    $badgeBg = $border === 'accent-600' ? 'bg-amber-100 text-amber-700' : 'bg-accent-100 text-accent-700';
+    Warna kartu juga tidak lagi mengikuti kolom `warna_border`. Kolom itu masih
+    ada di database, tapi memakainya untuk mewarnai kartu membuat empat warna
+    empat warna berkelompok di satu halaman tanpa ada yang bisa membacanya sebagai
+    informasi apa pun (R-29). Warna sekarang hanya menyatakan keadaan: hijau
+    untuk terbuka, emas untuk akan dibuka, abu-abu untuk lewat atau penuh.
+--}}
 
-                    // Status dihitung lewat objek yang sama dengan badge hero,
-                    // jadi kartu tidak bisa menampilkan "Dibuka" sementara hero
-                    // menulis "Pendaftaran Ditutup" untuk batch yang sama.
-                    $status = \App\Support\StatusPendaftaran::untuk($g);
-                    $kelasStatus = match ($status->state) {
-                        \App\Support\StatusPendaftaran::BUKA => 'bg-green-100 text-green-700',
-                        \App\Support\StatusPendaftaran::BELUM => 'bg-sky-100 text-sky-700',
-                        \App\Support\StatusPendaftaran::PENUH => 'bg-amber-100 text-amber-700',
-                        \App\Support\StatusPendaftaran::TUTUP => 'bg-gray-200 text-gray-600',
-                        default => 'bg-white/20 text-white',
-                    };
-                @endphp
-                <div class="bg-white rounded-3xl shadow-xl overflow-hidden card-hover border-t-8 {{ $borderClass }}">
-                    <div class="bg-gradient-to-br {{ $gradient }} px-6 py-8 text-white text-center">
-                        @if($g->badge)
-                            <div class="inline-block px-4 py-1 bg-white/20 rounded-full text-xs font-bold mb-3">
-                                {{ $g->badge }}
-                            </div>
-                        @endif
-                        <h3 class="text-2xl font-extrabold mb-2">{{ $g->nama_gelombang }}</h3>
-                        <div class="flex flex-wrap items-center justify-center gap-2 mb-3">
-                            <span class="px-3 py-1 rounded-full text-xs font-bold {{ $kelasStatus }}">{{ $status->labelGelombang() }}</span>
-                        </div>
-                        <div class="flex items-center justify-center space-x-2 text-sm">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                            </svg>
-                            @if ($p = $g->tahapPendaftaran())
-                            <span class="font-semibold">{{ $p->tanggal_mulai->format('M Y') }} - {{ $p->tanggalAkhir()->format('M Y') }}</span>
-                        @else
-                            <span class="font-semibold">Jadwal belum ditetapkan</span>
-                        @endif
-                        </div>
-                    </div>
-                    
-                    <div class="p-6 space-y-4">
-                        {{-- Tahapan diambil dari baris `gelombang_tahapan`. Tahap
-                             satu hari (tes, pengumuman) hanya menampilkan satu
-                             tanggal; yang berjendela menampilkan rentang. --}}
-                        @foreach ($g->tahapan as $t)
-                            <div class="flex items-center justify-between pb-3 border-b">
-                                <span class="text-sm font-medium text-gray-600">{{ $t->nama_tahap }}</span>
-                                <span class="text-sm font-bold text-gray-800">
-                                    @if ($t->punyaJendela())
-                                        {{ $t->tanggal_mulai->format('d M Y') }} &ndash; {{ $t->tanggalAkhir()->format('d M Y') }}
-                                    @else
-                                        {{ $t->tanggal_mulai->format('d M Y') }}
-                                    @endif
-                                </span>
-                            </div>
-                        @endforeach
+<section id="gelombang" class="bg-kertas-100 py-20 sm:py-28">
+    <div class="mx-auto max-w-6xl px-5 sm:px-6">
 
-                        <div class="bg-accent-50 rounded-2xl p-4 mt-6">
-                            <h4 class="font-bold text-gray-800 mb-2 text-sm flex items-center">
-                                <svg class="w-5 h-5 text-accent-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/>
-                                </svg>
-                                Keuntungan
-                            </h4>
-                            <ul class="space-y-2 text-xs text-gray-700">
-                                @if($g->diskon_efektif)
-                                    <li class="flex items-start">
-                                        <svg class="w-4 h-4 text-accent-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                                        <span>Diskon <strong>{{ $g->diskon_efektif }}% biaya pendaftaran</strong></span>
-                                    </li>
-                                @endif
-                                @forelse (($g->keuntungan ?? []) as $untung)
-                                    <li class="flex items-start">
-                                        <svg class="w-4 h-4 text-accent-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                                        <span>{{ $untung }}</span>
-                                    </li>
-                                @empty
-                                    @if(!$g->diskon_efektif)
-                                        <li class="text-gray-500">Tidak ada keuntungan khusus.</li>
-                                    @endif
-                                @endforelse
-                            </ul>
-                        </div>
-
-                        <div class="pt-4">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-xs font-medium text-gray-600">Kuota Tersedia</span>
-                                <span class="px-3 py-1 {{ $badgeBg }} text-xs font-bold rounded-full">
-                                    {{ $sisa !== null ? $sisa.' kursi tersisa' : 'Tanpa batas' }}
-                                </span>
-                            </div>
-                            @if ($sisa !== null)
-                                <div class="w-full bg-gray-200 rounded-full h-2">
-                                    <div class="{{ $barColor }} h-2 rounded-full" style="width: {{ min(100, $persen) }}%"></div>
-                                </div>
-                                <p class="text-xs text-gray-500 mt-1">{{ $persen }}% terisi ({{ $g->terisi }}/{{ $g->kuota }})</p>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-            @empty
-                <div class="col-span-3 text-center py-12 text-sm text-gray-500">Belum ada gelombang aktif.</div>
-            @endforelse
-        </div>
-
-        {{-- Info Box --}}
-        <div class="max-w-4xl mx-auto mt-12">
-            <div class="bg-gradient-to-r from-primary-600 to-accent-600 rounded-3xl p-8 text-white shadow-2xl">
-                <div class="flex items-start space-x-4">
-                    <svg class="w-12 h-12 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                    </svg>
-                    <div>
-                        <h3 class="text-xl font-bold mb-2">Catatan Penting</h3>
-                        <ul class="space-y-2 text-sm text-white/90">
-                            <li>• Kuota terbatas dan bisa penuh sebelum tanggal penutupan</li>
-                            <li>• Pembayaran biaya pendaftaran tidak dapat dikembalikan</li>
-                            <li>• Jadwal tes seleksi akan dikonfirmasi via email setelah pembayaran</li>
-                            <li>• Daftar ulang maksimal 7 hari setelah pengumuman</li>
-                        </ul>
-                    </div>
-                </div>
+        <div class="flex flex-wrap items-end justify-between gap-6">
+            <div class="max-w-2xl">
+                <h2 class="reveal font-display text-3xl font-extrabold leading-tight text-ink-900 sm:text-4xl">
+                    Timeline <span class="text-primary-700">Gelombang Pendaftaran</span>
+                </h2>
+                <p class="reveal mt-5 text-base leading-relaxed text-ink-600">
+                    Daftar sekarang dan dapatkan keuntungan dari setiap
+                    gelombang. Tahap dan tanggal di bawah ini diset langsung oleh
+                    sekolah, dan gelombang yang sudah lewat tidak ditampilkan.
+                </p>
             </div>
         </div>
 
+        @forelse ($gelombangList as $g)
+            @php
+                $status = \App\Support\StatusPendaftaran::untuk($g);
+                $sisa = $g->sisa_kursi;
+                $sisaTerlihat = $sisa !== null && ($g->kuota ?? 0) > 0;
+
+                // Pita status memakai warna dari palet sendiri, bukan
+                // green-100/sky-100/amber-100 yang tidak ada dalam sistem.
+                $pita = match ($status->state) {
+                    \App\Support\StatusPendaftaran::BUKA => 'bg-primary-50 text-primary-800 ring-primary-200',
+                    \App\Support\StatusPendaftaran::BELUM => 'bg-secondary-50 text-secondary-700 ring-secondary-200',
+                    default => 'bg-kertas-200 text-ink-600 ring-kertas-400',
+                };
+            @endphp
+
+            <article class="reveal mt-8 border-t border-kertas-300 pt-8">
+                <div class="grid gap-6 md:grid-cols-12 md:gap-10">
+
+                    <div class="md:col-span-5">
+                        @if ($g->badge)
+                            <p class="text-xs font-semibold uppercase tracking-wider text-secondary-600">{{ $g->badge }}</p>
+                        @endif
+
+                        <h3 class="mt-1 font-display text-xl font-extrabold text-ink-900">{{ $g->nama_gelombang }}</h3>
+
+                        <p class="mt-3 inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-semibold ring-1 {{ $pita }}">
+                            {{ $status->labelGelombang() }}
+                        </p>
+
+                        @if ($tahap = $g->tahapPendaftaran())
+                            <p class="mt-4 flex items-start gap-2 text-sm text-ink-600">
+                                <svg class="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2"
+                                     viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                          d="M8 7V3m8 4V3M4 11h16M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                <span>
+                                    Pendaftaran dibuka
+                                    {{ $tahap->tanggal_mulai->translatedFormat('j M Y') }}
+                                    sampai {{ $tahap->tanggalAkhir()->translatedFormat('j M Y') }}
+                                </span>
+                            </p>
+                        @endif
+
+                        @if ($g->keterangan)
+                            <p class="mt-4 text-sm leading-relaxed text-ink-600">{!! nl2br(e($g->keterangan)) !!}</p>
+                        @endif
+                    </div>
+
+                    <div class="md:col-span-4">
+                        <h4 class="text-sm font-semibold text-ink-700">Tahapan seleksi</h4>
+
+                        @if ($g->tahapan->isNotEmpty())
+                            <ol class="mt-3 space-y-0">
+                                @foreach ($g->tahapan as $t)
+                                    <li class="flex items-baseline justify-between gap-4 border-b border-kertas-300 py-2 last:border-b-0">
+                                        <span class="text-sm text-ink-600">{{ $t->nama_tahap }}</span>
+                                        <span class="text-sm font-semibold text-ink-900">
+                                            @if ($t->punyaJendela())
+                                                {{ $t->tanggal_mulai->translatedFormat('j M') }} - {{ $t->tanggalAkhir()->translatedFormat('j M Y') }}
+                                            @else
+                                                {{ $t->tanggal_mulai->translatedFormat('j M Y') }}
+                                            @endif
+                                        </span>
+                                    </li>
+                                @endforeach
+                            </ol>
+                        @else
+                            <p class="mt-3 text-sm text-ink-500">Tahapan belum ditetapkan sekolah.</p>
+                        @endif
+                    </div>
+
+                    <div class="md:col-span-3">
+                        @if ($sisaTerlihat)
+                            <p class="text-sm font-semibold text-ink-700">Sisa kursi</p>
+                            <p class="mt-1 font-display text-lg font-extrabold text-ink-900">{{ $sisa }}</p>
+                            <div class="mt-3 h-2 w-full overflow-hidden rounded-full bg-kertas-300">
+                                <div class="h-2 rounded-full bg-primary-600"
+                                     style="width: {{ min(100, $g->persentase) }}%"></div>
+                            </div>
+                            <p class="mt-2 text-xs text-ink-500">
+                                {{ $g->terisi }} dari {{ $g->kuota }} kursi terisi
+                            </p>
+                        @else
+                            <p class="text-sm font-semibold text-ink-700">Kuota</p>
+                            <p class="mt-1 font-display text-lg font-extrabold text-ink-900">Tanpa batas</p>
+                            <p class="mt-2 text-xs text-ink-500">
+                                Sekolah tidak membatasi jumlah peserta gelombang ini.
+                            </p>
+                        @endif
+
+                        @if ($g->diskon_efektif > 0 || ! empty($g->keuntungan))
+                            <div class="mt-5 rounded-md bg-kertas-200 p-4">
+                                <h4 class="text-sm font-semibold text-ink-900">Yang didapat di gelombang ini</h4>
+                                <ul class="mt-2 space-y-1.5">
+                                    @if ($g->diskon_efektif > 0)
+                                        <li class="text-sm text-ink-700">Diskon biaya pendaftaran {{ $g->diskon_efektif }}%</li>
+                                    @endif
+                                    @foreach (($g->keuntungan ?? []) as $untung)
+                                        <li class="flex gap-2 text-sm text-ink-700">
+                                            <svg class="mt-1 h-3.5 w-3.5 shrink-0 text-primary-600" fill="none"
+                                                 stroke="currentColor" stroke-width="3" viewBox="0 0 24 24" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                            <span>{{ $untung }}</span>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </article>
+        @empty
+            {{-- Empty state (R-27): menyebut sebabnya dan jalan keluarnya. --}}
+            <div class="reveal mt-8 rounded-md border border-kertas-300 bg-kertas-200 p-8">
+                <h3 class="font-display text-lg font-extrabold text-ink-900">Belum ada gelombang pendaftaran yang dibuka</h3>
+                <p class="mt-2 max-w-lg text-base leading-relaxed text-ink-600">
+                    Sekolah belum membuka jadwal gelombang pendaftaran untuk tahun
+                    ajaran ini, atau semua gelombang yang pernah dibuka sudah lewat.
+                    Halaman pengumuman akan memberi tahu begitu jadwal baru keluar.
+                </p>
+                <a href="{{ route('spmb.pengumuman.index') }}" class="btn btn-quiet mt-6">
+                    Lihat Pengumuman
+                </a>
+            </div>
+        @endforelse
     </div>
 </section>

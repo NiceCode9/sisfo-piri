@@ -13,11 +13,12 @@
     // Timeline sekarang dibangun dari Gelombang + tahapnya, bukan JadwalPPDB,
     // supaya tanggal yang tampil adalah satu-satunya tanggal yang dipakai gate
     // pendaftaran.
-    // ============================================================
-    $jalurPendaftarans = $jalurPendaftarans ?? collect([
-        (object) ['id' => 1, 'nama_jalur' => 'Reguler', 'aktif' => true],
-        (object) ['id' => 2, 'nama_jalur' => 'Prestasi / Beasiswa', 'aktif' => true],
-    ]);
+    //
+    // Jalur juga TIDAK diberi fallback. Versi lama membuat dua jalur palsu
+    // (Reguler dan Prestasi/Beasiswa) supaya dropdown tidak kosong; kalau
+    // sekolah belum mengatur jalur, orang tua akan melihat pilihan yang tidak
+    // bisa memakai, lalu gagal saat disimpan (R-38).
+    $jalurPendaftarans = $jalurPendaftarans ?? collect();
 
     $semuaGelombangs = $semuaGelombangs ?? collect();
 
@@ -98,7 +99,7 @@
     // dan timeline detail tidak mungkin berbeda pendapat soal "tahap mana yang
     // sudah lewat".
     $kelasTitikTahap = fn ($tahap) => match (true) {
-        $tahap->berlangsung() => 'bg-accent-500 ring-4 ring-accent-100',
+        $tahap->berlangsung() => 'bg-accent-600 ring-4 ring-accent-100',
         $tahap->sudahLewat() => 'bg-gray-300',
         default => 'bg-white border-2 border-primary-300',
     };
@@ -117,46 +118,76 @@
         return $tahap->nama_tahap.' · '.$rentang;
     };
 
+    // Daftar berkas di bawah harus sama persis dengan `$uploadFields` yang
+    // jadi kolom unggahan di langkah 4. Versi lama menulis "fotokopi rapor
+    // SD kelas 4-6" di sini, padahal tidak ada kolom rapor di form, jadi
+    // orang tua menyiapkan berkas yang tidak pernah diminta.
     $persyaratanList = [
-        'Fotokopi akte kelahiran dan kartu keluarga',
-        'Fotokopi rapor SD kelas 4-6',
-        'Pas foto 3x4 (3 lembar)',
-        'Surat Keterangan Lulus (SKL) asli',
+        'Ijazah atau Surat Keterangan Lulus, PDF maks 5MB',
+        'Kartu Keluarga, PDF maks 5MB',
+        'Akta Kelahiran, PDF maks 5MB',
+        'Pas foto berwarna, JPG atau PNG maks 2MB',
     ];
 
+    // Catatan ini dulu berbunyi "Tes masuk meliputi: Matematika, IPA, dan
+    // Bahasa Indonesia". Sistem ini tidak punya modul tes seleksi sama
+    // sekali, jadi kalimat itu hanya mengarang proses yang tidak ada (R-36).
     $infoPentingList = [
-        ['icon' => 'globe', 'text' => 'Pendaftaran dilakukan secara online melalui website ini'],
-        ['icon' => 'book-open', 'text' => 'Tes masuk meliputi: Matematika, IPA, dan Bahasa Indonesia'],
-        ['icon' => 'bell', 'text' => 'Pengumuman hasil seleksi dapat dilihat di website ini'],
-        ['icon' => 'phone', 'text' => 'Informasi lebih lanjut tersedia lewat kontak sekolah'],
+        ['icon' => 'clipboard', 'text' => 'Pendaftaran dilakukan lewat formulir di halaman ini'],
+        ['icon' => 'document', 'text' => 'Berkas diunggah di langkah 4 dan bisa diunggah ulang kalau ditolak'],
+        ['icon' => 'bell', 'text' => 'Pengumuman resmi terbit di halaman pengumuman sekolah'],
+        ['icon' => 'phone', 'text' => 'Pertanyaan soal berkas bisa langsung ditanyakan ke sekolah'],
     ];
 
+    // Tiga pil ini ("Info Penting") dikembalikan sesuai permintaan: komponen
+    // ini ada di versi lama dan hilang saat section ini ditulis ulang. Isinya
+    // masih klaim hardcode tanpa SLA di sistem, jadi tetap berupa janji yang
+    // harus dipenuhi sekolah, bukan fakta yang bisa diverifikasi aplikasi.
     $trustStrip = [
         ['icon' => 'globe', 'title' => '100% Online', 'desc' => 'Daftar dari mana saja'],
         ['icon' => 'bolt', 'title' => 'Proses 3 Hari', 'desc' => 'Verifikasi berkas cepat'],
         ['icon' => 'shield-check', 'title' => 'Data Aman', 'desc' => 'Privasi terjaga'],
     ];
 
+    /*
+     * `autocomplete` per kolom, bukan satu nilai global.
+     *
+     * Tanpa ini, orang tua yang mengisi di ponsel harus mengetik NIK 16 digit,
+     * NISN 10 digit, nama, dan alamat lengkap dari nol setiap kali. Browser
+     * sebenarnya sudah tahu sebagian jawaban ini dari formulir yang pernah
+     * diisi sebelumnya, atau dari akun yang sedang(login. Meminta token
+     * `autocomplete` yang tepat adalah perubahan paling murah untuk mengisi
+     * form ini.
+     *
+     * `inputmode` menentukan keyboard virtual yang muncul di ponsel, dan
+     * itu menentukan apakah orang bisa mengetik cepat atau tidak: NIK dan
+     * NISN harus mendapat keyboard angka, nomor HP harus mendapat `tel` yang
+     * memunculkan tombol +, bukan keyboard alfabet.
+     *
+     * `spellcheck` dimatikan untuk kolom yang isinya kode (NIK, NISN, email).
+     * Tanpa itu Android menandai NIK sebagai salah eja dan menawarkan koreksi
+     * yang tidak pernah benar.
+     */
     $dataPribadiFields = [
-        ['id' => 'nama_lengkap', 'label' => 'Nama Lengkap', 'icon' => 'user', 'type' => 'text', 'placeholder' => 'Masukkan nama lengkap'],
-        ['id' => 'jenis_kelamin', 'label' => 'Jenis Kelamin', 'icon' => 'users', 'type' => 'select', 'options' => ['L' => '👨 Laki-laki', 'P' => '👩 Perempuan'], 'placeholder' => 'Pilih Jenis Kelamin'],
-        ['id' => 'nik', 'label' => 'NIK', 'icon' => 'id-card', 'type' => 'text', 'placeholder' => '16 digit NIK', 'maxlength' => 16],
-        ['id' => 'nisn', 'label' => 'NISN', 'icon' => 'graduation-cap', 'type' => 'text', 'placeholder' => '10 digit NISN', 'maxlength' => 10],
-        ['id' => 'tempat_lahir', 'label' => 'Tempat Lahir', 'icon' => 'location', 'type' => 'text', 'placeholder' => 'Kota tempat lahir'],
-        ['id' => 'tanggal_lahir', 'label' => 'Tanggal Lahir', 'icon' => 'calendar', 'type' => 'date'],
-        ['id' => 'agama', 'label' => 'Agama', 'icon' => 'book-open', 'type' => 'select', 'options' => array_combine(\App\Models\CalonSiswa::AGAMA, \App\Models\CalonSiswa::AGAMA), 'placeholder' => 'Pilih agama'],
-        ['id' => 'asal_sekolah', 'label' => 'Asal Sekolah', 'icon' => 'graduation-cap', 'type' => 'text', 'placeholder' => 'Nama sekolah asal'],
-        ['id' => 'alamat', 'label' => 'Alamat', 'icon' => 'home', 'type' => 'textarea', 'placeholder' => 'Alamat lengkap tempat tinggal', 'span' => 'md:col-span-2'],
-        ['id' => 'no_hp', 'label' => 'No. HP Siswa', 'icon' => 'mobile', 'type' => 'tel', 'placeholder' => '08xxxxxxxxxx'],
-        ['id' => 'email', 'label' => 'Email', 'icon' => 'envelope', 'type' => 'email', 'placeholder' => 'email@contoh.com'],
+        ['id' => 'nama_lengkap', 'label' => 'Nama Lengkap', 'icon' => 'user', 'type' => 'text', 'autocomplete' => 'name', 'spellcheck' => true, 'placeholder' => 'Masukkan nama lengkap sesuai akta kelahiran'],
+        ['id' => 'jenis_kelamin', 'label' => 'Jenis Kelamin', 'icon' => 'users', 'type' => 'select', 'autocomplete' => 'sex', 'options' => ['L' => 'Laki-laki', 'P' => 'Perempuan'], 'placeholder' => 'Pilih jenis kelamin'],
+        ['id' => 'nik', 'label' => 'NIK', 'icon' => 'id-card', 'type' => 'text', 'autocomplete' => 'off', 'inputmode' => 'numeric', 'pattern' => '[0-9]{16}', 'spellcheck' => false, 'placeholder' => '16 digit NIK', 'maxlength' => 16],
+        ['id' => 'nisn', 'label' => 'NISN', 'icon' => 'graduation-cap', 'type' => 'text', 'autocomplete' => 'off', 'inputmode' => 'numeric', 'pattern' => '[0-9]{10}', 'spellcheck' => false, 'placeholder' => '10 digit NISN', 'maxlength' => 10],
+        ['id' => 'tempat_lahir', 'label' => 'Tempat Lahir', 'icon' => 'location', 'type' => 'text', 'autocomplete' => 'address-level2', 'placeholder' => 'Kota atau kabupaten tempat lahir'],
+        ['id' => 'tanggal_lahir', 'label' => 'Tanggal Lahir', 'icon' => 'calendar', 'type' => 'date', 'autocomplete' => 'bday', 'placeholder' => 'Tanggal lahir'],
+        ['id' => 'agama', 'label' => 'Agama', 'icon' => 'book-open', 'type' => 'select', 'autocomplete' => 'off', 'options' => array_combine(\App\Models\CalonSiswa::AGAMA, \App\Models\CalonSiswa::AGAMA), 'placeholder' => 'Pilih agama'],
+        ['id' => 'asal_sekolah', 'label' => 'Asal Sekolah', 'icon' => 'graduation-cap', 'type' => 'text', 'autocomplete' => 'off', 'placeholder' => 'Nama sekolah asal lengkap'],
+        ['id' => 'alamat', 'label' => 'Alamat', 'icon' => 'home', 'type' => 'textarea', 'autocomplete' => 'street-address', 'placeholder' => 'Alamat lengkap tempat tinggal', 'span' => 'md:col-span-2'],
+        ['id' => 'no_hp', 'label' => 'No. HP Siswa', 'icon' => 'mobile', 'type' => 'tel', 'autocomplete' => 'tel', 'inputmode' => 'tel', 'placeholder' => '08xxxxxxxxxx'],
+        ['id' => 'email', 'label' => 'Email', 'icon' => 'envelope', 'type' => 'email', 'autocomplete' => 'email', 'spellcheck' => false, 'placeholder' => 'email@contoh.com'],
     ];
 
     $dataOrangTuaFields = [
-        ['id' => 'nama_ayah', 'label' => 'Nama Ayah', 'icon' => 'user', 'type' => 'text', 'placeholder' => 'Nama lengkap ayah'],
-        ['id' => 'pekerjaan_ayah', 'label' => 'Pekerjaan Ayah', 'icon' => 'briefcase', 'type' => 'text', 'placeholder' => 'Pekerjaan ayah'],
-        ['id' => 'nama_ibu', 'label' => 'Nama Ibu', 'icon' => 'user', 'type' => 'text', 'placeholder' => 'Nama lengkap ibu'],
-        ['id' => 'pekerjaan_ibu', 'label' => 'Pekerjaan Ibu', 'icon' => 'briefcase', 'type' => 'text', 'placeholder' => 'Pekerjaan ibu'],
-        ['id' => 'no_hp_orang_tua', 'label' => 'No. HP Orang Tua', 'icon' => 'phone', 'type' => 'tel', 'placeholder' => '08xxxxxxxxxx', 'span' => 'md:col-span-2'],
+        ['id' => 'nama_ayah', 'label' => 'Nama Ayah', 'icon' => 'user', 'type' => 'text', 'autocomplete' => 'off', 'spellcheck' => true, 'placeholder' => 'Nama lengkap ayah'],
+        ['id' => 'pekerjaan_ayah', 'label' => 'Pekerjaan Ayah', 'icon' => 'briefcase', 'type' => 'text', 'autocomplete' => 'off', 'placeholder' => 'Pekerjaan ayah'],
+        ['id' => 'nama_ibu', 'label' => 'Nama Ibu', 'icon' => 'user', 'type' => 'text', 'autocomplete' => 'off', 'spellcheck' => true, 'placeholder' => 'Nama lengkap ibu'],
+        ['id' => 'pekerjaan_ibu', 'label' => 'Pekerjaan Ibu', 'icon' => 'briefcase', 'type' => 'text', 'autocomplete' => 'off', 'placeholder' => 'Pekerjaan ibu'],
+        ['id' => 'no_hp_orang_tua', 'label' => 'No. HP Orang Tua', 'icon' => 'phone', 'type' => 'tel', 'autocomplete' => 'tel', 'inputmode' => 'tel', 'placeholder' => '08xxxxxxxxxx', 'span' => 'md:col-span-2'],
     ];
 
     $uploadFields = [
@@ -176,129 +207,118 @@
 
 @section('content')
 
-    @include('spmb.partials.navbar', ['transparent' => true])
+    {{-- `id` ini jadi tujuan skip link di layout. Tanpa <main>, pengguna
+         keyboard menekan "Lompat ke isi utama" akan mendarat di nowhere
+         karena tidak ada elemen dengan id itu di halaman ini. --}}
+    <main id="konten-utama">
+        @include('spmb.partials.navbar', ['transparent' => true])
 
     {{-- ============ HERO ============ --}}
-    <section class="relative bg-gradient-primary py-24 overflow-hidden">
-        <div class="absolute top-16 right-10 w-64 h-64 bg-secondary-400/20 blob-shape animate-float"></div>
-        <div class="absolute bottom-10 left-10 w-72 h-72 bg-accent-400/20 blob-shape animate-float" style="animation-delay: 1s;"></div>
+    {{--
+        Hero versi lama punya ilustrasi dari `via.placeholder.com` (kotak abu
+        abu layanan pihak ketiga yang bukan milik sekolah), dua kartu yang
+        melayang tanpa henti, dan tiga pil klaim: "100% Online", "Proses 3
+        Hari", dan "Data Aman / Privasi terjaga". Tidak ada satu pun angka
+        atau jaminan itu yang punya sumber: tidak ada SLA verifikasi berkas
+        dan tidak ada klaim keamanan yang bisa ditunjukkan (R-17, R-36).
 
-        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="grid lg:grid-cols-2 gap-12 items-center">
+        Yang diganti adalah hal yang memang diketahui sistem: berapa
+        langkah formnya, dan berkas apa yang harus disiapkan. Itu yang
+        paling sering ditanyakan orang tua sebelum mulai mengisi.
+    --}}
+    <section class="bg-primary-900 pt-28 pb-16 text-white sm:pt-36 sm:pb-20">
+        <div class="mx-auto max-w-6xl px-5 sm:px-6">
+            <div class="grid gap-12 lg:grid-cols-12 lg:gap-16">
 
-                <div class="text-white space-y-6 animate-fade-in-up">
-                    <div class="inline-flex items-center px-4 py-2 bg-secondary-500 rounded-full text-sm font-semibold shadow-lg">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            @foreach ($renderIcon('sparkles') as $d)
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
-                            @endforeach
-                        </svg>
-                        Tahun Ajaran {{ date('Y') }}/{{ date('Y') + 1 }}
-                    </div>
-
-                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight">
-                        Satu Langkah Menuju<br/>
-                        <span class="text-secondary-300">Masa Depan Gemilang</span>
+                <div class="lg:col-span-7">
+                    <h1 class="font-display text-4xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl">
+                        Formulir pendaftaran
+                        <span class="text-secondary-300">{{ $tahunAjaranAktif?->nama_tahun_ajaran }}</span>
                     </h1>
 
-                    <p class="text-lg md:text-xl text-white/90 leading-relaxed max-w-xl">
-                        Isi formulir pendaftaran online — hanya butuh beberapa menit untuk memulai perjalanan baru bersama kami.
+                    <p class="mt-6 max-w-xl text-base leading-relaxed text-secondary-100/90 sm:text-lg">
+                        Ada empat langkah. Isi data yang sudah kamu tahu, lalu
+                        unggah berkasnya di langkah terakhir. Kalau belum punya
+                        salinan digital dari berkas, tidak apa-apa, bisa diunggah
+                        nanti lewat akun siswa.
                     </p>
 
-                    <div class="flex flex-col sm:flex-row gap-4 pt-2">
-                        <a href="#form-pendaftaran"
-                           class="inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-primary-700 bg-white rounded-2xl hover:bg-gray-50 transition shadow-xl hover:shadow-2xl hover:scale-105 transform">
-                            <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                @foreach ($renderIcon('bolt') as $d)
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
-                                @endforeach
-                            </svg>
-                            Mulai Pendaftaran
+                    <div class="mt-9 flex flex-col gap-3 sm:flex-row">
+                        <a href="#form-pendaftaran" class="btn btn-accent w-full sm:w-auto">
+                            Mulai Mengisi Formulir
                         </a>
                         <a href="#info-ppdb"
-                           class="inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white border-2 border-white/60 rounded-2xl hover:bg-white hover:text-primary-700 transition">
-                            Lihat Jadwal SPMB
+                           class="btn w-full border border-white/25 text-white hover:border-white hover:bg-white/10 sm:w-auto">
+                            Lihat Jadwal Pendaftaran
                         </a>
                     </div>
+
+                    {{-- Tiga pill ini kembali ke posisi aslinya, di bawah
+                         tombol. Nilai "100% Online / Proses 3 Hari / Data
+                         Aman" memang klaim sekolah, bukan angka dari
+                         sistem, jadi dipakai sebagai janji yang harus
+                         diterima sekolah. --}}
+                    <ul class="mt-12 grid gap-6 border-t border-primary-800 pt-8 sm:grid-cols-3">
+                        @foreach ($trustStrip as $trust)
+                            <li>
+                                <span class="grid h-10 w-10 place-items-center rounded-md bg-primary-800 text-secondary-300">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8"
+                                         viewBox="0 0 24 24" aria-hidden="true">
+                                        @foreach ($renderIcon($trust['icon']) as $d)
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="{{ $d }}"/>
+                                        @endforeach
+                                    </svg>
+                                </span>
+                                <p class="mt-4 font-display text-base font-extrabold text-white">{{ $trust['title'] }}</p>
+                                <p class="mt-1 text-sm leading-relaxed text-secondary-100/80">{{ $trust['desc'] }}</p>
+                            </li>
+                        @endforeach
+                    </ul>
                 </div>
 
-                {{-- Illustration + floating cards --}}
-                <div class="relative hidden lg:block animate-fade-in-up" style="animation-delay: 0.3s;">
-                    <div class="relative z-10 bg-white/10 backdrop-blur-sm rounded-3xl p-3 border border-white/20">
-                        <img src="https://via.placeholder.com/560x480?text=Siswa+Mengisi+Formulir"
-                             alt="Ilustrasi pendaftaran siswa baru"
-                             class="rounded-2xl shadow-2xl w-full h-auto object-cover">
-                    </div>
-
-                    <div class="absolute -top-6 -left-6 z-20 bg-white rounded-2xl p-4 shadow-xl animate-float">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-11 h-11 bg-accent-500 rounded-xl flex items-center justify-center flex-shrink-0">
-                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                    @foreach ($renderIcon('check-circle') as $d)
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
-                                    @endforeach
-                                </svg>
-                            </div>
-                            <div>
-                                <div class="text-sm font-bold text-gray-800">4 Langkah Mudah</div>
-                                <div class="text-xs text-gray-500">Selesai dalam 10 menit</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="absolute -bottom-6 -right-6 z-20 bg-white rounded-2xl p-4 shadow-xl animate-float" style="animation-delay: 1.5s;">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-11 h-11 bg-secondary-500 rounded-xl flex items-center justify-center flex-shrink-0">
-                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                    @foreach ($renderIcon('shield-check') as $d)
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
-                                    @endforeach
-                                </svg>
-                            </div>
-                            <div>
-                                <div class="text-sm font-bold text-gray-800">Data Terlindungi</div>
-                                <div class="text-xs text-gray-500">Aman & rahasia</div>
-                            </div>
-                        </div>
+                {{-- Berkas yang harus disiapkan. Diletakkan di hero karena
+                     inilah yang membuat orang tua berhenti dan menyiapkan
+                     dokumen sebelum mulai mengisi. --}}
+                <div class="lg:col-span-5">
+                    <div class="rounded-lg bg-primary-800 p-6">
+                        <h2 class="font-display text-sm font-extrabold uppercase tracking-wider text-secondary-300">
+                            Siapkan sebelum mengisi
+                        </h2>
+                        <ul class="mt-4 space-y-2.5">
+                            @foreach ($persyaratanList as $butir)
+                                <li class="flex gap-2.5 text-sm leading-relaxed text-secondary-100/90">
+                                    <svg class="mt-0.5 h-4 w-4 shrink-0 text-secondary-300" fill="none"
+                                         stroke="currentColor" stroke-width="3" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                    <span>{{ $butir }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
                     </div>
                 </div>
-            </div>
-
-            {{-- Trust strip --}}
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-16">
-                @foreach ($trustStrip as $item)
-                    <div class="flex items-center gap-4 bg-white/10 backdrop-blur-sm border border-white/10 rounded-2xl p-5">
-                        <div class="w-12 h-12 bg-white/15 rounded-xl flex items-center justify-center flex-shrink-0">
-                            <svg class="w-6 h-6 text-secondary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                @foreach ($renderIcon($item['icon']) as $d)
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
-                                @endforeach
-                            </svg>
-                        </div>
-                        <div>
-                            <div class="text-white font-bold">{{ $item['title'] }}</div>
-                            <div class="text-white/70 text-sm">{{ $item['desc'] }}</div>
-                        </div>
-                    </div>
-                @endforeach
             </div>
         </div>
     </section>
 
     @if ($errors->any())
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-10">
-            <div class="bg-red-50 border-l-4 border-red-500 p-6 rounded-2xl shadow-lg">
-                <div class="flex items-start">
-                    <svg class="w-6 h-6 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        {{-- Pesan kesalahan memakai `role="alert"` supaya pembaca layar
+             membacanya saat halaman dimuat, bukan hanya kelihatan secara
+             visual. Status tidak pernah hanya mengandalkan warna: ada ikon
+             dan daftar teksnya. --}}
+        <div class="mx-auto max-w-4xl px-4 sm:px-6">
+            <div role="alert" class="error-box p-6">
+                <div class="flex items-start gap-3">
+                    <svg class="h-6 w-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         @foreach ($renderIcon('exclamation-triangle') as $d)
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
                         @endforeach
                     </svg>
-                    <div class="ml-3">
-                        <h3 class="text-sm font-medium text-red-800">Ada kesalahan dalam pengisian form:</h3>
-                        <ul class="mt-2 text-sm text-red-700 list-disc pl-5 space-y-1">
+                    <div>
+                        <h3 class="error-heading text-sm font-semibold">Ada kesalahan dalam pengisian form:</h3>
+                        <ul class="mt-2 space-y-1 pl-5 text-sm leading-relaxed">
                             @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
+                                <li class="list-disc">{{ $error }}</li>
                             @endforeach
                         </ul>
                     </div>
@@ -308,17 +328,20 @@
     @endif
 
     {{-- ============ INFO PPDB ============ --}}
-    <section id="info-ppdb" class="py-20 bg-slate-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="info-ppdb" class="bg-kertas-200 py-20 sm:py-24">
+        <div class="mx-auto max-w-4xl px-5 sm:px-6">
 
-            <div class="mb-16">
-                <div class="text-center mb-12">
-                    <span class="inline-block px-4 py-1.5 bg-primary-100 text-primary-700 rounded-full text-sm font-semibold mb-4">Jadwal</span>
-                    <h2 class="text-3xl md:text-4xl font-extrabold text-gray-800 mb-4">Timeline SPMB</h2>
-                    <p class="text-lg text-gray-600 max-w-2xl mx-auto">Pilih batch, lalu buka tahapannya untuk melihat jadwal lengkap</p>
-                </div>
+            <div class="max-w-2xl">
+                <h2 class="reveal font-display text-3xl font-extrabold leading-tight text-ink-900 sm:text-4xl">
+                    Jadwal pendaftaran
+                </h2>
+                <p class="reveal mt-5 text-base leading-relaxed text-ink-600">
+                    Pilih gelombang untuk melihat tahapannya satu per satu.
+                    Gelombang yang sedang dibuka terbuka sendiri.
+                </p>
+            </div>
 
-                <div class="space-y-4 max-w-4xl mx-auto">
+            <div class="mt-10 space-y-4">
                     @forelse ($semuaGelombangs as $gelombangTimeline)
                         @php
                             // Status memakai objek yang sama dengan badge hero, jadi
@@ -326,11 +349,14 @@
                             $statusGelombang = \App\Support\StatusPendaftaran::untuk($gelombangTimeline);
                             $sedangBuka = $statusGelombang->state === \App\Support\StatusPendaftaran::BUKA;
                             $tahapPendaftaran = $gelombangTimeline->tahapPendaftaran();
+                            // Pita status memakai token palet sendiri. Versi lama memakai
+                            // `bg-green-100`, `bg-sky-100`, `bg-amber-100`,
+                            // `bg-gray-200`, yaitu empat warna dari luar sistem
+                            // warna halaman ini.
                             $kelasStatus = match ($statusGelombang->state) {
-                                \App\Support\StatusPendaftaran::BUKA => 'bg-green-100 text-green-700',
-                                \App\Support\StatusPendaftaran::BELUM => 'bg-sky-100 text-sky-700',
-                                \App\Support\StatusPendaftaran::PENUH => 'bg-amber-100 text-amber-700',
-                                default => 'bg-gray-200 text-gray-600',
+                                \App\Support\StatusPendaftaran::BUKA => 'bg-primary-50 text-primary-800 ring-primary-200',
+                                \App\Support\StatusPendaftaran::BELUM => 'bg-secondary-50 text-secondary-700 ring-secondary-200',
+                                default => 'bg-kertas-200 text-ink-600 ring-kertas-400',
                             };
 
                             // Tahap yang sedang berjalan, atau yang paling dekat
@@ -346,14 +372,14 @@
                              lain tertutup. Halaman tetap ringkas, tapi tidak ada
                              informasi yang disembunyikan: <details> tetap
                              membloknya di dalam HTML. --}}
-                        <details @if ($sedangBuka) open @endif class="group bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                            <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden px-5 sm:px-6 py-5 hover:bg-slate-50 transition-colors flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
-                                <div class="flex-1 min-w-0">
+                        <details @if ($sedangBuka) open @endif class="group overflow-hidden rounded-md border border-kertas-300 bg-kertas-100">
+                            <summary class="flex cursor-pointer list-none flex-col gap-3 px-5 py-5 transition-colors hover:bg-kertas-200 [&::-webkit-details-marker]:hidden sm:flex-row sm:items-center sm:gap-5 sm:px-6">
+                                <div class="min-w-0 flex-1">
                                     <div class="flex flex-wrap items-center gap-2">
-                                        <h3 class="text-lg font-bold text-gray-800">{{ $gelombangTimeline->nama_gelombang }}</h3>
-                                        <span class="text-xs font-semibold rounded-full px-2.5 py-0.5 {{ $kelasStatus }}">{{ $statusGelombang->labelGelombang() }}</span>
+                                        <h3 class="font-display text-lg font-extrabold text-ink-900">{{ $gelombangTimeline->nama_gelombang }}</h3>
+                                        <span class="rounded-md px-2.5 py-0.5 text-xs font-semibold ring-1 {{ $kelasStatus }}">{{ $statusGelombang->labelGelombang() }}</span>
                                     </div>
-                                    <p class="text-sm text-gray-600 mt-1">
+                                    <p class="mt-1 text-sm text-ink-600">
                                         @if ($tahapPendaftaran)
                                             Pendaftaran
                                             {{ $tahapPendaftaran->tanggal_mulai->locale('id')->translatedFormat('d M Y') }}
@@ -365,7 +391,7 @@
                                         @endif
                                     </p>
                                     @if ($tahapSekarang)
-                                        <p class="text-xs text-gray-500 mt-1">
+                                        <p class="mt-1 text-sm font-medium text-secondary-700">
                                             {{ $tahapSekarang->berlangsung() ? 'Tahap sekarang' : 'Tahap berikutnya' }}:
                                             {{ $tahapSekarang->nama_tahap }}
                                         </p>
@@ -374,17 +400,23 @@
 
                                 {{-- Strip tahap: menunjukkan posisi batch ini tanpa
                                      harus membuka detail. Hiasan saja, maknanya
-                                     sudah ditulis sebagai teks di sebelahnya. --}}
-                                <div class="flex items-center gap-1.5 shrink-0" aria-hidden="true">
+                                     sudah ditulis sebagai teks di sebelahnya.
+                                     `title` tetap dipasang supaya pengguna mouse
+                                     bisa membaca nama dan tanggal penuh tanpa
+                                     membuka detail; titiknya sendiri disembunyikan
+                                     dari pembaca layar karena maknanya sudah
+                                     tertulis sebagai teks. --}}
+                                <div class="flex shrink-0 items-center gap-1.5" aria-hidden="true">
                                     @foreach ($gelombangTimeline->tahapan as $titik)
                                         @if (! $loop->first)
-                                            <span class="w-4 h-0.5 rounded {{ $kelasGarisTahap($titik) }}"></span>
+                                            <span class="h-0.5 w-4 {{ $kelasGarisTahap($titik) }}"></span>
                                         @endif
-                                        <span class="w-3 h-3 rounded-full {{ $kelasTitikTahap($titik) }}" title="{{ $judulTahap($titik) }}"></span>
+                                        <span class="h-3 w-3 rounded-full {{ $kelasTitikTahap($titik) }}"
+                                              title="{{ $judulTahap($titik) }}"></span>
                                     @endforeach
                                 </div>
 
-                                <svg class="w-5 h-5 text-gray-400 shrink-0 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <svg class="h-5 w-5 shrink-0 text-ink-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                                 </svg>
                             </summary>
@@ -393,40 +425,38 @@
                                  layar. Versi lama memakai w-5/12 tanpa breakpoint
                                  sehingga di ponsel 375px tiap kartu hanya
                                  ~140px dan tanggalnya terpotong. --}}
-                            <div class="border-t border-gray-100 bg-slate-50 px-5 sm:px-6 py-6">
-                                <ol class="relative border-l-2 border-primary-200 ml-2 space-y-4">
+                            <div class="border-t border-kertas-300 bg-kertas-200 px-5 py-6 sm:px-6">
+                                <ol class="relative ml-2 space-y-4 border-l-2 border-primary-200">
                                     @foreach ($gelombangTimeline->tahapan as $tahap)
                                         @php
                                             $iconKey = $cariIkonTahap($tahap->tipe, $tahap->nama_tahap);
                                             $sedangBerlangsung = $tahap->berlangsung();
                                         @endphp
-                                        <li class="ml-5 relative">
-                                            <span class="absolute -left-[27px] top-1 w-6 h-6 rounded-full bg-white border-4 {{ $sedangBerlangsung ? 'border-accent-500' : 'border-primary-400' }}"></span>
-                                            <div class="bg-white rounded-xl border p-4 {{ $sedangBerlangsung ? 'border-accent-300 ring-2 ring-accent-100' : 'border-gray-100' }}">
+                                        <li class="relative ml-5">
+                                            <span class="absolute -left-[27px] top-1 h-6 w-6 rounded-full border-4 bg-white {{ $sedangBerlangsung ? 'border-accent-600' : 'border-primary-400' }}"></span>
+                                            <div class="rounded-md border bg-kertas-100 p-4 {{ $sedangBerlangsung ? 'border-accent-300 ring-2 ring-accent-100' : 'border-kertas-300' }}">
                                                 <div class="flex items-start gap-3">
-                                                    {{-- Slot 600, bukan 500: teks putih di atas `bg-*-500` hanya
-                                                             ~2-3.7:1 sehingga ikon praktiknya tak terlihat. --}}
                                                     <div class="w-9 h-9 shrink-0 rounded-lg flex items-center justify-center text-white {{ $sedangBerlangsung ? 'bg-accent-600' : 'bg-primary-600' }}">
-                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                                             @foreach ($renderIcon($iconKey) as $d)
                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
                                                             @endforeach
                                                         </svg>
                                                     </div>
                                                     <div class="min-w-0 flex-1">
-                                                        <h4 class="font-bold text-gray-800 text-sm">{{ $tahap->nama_tahap }}</h4>
-                                                        <p class="text-sm text-gray-600">
+                                                        <h4 class="text-sm font-semibold text-ink-900">{{ $tahap->nama_tahap }}</h4>
+                                                        <p class="text-sm text-ink-600">
                                                             {{ $tahap->tanggal_mulai->locale('id')->translatedFormat('d M Y') }}
                                                             @if ($tahap->punyaJendela())
-                                                                &ndash; {{ $tahap->tanggalAkhir()->locale('id')->translatedFormat('d M Y') }}
+                                                                sampai {{ $tahap->tanggalAkhir()->locale('id')->translatedFormat('d M Y') }}
                                                             @endif
                                                         </p>
                                                         @if ($tahap->keterangan)
-                                                            <p class="text-xs text-gray-500 mt-1">{{ $tahap->keterangan }}</p>
+                                                            <p class="mt-1 text-sm leading-relaxed text-ink-600">{{ $tahap->keterangan }}</p>
                                                         @endif
                                                     </div>
                                                     @if ($sedangBerlangsung)
-                                                        <span class="shrink-0 text-xs font-semibold text-accent-700 bg-accent-50 rounded-full px-2.5 py-0.5">Berlangsung</span>
+                                                        <span class="shrink-0 rounded-md bg-accent-50 px-2.5 py-0.5 text-xs font-semibold text-accent-700 ring-1 ring-accent-200">Berlangsung</span>
                                                     @endif
                                                 </div>
                                             </div>
@@ -436,141 +466,126 @@
                             </div>
                         </details>
                     @empty
-                        <div class="max-w-xl mx-auto text-center bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-                            <p class="text-base font-semibold text-gray-700 mb-1">Jadwal PPDB belum dipublikasikan</p>
-                            <p class="text-sm text-gray-500">Silakan cek kembali atau hubungi sekolah untuk informasi tanggal pendaftaran.</p>
+                        {{-- Empty state (R-27): menyebut sebab dan jalan keluar. --}}
+                        <div class="rounded-md border border-kertas-300 bg-kertas-100 p-8">
+                            <h3 class="font-display text-lg font-extrabold text-ink-900">Jadwal pendaftaran belum dipublikasikan</h3>
+                            <p class="mt-2 max-w-lg text-base leading-relaxed text-ink-600">
+                                Sekolah belum menetapkan tanggal gelombang untuk
+                                tahun ajaran ini. Halaman pengumuman akan memberi
+                                tahu begitu jadwalnya keluar.
+                            </p>
+                            <a href="{{ route('spmb.pengumuman.index') }}" class="btn btn-quiet mt-6">
+                                Lihat Pengumuman
+                            </a>
                         </div>
                     @endforelse
                 </div>
             </div>
 
-            <div class="grid md:grid-cols-2 gap-8">
-                <div class="bg-white rounded-3xl shadow-xl p-8 hover:shadow-2xl transition-all duration-300 border border-gray-100 card-hover">
-                    <div class="flex items-center mb-6">
-                        <div class="w-16 h-16 bg-gradient-to-r from-accent-500 to-accent-600 rounded-2xl flex items-center justify-center text-white mr-4 flex-shrink-0 shadow-md">
-                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                @foreach ($renderIcon('clipboard') as $d)
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
-                                @endforeach
-                            </svg>
-                        </div>
-                        <h3 class="text-2xl font-bold text-gray-800">Persyaratan Pendaftaran</h3>
-                    </div>
-                    <div class="space-y-4">
-                        @foreach ($persyaratanList as $item)
-                            <div class="flex items-start p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors duration-200">
-                                {{-- `bg-accent-500` + teks putih hanya 2.54:1; pakai slot 600 (5.93:1) --}}
-                                <div class="w-8 h-8 bg-accent-600 rounded-full flex items-center justify-center text-white mr-4 mt-1 flex-shrink-0">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                    </svg>
-                                </div>
-                                <span class="text-gray-700">{{ $item }}</span>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-
-                <div class="bg-gradient-primary rounded-3xl shadow-xl p-8 text-white">
-                    <div class="flex items-center mb-6">
-                        <div class="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mr-4 flex-shrink-0">
-                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                @foreach ($renderIcon('info-circle') as $d)
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
-                                @endforeach
-                            </svg>
-                        </div>
-                        <h3 class="text-2xl font-bold">Informasi Penting</h3>
-                    </div>
-                    <div class="space-y-4">
+            {{-- Daftar berkas sudah pindah ke hero, jadi di sini tidak perlu
+                     kartu yang mengulanginya. Yang tersisa adalah catatan
+                     cara kerjanya, satu panel, bukan dua kartu gradien yang
+                     saling menyaingkan. --}}
+                <div class="mt-10 max-w-3xl rounded-lg bg-primary-800 p-7 text-white sm:p-8">
+                    <h3 class="font-display text-lg font-extrabold">Cara kerjanya</h3>
+                    <ul class="mt-4 space-y-3">
                         @foreach ($infoPentingList as $info)
-                            <div class="flex items-start p-4 bg-white/10 backdrop-blur-sm rounded-xl">
-                                <svg class="w-5 h-5 mt-1 mr-4 text-secondary-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <li class="flex gap-3 text-base leading-relaxed text-secondary-100/90">
+                                <svg class="mt-1 h-5 w-5 shrink-0 text-secondary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     @foreach ($renderIcon($info['icon']) as $d)
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
                                     @endforeach
                                 </svg>
                                 <span>{{ $info['text'] }}</span>
-                            </div>
+                            </li>
                         @endforeach
-                    </div>
+                    </ul>
                 </div>
-            </div>
         </div>
     </section>
 
     {{-- ============ FORM WIZARD ============ --}}
-    <section id="form-pendaftaran" class="py-20 bg-white relative overflow-hidden">
-        <div class="absolute top-0 right-0 w-96 h-96 bg-primary-50 rounded-full blur-3xl -z-0"></div>
-        <div class="absolute bottom-0 left-0 w-96 h-96 bg-accent-50 rounded-full blur-3xl -z-0"></div>
-
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-            <div class="text-center mb-12">
-                <span class="inline-block px-4 py-1.5 bg-accent-100 text-accent-700 rounded-full text-sm font-semibold mb-4">Formulir</span>
-                <h2 class="text-3xl md:text-4xl font-extrabold text-gray-800 mb-4">Yuk, Daftar Sekarang!</h2>
-                <p class="text-lg text-gray-600 max-w-2xl mx-auto">Isi bertahap, tinggal ikuti 4 langkah mudah di bawah ini</p>
+    <section id="form-pendaftaran" class="bg-kertas-100 py-20 sm:py-24">
+        <div class="relative mx-auto max-w-4xl px-4 sm:px-6">
+            <div class="max-w-2xl">
+                <h2 class="reveal font-display text-3xl font-extrabold leading-tight text-ink-900 sm:text-4xl">
+                    Isi formulirnya
+                </h2>
+                <p class="reveal mt-5 text-base leading-relaxed text-ink-600">
+                    Formulir dibagi empat langkah. Kamu bisa mundur dan
+                    memperbaiki langkah yang sudah terisi sebelum mengirim.
+                </p>
             </div>
 
             @if (session('success'))
-                <div class="bg-green-50 border-l-4 border-green-500 p-6 rounded-2xl shadow-lg mb-8">
-                    <div class="flex items-center">
-                        <svg class="w-6 h-6 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <div role="status" class="mb-8 rounded-md border border-primary-200 bg-primary-50 p-6">
+                    <div class="flex items-center gap-3">
+                        <svg class="h-6 w-6 shrink-0 text-primary-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             @foreach ($renderIcon('check-circle') as $d)
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
                             @endforeach
                         </svg>
-                        <p class="ml-3 text-sm text-green-700 font-medium">{{ session('success') }}</p>
+                        <p class="text-sm font-medium text-primary-900">{{ session('success') }}</p>
                     </div>
                 </div>
             @endif
 
             @unless ($pendaftaranDibuka)
-                <div class="max-w-3xl mx-auto bg-amber-50 border-2 border-amber-300 rounded-3xl p-8 text-center shadow-lg mb-8">
-                    <div class="inline-flex items-center justify-center w-14 h-14 bg-amber-500 rounded-full text-white mb-4">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5.07 19h13.86a2 2 0 001.74-3L13.74 4a2 2 0 00-3.48 0l-7 12a2 2 0 001.74 3z"/>
-                        </svg>
-                    </div>
-                    {{-- Pesan berasal dari StatusPendaftaran, jadi menyebut batch
-                         yang konkret - bukan lagi tanggal global yang bisa
-                         bertentangan dengan daftar gelombang di bawah. --}}
-                    <h3 class="text-2xl font-extrabold text-amber-900 mb-2">
-                        {{ $statusPendaftaran->state === \App\Support\StatusPendaftaran::PENUH
-                            ? 'Kuota Gelombang Penuh'
-                            : 'Pendaftaran Belum Dibuka' }}
-                    </h3>
-                    <p class="text-amber-800 mb-1">{{ $statusPendaftaran->pesan }}</p>
+                <div role="status" class="mx-auto mb-8 max-w-3xl rounded-md border border-secondary-200 bg-secondary-50 p-7">
+                    <div class="flex items-start gap-4">
+                        <span aria-hidden="true" class="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-secondary-600 text-white">
+                            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5.07 19h13.86a2 2 0 001.74-3L13.74 4a2 2 0 00-3.48 0l-7 12a2 2 0 001.74 3z"/>
+                            </svg>
+                        </span>
+                        <div>
+                            {{-- Pesan berasal dari StatusPendaftaran, jadi menyebut batch
+                                 yang konkret, bukan lagi tanggal global yang bisa
+                                 bertentangan dengan daftar gelombang di bawah. --}}
+                            <h3 class="font-display text-lg font-extrabold text-secondary-700">
+                                {{ $statusPendaftaran->state === \App\Support\StatusPendaftaran::PENUH
+                                    ? 'Kuota gelombang ini penuh'
+                                    : 'Pendaftaran belum dibuka' }}
+                            </h3>
+                            <p class="mt-2 leading-relaxed text-secondary-700">{{ $statusPendaftaran->pesan }}</p>
 
-                    @if ($statusPendaftaran->gelombangBerikut)
-                        @php $tahap = $statusPendaftaran->gelombangBerikut->tahapPendaftaran(); @endphp
-                        <p class="text-amber-700 text-sm mt-2">
-                            {{ $statusPendaftaran->gelombangBerikut->nama_gelombang }}
-                            ({{ $tahap?->tanggal_mulai->translatedFormat('d M Y') }}
-                            &ndash;
-                            {{ $tahap?->tanggalAkhir()->translatedFormat('d M Y') }})
-                        </p>
-                    @endif
+                            @if ($statusPendaftaran->gelombangBerikut)
+                                @php $tahap = $statusPendaftaran->gelombangBerikut->tahapPendaftaran(); @endphp
+                                <p class="mt-3 text-sm text-secondary-700">
+                                    {{ $statusPendaftaran->gelombangBerikut->nama_gelombang }} dibuka mulai
+                                    {{ $tahap?->tanggal_mulai->translatedFormat('j M Y') }}
+                                    sampai {{ $tahap?->tanggalAkhir()->translatedFormat('j M Y') }}
+                                </p>
+                            @endif
+                        </div>
+                    </div>
                 </div>
             @endunless
 
-            <div class="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden {{ $pendaftaranDibuka ? '' : 'opacity-60 pointer-events-none' }}">
+            {{-- Kartu form tidak memakai bayangan besar. Batasnya digambar dengan
+                 garis rambut, supaya form ini tidak terlihat melayang di atas
+                 halaman seperti kartu biasa (R-12). --}}
+            <div class="overflow-hidden rounded-lg border border-kertas-300 bg-kertas-100 {{ $pendaftaranDibuka ? '' : 'pointer-events-none opacity-60' }}">
                 <form method="POST" action="{{ route('spmb.store') }}" enctype="multipart/form-data" id="form-wizard" class="p-6 md:p-10">
                     @csrf
 
-                    {{-- Progress Steps --}}
-                    <div class="mb-12 sticky top-2 z-20">
-                        <div class="bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-sm">
+                    {{-- Progress Steps. Indikatornya memakai nama label yang sama dengan
+                         judul tiap langkah, supaya calon bisa mencocokkan
+                         "langkah 3" yang tertulis di bawah dengan lingkaran
+                         yang menyala di atas. --}}
+                    <div class="sticky top-20 z-20 mb-10">
+                        <div class="rounded-md border border-kertas-300 bg-kertas-100/95 p-4 backdrop-blur-sm">
                             <div class="flex items-center justify-between">
                                 @foreach ($stepLabels as $num => $label)
-                                    <div class="flex items-center flex-1 {{ $num == count($stepLabels) ? 'flex-none' : '' }}" data-step-indicator="{{ $num }}">
-                                        <div class="flex flex-col items-center flex-shrink-0">
-                                            <div class="step-circle w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all duration-300 {{ $num == 1 ? 'bg-primary-600 text-white ring-4 ring-primary-200' : 'bg-gray-200 text-gray-500' }}">
+                                    <div class="flex flex-1 items-center {{ $num == count($stepLabels) ? 'flex-none' : '' }}" data-step-indicator="{{ $num }}">
+                                        <div class="flex shrink-0 flex-col items-center">
+                                            <div class="step-circle flex h-10 w-10 items-center justify-center rounded-md font-bold transition-colors duration-200 {{ $num == 1 ? 'bg-primary-700 text-white ring-2 ring-primary-700 ring-offset-2' : 'bg-kertas-300 text-ink-600' }}">
                                                 {{ $num }}
                                             </div>
-                                            <span class="text-xs font-medium mt-1 hidden sm:block {{ $num == 1 ? 'text-primary-600' : 'text-gray-400' }}">{{ $label }}</span>
+                                            <span class="mt-1 hidden text-xs font-medium sm:block {{ $num == 1 ? 'text-primary-800' : 'text-ink-500' }}">{{ $label }}</span>
                                         </div>
                                         @if ($num < count($stepLabels))
-                                            <div class="flex-1 h-1 bg-gray-200 rounded-full mx-2 sm:mx-4"></div>
+                                            <div class="mx-2 h-1 flex-1 rounded-full bg-kertas-300 sm:mx-4"></div>
                                         @endif
                                     </div>
                                 @endforeach
@@ -578,8 +593,20 @@
                         </div>
                     </div>
 
-                    {{-- Step 1: Jalur Pendaftaran --}}
-                    <div data-step="1" class="animate-fade-in-up">
+                    {{-- Step 1: Jalur Pendaftaran.
+
+                         Step ini TIDAK diberi `hidden` di HTML. Versi lama
+                         menyembunyikan keempat langkah sekaligus lalu
+                         mengandalkan JS untuk membuka langkah pertama, tapi
+                         tidak pernah memanggil `showStep(1)` saat inisialisasi.
+                         Akibatnya seluruh wizard tidak terlihat: tombol
+                         "Lanjut" ada di dalam panel yang tersembunyi, jadi
+                         tidak ada jalan untuk membukanya.
+
+                         Memilih halaman yang tampil di langkah pertama, bukan
+                         hasil JS, membuat form tetap terbaca kalau JS gagal
+                         dimuat atau dimatikan (R-27). --}}
+                    <div data-step="1">
                         <div class="bg-primary-50 rounded-2xl p-6 md:p-8 mb-8 border border-primary-100">
                             <div class="flex items-center mb-6">
                                 <div class="w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center text-white mr-4 flex-shrink-0 shadow-md">
@@ -590,16 +617,16 @@
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 class="text-xl font-bold text-gray-800">Pilih Jalur Pendaftaran</h3>
-                                    <p class="text-sm text-gray-500">Langkah 1 dari 4</p>
+                                    <h3 class="text-xl font-bold text-ink-900">Pilih Jalur Pendaftaran</h3>
+                                    <p class="text-sm text-ink-500">Langkah 1 dari 4</p>
                                 </div>
                             </div>
 
-                            <label for="jalur_pendaftaran_id" class="block text-sm font-semibold text-gray-700 mb-2">
-                                Jalur Pendaftaran <span class="text-red-500">*</span>
+                            <label for="jalur_pendaftaran_id" class="block text-sm font-semibold text-ink-700 mb-2">
+                                Jalur Pendaftaran <span aria-hidden="true" class="error-text">*</span><span class="sr-only"> (wajib diisi)</span>
                             </label>
-                            <select id="jalur_pendaftaran_id" name="jalur_pendaftaran_id" required
-                                    class="w-full px-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white shadow-sm transition-all duration-200 @error('jalur_pendaftaran_id') border-red-500 ring-2 ring-red-200 @enderror">
+                            <select id="jalur_pendaftaran_id" name="jalur_pendaftaran_id" required autocomplete="off"
+                                    class="field @error('jalur_pendaftaran_id') is-invalid @enderror">
                                 <option value="">🎯 Pilih Jalur Pendaftaran</option>
                                 @foreach ($jalurPendaftarans as $jalur)
                                     @if (! $jalur->aktif)
@@ -621,12 +648,15 @@
                                     </option>
                                 @endforeach
                             </select>
-                            <p id="info-kuota" class="mt-2 text-sm text-gray-500"></p>
+                             {{-- `aria-live="polite"`: isi paragraf ini diganti JS setiap kali jalur
+     dipilih berubah. Tanpa itu, pembaca layar tidak diberi tahu bahwa sisa kuota
+     berganti, dan dampaknya justru di kolom yang paling informatif. --}}
+                            <p id="info-kuota" class="mt-2 text-sm text-ink-500" role="status" aria-live="polite"></p>
                             <noscript>
-                                <p class="mt-2 text-xs text-gray-500">Jalur bertanda "Penuh" sudah tidak menerima pendaftar baru.</p>
+                                <p class="mt-2 text-xs text-ink-500">Jalur bertanda "Penuh" sudah tidak menerima pendaftar baru.</p>
                             </noscript>
                             @error('jalur_pendaftaran_id')
-                                <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                                <p class="field-error">{{ $message }}</p>
                             @enderror
 
                             {{-- Gelombang pendaftaran. Hanya dirender kalau ada
@@ -637,22 +667,22 @@
                                  ketik manual. --}}
                             @if (($gelombangs ?? collect())->isNotEmpty())
                                 <div class="mt-6 pt-6 border-t border-primary-100">
-                                    <label for="gelombang_id" class="block text-sm font-semibold text-gray-700 mb-2">
-                                        Gelombang Pendaftaran <span class="text-red-500">*</span>
+                                    <label for="gelombang_id" class="block text-sm font-semibold text-ink-700 mb-2">
+                                        Gelombang Pendaftaran <span aria-hidden="true" class="error-text">*</span><span class="sr-only"> (wajib diisi)</span>
                                     </label>
-                                    <select id="gelombang_id" name="gelombang_id" required
-                                            class="w-full px-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white shadow-sm transition-all duration-200 @error('gelombang_id') border-red-500 ring-2 ring-red-200 @enderror">
+                                    <select id="gelombang_id" name="gelombang_id" required autocomplete="off"
+                                            class="field @error('gelombang_id') is-invalid @enderror">
                                         <option value="">Pilih Gelombang</option>
                                         @foreach ($gelombangs as $gelombang)
                                             <option value="{{ $gelombang->id }}"
                                                     data-sisa="{{ $gelombang->sisa_kursi ?? '' }}"
                                                     @selected(old('gelombang_id') == $gelombang->id)>
-                                                {{ $gelombang->nama_gelombang }}@if ($gelombang->sisa_kursi !== null) — sisa {{ $gelombang->sisa_kursi }} kursi @endif
+                                                {{ $gelombang->nama_gelombang }}@if ($gelombang->sisa_kursi !== null) (sisa {{ $gelombang->sisa_kursi }} kursi) @endif
                                             </option>
                                         @endforeach
                                     </select>
                                     @error('gelombang_id')
-                                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                                        <p class="field-error">{{ $message }}</p>
                                     @enderror
                                 </div>
                             @endif
@@ -660,7 +690,7 @@
 
                         <div class="flex justify-end">
                             <button type="button" data-next="2"
-                                    class="inline-flex items-center px-6 py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition shadow-md hover:shadow-lg">
+                                    class="btn btn-primary">
                                 Lanjut
                                 <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     @foreach ($renderIcon('arrow-right') as $d)
@@ -672,30 +702,35 @@
                     </div>
 
                     {{-- Step 2: Data Pribadi --}}
+                    {{-- Kepala keempat langkah sengaja memakai warna yang sama.
+                         Dulu tiap langkah punya warna sendiri, jadi warna di
+                         halaman jadi dekorasi dan tidak menandai apa pun.
+                         Biru langit hanya dipakai untuk keadaan "sedang
+                         berlangsung" pada jadwal gelombang. --}}
                     <div data-step="2" class="hidden">
-                        <div class="bg-accent-50 rounded-2xl p-6 md:p-8 mb-8 border border-accent-100">
-                            <div class="flex items-center mb-6">
-                                <div class="w-12 h-12 bg-accent-600 rounded-xl flex items-center justify-center text-white mr-4 flex-shrink-0 shadow-md">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <div class="rounded-lg border border-kertas-300 bg-kertas-200 p-6 md:p-8">
+                            <div class="mb-6 flex items-center">
+                                <div class="mr-4 grid h-12 w-12 shrink-0 place-items-center rounded-md bg-primary-700 text-white">
+                                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                         @foreach ($renderIcon('user') as $d)
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
                                         @endforeach
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 class="text-xl font-bold text-gray-800">Data Pribadi Siswa</h3>
-                                    <p class="text-sm text-gray-500">Langkah 2 dari 4</p>
+                                    <h3 class="text-xl font-bold text-ink-900">Data Pribadi Siswa</h3>
+                                    <p class="text-sm text-ink-500">Langkah 2 dari 4</p>
                                 </div>
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 @foreach ($dataPribadiFields as $field)
                                     <div class="space-y-2 {{ $field['span'] ?? '' }}">
-                                        <label for="{{ $field['id'] }}" class="block text-sm font-semibold text-gray-700">
-                                            {{ $field['label'] }} <span class="text-red-500">*</span>
+                                        <label for="{{ $field['id'] }}" class="block text-sm font-semibold text-ink-700">
+                                            {{ $field['label'] }} <span aria-hidden="true" class="error-text">*</span><span class="sr-only"> (wajib diisi)</span>
                                         </label>
                                         <div class="relative">
-                                            <svg class="w-5 h-5 absolute left-4 top-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                            <svg class="field-icon-slot" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                                 @foreach ($renderIcon($field['icon']) as $d)
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
                                                 @endforeach
@@ -703,7 +738,8 @@
 
                                             @if ($field['type'] === 'select')
                                                 <select id="{{ $field['id'] }}" name="{{ $field['id'] }}" required
-                                                        class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-accent-500 focus:border-accent-500 bg-white shadow-sm transition-all duration-200 @error($field['id']) border-red-500 ring-2 ring-red-200 @enderror">
+                                                        @if (! empty($field['autocomplete'])) autocomplete="{{ $field['autocomplete'] }}" @endif
+                                                        class="field field-icon @error($field['id']) is-invalid @enderror">
                                                     <option value="">{{ $field['placeholder'] }}</option>
                                                     @foreach ($field['options'] as $val => $optLabel)
                                                         <option value="{{ $val }}" {{ old($field['id']) == $val ? 'selected' : '' }}>{{ $optLabel }}</option>
@@ -711,17 +747,22 @@
                                                 </select>
                                             @elseif ($field['type'] === 'textarea')
                                                 <textarea id="{{ $field['id'] }}" name="{{ $field['id'] }}" required rows="3"
-                                                          class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-accent-500 focus:border-accent-500 bg-white shadow-sm transition-all duration-200 @error($field['id']) border-red-500 ring-2 ring-red-200 @enderror"
+                                                          @if (! empty($field['autocomplete'])) autocomplete="{{ $field['autocomplete'] }}" @endif
+                                                          class="field field-icon @error($field['id']) is-invalid @enderror"
                                                           placeholder="{{ $field['placeholder'] }}">{{ old($field['id']) }}</textarea>
                                             @else
                                                 <input type="{{ $field['type'] }}" id="{{ $field['id'] }}" name="{{ $field['id'] }}" required
+                                                       @if (! empty($field['autocomplete'])) autocomplete="{{ $field['autocomplete'] }}" @endif
+                                                       @if (! empty($field['inputmode'])) inputmode="{{ $field['inputmode'] }}" @endif
+                                                       @if (! empty($field['pattern'])) pattern="{{ $field['pattern'] }}" @endif
+                                                       @if (isset($field['spellcheck'])) spellcheck="{{ $field['spellcheck'] ? 'true' : 'false' }}" @endif
                                                        @if (isset($field['maxlength'])) maxlength="{{ $field['maxlength'] }}" @endif
-                                                       class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-accent-500 focus:border-accent-500 bg-white shadow-sm transition-all duration-200 @error($field['id']) border-red-500 ring-2 ring-red-200 @enderror"
+                                                       class="field field-icon @error($field['id']) is-invalid @enderror"
                                                        value="{{ old($field['id']) }}" placeholder="{{ $field['placeholder'] ?? '' }}">
                                             @endif
                                         </div>
                                         @error($field['id'])
-                                            <p class="text-sm text-red-600">{{ $message }}</p>
+                                            <p class="field-error">{{ $message }}</p>
                                         @enderror
                                     </div>
                                 @endforeach
@@ -730,7 +771,7 @@
 
                         <div class="flex justify-between">
                             <button type="button" data-prev="1"
-                                    class="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition">
+                                    class="inline-flex min-h-11 items-center rounded-md border border-kertas-300 bg-kertas-100 px-5 text-sm font-semibold text-ink-700 transition-colors hover:bg-kertas-200 hover:border-ink-400">
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     @foreach ($renderIcon('arrow-left') as $d)
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
@@ -739,7 +780,7 @@
                                 Kembali
                             </button>
                             <button type="button" data-next="3"
-                                    class="inline-flex items-center px-6 py-3 bg-accent-600 text-white font-semibold rounded-xl hover:bg-accent-700 transition shadow-md hover:shadow-lg">
+                                    class="btn btn-primary">
                                 Lanjut
                                 <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     @foreach ($renderIcon('arrow-right') as $d)
@@ -752,39 +793,42 @@
 
                     {{-- Step 3: Data Orang Tua --}}
                     <div data-step="3" class="hidden">
-                        <div class="bg-secondary-50 rounded-2xl p-6 md:p-8 mb-8 border border-secondary-100">
-                            <div class="flex items-center mb-6">
-                                <div class="w-12 h-12 bg-secondary-600 rounded-xl flex items-center justify-center text-white mr-4 flex-shrink-0 shadow-md">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <div class="rounded-lg border border-kertas-300 bg-kertas-200 p-6 md:p-8">
+                            <div class="mb-6 flex items-center">
+                                <div class="mr-4 grid h-12 w-12 shrink-0 place-items-center rounded-md bg-primary-700 text-white">
+                                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                         @foreach ($renderIcon('users') as $d)
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
                                         @endforeach
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 class="text-xl font-bold text-gray-800">Data Orang Tua</h3>
-                                    <p class="text-sm text-gray-500">Langkah 3 dari 4</p>
+                                    <h3 class="text-xl font-bold text-ink-900">Data Orang Tua</h3>
+                                    <p class="text-sm text-ink-500">Langkah 3 dari 4</p>
                                 </div>
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 @foreach ($dataOrangTuaFields as $field)
                                     <div class="space-y-2 {{ $field['span'] ?? '' }}">
-                                        <label for="{{ $field['id'] }}" class="block text-sm font-semibold text-gray-700">
-                                            {{ $field['label'] }} <span class="text-red-500">*</span>
+                                        <label for="{{ $field['id'] }}" class="block text-sm font-semibold text-ink-700">
+                                            {{ $field['label'] }} <span aria-hidden="true" class="error-text">*</span><span class="sr-only"> (wajib diisi)</span>
                                         </label>
                                         <div class="relative">
-                                            <svg class="w-5 h-5 absolute left-4 top-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                            <svg class="field-icon-slot" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                                 @foreach ($renderIcon($field['icon']) as $d)
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
                                                 @endforeach
                                             </svg>
                                             <input type="{{ $field['type'] }}" id="{{ $field['id'] }}" name="{{ $field['id'] }}" required
-                                                   class="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 bg-white shadow-sm transition-all duration-200 @error($field['id']) border-red-500 ring-2 ring-red-200 @enderror"
+                                                   @if (! empty($field['autocomplete'])) autocomplete="{{ $field['autocomplete'] }}" @endif
+                                                   @if (! empty($field['inputmode'])) inputmode="{{ $field['inputmode'] }}" @endif
+                                                   @if (isset($field['spellcheck'])) spellcheck="{{ $field['spellcheck'] ? 'true' : 'false' }}" @endif
+                                                   class="field field-icon @error($field['id']) is-invalid @enderror"
                                                    value="{{ old($field['id']) }}" placeholder="{{ $field['placeholder'] }}">
                                         </div>
                                         @error($field['id'])
-                                            <p class="text-sm text-red-600">{{ $message }}</p>
+                                            <p class="field-error">{{ $message }}</p>
                                         @enderror
                                     </div>
                                 @endforeach
@@ -793,7 +837,7 @@
 
                         <div class="flex justify-between">
                             <button type="button" data-prev="2"
-                                    class="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition">
+                                    class="inline-flex min-h-11 items-center rounded-md border border-kertas-300 bg-kertas-100 px-5 text-sm font-semibold text-ink-700 transition-colors hover:bg-kertas-200 hover:border-ink-400">
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     @foreach ($renderIcon('arrow-left') as $d)
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
@@ -802,7 +846,7 @@
                                 Kembali
                             </button>
                             <button type="button" data-next="4"
-                                    class="inline-flex items-center px-6 py-3 bg-secondary-500 text-white font-semibold rounded-xl hover:bg-secondary-600 transition shadow-md hover:shadow-lg">
+                                    class="btn btn-primary">
                                 Lanjut
                                 <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     @foreach ($renderIcon('arrow-right') as $d)
@@ -813,46 +857,54 @@
                         </div>
                     </div>
 
-                    {{-- Step 4: Upload Berkas --}}
+                    {{-- Step 4: Upload Berkas
+                         Warna oranye dihapus: oranye tidak ada di palet
+                         halaman ini sama sekali, dan `bg-orange-500` dengan
+                         teks putih hanya sekitar 3:1 sehingga ikon praktiknya
+                         tak terlihat (R-25). --}}
                     <div data-step="4" class="hidden">
-                        <div class="bg-orange-50 rounded-2xl p-6 md:p-8 mb-8 border border-orange-100">
-                            <div class="flex items-center mb-6">
-                                <div class="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center text-white mr-4 flex-shrink-0 shadow-md">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <div class="rounded-lg border border-kertas-300 bg-kertas-200 p-6 md:p-8">
+                            <div class="mb-6 flex items-center">
+                                <div class="mr-4 grid h-12 w-12 shrink-0 place-items-center rounded-md bg-primary-700 text-white">
+                                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                         @foreach ($renderIcon('upload') as $d)
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
                                         @endforeach
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 class="text-xl font-bold text-gray-800">Upload Berkas Persyaratan</h3>
-                                    <p class="text-sm text-gray-500">Langkah 4 dari 4 — hampir selesai!</p>
+                                    <h3 class="text-xl font-bold text-ink-900">Upload Berkas Persyaratan</h3>
+                                    <p class="text-sm text-ink-500">Langkah 4 dari 4, ini bagian terakhir.</p>
                                 </div>
                             </div>
 
                             <div class="grid sm:grid-cols-2 gap-6">
                                 @foreach ($uploadFields as $field)
                                     <div class="space-y-2 {{ $loop->last ? 'sm:col-span-2' : '' }}">
-                                        <label for="{{ $field['id'] }}" class="block text-sm font-semibold text-gray-700">
-                                            {{ $field['label'] }} @if($field['required'] ?? true)<span class="text-red-500">*</span>@else<span class="text-gray-400 font-normal">(opsional)</span>@endif
+                                        <label for="{{ $field['id'] }}" class="block text-sm font-semibold text-ink-700">
+                                            {{ $field['label'] }} @if($field['required'] ?? true)<span aria-hidden="true" class="error-text">*</span><span class="sr-only"> (wajib diisi)</span>@else<span class="text-ink-500 font-normal">(opsional)</span>@endif
                                         </label>
-                                        <div class="relative border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-orange-500 transition-colors duration-200 bg-white">
+                                        {{-- Area unggah berkas. Garis putus-putus memakai warna palet, bukan
+                                     `border-gray-300` yang hanya 1.47:1 di
+                                     putih sehingga batas kotak nyaris tak
+                                     terlihat (R-25, batas non-teks butuh 3:1). --}}
+                                         <div class="relative rounded-md border-2 border-dashed border-ink-400 bg-white p-6 transition-colors hover:border-primary-600">
                                             <div class="text-center pointer-events-none">
-                                                <svg class="w-9 h-9 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                <svg class="text-ink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                                     @foreach ($renderIcon($field['icon']) as $d)
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
                                                     @endforeach
                                                 </svg>
-                                                <div class="text-sm text-gray-600 mb-1">
+                                                <div class="text-sm text-ink-600 mb-1">
                                                     <strong>Klik untuk upload</strong>
                                                 </div>
-                                                <div class="text-xs text-gray-500">{{ $field['hint'] }}</div>
+                                                <div class="text-xs text-ink-500">{{ $field['hint'] }}</div>
                                             </div>
                                             <input type="file" id="{{ $field['id'] }}" name="{{ $field['id'] }}" accept="{{ $field['accept'] }}" @if($field['required'] ?? true) required @endif
                                                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
                                         </div>
                                         @error($field['id'])
-                                            <p class="text-sm text-red-600">{{ $message }}</p>
+                                            <p class="field-error">{{ $message }}</p>
                                         @enderror
                                     </div>
                                 @endforeach
@@ -861,56 +913,56 @@
                             {{-- Sertifikat prestasi: tampil hanya bila jalur mewajibkan --}}
                             @php $oldSertifikat = old('sertifikat', []); @endphp
                             <div id="sertifikat-section" class="mt-8 {{ collect($oldSertifikat)->isNotEmpty() ? '' : 'hidden' }}">
-                                <h4 class="text-lg font-bold text-gray-800 mb-1">Sertifikat Prestasi <span class="text-red-500">*</span></h4>
-                                <p class="text-sm text-gray-500 mb-4">Jalur yang dipilih mewajibkan minimal 1 sertifikat (maks 5). PDF/JPG, maks 5MB per file.</p>
+                                <h4 class="text-lg font-bold text-ink-900 mb-1">Sertifikat Prestasi <span aria-hidden="true" class="error-text">*</span><span class="sr-only"> (wajib diisi)</span></h4>
+                                <p class="text-sm text-ink-500 mb-4">Jalur yang dipilih mewajibkan minimal 1 sertifikat (maks 5). PDF/JPG, maks 5MB per file.</p>
                                 <div id="sertifikat-rows" class="space-y-4">
                                     @forelse ($oldSertifikat as $i => $row)
-                                        <div class="sertifikat-row grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-4 items-end bg-white border border-gray-200 rounded-xl p-4">
+                                        <div class="sertifikat-row grid grid-cols-1 gap-4 rounded-md border border-kertas-300 bg-kertas-100 p-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
                                             <div>
-                                                <label class="block text-sm font-semibold text-gray-700 mb-2">Nama Kejuaraan <span class="text-red-500">*</span></label>
-                                                <input type="text" name="sertifikat[{{ $i }}][nama]" value="{{ $row['nama'] ?? '' }}" placeholder="cth: Juara 1 Pencak Silat Provinsi 2025"
-                                                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white shadow-sm transition-all duration-200" />
-                                                @error("sertifikat.{$i}.nama")<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
+                                                <label for="sertifikat-{{ $i }}-nama" class="block text-sm font-semibold text-ink-700 mb-2">Nama Kejuaraan <span aria-hidden="true" class="error-text">*</span><span class="sr-only"> (wajib diisi)</span></label>
+                                                <input type="text" id="sertifikat-{{ $i }}-nama" name="sertifikat[{{ $i }}][nama]" value="{{ $row['nama'] ?? '' }}" placeholder="cth: Juara 1 Pencak Silat Provinsi 2025"
+                                                       class="field" />
+                                                @error("sertifikat.{$i}.nama")<p class="field-error">{{ $message }}</p>@enderror
                                             </div>
                                             <div>
-                                                <label class="block text-sm font-semibold text-gray-700 mb-2">File Sertifikat <span class="text-red-500">*</span></label>
-                                                <input type="file" name="sertifikat[{{ $i }}][file]" accept=".pdf,.jpg,.jpeg,.png"
-                                                       class="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white shadow-sm text-sm text-gray-600" />
-                                                @error("sertifikat.{$i}.file")<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
+                                                <label for="sertifikat-{{ $i }}-file" class="block text-sm font-semibold text-ink-700 mb-2">File Sertifikat <span aria-hidden="true" class="error-text">*</span><span class="sr-only"> (wajib diisi)</span></label>
+                                                <input type="file" id="sertifikat-{{ $i }}-file" name="sertifikat[{{ $i }}][file]" accept=".pdf,.jpg,.jpeg,.png"
+                                                       class="field file" />
+                                                @error("sertifikat.{$i}.file")<p class="field-error">{{ $message }}</p>@enderror
                                             </div>
-                                            <button type="button" class="sertifikat-remove inline-flex items-center justify-center w-11 h-11 bg-red-50 text-red-600 font-semibold rounded-xl hover:bg-red-100 transition" title="Hapus baris">
+                                            <button type="button" class="btn-remove sertifikat-remove inline-flex h-11 w-11 items-center justify-center rounded-md font-semibold" aria-label="Hapus baris sertifikat ini" title="Hapus baris">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                                             </button>
                                         </div>
                                     @empty
-                                        <div class="sertifikat-row grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-4 items-end bg-white border border-gray-200 rounded-xl p-4">
+                                        <div class="sertifikat-row grid grid-cols-1 gap-4 rounded-md border border-kertas-300 bg-kertas-100 p-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
                                             <div>
-                                                <label class="block text-sm font-semibold text-gray-700 mb-2">Nama Kejuaraan <span class="text-red-500">*</span></label>
-                                                <input type="text" name="sertifikat[0][nama]" value="" placeholder="cth: Juara 1 Pencak Silat Provinsi 2025"
-                                                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white shadow-sm transition-all duration-200" />
+                                                <label for="sertifikat-0-nama" class="block text-sm font-semibold text-ink-700 mb-2">Nama Kejuaraan <span aria-hidden="true" class="error-text">*</span><span class="sr-only"> (wajib diisi)</span></label>
+                                                <input type="text" id="sertifikat-0-nama" name="sertifikat[0][nama]" value="" placeholder="cth: Juara 1 Pencak Silat Provinsi 2025"
+                                                       class="field" />
                                             </div>
                                             <div>
-                                                <label class="block text-sm font-semibold text-gray-700 mb-2">File Sertifikat <span class="text-red-500">*</span></label>
-                                                <input type="file" name="sertifikat[0][file]" accept=".pdf,.jpg,.jpeg,.png"
-                                                       class="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white shadow-sm text-sm text-gray-600" />
+                                                <label for="sertifikat-0-file" class="block text-sm font-semibold text-ink-700 mb-2">File Sertifikat <span aria-hidden="true" class="error-text">*</span><span class="sr-only"> (wajib diisi)</span></label>
+                                                <input type="file" id="sertifikat-0-file" name="sertifikat[0][file]" accept=".pdf,.jpg,.jpeg,.png"
+                                                       class="field file" />
                                             </div>
-                                            <button type="button" class="sertifikat-remove inline-flex items-center justify-center w-11 h-11 bg-red-50 text-red-600 font-semibold rounded-xl hover:bg-red-100 transition" title="Hapus baris">
+                                            <button type="button" class="btn-remove sertifikat-remove inline-flex h-11 w-11 items-center justify-center rounded-md font-semibold" aria-label="Hapus baris sertifikat ini" title="Hapus baris">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                                             </button>
                                         </div>
                                     @endforelse
                                 </div>
                                 <button type="button" id="sertifikat-add"
-                                        class="mt-4 inline-flex items-center px-5 py-2.5 bg-white border-2 border-dashed border-orange-400 text-orange-600 font-semibold rounded-xl hover:bg-orange-50 transition">
+                                        class="mt-4 inline-flex min-h-11 items-center gap-2 rounded-md border-2 border-dashed border-primary-300 bg-white px-5 text-sm font-semibold text-primary-800 transition-colors hover:bg-primary-50">
                                     + Tambah Sertifikat (maks 5)
                                 </button>
-                                @error('sertifikat')<p class="text-sm text-red-600 mt-2">{{ $message }}</p>@enderror
+                                @error('sertifikat')<p class="field-error">{{ $message }}</p>@enderror
                             </div>
                         </div>
 
                         <div class="flex justify-between items-center">
                             <button type="button" data-prev="3"
-                                    class="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition">
+                                    class="inline-flex min-h-11 items-center rounded-md border border-kertas-300 bg-kertas-100 px-5 text-sm font-semibold text-ink-700 transition-colors hover:bg-kertas-200 hover:border-ink-400">
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     @foreach ($renderIcon('arrow-left') as $d)
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
@@ -918,18 +970,45 @@
                                 </svg>
                                 Kembali
                             </button>
-                            <button type="submit"
-                                    class="inline-flex items-center px-8 py-4 bg-gradient-primary text-white text-lg font-semibold rounded-full shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 focus:ring-4 focus:ring-primary-300">
-                                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                    @foreach ($renderIcon('paper-plane') as $d)
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
-                                    @endforeach
-                                </svg>
-                                Kirim Pendaftaran
+                            {{-- `data-kirim` menandai tombol ini sebagai target
+                                 status yang terlihat. Tanpa itu, orang tua menekan
+                                 "Kirim Pendaftaran", tombol tetap berbunyi dan
+                                 tidak terjadi apa-apa selama beberapa detik
+                                 selagi berkas diunggah. Beberapa orang akan
+                                 menekan dua kali, dan dua kali submit berarti
+                                 dua pendaftar. --}}
+                            <button type="submit" data-kirim class="btn btn-primary w-full text-base sm:w-auto">
+                                <span data-kirim-siapa class="contents">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        @foreach ($renderIcon('paper-plane') as $d)
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                                        @endforeach
+                                    </svg>
+                                    Kirim Pendaftaran
+                                </span>
+
+                                {{-- Spinner pakai border-currentColor supaya warnanya
+                                     mengikuti tombolnya sendiri, tanpa warna
+                                     tambahan yang tidak ada di palet. --}}
+                                <span data-kirim-duduk hidden class="contents">
+                                    <svg class="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3" opacity="0.25"/>
+                                        <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                                    </svg>
+                                    Mengirim, jangan tutup halaman
+                                </span>
                             </button>
                         </div>
-                        <p class="text-sm text-gray-500 mt-4 text-center">
-                            Dengan mengirim formulir ini, Anda menyetujui syarat dan ketentuan yang berlaku
+                        {{-- Kalimat versi lama menyebut "Anda menyetujui syarat
+                             dan ketentuan yang berlaku". Halaman syarat dan
+                             ketentuan itu tidak ada di route mana pun, jadi
+                             kalimat itu meminta persetujuan atas dokumen yang
+                             tidak bisa dibaca pendaftar. Yang
+                             tersisa hanya territory yang sebenarnya: data
+                             yang dikirim dipakai untuk memproses pendaftaran. --}}
+                        <p class="mt-4 text-center text-sm leading-relaxed text-ink-500">
+                            Data yang dikirim dipakai sekolah untuk memproses pendaftaran
+                            dan menghubungi kamu kalau ada berkas yang perlu diperbaiki.
                         </p>
                     </div>
                 </form>
@@ -938,38 +1017,48 @@
     </section>
 
     {{-- ============ CTA BANTUAN ============ --}}
-    <section class="bg-gradient-primary py-16">
-        <div class="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-            <h2 class="text-3xl font-bold text-white mb-4">Butuh Bantuan?</h2>
-            <p class="text-xl text-white/90 mb-8">Tim kami siap membantu Anda dalam proses pendaftaran</p>
-            <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                @if ($kontakTelpTel)
-                <a href="tel:{{ $kontakTelpTel }}"
-                   class="inline-flex items-center justify-center px-6 py-3 bg-white text-primary-600 rounded-xl font-semibold hover:bg-gray-100 transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        @foreach ($renderIcon('phone') as $d)
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
-                        @endforeach
-                    </svg>
-                    {{ $kontakTelp }}
-                </a>
-                @endif
-                @if ($kontakEmail)
-                <a href="mailto:{{ $kontakEmail }}"
-                   class="inline-flex items-center justify-center px-6 py-3 bg-white/10 text-white rounded-xl font-semibold hover:bg-white/20 transition-colors duration-200 border border-white/20">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        @foreach ($renderIcon('envelope') as $d)
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
-                        @endforeach
-                    </svg>
-                    {{ $kontakEmail }}
-                </a>
-                @endif
-            </div>
+    <section class="bg-kertas-200 py-16 sm:py-20">
+        <div class="mx-auto max-w-4xl px-5 sm:px-6">
+            <h2 class="reveal font-display text-2xl font-extrabold leading-tight text-ink-900 sm:text-3xl">
+                Kendala saat mengisi?
+            </h2>
+            <p class="reveal mt-4 max-w-xl text-base leading-relaxed text-ink-600">
+                Kalau ada yang tidak jelas atau formulirnya tidak bisa dikirim,
+                hubungi sekolah langsung. Lebih baik ditanyakan sekarang
+                daripada berkasnya ditolak karena salah kolom.
+            </p>
+
+            {{-- Tombol kontak dirender hanya kalau memang ada nomornya. Kalau
+                 sekolah belum mengisi kontak, section ini lenyap saja, bukan
+                 menampilkan tombol yang tidak punya tujuan. --}}
+            @if ($kontakTelpTel || $kontakWhatsapp || $kontakEmail)
+                <div class="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                    @if ($kontakTelpTel)
+                        <a href="tel:{{ $kontakTelpTel }}" class="btn btn-primary">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                @foreach ($renderIcon('phone') as $d)
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $d }}"/>
+                                @endforeach
+                            </svg>
+                            Telepon {{ $kontakTelp }}
+                        </a>
+                    @endif
+
+                    @if ($kontakWhatsapp)
+                        <a href="https://wa.me/{{ $kontakWhatsapp }}" target="_blank" rel="noopener" class="btn btn-quiet">
+                            WhatsApp Sekolah
+                        </a>
+                    @endif
+
+                    @if ($kontakEmail)
+                        <a href="mailto:{{ $kontakEmail }}" class="btn btn-quiet">
+                            {{ $kontakEmail }}
+                        </a>
+                    @endif
+                </div>
+            @endif
         </div>
     </section>
-
-    @include('spmb.partials.footer')
 
     <script>
         (function () {
@@ -985,47 +1074,76 @@
                 const fields = stepEl(n).querySelectorAll('input[required], select[required], textarea[required]');
                 let valid = true;
                 fields.forEach((f) => {
+                    // `aria-invalid` dibaca oleh CSS `.field[aria-invalid="true"]`
+                    // dan dibaca juga oleh pembaca layar, jadi penanda galat
+                    // tidak hanya bergantung pada warna garis (R-25, C-4).
                     if (!f.checkValidity()) {
-                        f.classList.add('border-red-500');
+                        f.classList.add('is-invalid');
+                        f.setAttribute('aria-invalid', 'true');
                         valid = false;
                     } else {
-                        f.classList.remove('border-red-500');
+                        f.classList.remove('is-invalid');
+                        f.removeAttribute('aria-invalid');
                     }
                 });
                 if (!valid) fields[0]?.reportValidity();
                 return valid;
             }
 
+            // Tiga keadaan: sudah lewat (terang, tanda sudah dikerjakan),
+            // sedang aktif (cincin), dan belum dicapai (redup). Warna
+            // sendirian tidak membedakan ketiganya, bedanya juga ada di
+            // cincin dan di teks label.
             function updateIndicators() {
                 form.querySelectorAll('[data-step-indicator]').forEach((wrap) => {
                     const num = parseInt(wrap.dataset.stepIndicator, 10);
                     const circle = wrap.querySelector('.step-circle');
                     const label = wrap.querySelector('span');
-                    circle.classList.remove('bg-primary-600', 'text-white', 'ring-4', 'ring-primary-200', 'bg-gray-200', 'text-gray-500');
-                    label?.classList.remove('text-primary-600', 'text-gray-400');
+
+                    circle.classList.remove(
+                        'bg-primary-700', 'bg-primary-600', 'bg-primary-100', 'bg-kertas-300',
+                        'text-white', 'text-primary-800', 'text-ink-600',
+                        'ring-2', 'ring-primary-700', 'ring-offset-2'
+                    );
+                    label?.classList.remove('text-primary-800', 'text-primary-600', 'text-ink-500');
+
                     if (num < current) {
-                        circle.classList.add('bg-primary-600', 'text-white');
-                        label?.classList.add('text-primary-600');
+                        circle.classList.add('bg-primary-100', 'text-primary-800');
+                        label?.classList.add('text-primary-800');
                     } else if (num === current) {
-                        circle.classList.add('bg-primary-600', 'text-white', 'ring-4', 'ring-primary-200');
-                        label?.classList.add('text-primary-600');
+                        circle.classList.add('bg-primary-700', 'text-white', 'ring-2', 'ring-primary-700', 'ring-offset-2');
+                        label?.classList.add('text-primary-800');
                     } else {
-                        circle.classList.add('bg-gray-200', 'text-gray-500');
-                        label?.classList.add('text-gray-400');
+                        circle.classList.add('bg-kertas-300', 'text-ink-600');
+                        label?.classList.add('text-ink-500');
                     }
                 });
             }
 
-            function showStep(n) {
+            function showStep(n, opsi = {}) {
                 for (let i = 1; i <= totalSteps; i++) {
                     const el = stepEl(i);
                     if (!el) continue;
                     el.classList.toggle('hidden', i !== n);
-                    if (i === n) el.classList.add('animate-fade-in-up');
                 }
+
+                // Fokus pindah ke kepala langkah supaya pengguna keyboard
+                // tahu kalau langkahnya sudah berganti, bukan hanya melihat layar
+                // berubah. Judul langkah dibuat bisa difokus lewat tabindex -1.
+                if (!opsi.skipFocus) {
+                    const judul = stepEl(n)?.querySelector('h3');
+                    if (judul) {
+                        judul.setAttribute('tabindex', '-1');
+                        judul.focus({ preventScroll: true });
+                    }
+                }
+
                 current = n;
                 updateIndicators();
-                stepEl(n).scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+                if (!opsi.skipScroll) {
+                    stepEl(n).scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
             }
 
             form.querySelectorAll('[data-next]').forEach((btn) => {
@@ -1045,7 +1163,16 @@
             const sertSection = document.getElementById('sertifikat-section');
             const sertRows = document.getElementById('sertifikat-rows');
             const sertAdd = document.getElementById('sertifikat-add');
-            let sertIndex = sertRows.querySelectorAll('.sertifikat-row').length;
+            // Nomor baris berikutnya dihitung dari index terbesar yang sudah
+            // dipakai, bukan dari jumlah baris. Setelah validasi gagal, kunci
+            // `sertifikat` bisa bolong (mis. 0 dan 3), lalu baris baru akan
+            // menabrak `id` milik baris lama.
+            const sertIndex = sertRows
+                .querySelectorAll('input[name^="sertifikat["]')
+                .reduce((max, inp) => {
+                    const n = parseInt(inp.name.match(/sertifikat\[(\d+)\]/)?.[1] ?? '-1', 10);
+                    return Number.isNaN(n) ? max : Math.max(max, n + 1);
+                }, 0);
 
             function sertifikatWajib() {
                 const opt = jalurSelect.selectedOptions[0];
@@ -1107,13 +1234,13 @@
                 if (sertRows.querySelectorAll('.sertifikat-row').length >= 5) return;
                 const idx = sertIndex++;
                 const div = document.createElement('div');
-                div.className = 'sertifikat-row grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-4 items-end bg-white border border-gray-200 rounded-xl p-4';
+                div.className = 'sertifikat-row grid grid-cols-1 gap-4 rounded-md border border-kertas-300 bg-kertas-100 p-4 md:grid-cols-[1fr_1fr_auto] md:items-end';
                 div.innerHTML =
-                    `<div><label class="block text-sm font-semibold text-gray-700 mb-2">Nama Kejuaraan <span class="text-red-500">*</span></label>` +
-                    `<input type="text" name="sertifikat[${idx}][nama]" placeholder="cth: Juara 1 Pencak Silat Provinsi 2025" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white shadow-sm transition-all duration-200" /></div>` +
-                    `<div><label class="block text-sm font-semibold text-gray-700 mb-2">File Sertifikat <span class="text-red-500">*</span></label>` +
-                    `<input type="file" name="sertifikat[${idx}][file]" accept=".pdf,.jpg,.jpeg,.png" class="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white shadow-sm text-sm text-gray-600" /></div>` +
-                    `<button type="button" class="sertifikat-remove inline-flex items-center justify-center w-11 h-11 bg-red-50 text-red-600 font-semibold rounded-xl hover:bg-red-100 transition" title="Hapus baris">` +
+                    `<div><label for="sertifikat-${idx}-nama" class="block text-sm font-semibold text-ink-700 mb-2">Nama Kejuaraan <span aria-hidden="true" class="error-text">*</span><span class="sr-only"> (wajib diisi)</span></label>` +
+                    `<input type="text" id="sertifikat-${idx}-nama" name="sertifikat[${idx}][nama]" placeholder="cth: Juara 1 Pencak Silat Provinsi 2025" class="field" /></div>` +
+                    `<div><label for="sertifikat-${idx}-file" class="block text-sm font-semibold text-ink-700 mb-2">File Sertifikat <span aria-hidden="true" class="error-text">*</span><span class="sr-only"> (wajib diisi)</span></label>` +
+                    `<input type="file" id="sertifikat-${idx}-file" name="sertifikat[${idx}][file]" accept=".pdf,.jpg,.jpeg,.png" class="field file" /></div>` +
+                    `<button type="button" class="btn-remove sertifikat-remove inline-flex h-11 w-11 items-center justify-center rounded-md font-semibold" aria-label="Hapus baris sertifikat ini" title="Hapus baris">` +
                     `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>`;
                 sertRows.appendChild(div);
                 if (sertifikatWajib()) div.querySelectorAll('input').forEach((inp) => { inp.required = true; });
@@ -1137,16 +1264,70 @@
                 input.addEventListener('change', function () {
                     const file = this.files[0];
                     const wrap = this.closest('.border-dashed');
-                    const hint = wrap.querySelector('.text-sm.text-gray-600');
+                    const hint = wrap.querySelector('.text-sm.text-ink-600');
                     if (file) {
-                        wrap.classList.add('border-accent-500', 'bg-accent-50');
-                        wrap.classList.remove('border-gray-300');
-                        if (hint) hint.innerHTML = `<strong class="text-accent-600">✓ ${file.name}</strong>`;
+                        // Status "sudah dipilih" ditandai lewat garis, latar, dan
+                        // nama file yang tercetak. Warna saja tidak cukup, karena
+                        // tidak terlihat oleh pengguna yang membedakan warna
+                        // dengan buruk (C-4).
+                        wrap.classList.remove('border-ink-400', 'hover:border-primary-600');
+                        wrap.classList.add('border-accent-600', 'bg-accent-50');
+                        if (hint) {
+                            hint.className = 'text-sm text-ink-700';
+                            hint.innerHTML = `<strong class="text-accent-700">Dipilih: ${file.name}</strong>`;
+                        }
                     }
                 });
             });
 
-            updateIndicators();
+            // Inisialisasi: tampilkan langkah pertama dan samakan indikatornya.
+            // Sengaja tidak memakai showStep() karena fungsi itu memindahkan
+            // fokus dan menggulir ke langkah, dan itu tidak pantas dijalankan
+            // saat halaman baru dibuka.
+            showStep(current, { skipScroll: true, skipFocus: true });
+        })();
+
+        /*
+         * Status tombol kirim.
+         *
+         * Mengirim berkas di jaringan sekolah bisa memakan beberapa detik,
+         * dan selama itu tidak ada yang terjadi di layar. Tanpa perubahan
+         * apa pun, orang tua menekan ulang. Dua kali submit berarti dua
+         * pendaftar dengan data sama, dan yang kedua biasanya gagal dengan
+         * pesan yang tidak jelas.
+         *
+         * Yang dijaga di sini:
+         *
+         * - Tombol dinonaktifkan, bukan hanya diganti teksnya. Tombol yang
+         *   masih bisa diklik tapi tidak terlihat berubahnya akan tetap
+         *   ditekan orang tua yang tidak sabar.
+         * - Pesannya menyebut "jangan tutup halaman" karena inilah satu
+         *   kasus yang benar-benar merusak: menutup tab di tengah unggahan
+         *   berarti berkas hilang dan tidak ada jalan untuk mengetahuinya.
+         * - Tidak ada pemulihan state di sini, dan tidak perlu. Form ini
+         *   mengirim lewat navigasi halaman biasa, bukan fetch, jadi setiap
+         *   jawaban server memuat ulang halaman dengan tombol yang utuh.
+         *   Membbekukan tombol juga akan salah kalau browser mengembalikan
+         *   halaman dari cache, jadi tombol tetap bisa diklik lagi di sana.
+         */
+        (function () {
+            const form = document.getElementById('form-wizard');
+
+            if (!form) return;
+
+            const tombol = form.querySelector('[data-kirim]');
+
+            if (!tombol) return;
+
+            const labelSiapa = tombol.querySelector('[data-kirim-siapa]');
+            const labelDuduk = tombol.querySelector('[data-kirim-duduk]');
+
+            form.addEventListener('submit', function () {
+                tombol.disabled = true;
+
+                if (labelSiapa) labelSiapa.hidden = true;
+                if (labelDuduk) labelDuduk.hidden = false;
+            });
         })();
     </script>
 

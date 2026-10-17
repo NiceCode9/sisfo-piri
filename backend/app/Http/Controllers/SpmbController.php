@@ -37,6 +37,20 @@ class SpmbController extends Controller
             : collect();
         $pengumumans = Pengumuman::where('status_aktif', true)->orderByDesc('tanggal_pengumuman')->limit(3)->get();
 
+        // Jalur pendaftaran dan kuotanya ikut ke beranda, bukan cuma ke form.
+        // Section "Jalur Pendaftaran" di landing page sebelumnya ditulis penuh
+        // sebagai hardcoded: dua tab tetap (Reguler, Prestasi/Beasiswa) lengkap
+        // dengan syarat rata-rata 85, potongan beasiswa 25%-100%, dan batas usia.
+        // Tidak satu pun angka itu punya sumber, dan nama jalurnya pun bisa
+        // berbeda dari yang benar-benar ada di database.
+        $jalurPendaftarans = JalurPendaftaran::where('aktif', true)->orderBy('nama_jalur')->get();
+        $kuotaMap = collect();
+        if ($tahunAjaranAktif) {
+            $kuotaMap = KuotaPendaftaran::where('tahun_ajaran_id', $tahunAjaranAktif->id)
+                ->get()
+                ->keyBy('jalur_pendaftaran_id');
+        }
+
         // Kartu gelombang menampilkan batch yang BELUM ditutup — termasuk yang
         // masih akan datang, karena "batch berikutnya dibuka tanggal berapa" itu
         // justru informasi yang dicari calon. Batch yang sudah lewat disembunyikan
@@ -61,6 +75,8 @@ class SpmbController extends Controller
             'tahunAjaranAktif' => $tahunAjaranAktif,
             'biayas' => $biayas,
             'pengumumans' => $pengumumans,
+            'jalurPendaftarans' => $jalurPendaftarans,
+            'kuotaMap' => $kuotaMap,
             'gelombangs' => $gelombangs,
             'brosurs' => $brosurs,
             'ekstrakurikulers' => $ekstrakurikulers,

@@ -1,165 +1,149 @@
-{{-- Statistik & badge di bawah memakai data nyata: tahun ajaran aktif,
-     jumlah siswa/guru aktif, dan jendela pendaftaran dari database. --}}
+{{-- Statistik di bawah memakai data nyata: tahun ajaran aktif, jumlah
+     siswa dan guru aktif, serta jendela pendaftaran dari database. Kalau
+     kosong, tampilkan tanda pisah dan bukan angka karangan (R-17). --}}
 @php
     $tahunAjaran = $tahunAjaranAktif?->nama_tahun_ajaran;
+    $status = $statusPendaftaran;
 @endphp
 
-<section id="beranda" class="relative min-h-screen flex items-center bg-gradient-primary overflow-hidden">
+<section id="beranda" class="relative bg-primary-900 text-white">
 
-    {{-- Decorative Background Shapes.
-     Blob hijau lama (`bg-accent-400/20`) jadi tak terlihat begitu primary
-     diganti hijau, jadi aksennya dipindah ke sky yang kontras dengan hijau.
-     Blob emas dipertahankan: hijau + emas adalah pasangan warna yang dipakai
-     identitas sekolah ini. --}}
-    <div class="absolute top-20 right-10 w-64 h-64 bg-secondary-400/20 blob-shape animate-float"></div>
-    <div class="absolute bottom-32 left-10 w-80 h-80 bg-accent-400/25 blob-shape animate-float" style="animation-delay: 1s;"></div>
-    <div class="absolute top-1/2 right-1/4 w-48 h-48 bg-white/10 blob-shape animate-float" style="animation-delay: 2s;"></div>
+    {{-- Ornamen: satu bintang delapan besar, redup, di pojok kanan.
+         Bentuk yang sama dengan motif kecil di bawah, hanya diperbesar.
+         Motif ini menggantikan blob dekoratif karena bintang delapan milik
+         sekolah islami ini, sementara blob hanya tren. --}}
+    <svg aria-hidden="true"
+         class="pointer-events-none absolute -top-10 right-[-3rem] hidden h-[26rem] w-[26rem] text-primary-700/30 lg:block"
+         fill="none" stroke="currentColor" stroke-width="0.6" viewBox="0 0 24 24">
+        <rect x="4.5" y="4.5" width="15" height="15" />
+        <rect x="4.5" y="4.5" width="15" height="15" transform="rotate(45 12 12)" />
+        <rect x="2.5" y="2.5" width="19" height="19" transform="rotate(22.5 12 12)" />
+    </svg>
 
-    <div class="container mx-auto px-4 py-20 relative z-10">
-        <div class="grid lg:grid-cols-2 gap-12 items-center">
-
-            {{-- Left Content --}}
-            <div class="text-white space-y-6 animate-fade-in-up">
-                {{-- Status pendaftaran dihitung sekali di App\Support\StatusPendaftaran dan
-     dipakai bersama oleh badge ini, peringatan di halaman pendaftaran, serta
-     gate di store(). Satu sumber, jadi ketiganya tidak bisa berbeda pendapat. --}}
-                @if ($statusPendaftaran?->tampilkanBadge())
-                    <div @class([
-                        'inline-block px-4 py-2 rounded-full text-sm font-semibold shadow-lg',
-                        'bg-secondary-500' => $statusPendaftaran->state === \App\Support\StatusPendaftaran::BUKA,
-                        'bg-amber-400 text-amber-950' => $statusPendaftaran->state === \App\Support\StatusPendaftaran::BELUM,
-                        'bg-white/25' => in_array($statusPendaftaran->state, [
-                            \App\Support\StatusPendaftaran::PENUH,
-                            \App\Support\StatusPendaftaran::TUTUP,
-                        ], true),
-                    ])>
-                        {{ $statusPendaftaran->state === \App\Support\StatusPendaftaran::BUKA ? '🎉 ' : '' }}{{ $statusPendaftaran->teksBadge() }}
-                    </div>
-                @endif
-
-                <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight">
-                    Wujudkan Impianmu<br/>
-                    <span class="text-secondary-300">Bersama Kami!</span>
-                </h1>
-
-                <p class="text-lg md:text-xl text-white/90 leading-relaxed">
-                    Bergabunglah dalam Penerimaan Murid Baru
-                    @if ($tahunAjaran)
-                        Tahun Ajaran <span class="font-bold">{{ $tahunAjaran }}</span>
-                    @endif.
-                    Raih prestasi, kembangkan bakatmu, dan ciptakan masa depan cerah!
-                </p>
-
-                {{-- CTA Buttons --}}
-                <div class="flex flex-col sm:flex-row gap-4 pt-4">
-                    <a href="#alur" class="inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-primary-600 bg-white rounded-2xl hover:bg-gray-50 transition shadow-xl hover:shadow-2xl hover:scale-105 transform">
-                        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                        </svg>
-                        Mulai Pendaftaran
-                    </a>
-                    <a href="{{ route('login') }}" class="inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white border-2 border-white rounded-2xl hover:bg-white hover:text-primary-600 transition">
-                        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                        </svg>
-                        Login Calon Murid
-                    </a>
-                </div>
-
-                {{-- Stats --}}
-                {{-- Angka diambil dari database lewat view composer spmb.*.
-                     Kosong berarti belum ada data, jadi tampilkan tanda pisah
-                     dan bukan angka karangan. --}}
-                <div class="grid grid-cols-3 gap-4 pt-8">
-                    <div class="text-center">
-                        <div class="text-3xl md:text-4xl font-extrabold text-secondary-300">{{ $jumlahSiswaAktif ?: '—' }}</div>
-                        <div class="text-sm text-white/80">Siswa Aktif</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-3xl md:text-4xl font-extrabold text-secondary-300">{{ $jumlahGuruAktif ?: '—' }}</div>
-                        <div class="text-sm text-white/80">Guru Aktif</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-3xl md:text-4xl font-extrabold text-secondary-300">{{ $lamaBerdiri ?: '—' }}</div>
-                        <div class="text-sm text-white/80">Tahun Berdiri</div>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Right Photo --}}
-            <div class="relative animate-fade-in-up" style="animation-delay: 0.3s;">
-                {{-- Foto asli sekolah, bukan foto stok. Sumber aslinya 4032x2268
-                     (5,4 MB) hanya diturunkan ukuran dan dibuang EXIF-nya; versi
-                     web ada di public/images/sekolah. --}}
-                <div class="relative z-10">
-                    {{-- `width`/`height` wajib ada supaya browser bisa
-                         menyediakan ruang gambar sebelum file selesai dimuat.
-                         Tanpa itu halaman bergeser (CLS) tepat di bagian yang
-                         paling pertama dilihat calon. --}}
-                    <img src="/images/sekolah/gedung-960w.jpg"
-                         srcset="/images/sekolah/gedung-480w.jpg 480w,
-                                 /images/sekolah/gedung-960w.jpg 960w,
-                                 /images/sekolah/gedung-1600w.jpg 1600w"
-                         sizes="(min-width: 1024px) 620px, 100vw"
-                         width="1600" height="900"
-                         alt="Gedung dan lapangan {{ $namaSekolah ?? 'sekolah' }}"
-                         class="rounded-3xl shadow-2xl w-full h-auto object-cover"
-                         loading="eager" fetchpriority="high" decoding="async">
-                </div>
-
-                {{-- Floating Card 1: akreditasi.
-                     Dirender hanya kalau nilainya benar-benar diisi. Versi lama
-                     selalu menulis "Sekolah Terakreditasi" walau kolomnya kosong,
-                     sementara sub-teksnya sendiri mengakui "Status belum
-                     dicantumkan" - jadi halaman mengarang klaim yang
-                     bersamaan menyangkal dirinya sendiri. --}}
-                @if ($profileSekolah?->akreditasi_bersih)
-                    <div class="absolute -bottom-8 -left-8 z-20 bg-white rounded-2xl p-4 shadow-xl animate-float hidden md:block">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-12 h-12 bg-accent-500 rounded-xl flex items-center justify-center">
-                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <div class="text-sm font-bold text-gray-800">Terakreditasi {{ $profileSekolah->akreditasi_bersih }}</div>
-                                <div class="text-xs text-gray-500">Standar Nasional</div>
-                            </div>
-                        </div>
-                    </div>
-                @endif
-
-                {{-- Floating Card 2.
-                     Versi lama menulis "Kurikulum Merdeka / Update & Inovatif"
-                     sebagai teks mati: tidak ada kolom, tidak ada sumber, dan
-                     tidak bisa dibantah kalau ternyata tidak berlaku. Diganti
-                     tahun ajaran aktif, yang benar-benar berasal dari database
-                     dan selalu tersedia di halaman PPDB. --}}
-                @if ($tahunAjaran)
-                <div class="absolute -top-8 -right-8 z-20 bg-white rounded-2xl p-4 shadow-xl animate-float hidden md:block" style="animation-delay: 1.5s;">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-12 h-12 bg-secondary-500 rounded-xl flex items-center justify-center">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <div class="text-sm font-bold text-gray-800">Tahun Ajaran {{ $tahunAjaran }}</div>
-                            <div class="text-xs text-gray-500">Penerimaan Murid Baru</div>
-                        </div>
-                    </div>
-                </div>
-                @endif
-            </div>
-
+    <div class="mx-auto max-w-6xl px-5 pt-28 pb-16 sm:px-6 sm:pt-36 sm:pb-24">
+        <div class="motif-rule mb-8 max-w-[10rem]">
+            <svg class="motif-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <rect x="4.5" y="4.5" width="15" height="15" />
+                <rect x="4.5" y="4.5" width="15" height="15" transform="rotate(45 12 12)" />
+            </svg>
         </div>
+
+        {{-- Status pendaftaran dihitung sekali di App\Support\StatusPendaftaran
+             lalu dipakai bersama oleh badge di sini, peringatan di halaman
+             pendaftaran, dan gate di store(). Badge ini bukan hiasan: ia
+             menandai keadaan nyata, jadi ia boleh ada (R-09). --}}
+        @if ($status?->tampilkanBadge())
+            @php
+                $label = $status->teksBadge();
+                $style = match ($status->state) {
+                    \App\Support\StatusPendaftaran::BUKA => 'bg-secondary-400 text-primary-900',
+                    \App\Support\StatusPendaftaran::BELUM => 'bg-white/15 text-white',
+                    default => 'bg-white/10 text-white/90',
+                };
+                $dot = $status->state === \App\Support\StatusPendaftaran::BUKA ? 'bg-primary-800' : null;
+            @endphp
+            <p class="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-semibold {{ $style }}">
+                @if ($dot)<span aria-hidden="true" class="h-2 w-2 rounded-full {{ $dot }}"></span>@endif
+                {{ $label }}
+            </p>
+        @endif
+
+        <h1 class="mt-6 max-w-2xl text-balance font-display text-4xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl">
+            Wujudkan Impianmu<br class="hidden sm:block" />
+            <span class="text-secondary-300">Bersama Kami!</span>
+        </h1>
+
+        <p class="mt-6 max-w-xl text-base leading-relaxed text-secondary-100/90 sm:text-lg">
+            Bergabunglah dalam Penerimaan Murid Baru
+            @if ($tahunAjaran)
+                Tahun Ajaran <span class="font-semibold">{{ $tahunAjaran }}</span>
+            @endif.
+            Raih prestasi, kembangkan bakatmu, dan ciptakan masa depan cerah!
+        </p>
+
+        <p class="mt-4 max-w-xl text-base leading-relaxed text-secondary-100/75">
+            Tidak perlu berkas apa pun untuk mulai. Isi formulirnya sekarang,
+            unggah berkasnya nanti.
+        </p>
+
+        <div class="mt-9 flex flex-col gap-3 sm:flex-row">
+            <a href="#alur" class="btn btn-accent w-full sm:w-auto">
+                Mulai Pendaftaran
+            </a>
+            <a href="{{ route('login') }}"
+               class="btn w-full border border-white/25 text-white hover:border-white hover:bg-white/10 sm:w-auto">
+                Login Calon Murid
+            </a>
+        </div>
+
+        {{-- Angka diambil dari database lewat view composer spmb.*. Kalau
+             jumlahnya nol, barisnya disembunyikan utuh. `filled(0)` bernilai
+             true di Laravel, jadi menyaring dengan `filled` akan tetap
+             menampilkan "0 siswa aktif", padahal sekolah yang baru berdiri
+             belum punya data, bukan sekolah dengan nol siswa (R-17). --}}
+        @php
+            $stats = array_values(array_filter([
+                $jumlahSiswaAktif > 0 ? ['nilai' => $jumlahSiswaAktif, 'label' => 'Siswa aktif'] : null,
+                $jumlahGuruAktif > 0 ? ['nilai' => $jumlahGuruAktif, 'label' => 'Guru aktif'] : null,
+                $lamaBerdiri ? ['nilai' => $lamaBerdiri, 'label' => 'Tahun berdiri'] : null,
+            ]));
+        @endphp
+
+        @if ($stats)
+            <dl class="mt-14 grid max-w-lg grid-cols-2 gap-6 border-t border-primary-800 pt-8 sm:grid-cols-3">
+                @foreach ($stats as $stat)
+                    <div>
+                        <dt class="text-sm text-secondary-100/80">{{ $stat['label'] }}</dt>
+                        <dd class="mt-1 font-display text-3xl font-extrabold text-secondary-300 sm:text-4xl">
+                            {{ $stat['nilai'] }}
+                        </dd>
+                    </div>
+                @endforeach
+            </dl>
+        @endif
     </div>
 
-    {{-- Scroll Indicator --}}
-    <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
-        </svg>
-    </div>
+    {{-- Foto sekolah dan fakta yang menyertainya. Dulu foto ini dikelilingi
+         dua kartu yang melayang tanpa henti. Diganti baris fakta di bawah
+         foto, karena gerak tanpa pemicu hanya jadi kebisingan (R-19), dan
+         baris fakta tetap terbaca di layar kecil. --}}
+    <div class="relative mx-auto max-w-6xl px-5 pb-16 sm:px-6 sm:pb-24">
+        <div class="bingkai inline-block max-w-xl border border-primary-800">
+            {{-- `width`/`height` wajib ada supaya browser menyediakan ruang
+                 gambar sebelum file selesai dimuat. Tanpa itu halaman
+                 bergeser tepat di bagian yang paling pertama dilihat. --}}
+            <img src="/images/sekolah/gedung-960w.jpg"
+                 srcset="/images/sekolah/gedung-480w.jpg 480w,
+                         /images/sekolah/gedung-960w.jpg 960w,
+                         /images/sekolah/gedung-1600w.jpg 1600w"
+                 sizes="(min-width: 1024px) 600px, 100vw"
+                 width="1600" height="900"
+                 alt="Gedung dan lapangan {{ $namaSekolah ?? 'sekolah' }}"
+                 class="block w-full rounded-lg object-cover"
+                 loading="eager" fetchpriority="high" decoding="async">
+        </div>
 
+        <dl class="mt-10 grid max-w-xl gap-4 sm:grid-cols-2">
+            {{-- Akreditasi hanya dirender kalau kolomnya benar-benar diisi.
+                 Versi lama selalu menulis "Sekolah Terakreditasi" walau kolomnya
+                 kosong, sementara sub-teksnya sendiri mengakui "Status belum
+                 dicantumkan", jadi halaman mengarang klaim yang justru
+                 menyangkal dirinya sendiri. --}}
+            @if ($profileSekolah?->akreditasi_bersih)
+                <div class="rounded-md border border-primary-800 bg-primary-900/60 p-4">
+                    <dt class="text-xs font-semibold uppercase tracking-wider text-secondary-300">Status Akreditasi</dt>
+                    <dd class="mt-1 font-display text-lg font-extrabold text-white">
+                        Terakreditasi {{ $profileSekolah->akreditasi_bersih }}
+                    </dd>
+                </div>
+            @endif
+
+            @if ($tahunAjaran)
+                <div class="rounded-md border border-primary-800 bg-primary-900/60 p-4">
+                    <dt class="text-xs font-semibold uppercase tracking-wider text-secondary-300">Tahun ajaran</dt>
+                    <dd class="mt-1 font-display text-lg font-extrabold text-white">{{ $tahunAjaran }}</dd>
+                </div>
+            @endif
+        </dl>
+    </div>
 </section>

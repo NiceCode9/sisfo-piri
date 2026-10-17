@@ -17,6 +17,30 @@ class ProfilSekolah extends Model
      */
     public const PLACEHOLDER = '/^\s*(GANTI|TODO|ISI|DUMMY)\b[:\-]?/iu';
 
+    /**
+     * Peta cadangan sampai `maps_embed_url` diisi di panel administrasi.
+     *
+     * Dipakai sebagai query-free embed (`?q=...&output=embed`) supaya tidak
+     * butuh API key Google. Peta ini dipusatkan ke Ngaglik, Sleman, bukan ke
+     * satu titik bangunan, jadi tidak mengarang lokasi persis sekolah.
+     *
+     * Peta cadangan ini bukan pin yang dikarang seperti versi lama: begitu
+     * admin mengisi `maps_embed_url`, nilai itu yang dipakai dan bawaan ini
+     * tidak lagi muncul.
+     */
+    public const PETA_CADANGAN = 'https://www.google.com/maps?q=Ngaglik,+Sleman,+Yogyakarta&output=embed';
+
+    /**
+     * URL peta yang dipakai di halaman publik: yang diisi admin kalau ada,
+     * kalau belum, peta cadangan.
+     */
+    public function petaEmbedUrl(): ?string
+    {
+        $peta = $this->maps_embed_url;
+
+        return ($peta === null || $peta === '') ? self::PETA_CADANGAN : $peta;
+    }
+
     protected $fillable = [
         'nama_sekolah',
         'npsn',
@@ -49,6 +73,22 @@ class ProfilSekolah extends Model
         return static::first();
     }
 
+    /**
+     * NPSN yang siap ditampilkan.
+     *
+     * Kolomnya nullable-unique, jadi panel administrasi bisa meninggalkannya
+     * kosong. Tapi ia juga bisa terisi `GANTI: ...` seperti kolom lain, dan
+     * tanpa accessor ini nomor placeholder itu bocor ke halaman publik
+     * sebagai nomor sekolah yang terlihat sah.
+     */
+    public function getNpsnBersihAttribute(): ?string
+    {
+        return $this->bersih($this->npsn);
+    }
+
+    /**
+     * Alamat yang siap ditampilkan.
+     */
     public function getAlamatBersihAttribute(): ?string
     {
         return $this->bersih($this->alamat);

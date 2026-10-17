@@ -1,9 +1,8 @@
 @php
     // Kartu dibaca dari tabel `ekstrakurikulers` (dikelola di
     // admin/ekstrakurikulers). Versi lama menulis sembilan kartu hardcoded
-    // yang hampir tidak ada di database — Basket, Robotika, KIR, dan
-    // Jurnalistik tidak punya baris di tabel mana pun — sementara Paskibra,
-    // PMR, dan Rohani Islam yang benar-benar ada tidak pernah disebut.
+    // yang hampir tidak ada di database, sementara Paskibra, PMR, dan Rohani
+    // Islam yang benar-benar ada tidak pernah disebut.
 
     // `kode` sudah berupa slug stabil, jadi ikon bisa dipetakan dari situ.
     // Kode yang tidak dikenal tetap dapat kartu, hanya dengan ikon generik.
@@ -15,105 +14,135 @@
         'ROHIS' => 'M12 21s-7-4.5-7-10a4 4 0 017-2.6A4 4 0 0119 11c0 5.5-7 10-7 10z',
     ];
 
-    $ekstrakurikulers = $ekstrakurikulers ?? collect();
+    $ekskulList = ($ekstrakurikulers ?? collect())->sortBy('nama')->values();
 
-    // Warna kartu mengikuti index supaya urutannya berganti, sama seperti
-    // section lain di halaman ini.
-    $gradienEkskul = [
-        'from-primary-500 to-primary-700',
-        'from-accent-500 to-accent-700',
-        'from-secondary-500 to-secondary-700',
-        'from-purple-500 to-purple-700',
-        'from-pink-500 to-pink-700',
-        'from-indigo-500 to-indigo-700',
-        'from-rose-500 to-rose-700',
+    // Ketentuan berikut masih hardcode: tabel ekstrakurikulers tidak punya
+    // kolom kewajiban, kuota kehadiran, atau hubungan biaya dengan SPP.
+    // Semuanya perlu dikonfirmasi sekolah dulu sebelum jadi aturan resmi.
+    $ketentuanEkskul = [
+        '<strong>Pramuka wajib</strong> diikuti semua siswa kelas 7',
+        'Siswa <strong>wajib memilih minimal 1 ekskul pilihan</strong> sesuai minat bakat',
+        'Kehadiran ekskul <strong>minimal 75%</strong> untuk mendapat nilai',
+        'Biaya ekskul <strong>sudah termasuk dalam SPP</strong> bulanan',
     ];
+
+    $centang = 'M5 13l4 4L19 7';
 @endphp
 
-<section id="ekskul" class="py-20 bg-slate-50">
-    <div class="container mx-auto px-4">
-        
-        {{-- Section Header --}}
-        <div class="text-center max-w-3xl mx-auto mb-16">
-            <h2 class="text-3xl md:text-4xl font-extrabold text-gray-800 mb-4">
-                Ekstrakurikuler & <span class="text-primary-600">Program Unggulan</span>
+<section id="ekskul" class="bg-kertas-200 py-20 sm:py-24">
+    <div class="mx-auto max-w-6xl px-5 sm:px-6">
+
+        <div class="max-w-2xl">
+            <h2 class="reveal font-display text-3xl font-extrabold leading-tight text-ink-900 sm:text-4xl">
+                Ekstrakurikuler &amp; <span class="text-primary-700">Program Unggulan</span>
             </h2>
-            <p class="text-lg text-gray-600">
-                Kembangkan bakat dan minat dengan berbagai pilihan kegiatan menarik
+            <p class="reveal mt-5 text-base leading-relaxed text-ink-600">
+                Kembangkan bakat dan minat dengan berbagai pilihan kegiatan
+                menarik.
             </p>
         </div>
 
-        {{-- Grid Cards --}}
-        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            @forelse ($ekstrakurikulers as $ekskul)
-                @php $gradien = $gradienEkskul[$loop->index % count($gradienEkskul)]; @endphp
-                <div class="bg-white rounded-3xl p-8 shadow-lg card-hover">
-                    <div class="w-20 h-20 bg-gradient-to-br {{ $gradien }} rounded-2xl flex items-center justify-center mb-6 shadow-lg">
-                        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            // `kode` di-uppercase supaya admin yang mengetik "pramuka" tetap dapat ikon.
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $ikonEkskul[strtoupper($ekskul->kode)] ?? 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2z' }}"/>
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-800 mb-3">{{ $ekskul->nama }}</h3>
+        {{-- Jadwal ditulis paling depan karena itu yang pertama ditanyakan
+             anak, bukan deskripsi. Daftar, bukan grid kartu: enam kegiatan
+             tidak perlu jadi enam kotak besar yang sama persis.
+
+             Siklus tujuh gradien (hijau, biru, emas, ungu, merah muda,
+             indigo, merah) juga dihapus. Mengganti warna kartu sesuai urutan
+             tidak menambah informasi apa pun (R-29). --}}
+        @forelse ($ekskulList as $ekskul)
+            @php
+                $ikon = $ikonEkskul[strtoupper((string) $ekskul->kode)]
+                    ?? 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2z';
+            @endphp
+
+            <article class="reveal mt-8 flex flex-col gap-5 border-t border-kertas-400 pt-8 sm:flex-row sm:items-start sm:gap-7">
+                <span aria-hidden="true"
+                      class="grid h-12 w-12 shrink-0 place-items-center rounded-md border border-primary-200 bg-primary-50 text-primary-700">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="{{ $ikon }}"/>
+                    </svg>
+                </span>
+
+                <div class="min-w-0 flex-1">
+                    <h3 class="font-display text-lg font-extrabold text-ink-900">{{ $ekskul->nama }}</h3>
+
                     {{-- PMR dan Rohani Islam belum punya deskripsi, jadi blok ini
                          tidak boleh mengarang kalimat. --}}
                     @if ($ekskul->deskripsi)
-                        <p class="text-sm text-gray-600 mb-4">{{ $ekskul->deskripsi }}</p>
+                        <p class="mt-1.5 text-base leading-relaxed text-ink-600">{{ $ekskul->deskripsi }}</p>
                     @endif
-                    @if ($ekskul->jadwal)
-                        <div class="flex items-center space-x-2 text-xs text-gray-500">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
-                            </svg>
-                            <span>{{ $ekskul->jadwal }}</span>
-                        </div>
-                    @endif
-                </div>
-            @empty
-                <div class="sm:col-span-2 lg:col-span-3 text-center bg-white rounded-3xl p-10 shadow-lg">
-                    <p class="text-base font-semibold text-gray-700 mb-1">Belum ada kegiatan ekstrakurikuler</p>
-                    <p class="text-sm text-gray-500">Silakan cek kembali atau hubungi sekolah untuk informasi kegiatan yang tersedia.</p>
-                </div>
-            @endforelse
-        </div>
 
-        {{-- Info Box --}}
-        <div class="max-w-4xl mx-auto mt-16 bg-gradient-to-r from-primary-50 to-accent-50 rounded-3xl p-8 border-l-4 border-primary-600">
-            <div class="flex items-start space-x-4">
-                <svg class="w-10 h-10 text-primary-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                </svg>
-                <div>
-                    <h3 class="text-xl font-bold text-gray-800 mb-3">Ketentuan Ekstrakurikuler</h3>
-                    <ul class="space-y-2 text-sm text-gray-700">
-                        <li class="flex items-start">
-                            <svg class="w-5 h-5 text-accent-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                            </svg>
-                            <span><strong>Pramuka wajib</strong> diikuti semua siswa kelas 7</span>
-                        </li>
-                        <li class="flex items-start">
-                            <svg class="w-5 h-5 text-accent-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                            </svg>
-                            <span>Siswa <strong>wajib memilih minimal 1 ekskul pilihan</strong> sesuai minat dan bakat</span>
-                        </li>
-                        <li class="flex items-start">
-                            <svg class="w-5 h-5 text-accent-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                            </svg>
-                            <span>Kehadiran ekskul <strong>minimal 75%</strong> untuk mendapat nilai</span>
-                        </li>
-                        <li class="flex items-start">
-                            <svg class="w-5 h-5 text-accent-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                            </svg>
-                            <span>Biaya ekskul <strong>sudah termasuk dalam SPP</strong> bulanan</span>
-                        </li>
+                    @if ($ekskul->jadwal || $ekskul->pembina)
+                        <dl class="mt-3 flex flex-wrap gap-x-8 gap-y-1.5 text-sm">
+                            @if ($ekskul->jadwal)
+                                <div class="flex gap-2">
+                                    <dt class="sr-only">Jadwal</dt>
+                                    <svg class="mt-0.5 h-4 w-4 shrink-0 text-primary-600" fill="none"
+                                         stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                              d="M8 7V3m8 4V3M4 11h16M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                    <dd class="text-ink-700">{{ $ekskul->jadwal }}</dd>
+                                </div>
+                            @endif
+                            @if ($ekskul->pembina)
+                                <div class="flex gap-2">
+                                    <dt class="sr-only">Pembina</dt>
+                                    <svg class="mt-0.5 h-4 w-4 shrink-0 text-primary-600" fill="none"
+                                         stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                    </svg>
+                                    <dd class="text-ink-700">Pembina: {{ $ekskul->pembina }}</dd>
+                                </div>
+                            @endif
+                        </dl>
+                    @endif
+                </div>
+            </article>
+        @empty
+            {{-- Empty state (R-27): menyebut sebab dan jalan keluar. --}}
+            <div class="reveal mt-8 max-w-xl rounded-md border border-kertas-300 bg-kertas-100 p-8">
+                <h3 class="font-display text-lg font-extrabold text-ink-900">Belum ada kegiatan yang terdaftar</h3>
+                <p class="mt-2 text-base leading-relaxed text-ink-600">
+                    Sekolah belum memasukkan daftar kegiatan ke dalam sistem.
+                    Tanya langsung ke sekolah untuk tahu kegiatan apa saja yang
+                    sedang berjalan tahun ini.
+                </p>
+                @if ($profileSekolah?->whatsapp)
+                    <a href="https://wa.me/{{ $profileSekolah->whatsapp }}" class="btn btn-quiet mt-6">
+                        Tanya ke Sekolah
+                    </a>
+                @endif
+            </div>
+        @endforelse
+
+        {{-- Ketentuan ekskul. --}}
+        <div class="reveal mt-16 max-w-3xl rounded-lg border border-kertas-300 bg-kertas-100 p-6 sm:p-8">
+            <div class="flex items-start gap-4">
+                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-secondary-50 text-secondary-700">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2"
+                         viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M8.228 9c.549-1.165 2.03-2 3.772-2s3.223.835 3.772 2m-7.544 0a8.25 8.25 0 113.772 0M12 12.75h.008v.008H12v-.008zm.375 3h-.75v4.5h3v-3.75m-3-3h3v2.25H9.375z"/>
+                    </svg>
+                </span>
+
+                <div class="min-w-0">
+                    <h3 class="font-display text-lg font-extrabold text-ink-900">Ketentuan Ekstrakurikuler</h3>
+                    <ul class="mt-4 space-y-2.5">
+                        @foreach ($ketentuanEkskul as $ketentuan)
+                            <li class="flex gap-2.5 text-sm leading-relaxed text-ink-700">
+                                <svg class="mt-0.5 h-4 w-4 shrink-0 text-primary-600" fill="none"
+                                     stroke="currentColor" stroke-width="3" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="{{ $centang }}"/>
+                                </svg>
+                                <span>{!! $ketentuan !!}</span>
+                            </li>
+                        @endforeach
                     </ul>
                 </div>
             </div>
         </div>
-
     </div>
 </section>

@@ -144,7 +144,7 @@ test('import penempatan mengisi kelas pada siswa yang sudah diterima tanpa mengg
 
     $kelas = Kelas::create(['nama_kelas' => '7A', 'tingkat' => '7']);
 
-    // Admin导出 diterima, isi kelas, lalu import ulang.
+    // Admin menerima, isi kelas, lalu import ulang.
     $file = excelSiswa(headerPenempatan(), [
         ['2001', $nisn, 'Calon '.$nisn, '7A', '2026/2027', '', '', '', '', '081298765432'],
     ]);

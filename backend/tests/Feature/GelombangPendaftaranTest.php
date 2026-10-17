@@ -165,7 +165,7 @@ test('gelombang yang belum mulai tidak bisa dipilih maupun diterima', function (
     // informasi yang justru dicari calon.
     preg_match('/<select id="gelombang_id".*?<\/select>/s', $html, $m);
     expect($m[0] ?? '')->not->toContain('Belum Mulai')
-        ->and($html)->toContain('Pendaftaran Belum Dibuka');
+        ->and($html)->toContain('Pendaftaran belum dibuka');
 
     // POST langsung juga ditolak.
     $this->post(route('spmb.store'), payloadWave(['gelombang_id' => $belum->id]))
