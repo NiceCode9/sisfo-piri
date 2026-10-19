@@ -41,15 +41,21 @@ class SiswaController extends Controller implements HasMiddleware
         $tahunMode = request()->query('tahun', 'aktif');
 
         $siswas = Siswa::with(['user', 'kelas', 'tahunAjaran'])
+            ->leftJoin('kelas', 'siswas.kelas_id', '=', 'kelas.id')
+            ->leftJoin('users', 'siswas.user_id', '=', 'users.id')
+            ->select('siswas.*')
             ->when(request('search'), fn ($q, $s) => $q->where(fn ($qq) => $qq
-                ->where('nis', 'like', "%{$s}%")
-                ->orWhere('nisn', 'like', "%{$s}%")
+                ->where('siswas.nis', 'like', "%{$s}%")
+                ->orWhere('siswas.nisn', 'like', "%{$s}%")
                 ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$s}%"))
             ))
-            ->when(request('kelas'), fn ($q, $v) => $q->where('kelas_id', $v))
-            ->when($tahunMode === 'aktif' && $tahunAktif, fn ($q) => $q->where('tahun_ajaran_id', $tahunAktif->id))
-            ->when(is_numeric($tahunMode), fn ($q) => $q->where('tahun_ajaran_id', $tahunMode))
-            ->latest()
+            ->when(request('kelas'), fn ($q, $v) => $q->where('siswas.kelas_id', $v))
+            ->when($tahunMode === 'aktif' && $tahunAktif, fn ($q) => $q->where('siswas.tahun_ajaran_id', $tahunAktif->id))
+            ->when(is_numeric($tahunMode), fn ($q) => $q->where('siswas.tahun_ajaran_id', $tahunMode))
+            // Urut master: tingkat kelas, nama kelas, lalu nama siswa.
+            ->orderBy('kelas.tingkat')
+            ->orderBy('kelas.nama_kelas')
+            ->orderBy('users.name')
             ->paginate(10)
             ->withQueryString();
 

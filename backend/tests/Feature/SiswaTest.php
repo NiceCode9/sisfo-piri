@@ -11,6 +11,9 @@ use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 uses(RefreshDatabase::class);
 
@@ -43,6 +46,32 @@ test('user tanpa permission ditolak membuka daftar siswa', function () {
 test('super-admin dapat membuka daftar siswa', function () {
     $response = $this->actingAs(superAdmin())->get(route('admin.siswas.index'));
     $response->assertOk()->assertSee('Daftar Siswa');
+});
+
+test('daftar siswa diurutkan per kelas lalu nama', function () {
+    $tahun = TahunAjaran::aktif()->firstOrFail();
+    $kelas = Kelas::whereIn('nama_kelas', ['7A', '7B'])->pluck('id', 'nama_kelas');
+
+    $buatSiswa = function (string $nama, string $username, string $nis, int $kelasId) use ($tahun) {
+        $user = User::create(['username' => $username, 'name' => $nama, 'password' => $username]);
+        Siswa::create([
+            'user_id' => $user->id,
+            'nis' => $nis,
+            'nisn' => '007'.str_pad($nis, 7, '0', STR_PAD_LEFT),
+            'kelas_id' => $kelasId,
+            'tahun_ajaran_id' => $tahun->id,
+            'is_aktif' => true,
+        ]);
+    };
+
+    // Dibuat acak: urutan lama (terbaru dulu) berbeda dengan urutan kelas-nama.
+    $buatSiswa('Citra', 'citra', '1001', $kelas['7A']);
+    $buatSiswa('Zaki', 'zaki', '1003', $kelas['7B']);
+    $buatSiswa('Andi', 'andi', '1002', $kelas['7B']);
+
+    $this->actingAs(superAdmin())->get(route('admin.siswas.index'))
+        ->assertOk()
+        ->assertSeeInOrder(['Citra', 'Andi', 'Zaki']);
 });
 
 test('super-admin dapat menambah siswa beserta akun dan ortu', function () {
@@ -234,7 +263,7 @@ test('template excel dapat diunduh', function () {
 });
 
 test('import excel buat akun dan riwayat, baris gagal dilaporkan', function () {
-    $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+    $spreadsheet = new Spreadsheet;
     $sheet = $spreadsheet->getActiveSheet();
     $sheet->fromArray([
         ['nis', 'nisn', 'nama', 'kelas', 'tahun_ajaran', 'nama_ayah', 'pekerjaan_ayah', 'nama_ibu', 'pekerjaan_ibu', 'no_hp_orang_tua'],
@@ -245,11 +274,11 @@ test('import excel buat akun dan riwayat, baris gagal dilaporkan', function () {
     foreach (['A2', 'A3', 'B2', 'B3'] as $cell) {
         $sheet->getCell($cell)->setValueExplicit(
             $sheet->getCell($cell)->getValue(),
-            \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING
+            DataType::TYPE_STRING
         );
     }
     $path = tempnam(sys_get_temp_dir(), 'siswa').'.xlsx';
-    (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save($path);
+    (new Xlsx($spreadsheet))->save($path);
     $file = new UploadedFile($path, 'siswa.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', UPLOAD_ERR_OK, true);
 
     $response = $this->actingAs(superAdmin())->post(route('admin.siswas.import'), [
