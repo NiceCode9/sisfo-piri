@@ -4,6 +4,7 @@ namespace App\Imports;
 
 use App\Models\Guru;
 use App\Models\User;
+use Closure;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
@@ -16,13 +17,17 @@ use Maatwebsite\Excel\Concerns\WithValidation;
 /**
  * Import data guru dari Excel.
  *
- * Akun login diambil dari NIP (`username = nip`, `password = nip`). NIP yang
- * sudah terdaftar hanya memperbarui data profil — password tidak diubah agar
- * akun lama tetap bisa login.
+ * Akun login diambil dari nomor telepon (`username = telp`, password default
+ * adalah mentah `"password"`). NIP yang sudah terdaftar memperbarui data profil
+ * sekaligus menyelaraskan akunnya: username diubah ke nomor telepon terbaru dan
+ * password direset ke bawaan.
  */
 class GuruImport implements SkipsEmptyRows, SkipsOnFailure, ToCollection, WithHeadingRow, WithValidation
 {
     use SkipsFailures;
+
+    /** Password bawaan setiap akun guru. */
+    public const PASSWORD_BAWAAN = 'password';
 
     public int $imported = 0;
 
@@ -56,10 +61,22 @@ class GuruImport implements SkipsEmptyRows, SkipsOnFailure, ToCollection, WithHe
     private function simpanBaris(array $row): void
     {
         $nip = (string) $row['nip'];
+        $telp = (string) $row['telp'];
+
+        // Username = nomor telepon, jadi bentrok dengan akun lain gagal di
+        // sini (bukan lewat exception unik di tengah transaksi).
+        if (User::where('username', $telp)
+            ->where('id', '!=', Guru::where('nip', $nip)->value('user_id') ?? 0)
+            ->exists()) {
+            $this->customFailures[] = "No. HP {$telp} sudah dipakai username akun lain.";
+
+            return;
+        }
+
         $profil = [
             'nama' => (string) $row['nama'],
             'jenis_kelamin' => (string) $row['jenis_kelamin'],
-            'telp' => ! empty($row['telp']) ? (string) $row['telp'] : null,
+            'telp' => $telp,
             'alamat' => ! empty($row['alamat']) ? (string) $row['alamat'] : null,
             // Sel kosong, "0", dan tak terbaca tetap dipisah dari benar (1).
             'is_aktif' => isset($row['is_aktif']) ? filter_var($row['is_aktif'], FILTER_VALIDATE_BOOLEAN) : true,
@@ -73,27 +90,31 @@ class GuruImport implements SkipsEmptyRows, SkipsOnFailure, ToCollection, WithHe
 
                 // Guru lama yang belum punya akun tetap dibuatkan akunnya.
                 if (! $guru->user_id) {
-                    $this->buatAkun($nip, $profil['nama']);
-                } elseif ($guru->user?->name !== $profil['nama']) {
-                    $guru->user->update(['name' => $profil['nama']]);
+                    $this->buatAkun($profil);
+                } else {
+                    $guru->user->update([
+                        'username' => $profil['telp'],
+                        'name' => $profil['nama'],
+                        'password' => self::PASSWORD_BAWAAN,
+                    ]);
                 }
                 $this->updated++;
 
                 return;
             }
 
-            $user = $this->buatAkun($nip, $profil['nama']);
+            $user = $this->buatAkun($profil);
             Guru::create($profil + ['user_id' => $user->id, 'nip' => $nip]);
             $this->imported++;
         });
     }
 
-    private function buatAkun(string $nip, string $nama): User
+    private function buatAkun(array $profil): User
     {
         $user = User::create([
-            'username' => $nip,
-            'name' => $nama,
-            'password' => $nip,
+            'username' => $profil['telp'],
+            'name' => $profil['nama'],
+            'password' => self::PASSWORD_BAWAAN,
         ]);
         $user->assignRole('guru');
 
@@ -102,20 +123,25 @@ class GuruImport implements SkipsEmptyRows, SkipsOnFailure, ToCollection, WithHe
 
     public function rules(): array
     {
-        $digits = function (string $attribute, mixed $value, callable $fail): void {
-            if (! preg_match('/^[0-9]+$/', (string) $value)) {
-                $fail('NIP harus angka (format kolom NIP sebagai Teks di Excel).');
-            }
-        };
-
         return [
-            'nip' => ['required', 'string', 'max:50', $digits],
+            'nip' => ['required', 'string', 'max:50', $this->harusAngka('NIP harus angka (format kolom sebagai Teks di Excel).')],
+            'telp' => ['required', 'string', 'max:50', $this->harusAngka('No. HP harus angka (format kolom sebagai Teks di Excel).')],
             'nama' => ['required', 'string', 'max:255'],
             'jenis_kelamin' => ['required', 'in:L,P'],
-            'telp' => ['nullable', 'string', 'max:50'],
             'alamat' => ['nullable', 'string', 'max:1000'],
             'is_aktif' => ['nullable', 'boolean'],
         ];
+    }
+
+    private function harusAngka(string $pesan): Closure
+    {
+        // Nama atribut dari Maatwebsite berprefiks per baris, jadi hanya isi
+        // selnya yang dicek; nama kolom tidak relevan di sini.
+        return function (string $attribute, mixed $value, callable $fail) use ($pesan): void {
+            if (! preg_match('/^[0-9]+$/', (string) $value)) {
+                $fail($pesan);
+            }
+        };
     }
 
     public function customValidationAttributes(): array

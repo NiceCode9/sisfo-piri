@@ -28,8 +28,8 @@
     </div>
     <div class="col-12 col-sm-4">
         <div class="form-floating">
-            <input type="text" name="telp" value="{{ old('telp', $guru->telp ?? '') }}" class="form-control @error('telp') is-invalid @enderror" id="telp" placeholder="No. HP" />
-            <label for="telp">No. HP</label>
+            <input type="text" name="telp" value="{{ old('telp', $guru->telp ?? '') }}" class="form-control @error('telp') is-invalid @enderror" id="telp" placeholder="No. HP" required />
+            <label for="telp">No. HP <span class="text-danger">*</span></label>
             @error('telp')<div class="invalid-feedback">{{ $message }}</div>@enderror
         </div>
     </div>
@@ -53,27 +53,8 @@
 </div>
 
 <hr class="my-4" style="border-color: var(--border-color);" />
-<h6 style="font-weight:700;font-size:14px;margin-bottom:12px;">Akun Login (role guru)</h6>
-
-<div class="row g-3 mb-3">
-    <div class="col-12 col-sm-4">
-        <div class="form-floating">
-            <input type="text" name="username" value="{{ old('username', $guru->user->username ?? '') }}" class="form-control @error('username') is-invalid @enderror" id="username" placeholder="Username" required />
-            <label for="username">Username <span class="text-danger">*</span></label>
-            @error('username')<div class="invalid-feedback">{{ $message }}</div>@enderror
-        </div>
-    </div>
-    <div class="col-12 col-sm-4">
-        <div class="form-floating">
-            <input type="password" name="password" class="form-control @error('password') is-invalid @enderror" id="password" placeholder="Password" @if(!isset($guru)) required @endif />
-            <label for="password">Password @if(!isset($guru))<span class="text-danger">*</span>@else (kosongkan bila tidak diubah)@endif</label>
-            @error('password')<div class="invalid-feedback">{{ $message }}</div>@enderror
-        </div>
-    </div>
-    <div class="col-12 col-sm-4">
-        <div class="form-floating">
-            <input type="password" name="password_confirmation" class="form-control" id="password_confirmation" placeholder="Konfirmasi" @if(!isset($guru)) required @endif />
-            <label for="password_confirmation">Konfirmasi Password</label>
-        </div>
-    </div>
-</div>
+<h6 style="font-weight:700;font-size:14px;margin-bottom:8px;">Akun Login (role guru)</h6>
+<p class="mb-0" style="font-size:12.5px;color:var(--text-muted);">
+    Akun dibuat otomatis: <code>username</code> = No. HP di atas, <code>password</code> = <code>password</code>.
+    Menyimpan guru apa pun di halaman ini juga menyetel ulang password akunnya.
+</p>

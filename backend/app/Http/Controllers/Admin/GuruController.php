@@ -55,9 +55,9 @@ class GuruController extends Controller implements HasMiddleware
 
         DB::transaction(function () use ($validated) {
             $user = User::create([
-                'username' => $validated['username'],
+                'username' => $validated['telp'],
                 'name' => $validated['nama'],
-                'password' => $validated['password'],
+                'password' => GuruImport::PASSWORD_BAWAAN,
             ]);
             $user->assignRole('guru');
 
@@ -117,12 +117,10 @@ class GuruController extends Controller implements HasMiddleware
 
         DB::transaction(function () use ($validated, $guru) {
             $userData = [
-                'username' => $validated['username'],
+                'username' => $validated['telp'],
                 'name' => $validated['nama'],
+                'password' => GuruImport::PASSWORD_BAWAAN,
             ];
-            if (! empty($validated['password'])) {
-                $userData['password'] = $validated['password'];
-            }
             $guru->user()->updateOrCreate([], $userData);
             $guru->user->assignRole('guru');
 

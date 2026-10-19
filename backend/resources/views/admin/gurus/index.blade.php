@@ -77,11 +77,11 @@
                 <div class="modal-body">
                     <p style="font-size:13px;color:var(--text-secondary);">
                         Upload file Excel sesuai template. NIP yang belum terdaftar dibuat sebagai guru baru sekaligus
-                        akun login (<code>username</code> = NIP, <code>password</code> = NIP). NIP yang sudah ada hanya
-                        memperbarui data profil, password tidak berubah.
+                        akun login (<code>username</code> = No. HP, <code>password</code> = <code>password</code>).
+                        NIP yang sudah ada memperbarui data profil dan akunnya ikut disetel ulang ke aturan tersebut.
                     </p>
                     <p style="font-size:12px;color:var(--text-muted);">
-                        Format kolom NIP sebagai Teks agar digit tidak hilang.
+                        Format kolom NIP dan No. HP sebagai Teks agar digit tidak hilang.
                     </p>
                     <div class="mb-3">
                         <a href="{{ route('admin.gurus.template') }}" class="btn btn-nexus-outline btn-sm"><i class="fa-solid fa-download"></i> Unduh Template Excel</a>
