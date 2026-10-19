@@ -1167,8 +1167,12 @@
             // dipakai, bukan dari jumlah baris. Setelah validasi gagal, kunci
             // `sertifikat` bisa bolong (mis. 0 dan 3), lalu baris baru akan
             // menabrak `id` milik baris lama.
-            const sertIndex = sertRows
-                .querySelectorAll('input[name^="sertifikat["]')
+            // `Array.from` wajib. `querySelectorAll` mengembalikan NodeList, dan
+            // NodeList tidak punya `reduce`. Memanggilnya langsung melempar
+            // TypeError saat halaman dimuat, lalu seluruh skrip setelah baris
+            // ini ikut mati: toggle sertifikat, tambah/hapus baris, preview
+            // file, sampai proteksi tombol kirim.
+            const sertIndex = Array.from(sertRows.querySelectorAll('input[name^="sertifikat["]'))
                 .reduce((max, inp) => {
                     const n = parseInt(inp.name.match(/sertifikat\[(\d+)\]/)?.[1] ?? '-1', 10);
                     return Number.isNaN(n) ? max : Math.max(max, n + 1);

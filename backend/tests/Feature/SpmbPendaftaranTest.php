@@ -374,6 +374,28 @@ test('setiap halaman publik menutup semua tag script yang dibukanya', function (
     }
 });
 
+test('skrip halaman tidak memanggil method array langsung pada NodeList', function () {
+    // `querySelectorAll()` mengembalikan NodeList, bukan array. NodeList punya
+    // `forEach`, tapi tidak punya `reduce`, `map`, `filter`, `find`, atau
+    // `sort`. Memanggilnya langsung melempar TypeError saat halaman dimuat,
+    // dan SELURUH skrip setelah baris itu tidak pernah jalan.
+    //
+    // Itu yang membuat field sertifikat prestasi tidak pernah muncul di
+    // wizard: perhitungan nomor baris memakai `.reduce()` pada hasil
+    // `querySelectorAll`, jadi listener jalur, tombol tambah, preview file,
+    // dan proteksi tombol kirim semuanya tidak terpasang. Markup tetap utuh,
+    // jadi tidak ada satu pun assertion HTTP yang gagal.
+    $html = $this->get(route('spmb.pendaftaran'))->assertOk()->getContent();
+
+    preg_match_all(
+        '/querySelectorAll\s*\([^)]*\)\s*\.\s*(reduce|map|filter|find|sort|some|every)\s*\(/',
+        $html,
+        $cocok
+    );
+
+    expect($cocok[0])->toBe([], 'method array dipanggil pada NodeList: '.implode(', ', $cocok[0]));
+});
+
 test('isi section tidak pernah bergantung pada JavaScript untuk terlihat', function () {
     // `.reveal` mulai dari `opacity: 0` dan hanya jadi terlihat setelah
     // IntersectionObserver berjalan. Kalau JS tidak ada atau gagal, isinya
