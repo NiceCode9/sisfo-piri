@@ -44,9 +44,9 @@ class DatabaseSeeder extends Seeder
             MenuSeeder::class,
             PpdbSeeder::class,
             PengaturanSeeder::class,
-            ProfilSekolahSeeder::class,
-            BrosurSeeder::class,
-            GaleriSeeder::class,
+            // ProfilSekolahSeeder::class,
+            // BrosurSeeder::class,
+            // GaleriSeeder::class,
             // Data master untuk development: kelas 7A-9C, 15 guru, 90 siswa.
             //
             // `AkademikSeeder` sengaja TIDAK dipanggil di sini. File itu tetap
@@ -55,7 +55,7 @@ class DatabaseSeeder extends Seeder
             // fixture itu akan merusak test yang tidak ada hubungannya dengan
             // data master. `DatabaseSeeder` sendiri tidak dipanggil oleh test
             // mana pun, jadi pemisahan ini tidak mengganggu test sama sekali.
-            DataMasterRealSeeder::class,
+            // DataMasterRealSeeder::class,
         ]);
     }
 }
