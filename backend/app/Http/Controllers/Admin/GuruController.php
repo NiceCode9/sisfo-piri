@@ -2,16 +2,21 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\GuruTemplateExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreGuruRequest;
 use App\Http\Requests\Admin\UpdateGuruRequest;
+use App\Imports\GuruImport;
 use App\Models\Guru;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class GuruController extends Controller implements HasMiddleware
 {
@@ -19,7 +24,7 @@ class GuruController extends Controller implements HasMiddleware
     {
         return [
             new Middleware('permission:gurus.view', only: ['index']),
-            new Middleware('permission:gurus.create', only: ['create', 'store']),
+            new Middleware('permission:gurus.create', only: ['create', 'store', 'template', 'import']),
             new Middleware('permission:gurus.edit', only: ['edit', 'update']),
             new Middleware('permission:gurus.delete', only: ['destroy']),
         ];
@@ -68,6 +73,37 @@ class GuruController extends Controller implements HasMiddleware
         });
 
         return redirect()->route('admin.gurus.index')->with('success', "Guru {$validated['nama']} berhasil ditambahkan beserta akun login.");
+    }
+
+    public function template(): BinaryFileResponse
+    {
+        return Excel::download(new GuruTemplateExport, 'template-import-guru.xlsx');
+    }
+
+    public function import(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
+        ]);
+
+        $import = new GuruImport;
+        Excel::import($import, $request->file('file'));
+
+        $gagal = $import->failures();
+        $ringkas = "dibuat {$import->imported}, diperbarui {$import->updated}";
+        $jumlahGagal = $gagal->count() + count($import->customFailures);
+
+        if ($jumlahGagal > 0) {
+            $daftar = $gagal->take(10)
+                ->map(fn ($f) => 'Baris '.$f->row().': '.implode(', ', $f->errors()))
+                ->merge($import->customFailures)
+                ->take(10)
+                ->implode(' | ');
+
+            return back()->with('error', "Import selesai: {$ringkas}, {$jumlahGagal} gagal. {$daftar}");
+        }
+
+        return redirect()->route('admin.gurus.index')->with('success', "Import selesai: {$ringkas}.");
     }
 
     public function edit(Guru $guru): View

@@ -11,6 +11,8 @@
     </div>
     <div class="d-flex gap-2 flex-wrap">
         @can('gurus.create')
+            <a href="{{ route('admin.gurus.template') }}" class="btn btn-nexus-outline btn-sm"><i class="fa-solid fa-file-excel"></i> Template</a>
+            <button type="button" class="btn btn-nexus-outline btn-sm" data-bs-toggle="modal" data-bs-target="#modalImport"><i class="fa-solid fa-file-import"></i> Import</button>
             <a href="{{ route('admin.gurus.create') }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Tambah Guru</a>
         @endcan
     </div>
@@ -61,4 +63,38 @@
     </div>
     @if($gurus->hasPages())<div class="px-3 py-2 border-top d-flex justify-content-end" style="border-color:var(--border-color)!important;">{{ $gurus->links('pagination::bootstrap-5') }}</div>@endif
 </div>
+
+@can('gurus.create')
+<div class="modal fade" id="modalImport" tabindex="-1" aria-labelledby="modalImportLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalImportLabel"><i class="fa-solid fa-file-import me-2"></i>Import Data Guru</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ route('admin.gurus.import') }}" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-body">
+                    <p style="font-size:13px;color:var(--text-secondary);">
+                        Upload file Excel sesuai template. NIP yang belum terdaftar dibuat sebagai guru baru sekaligus
+                        akun login (<code>username</code> = NIP, <code>password</code> = NIP). NIP yang sudah ada hanya
+                        memperbarui data profil, password tidak berubah.
+                    </p>
+                    <p style="font-size:12px;color:var(--text-muted);">
+                        Format kolom NIP sebagai Teks agar digit tidak hilang.
+                    </p>
+                    <div class="mb-3">
+                        <a href="{{ route('admin.gurus.template') }}" class="btn btn-nexus-outline btn-sm"><i class="fa-solid fa-download"></i> Unduh Template Excel</a>
+                    </div>
+                    <input type="file" name="file" accept=".xlsx,.xls,.csv" class="form-control" required />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-nexus-outline" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-upload"></i> Import</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endcan
 @endsection

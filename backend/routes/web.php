@@ -163,6 +163,8 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::resource('jalur-pendaftarans', JalurPendaftaranController::class)->except(['show']);
 
     Route::resource('kuota-pendaftarans', KuotaPendaftaranController::class)->except(['show']);
+    Route::get('gurus/template', [GuruController::class, 'template'])->name('gurus.template');
+    Route::post('gurus/import', [GuruController::class, 'import'])->name('gurus.import');
     Route::resource('gurus', GuruController::class)->except(['show']);
     Route::resource('mata-pelajarans', MataPelajaranController::class)->except(['show']);
     Route::resource('ekstrakurikulers', EkstrakurikulerController::class)->except(['show']);
