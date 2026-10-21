@@ -32,10 +32,25 @@ class PencatatanAbsensi
         ];
 
         $absensi = Absensi::firstOrNew($kunci);
+
+        if ($absensi->exists && $absensi->metode === 'manual') {
+            // Baris manual guru (grid, sakit/izin/alpa) yang sudah ada —
+            // termasuk yang baru saja ditulis guru di celah balapan —
+            // dikembalikan tanpa disentuh scan apa pun.
+            return $absensi;
+        }
+
         self::isiArrivalPertama($absensi, $status, $sekarang, $metode, $dicatatOleh);
         $tersimpan = self::simpan($absensi, $kunci);
 
         if ($tersimpan->is($absensi)) {
+            return $tersimpan;
+        }
+
+        // Baris manual guru (grid, sakit/izin/alpa) tidak pernah disentuh
+        // scan — termasuk saat balapan membuat insert scan mendarat pada
+        // baris manual yang baru saja ditulis guru.
+        if ($tersimpan->metode === 'manual') {
             return $tersimpan;
         }
 

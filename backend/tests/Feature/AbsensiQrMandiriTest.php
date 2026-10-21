@@ -7,6 +7,7 @@ use App\Models\Rombel;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
+use App\Services\PencatatanAbsensi;
 use App\Services\TokenQrAbsensi;
 use Database\Seeders\AkademikSeeder;
 use Database\Seeders\PermissionSeeder;
@@ -285,6 +286,30 @@ test('halaman QR guru terbuka untuk guru dan terkunci bagi akun siswa', function
         ->assertSee('<svg', false);
 
     $this->actingAs($siswa->user)->get(route('guru.absensi-qr'))->assertForbidden();
+});
+
+test('baris manual tidak tersentuh pencatatan scan melewati balapan unik', function () {
+    $rombel = rombelQrMandiri();
+    $siswa = siswaQrMandiri('4015', 'Anak Mandiri Balapan Manual', $rombel);
+    $guru = guruPemilikQr();
+
+    // Baris manual guru tersimpan sungguhan di persis celah waktu antara
+    // cek "belum ada catatan" pada controller dan insert scan di service.
+    Absensi::create([
+        'rombel_id' => $rombel->id,
+        'siswa_id' => $siswa->id,
+        'tanggal' => now()->toDateString(),
+        'status' => 'izin',
+        'metode' => 'manual',
+    ]);
+
+    $hasil = PencatatanAbsensi::catat($siswa->id, $rombel->id, now(), 'hadir', 'qr', $guru->id);
+
+    // Scanning tidak boleh mengubah metode, status, maupun pencatat baris
+    // guru; yang terdokumentasi tetap milik guru.
+    expect($hasil->metode)->toBe('manual')
+        ->and($hasil->status)->toBe('izin')
+        ->and($hasil->dicatat_oleh)->not->toBe($guru->id);
 });
 
 test('refresh menata QR dari interval pengaturan', function () {

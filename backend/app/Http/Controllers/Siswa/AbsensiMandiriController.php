@@ -93,6 +93,12 @@ class AbsensiMandiriController extends Controller
 
         $absensi = PencatatanAbsensi::catat($siswa->id, $rombel->id, $sekarang, $status, 'qr', $guruUser->id);
 
+        if ($absensi->metode === 'manual') {
+            // Guru memenangkan balapan persis di celah cek di atas: barisnya
+            // tetap milik guru dan pengirim scan diberi tahu.
+            return response()->json(['message' => 'Absensi kamu hari ini sudah dicatat guru: '.$absensi->status.'.'], 422);
+        }
+
         return response()->json([
             'message' => $absensi->status === 'hadir'
                 ? 'Tercatat hadir jam '.substr((string) $absensi->jam_datang, 0, 5).'.'

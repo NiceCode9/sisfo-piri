@@ -16,7 +16,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        DB::table('pengaturans')->insert([
+        // Idempoten: rollback-lalu-migrate tidak boleh menabrak kunci unik
+        // `pengaturans.kunci`.
+        DB::table('pengaturans')->insertOrIgnore([
             ['kunci' => 'jam_buka_absen', 'nilai' => '07:00', 'keterangan' => 'Jam scan absen mandiri dibuka (HH:MM).', 'created_at' => now(), 'updated_at' => now()],
             ['kunci' => 'jam_tutup_absen', 'nilai' => '07:45', 'keterangan' => 'Jam scan absen mandiri ditutup (HH:MM).', 'created_at' => now(), 'updated_at' => now()],
             ['kunci' => 'menit_ganti_qr', 'nilai' => '10', 'keterangan' => 'Rentang menit QR harian guru berganti (anti foto QR).', 'created_at' => now(), 'updated_at' => now()],
@@ -34,15 +36,14 @@ return new class extends Migration
         }
 
         // SQLite menolak `drop column` bila masih ada indeks yang memuat
-        // kolomnya. Indeks unik qr_token dibongkar dulu secara eksplisit;
-        // MySQL ikut dijalankan karena `drop column` di sana memang
-        // menghapus indeks satu kolom bersanding dengan kolomnya, tapi
-        // menukar dependensi itu dengan perintah eksplisit membuat urutan
-        // tidak bergantung pada perilaku dialect.
-        if (DB::getDriverName() === 'sqlite') {
-            DB::statement('DROP INDEX IF EXISTS siswas_qr_token_unique');
-        } else {
-            DB::statement('ALTER TABLE siswas DROP INDEX siswas_qr_token_unique');
+        // kolomnya. Indeks unik qr_token dibongkar dulu secara eksplisit,
+        // dengan pengecekan agar siklus rollback-lalu-migrate juga aman.
+        if (Schema::hasIndex('siswas', 'siswas_qr_token_unique')) {
+            if (DB::getDriverName() === 'sqlite') {
+                DB::statement('DROP INDEX siswas_qr_token_unique');
+            } else {
+                DB::statement('ALTER TABLE siswas DROP INDEX siswas_qr_token_unique');
+            }
         }
 
         Schema::table('siswas', function (Blueprint $table) {
@@ -55,5 +56,9 @@ return new class extends Migration
         Schema::table('siswas', function (Blueprint $table) {
             $table->string('qr_token')->nullable()->unique();
         });
+
+        // Kunci jendela milik fase ini; nilai kustom `batas_terlambat` tidak
+        // diutak-atik karena intent nilainya tidak bisa ditebak.
+        DB::table('pengaturans')->whereIn('kunci', ['jam_buka_absen', 'jam_tutup_absen', 'menit_ganti_qr'])->delete();
     }
 };
