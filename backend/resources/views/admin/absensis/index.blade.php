@@ -9,11 +9,6 @@
         <h1 class="page-title">Absensi Harian</h1>
         <p class="page-subtitle mb-0">Input manual per rombel, satu simpan untuk semua</p>
     </div>
-    <div class="d-flex gap-2 flex-wrap">
-        @can('absensis.create')
-            <a href="{{ route('admin.absensis.scan', ['rombel_id' => $rombel?->id]) }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-qrcode"></i> Scan QR</a>
-        @endcan
-    </div>
 </div>
 
 @include('layouts.partials.alert', ['errorDitampilkan' => ['alasan', 'berkas', 'file', 'status']])

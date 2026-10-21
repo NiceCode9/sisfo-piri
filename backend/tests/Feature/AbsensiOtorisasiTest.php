@@ -9,6 +9,7 @@ use App\Models\Rombel;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
+use App\Services\TokenQrAbsensi;
 use Database\Seeders\AkademikSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\PpdbSeeder;
@@ -46,7 +47,6 @@ if (! function_exists('siswaOtorisasiUji')) {
             'user_id' => $user->id,
             'nis' => $nis,
             'nisn' => sprintf('009030%04d', $n),
-            'qr_token' => 'token-oto-'.$n,
             'tahun_ajaran_id' => $rombel->tahun_ajaran_id,
             'kelas_id' => $rombel->kelas_id,
             'is_aktif' => true,
@@ -135,19 +135,20 @@ test('wali ditolak menyimpan batch ke rombel yang bukan ampunya', function () {
     expect(Absensi::where('siswa_id', $siswa->id)->exists())->toBeFalse();
 });
 
-test('wali ditolak scan QR ke rombel yang bukan ampunya', function () {
-    $rombelSendiri = rombelOtorisasiUji('7A');
-    $rombelAsing = rombelOtorisasiUji('7B');
-    $siswa = siswaOtorisasiUji('6102', 'Anak Scan Asing', $rombelAsing);
-    $wali = waliOtorisasiUji($rombelSendiri);
-    $wali->givePermissionTo('absensis.create');
+test('scan mandiri hanya jalur akun siswa, guru ditolak middleware role', function () {
+    $rombel = rombelOtorisasiUji('7A');
+    $siswa = siswaOtorisasiUji('6102', 'Anak Scan Mandiri', $rombel);
+    $guru = guruRoleUji('guru', 'Guru Bukan Siswa');
 
-    $this->actingAs($wali)
-        ->postJson(route('admin.absensis.scan.store'), [
-            'token' => $siswa->qr_token,
-            'rombel_id' => $rombelAsing->id,
-        ])
-        ->assertForbidden();
+    // Alur baru: siswa yang memindai QR milik sendiri. Akun guru tidak punya
+    // halaman scan siswa — pendekatan lama (guru memindai kartu siswa) bisa
+    // dipinjam akun besar/rombel yang salah, jadi jalurnya dihapus, bukan
+    // diberi pengecualian.
+    $this->actingAs($guru)->get(route('siswa.absensi.scan'))->assertForbidden();
+
+    $this->actingAs($guru)->postJson(route('siswa.absensi.scan.store'), [
+        'token' => TokenQrAbsensi::generate($guru->id),
+    ])->assertForbidden();
 
     expect(Absensi::where('siswa_id', $siswa->id)->exists())->toBeFalse();
 });

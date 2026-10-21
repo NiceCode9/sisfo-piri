@@ -20,6 +20,9 @@ class Pengaturan extends Model
      */
     public const KUNCI_CACHE = [
         'batas_terlambat',
+        'jam_buka_absen',
+        'jam_tutup_absen',
+        'menit_ganti_qr',
         'jam_cek_belum_hadir',
         'semester_ganjil_mulai',
         'semester_ganjil_selesai',

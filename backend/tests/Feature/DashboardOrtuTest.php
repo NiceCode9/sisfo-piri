@@ -65,7 +65,6 @@ function anakOrtu(string $nis, string $nama, Rombel $rombel, ?User $ortu = null)
         'user_id' => $siswaUser->id,
         'nis' => $nis,
         'nisn' => '0077'.$nis,
-        'qr_token' => 'qr-ortu-'.$nis,
         'tahun_ajaran_id' => $rombel->tahun_ajaran_id,
         'kelas_id' => $rombel->kelas_id,
         'is_aktif' => true,

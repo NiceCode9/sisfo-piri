@@ -12,6 +12,7 @@ use App\Models\Rombel;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
+use App\Services\TokenQrAbsensi;
 use Carbon\Carbon;
 use Database\Seeders\AkademikSeeder;
 use Database\Seeders\PermissionSeeder;
@@ -62,7 +63,6 @@ if (! function_exists('buatAnggotaRombel')) {
             'user_id' => $user->id,
             'nis' => $nis,
             'nisn' => sprintf('008010%04d', $n),
-            'qr_token' => 'token-'.$n.'-'.str()->random(8),
             'tahun_ajaran_id' => $rombel->tahun_ajaran_id,
             'kelas_id' => $rombel->kelas_id,
             'is_aktif' => true,
@@ -85,6 +85,20 @@ if (! function_exists('rombelUjiAbsensi')) {
         return Rombel::whereHas('kelas', fn ($q) => $q->where('nama_kelas', $kelas))
             ->where('tahun_ajaran_id', TahunAjaran::aktif()->first()->id)
             ->firstOrFail();
+    }
+
+    /**
+     * Akun guru yang QR-nya dipakai uji scan mandiri.
+     *
+     * Hanya butuh akun: QR harian dibangun dari id pengguna, tanpa tabel
+     * token dan tanpa mengandalkan penugasan rombel.
+     */
+    function guruQrAbsensi(string $nama = 'Guru Pembawa QR'): User
+    {
+        $user = User::factory()->create(['username' => 'guru-qr-'.str()->random(6), 'name' => $nama]);
+        $user->assignRole('guru');
+
+        return $user;
     }
 
     /**
@@ -241,45 +255,23 @@ test('tanggal masa depan ditolak', function () {
         ->assertSessionHasErrors('tanggal');
 });
 
-test('scan menolak rombel_id ngawur', function () {
-    $this->actingAs(superAdmin())
-        ->get(route('admin.absensis.scan', ['rombel_id' => 'abc']))
-        ->assertSessionHasErrors('rombel_id');
-});
-
-test('halaman scan menjelaskan saat tidak ada rombel terjangkau', function () {
-    $rombel = rombelUjiAbsensi();
-    $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
-
-    // Guru tanpa penugasan. Dropdown rombel kosong, dan tanpa penjelasan
-    // setiap scan berakhir dengan "Gagal mencatat." yang tidak menjelaskan
-    // apa pun ke guru.
-    $guru = User::factory()->create(['username' => 'guru-tanpa-rombel-scan']);
-    $guru->assignRole('guru');
-
-    $this->actingAs($guru)->get(route('admin.absensis.scan'))
-        ->assertOk()
-        ->assertSee('Belum ada rombel yang bisa dipindai')
-        ->assertSee('wali');
-});
-
 test('balapan pada unique tidak berakhir sebagai 500', function () {
-    Pengaturan::updateOrCreate(['kunci' => 'batas_terlambat'], ['nilai' => '07:00']);
     $rombel = rombelUjiAbsensi();
     $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
-    $payload = ['token' => $siswa->qr_token, 'rombel_id' => $rombel->id];
+    $this->travelTo(now()->startOfDay()->setTime(7, 10));
+    $payload = ['token' => TokenQrAbsensi::generate(guruQrAbsensi()->id)];
 
     // Simulasikan balapan sungguhan: tepat sebelum baris pertama ditulis,
     // perangkat lain berhasil lebih dulu menyisipkan baris untuk kunci yang
     // sama. Tanpa penanganan unique, insert ini meledak jadi 500.
-    $berkasLawan = false;
+    $balapan = false;
 
-    Absensi::creating(function () use (&$berkasLawan, $rombel, $siswa) {
-        if ($berkasLawan) {
+    Absensi::creating(function () use (&$balapan, $rombel, $siswa) {
+        if ($balapan) {
             return;
         }
 
-        $berkasLawan = true;
+        $balapan = true;
 
         DB::table('absensis')->insert([
             'rombel_id' => $rombel->id,
@@ -293,7 +285,7 @@ test('balapan pada unique tidak berakhir sebagai 500', function () {
         ]);
     });
 
-    $this->actingAs(superAdmin())->postJson(route('admin.absensis.scan.store'), $payload)
+    $this->actingAs($siswa->user)->postJson(route('siswa.absensi.scan.store'), $payload)
         ->assertOk()
         ->assertJson(['status' => 'hadir', 'baru' => false]);
 
@@ -307,40 +299,37 @@ test('balapan pada unique tidak berakhir sebagai 500', function () {
 });
 
 test('scan dibatasi rate limit', function () {
-    Pengaturan::updateOrCreate(['kunci' => 'batas_terlambat'], ['nilai' => '07:00']);
     $rombel = rombelUjiAbsensi();
     $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
-    $admin = superAdmin();
+    $akun = $siswa->user;
 
-    // Kamera memindai berulang selama kartu di dalam frame, jadi endpoint ini
-    // harus punya batas sendiri, bukan throttle bawaan.
+    // Kamera memindai berulang selama QR guru ada di dalam frame, jadi
+    // endpoint ini harus punya batas sendiri, bukan throttle bawaan.
+    $this->travelTo(now()->startOfDay()->setTime(7, 10));
+    $payload = ['token' => TokenQrAbsensi::generate(guruQrAbsensi()->id)];
+
     for ($i = 0; $i < 120; $i++) {
-        $this->actingAs($admin)->postJson(route('admin.absensis.scan.store'), [
-            'token' => $siswa->qr_token,
-            'rombel_id' => $rombel->id,
-        ])->assertOk();
+        $this->actingAs($akun)->postJson(route('siswa.absensi.scan.store'), $payload)->assertOk();
     }
 
-    $this->actingAs($admin)->postJson(route('admin.absensis.scan.store'), [
-        'token' => $siswa->qr_token,
-        'rombel_id' => $rombel->id,
-    ])->assertStatus(429);
+    $this->actingAs($akun)->postJson(route('siswa.absensi.scan.store'), $payload)->assertStatus(429);
 });
 
 test('batas terlambat dibaca dari cache dan dibuang saat pengaturan disimpan', function () {
     Cache::flush();
-    Pengaturan::updateOrCreate(['kunci' => 'batas_terlambat'], ['nilai' => '07:00']);
     Pengaturan::flushCache();
 
     $rombel = rombelUjiAbsensi();
     $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
+    $akun = $siswa->user;
+    $akun->refresh();
 
-    // 09 Oktober 23:30 UTC = 10 Oktober 06:30 WIB, jadi masih dalam batas 07:00.
-    $this->travelTo(Carbon::parse('2026-10-09 23:30:00', 'UTC'));
-    $this->actingAs(superAdmin())->postJson(route('admin.absensis.scan.store'), [
-        'token' => $siswa->qr_token,
-        'rombel_id' => $rombel->id,
-    ])->assertOk()->assertJson(['status' => 'hadir']);
+    // 07:10 pas berada di dalam jendela (buka 07:00, batas 07:15).
+    $this->travelTo(now()->startOfDay()->setTime(7, 10));
+    $payload = ['token' => TokenQrAbsensi::generate(guruQrAbsensi()->id)];
+
+    $this->actingAs($akun)->postJson(route('siswa.absensi.scan.store'), $payload)
+        ->assertOk()->assertJson(['status' => 'hadir']);
 
     // Scan kedua harus memakai nilai yang sama tanpa query ulang. Yang dihitung
     // adalah nilai yang dikirim sebagai binding, bukan teks SQL: query-nya
@@ -356,10 +345,7 @@ test('batas terlambat dibaca dari cache dan dibuang saat pengaturan disimpan', f
         }
     });
 
-    $this->actingAs(superAdmin())->postJson(route('admin.absensis.scan.store'), [
-        'token' => $siswa->qr_token,
-        'rombel_id' => $rombel->id,
-    ])->assertOk();
+    $this->actingAs($akun)->postJson(route('siswa.absensi.scan.store'), $payload)->assertOk();
 
     expect($query)->toBe(0);
 
@@ -367,10 +353,11 @@ test('batas terlambat dibaca dari cache dan dibuang saat pengaturan disimpan', f
     // cache kedaluwarsa.
     $admin = superAdmin();
     $this->actingAs($admin)->put(route('admin.pengaturans.update'), [
-        'batas_terlambat' => '05:00',
+        'jam_buka_absen' => '06:45',
+        'batas_terlambat' => '07:00',
     ])->assertSessionHas('success');
 
-    expect(Pengaturan::nilai('batas_terlambat'))->toBe('05:00');
+    expect(Pengaturan::nilai('batas_terlambat'))->toBe('07:00');
 });
 
 test('penanda cek-belum-hadir tidak ikut di-cache', function () {
@@ -905,18 +892,26 @@ test('batch menolak siswa luar rombel', function () {
     expect($rombel7B->id)->not->toBe($rombel->id);
 });
 
-test('scan sukses mencatat hadir dengan jam', function () {
-    Pengaturan::updateOrCreate(['kunci' => 'batas_terlambat'], ['nilai' => '23:59']);
+test('scan sukses mencatat hadir dan mencatat guru pemilik QR', function () {
     $rombel = rombelUjiAbsensi();
     $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
+    $guru = guruQrAbsensi();
 
-    $response = $this->actingAs(superAdmin())->postJson(route('admin.absensis.scan.store'), [
-        'token' => $siswa->qr_token,
-        'rombel_id' => $rombel->id,
-    ]);
+    // 07:10 pas: dalam jendela, sebelum batas terlambat 07:15.
+    $this->travelTo(now()->startOfDay()->setTime(7, 10));
 
-    $response->assertOk()->assertJson(['status' => 'hadir', 'baru' => true]);
-    expect(Absensi::where('siswa_id', $siswa->id)->first()->metode)->toBe('qr');
+    $this->actingAs($siswa->user)->postJson(route('siswa.absensi.scan.store'), [
+        'token' => TokenQrAbsensi::generate($guru->id),
+    ])->assertOk()->assertJson(['status' => 'hadir', 'baru' => true]);
+
+    $absensi = Absensi::where('siswa_id', $siswa->id)->firstOrFail();
+
+    // Guru yang QR-nya dipindai yang dicatat, bukan pemegang akun yang
+    // mengirim scan (di sini keduanya beda arah: yang menekan kirim adalah
+    // siswa, dan siswa tidak ikut jadi pencatat).
+    expect($absensi->metode)->toBe('qr')
+        ->and($absensi->dicatat_oleh)->toBe($guru->id)
+        ->and(substr((string) $absensi->jam_datang, 0, 5))->toBe('07:10');
 });
 
 test('zona waktu aplikasi bukan UTC', function () {
@@ -928,78 +923,79 @@ test('zona waktu aplikasi bukan UTC', function () {
     expect(config('app.timezone'))->not->toBe('UTC');
 });
 
-test('scan tengah malam dicatat pada tanggal sekolah yang benar', function () {
+test('scan tengah malam ditolak karena jendela belum dibuka', function () {
     // Instan dikunci dalam UTC secara absolut, bukan lewat `Carbon::parse`
     // tanpa zona — kalau begitu "sekarang" ikut zona aplikasi dan testnya
     // selalu lolos apa pun zonanya, yaitu tidak membuktikan apa pun.
     //
-    // 09 Oktober 17:30 UTC = 10 Oktober 00:30 WIB. Dengan zona UTC, scan ini
-    // tersimpan tanggal 9 Oktober dan jam 17:30, lalu `'17:30' > '07:00'`
-    // membuat siswa yang datang tengah malam ditandai terlambat.
+    // 09 Oktober 17:30 UTC = 10 Oktober 00:30 WIB. Jendela absen baru dibuka
+    // 07:00, jadi permintaan ini ditolak alih-alih disimpan dengan tanggal
+    // yang salah.
     $this->travelTo(Carbon::parse('2026-10-09 17:30:00', 'UTC'));
 
     expect(now()->toDateString())->toBe('2026-10-10');
 
-    Pengaturan::updateOrCreate(['kunci' => 'batas_terlambat'], ['nilai' => '07:00']);
     $rombel = rombelUjiAbsensi();
     $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
 
-    $this->actingAs(superAdmin())->postJson(route('admin.absensis.scan.store'), [
-        'token' => $siswa->qr_token,
-        'rombel_id' => $rombel->id,
-    ])->assertOk()->assertJson(['status' => 'hadir']);
+    $response = $this->actingAs($siswa->user)->postJson(route('siswa.absensi.scan.store'), [
+        'token' => TokenQrAbsensi::generate(guruQrAbsensi()->id),
+    ])->assertUnprocessable();
 
-    $absensi = Absensi::where('siswa_id', $siswa->id)->firstOrFail();
-
-    expect($absensi->tanggal)->toBe('2026-10-10')
-        ->and(substr((string) $absensi->jam_datang, 0, 5))->toBe('00:30');
+    expect($response->json('message'))->toContain('belum dibuka')
+        ->and(Absensi::where('siswa_id', $siswa->id)->exists())->toBeFalse();
 });
 
-test('scan larut malam tetap pada hari yang sama dan ditandai terlambat', function () {
-    // 10 Oktober 16:30 UTC = 10 Oktober 23:30 WIB. Lewat batas 07:00, jadi
-    // `terlambat` itu benar; yang dijaga adalah tanggalnya tetap 10 Oktober.
+test('scan larut malam ditolak karena jendela sudah tutup', function () {
+    // 10 Oktober 16:30 UTC = 10 Oktober 23:30 WIB. Sistem tidak lagi menerima
+    // scan lewat 07:45; pencatatan menyusul lewat grid guru.
     $this->travelTo(Carbon::parse('2026-10-10 16:30:00', 'UTC'));
 
-    Pengaturan::updateOrCreate(['kunci' => 'batas_terlambat'], ['nilai' => '07:00']);
     $rombel = rombelUjiAbsensi();
     $siswa = buatAnggotaRombel('4002', 'Anak Absen Malam', $rombel);
 
-    $this->actingAs(superAdmin())->postJson(route('admin.absensis.scan.store'), [
-        'token' => $siswa->qr_token,
-        'rombel_id' => $rombel->id,
-    ])->assertOk()->assertJson(['status' => 'terlambat']);
+    $response = $this->actingAs($siswa->user)->postJson(route('siswa.absensi.scan.store'), [
+        'token' => TokenQrAbsensi::generate(guruQrAbsensi()->id),
+    ])->assertUnprocessable();
 
-    expect(Absensi::where('siswa_id', $siswa->id)->firstOrFail()->tanggal)->toBe('2026-10-10');
+    expect($response->json('message'))->toContain('ditutup')
+        ->and(Absensi::where('siswa_id', $siswa->id)->exists())->toBeFalse();
 });
 
 test('scan lewat batas tercatat terlambat', function () {
-    Pengaturan::updateOrCreate(['kunci' => 'batas_terlambat'], ['nilai' => '00:00']);
     $rombel = rombelUjiAbsensi();
     $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
 
-    $this->actingAs(superAdmin())->postJson(route('admin.absensis.scan.store'), [
-        'token' => $siswa->qr_token,
-        'rombel_id' => $rombel->id,
+    // 07:20 pas: sudah lewat batas 07:15, masih sebelum tutup 07:45.
+    $this->travelTo(now()->startOfDay()->setTime(7, 20));
+
+    $this->actingAs($siswa->user)->postJson(route('siswa.absensi.scan.store'), [
+        'token' => TokenQrAbsensi::generate(guruQrAbsensi()->id),
     ])->assertOk()->assertJson(['status' => 'terlambat']);
 });
 
 test('scan token asing ditolak', function () {
     $rombel = rombelUjiAbsensi();
+    $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
+    $akun = $siswa->user;
 
-    $this->actingAs(superAdmin())->postJson(route('admin.absensis.scan.store'), [
-        'token' => 'token-tidak-ada',
-        'rombel_id' => $rombel->id,
-    ])->assertUnprocessable()->assertJson(['message' => 'QR tidak dikenal.']);
+    $response = $this->actingAs($akun)->postJson(route('siswa.absensi.scan.store'), [
+        'token' => 'absqr|ngawur-total',
+    ])->assertUnprocessable();
+
+    expect($response->json('message'))->toContain('QR tidak berlaku');
 });
 
 test('scan ulang hari sama tidak duplikat', function () {
-    Pengaturan::updateOrCreate(['kunci' => 'batas_terlambat'], ['nilai' => '23:59']);
     $rombel = rombelUjiAbsensi();
     $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
-    $payload = ['token' => $siswa->qr_token, 'rombel_id' => $rombel->id];
+    $akun = $siswa->user;
 
-    $this->actingAs(superAdmin())->postJson(route('admin.absensis.scan.store'), $payload)->assertOk();
-    $this->actingAs(superAdmin())->postJson(route('admin.absensis.scan.store'), $payload)
+    $this->travelTo(now()->startOfDay()->setTime(7, 10));
+    $payload = ['token' => TokenQrAbsensi::generate(guruQrAbsensi()->id)];
+
+    $this->actingAs($akun)->postJson(route('siswa.absensi.scan.store'), $payload)->assertOk();
+    $this->actingAs($akun)->postJson(route('siswa.absensi.scan.store'), $payload)
         ->assertOk()->assertJson(['baru' => false]);
 
     expect(Absensi::where('siswa_id', $siswa->id)->count())->toBe(1);
@@ -1007,20 +1003,21 @@ test('scan ulang hari sama tidak duplikat', function () {
 
 test('scan susulan tidak menimpa jam dan status kehadiran pertama', function () {
     $rombel = rombelUjiAbsensi();
-    $siswa = buatAnggotaRombel('4002', 'Anak Scan Ganda');
-    $payload = ['token' => $siswa->qr_token, 'rombel_id' => $rombel->id];
+    $siswa = buatAnggotaRombel('4002', 'Anak Scan Ganda', $rombel);
+    $akun = $siswa->user;
 
     // Scan pertama tepat waktu.
-    $this->travelTo(now()->setTime(6, 55));
-    Pengaturan::updateOrCreate(['kunci' => 'batas_terlambat'], ['nilai' => '07:00']);
-    $this->actingAs(superAdmin())->postJson(route('admin.absensis.scan.store'), $payload)
+    $this->travelTo(now()->startOfDay()->setTime(7, 10));
+    $payload = ['token' => TokenQrAbsensi::generate(guruQrAbsensi()->id)];
+    $this->actingAs($akun)->postJson(route('siswa.absensi.scan.store'), $payload)
         ->assertOk()->assertJson(['status' => 'hadir', 'baru' => true]);
     $pertama = Absensi::where('siswa_id', $siswa->id)->firstOrFail();
 
-    // Scan kedua setelah batas. Absensi tepat waktunya tidak boleh hilang dan
-    // siswa tidak boleh dianggap terlambat hanya karena scan susulan.
-    $this->travelTo(now()->setTime(8, 5));
-    $this->actingAs(superAdmin())->postJson(route('admin.absensis.scan.store'), $payload)
+    // Scan kedua setelah batas, masih dalam jendela. Absensi tepat waktunya
+    // tidak boleh hilang dan siswa tidak boleh dianggap terlambat hanya
+    // karena scan susulan.
+    $this->travelTo(now()->startOfDay()->setTime(7, 20));
+    $this->actingAs($akun)->postJson(route('siswa.absensi.scan.store'), $payload)
         ->assertOk()->assertJson(['status' => 'hadir', 'baru' => false]);
 
     $absensi = Absensi::where('siswa_id', $siswa->id)->firstOrFail();
@@ -1030,41 +1027,41 @@ test('scan susulan tidak menimpa jam dan status kehadiran pertama', function () 
         ->and(Absensi::where('siswa_id', $siswa->id)->count())->toBe(1);
 });
 
-test('scan susulan tetap mencatat terlambat bila baris pertama belum punya jam', function () {
+test('scan ditolak bila sudah berbaris catatan manual guru', function () {
     $rombel = rombelUjiAbsensi();
-    $siswa = buatAnggotaRombel('4003', 'Anak Scan Tanpa Jam');
-    $payload = ['token' => $siswa->qr_token, 'rombel_id' => $rombel->id];
+    $siswa = buatAnggotaRombel('4003', 'Anak Sudah Dicatat', $rombel);
+    $akun = $siswa->user;
+    $akun->refresh();
 
-    // Baris manual sudah ada (mis. diisi guru), belum ada jam datang.
+    // Catatan manual guru hari ini: scan tidak pernah menimpanya, karena
+    // penaganan lewat jalur guru butuh alasan dan meninggalkan jejak koreksi.
     Absensi::create([
         'rombel_id' => $rombel->id,
         'siswa_id' => $siswa->id,
         'tanggal' => now()->toDateString(),
-        'status' => 'izin',
+        'status' => 'sakit',
         'metode' => 'manual',
     ]);
 
-    $this->travelTo(now()->setTime(8, 5));
-    Pengaturan::updateOrCreate(['kunci' => 'batas_terlambat'], ['nilai' => '07:00']);
-    $this->actingAs(superAdmin())->postJson(route('admin.absensis.scan.store'), $payload)->assertOk();
+    $this->travelTo(now()->startOfDay()->setTime(7, 10));
 
-    $absensi = Absensi::where('siswa_id', $siswa->id)->firstOrFail();
-    expect($absensi->jam_datang)->not->toBeNull()
+    $response = $this->actingAs($akun)->postJson(route('siswa.absensi.scan.store'), [
+        'token' => TokenQrAbsensi::generate(guruQrAbsensi()->id),
+    ])->assertUnprocessable();
+
+    expect($response->json('message'))->toContain('sudah dicatat guru')
+        ->and(Absensi::where('siswa_id', $siswa->id)->firstOrFail()->status)->toBe('sakit')
         ->and(Absensi::where('siswa_id', $siswa->id)->count())->toBe(1);
 });
 
-test('generate ulang token QR menghanguskan token lama', function () {
-    $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu');
-    $lama = $siswa->qr_token;
-
-    $this->actingAs(superAdmin())->post(route('admin.siswas.qr', $siswa))->assertSessionHas('success');
-
-    expect($siswa->fresh()->qr_token)->not->toBe($lama);
-});
-
-test('kartu menampilkan QR dari token', function () {
+test('kartu pelajar tidak lagi membawa QR absensi', function () {
     $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu');
 
+    // QR harian kini milik akun guru; kartu siswa tinggal identitas, jadi
+    // tidak ada blok QR di sisi belakangnya.
     $this->actingAs(superAdmin())->get(route('admin.siswas.kartu', $siswa))
-        ->assertOk()->assertSee('<svg', false);
+        ->assertOk()
+        ->assertDontSee('SCAN UNTUK ABSENSI')
+        ->assertDontSee('qr-box')
+        ->assertDontSee('<svg', false);
 });

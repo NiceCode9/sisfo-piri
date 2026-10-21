@@ -11,7 +11,7 @@
     </div>
 </div>
 
-@include('layouts.partials.alert', ['errorDitampilkan' => ['batas_terlambat', 'jam_cek_belum_hadir', 'maintenance_pesan', 'semester_ganjil_mulai', 'semester_ganjil_selesai', 'semester_genap_mulai', 'semester_genap_selesai']])
+@include('layouts.partials.alert', ['errorDitampilkan' => ['batas_terlambat', 'jam_buka_absen', 'jam_tutup_absen', 'menit_ganti_qr', 'jam_cek_belum_hadir', 'maintenance_pesan', 'semester_ganjil_mulai', 'semester_ganjil_selesai', 'semester_genap_mulai', 'semester_genap_selesai']])
 
 <form method="POST" action="{{ route('admin.pengaturans.update') }}">
     @csrf @method('PUT')
@@ -25,6 +25,27 @@
                         <input type="time" name="batas_terlambat" value="{{ old('batas_terlambat', $pengaturan['batas_terlambat'] ?? '07:00') }}" class="form-control @error('batas_terlambat') is-invalid @enderror" id="batas_terlambat" required />
                         <label for="batas_terlambat">Batas Terlambat (HH:MM)</label>
                         @error('batas_terlambat')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6">
+                    <div class="form-floating">
+                        <input type="time" name="jam_buka_absen" value="{{ old('jam_buka_absen', $pengaturan['jam_buka_absen'] ?? '07:00') }}" class="form-control @error('jam_buka_absen') is-invalid @enderror" id="jam_buka_absen" required />
+                        <label for="jam_buka_absen">Jam Buka Absen (HH:MM)</label>
+                        @error('jam_buka_absen')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6">
+                    <div class="form-floating">
+                        <input type="time" name="jam_tutup_absen" value="{{ old('jam_tutup_absen', $pengaturan['jam_tutup_absen'] ?? '07:45') }}" class="form-control @error('jam_tutup_absen') is-invalid @enderror" id="jam_tutup_absen" required />
+                        <label for="jam_tutup_absen">Jam Tutup Absen (HH:MM)</label>
+                        @error('jam_tutup_absen')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6">
+                    <div class="form-floating">
+                        <input type="number" min="5" max="120" name="menit_ganti_qr" value="{{ old('menit_ganti_qr', $pengaturan['menit_ganti_qr'] ?? '10') }}" class="form-control @error('menit_ganti_qr') is-invalid @enderror" id="menit_ganti_qr" required />
+                        <label for="menit_ganti_qr">Interval Ganti QR (menit)</label>
+                        @error('menit_ganti_qr')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                 </div>
                 <div class="col-12 col-sm-6">

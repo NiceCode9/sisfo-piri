@@ -55,7 +55,6 @@ function siswaDasbor(?string $kelasNama = '7A', string $nis = '5301'): array
         'user_id' => $user->id,
         'nis' => $nis,
         'nisn' => '0099'.$nis,
-        'qr_token' => 'qr-dash-'.$nis,
         'tahun_ajaran_id' => $tahun->id,
         'kelas_id' => $kelas->id,
         'is_aktif' => true,

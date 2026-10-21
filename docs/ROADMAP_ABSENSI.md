@@ -50,18 +50,17 @@
 - [x] Jadwal `everyFiveMinutes` + pengaturan `jam_cek_belum_hadir`, `cek_belum_hadir_terakhir`, `whatsapp_gateway_url`
 - [ ] Konektor gateway `whatsapp-web.js` (service terpisah — di luar repo ini)
 
-### Fase A5 — QR absen mandiri [RENCANA — menunggu persetujuan user]
+### Fase A5 — QR absen mandiri
 
 > Desain lengkap: `docs/superpowers/specs/2026-10-21-absensi-qr-mandiri-design.md`.
-> Jangan mulai kode sebelum persetujuan.
 
-- [ ] Migrasi: kunci `jam_buka_absen`, `jam_tutup_absen`, `menit_ganti_qr`; `batas_terlambat` digeser 07:15; drop `siswas.qr_token`
-- [ ] Ekstraksi service pencatatan absensi (helper di `AbsensiController`, param `dicatat_oleh` eksplisit)
-- [ ] Token harian guru: `hash_hmac` per slot `menit_ganti_qr`, tanpa tabel; halaman `guru/absensi-qr` + endpoint refresh JSON
-- [ ] Siswa: halaman absen mandiri (kamera `html5-qrcode`) + POST scan dengan jendela jam, status hadir/terlambat otomatis, idempoten
-- [ ] Hapus jalur lama: route+view scan piket, tombol "Scan QR" di grid, `regenerateQr`, blok QR kartu cetak
-- [ ] Pengaturan admin: 3 kunci baru + validasi relasi `jam_buka < batas < jam_tutup`
-- [ ] Test `AbsensiQrMandiriTest` (batas menit, token kadaluarsa, tabrakan manual, arrival-first, tanpa rombel) + pembaharuan test lama
+- [x] Migrasi: kunci `jam_buka_absen`, `jam_tutup_absen`, `menit_ganti_qr`; `batas_terlambat` digeser 07:15; drop `siswas.qr_token`
+- [x] Ekstraksi service pencatatan absensi (helper di `AbsensiController`, param `dicatat_oleh` eksplisit)
+- [x] Token harian guru: `hash_hmac` per slot `menit_ganti_qr`, tanpa tabel; halaman `guru/absensi-qr` + endpoint refresh JSON
+- [x] Siswa: halaman absen mandiri (kamera `html5-qrcode`) + POST scan dengan jendela jam, status hadir/terlambat otomatis, idempoten
+- [x] Hapus jalur lama: route+view scan piket, tombol "Scan QR" di grid, `regenerateQr`, blok QR kartu cetak
+- [x] Pengaturan admin: 3 kunci baru + validasi relasi `jam_buka < batas < jam_tutup`
+- [x] Test `AbsensiQrMandiriTest` (batas menit, token kadaluarsa, tabrakan manual, arrival-first, tanpa rombel) + pembaharuan test lama
 
 ## Catatan teknis
 

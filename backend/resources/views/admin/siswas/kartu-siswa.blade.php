@@ -141,28 +141,6 @@
             text-align: center;
         }
 
-        .qr-box {
-            background: #fff;
-            border: 2px solid #e5e7eb;
-            border-radius: 10px;
-            padding: 6px;
-            display: inline-block;
-        }
-
-        .qr-box img, .qr-box svg {
-            width: 100px;
-            height: 100px;
-            display: block;
-        }
-
-        .qr-caption {
-            font-size: 8.5px;
-            font-weight: 600;
-            color: var(--brand-primary-dark);
-            margin-top: 6px;
-            letter-spacing: 0.5px;
-        }
-
         .card-back-rules {
             font-size: 6.5px;
             color: #9ca3af;
@@ -227,14 +205,13 @@
         $schoolLogo = $sekolah?->logo_path ? Storage::disk('public')->url($sekolah->logo_path) : null;
         $tahunAjaran = $tahunAjaran ?? date('Y').'/'.(date('Y') + 1);
         $siswaList = $siswaList ?? collect();
-        $qrTersedia = class_exists(\SimpleSoftwareIO\QrCode\Facades\QrCode::class);
     @endphp
 
     <div class="container py-5">
         <div class="d-flex justify-content-between align-items-center mb-4 no-print">
             <div>
                 <h1 class="h4 fw-bold mb-1">Cetak Kartu Pelajar</h1>
-                <p class="text-muted small mb-0">Klik kartu untuk membalik (preview) &middot; QR code di belakang dipakai untuk absensi</p>
+                <p class="text-muted small mb-0">Klik kartu untuk membalik (preview)</p>
             </div>
             <button type="button" class="btn btn-primary" onclick="window.print()">
                 Cetak Kartu
@@ -286,14 +263,6 @@
                                 {{-- BACK --}}
                                 <div class="id-card-face id-card-back">
                                     <div class="card-back-inner">
-                                        <div class="qr-box">
-                                            @if($qrTersedia)
-                                                {!! \SimpleSoftwareIO\QrCode\Facades\QrCode::size(150)->generate($siswa->qr_token ?? $siswa->nisn) !!}
-                                            @else
-                                                <div class="d-flex align-items-center justify-content-center fw-bold" style="width:100px;height:100px;font-size:11px;color:var(--brand-primary-dark);">{{ $siswa->nisn }}</div>
-                                            @endif
-                                        </div>
-                                        <div class="qr-caption">SCAN UNTUK ABSENSI</div>
                                         <div class="card-back-rules">
                                             Kartu ini milik {{ $schoolName }}.<br>
                                             Jika ditemukan, harap dikembalikan ke bagian Tata Usaha sekolah.

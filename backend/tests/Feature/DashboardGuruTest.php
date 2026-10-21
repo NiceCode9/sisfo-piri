@@ -26,7 +26,6 @@ use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
 
@@ -366,7 +365,6 @@ function siswaRombelUji(Rombel $rombel, string $nis): Siswa
         'user_id' => $user->id,
         'nis' => $nis,
         'nisn' => '0088'.$nis,
-        'qr_token' => 'qr-'.$nis.'-'.Str::random(6),
         'tahun_ajaran_id' => $rombel->tahun_ajaran_id,
         'kelas_id' => $rombel->kelas_id,
         'is_aktif' => true,

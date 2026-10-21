@@ -46,9 +46,11 @@ use App\Http\Controllers\Admin\WhatsappController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DokumenController;
 use App\Http\Controllers\Elearning\BerkasController as ElearningBerkasController;
+use App\Http\Controllers\Guru\AbsensiQrController;
 use App\Http\Controllers\Guru\DashboardController as GuruDashboardController;
 use App\Http\Controllers\Ortu\DashboardController as OrtuDashboardController;
 use App\Http\Controllers\Ortu\ProfilController as OrtuProfilController;
+use App\Http\Controllers\Siswa\AbsensiMandiriController;
 use App\Http\Controllers\Siswa\BerkasController;
 use App\Http\Controllers\Siswa\DashboardController;
 use App\Http\Controllers\Siswa\MateriController as SiswaMateriController;
@@ -104,6 +106,13 @@ Route::prefix('siswa')->name('siswa.')->middleware(['auth', 'role:siswa'])->grou
     Route::get('/kelas', [RiwayatController::class, 'kelas'])->name('kelas');
     Route::get('/riwayat', [RiwayatController::class, 'riwayat'])->name('riwayat');
     Route::get('/absensi', [RiwayatController::class, 'absensi'])->name('absensi');
+    Route::get('/absensi/scan', [AbsensiMandiriController::class, 'show'])->name('absensi.scan');
+    Route::post('/absensi/scan', [AbsensiMandiriController::class, 'store'])
+        ->name('absensi.scan.store')
+        // Kamera siswa bisa memindai berulang selama QR masih di frame; tanpa
+        // batas ini satu perangkat bisa membanjiri server dengan permintaan
+        // yang isinya identik.
+        ->middleware('throttle:absensi-scan');
     Route::get('/materi', [SiswaMateriController::class, 'index'])->name('materi.index');
     Route::get('/materi/{materi}', [SiswaMateriController::class, 'show'])->name('materi.show');
     Route::get('/tugas', [SiswaTugasController::class, 'index'])->name('tugas.index');
@@ -129,6 +138,8 @@ Route::prefix('ortu')->name('ortu.')->middleware(['auth', 'role:orang-tua'])->gr
 
 Route::prefix('guru')->name('guru.')->middleware(['auth', 'role:guru|guru-piket'])->group(function () {
     Route::get('/dashboard', [GuruDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/absensi-qr', [AbsensiQrController::class, 'show'])->name('absensi-qr');
+    Route::get('/absensi-qr/refresh', [AbsensiQrController::class, 'refresh'])->name('absensi-qr.refresh');
 });
 
 Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
@@ -220,13 +231,10 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::get('siswas/template', [SiswaController::class, 'template'])->name('siswas.template');
     Route::post('siswas/import', [SiswaController::class, 'import'])->name('siswas.import');
     Route::get('siswas/{siswa}/kartu', [SiswaController::class, 'kartu'])->name('siswas.kartu');
-    Route::post('siswas/{siswa}/qr', [SiswaController::class, 'regenerateQr'])->name('siswas.qr');
     Route::resource('siswas', SiswaController::class);
     Route::get('siswas/{siswa}/riwayat', [RiwayatSiswaController::class, 'show'])->name('siswas.riwayat');
     Route::get('absensis', [AbsensiController::class, 'index'])->name('absensis.index');
     Route::post('absensis/batch', [AbsensiController::class, 'storeBatch'])->name('absensis.batch');
-    Route::get('absensis/scan', [AbsensiController::class, 'scan'])->name('absensis.scan');
-    Route::post('absensis/scan', [AbsensiController::class, 'storeScan'])->name('absensis.scan.store');
     Route::post('absensis/{absensi}/bukti', [AbsensiController::class, 'storeBukti'])->name('absensis.bukti');
     Route::get('absensis/impor/template', [AbsensiController::class, 'importTemplate'])->name('absensis.impor.template');
     Route::post('absensis/impor', [AbsensiController::class, 'import'])->name('absensis.impor');

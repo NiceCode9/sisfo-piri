@@ -18,7 +18,10 @@ class PengaturanSeeder extends Seeder
         ])->delete();
 
         $bawaan = [
-            ['kunci' => 'batas_terlambat', 'nilai' => '07:00', 'keterangan' => 'Batas jam datang (HH:MM); lewat dari ini tercatat terlambat.'],
+            ['kunci' => 'jam_buka_absen', 'nilai' => '07:00', 'keterangan' => 'Jam scan absen mandiri dibuka (HH:MM).'],
+            ['kunci' => 'jam_tutup_absen', 'nilai' => '07:45', 'keterangan' => 'Jam scan absen mandiri ditutup (HH:MM).'],
+            ['kunci' => 'menit_ganti_qr', 'nilai' => '10', 'keterangan' => 'Rentang menit QR harian guru berganti (anti foto QR).'],
+            ['kunci' => 'batas_terlambat', 'nilai' => '07:15', 'keterangan' => 'Batas jam datang (HH:MM); lewat dari ini tercatat terlambat.'],
             ['kunci' => 'jam_cek_belum_hadir', 'nilai' => '08:00', 'keterangan' => 'Jam command cek-belum-hadir jalan (HH:MM, self-gating tiap 5 menit).'],
             ['kunci' => 'cek_belum_hadir_terakhir', 'nilai' => null, 'keterangan' => 'Tanggal terakhir cek-belum-hadir jalan (Y-m-d, anti ganda).'],
             ['kunci' => 'semester_ganjil_mulai', 'nilai' => '07-01', 'keterangan' => 'Awal semester ganjil (MM-DD).'],

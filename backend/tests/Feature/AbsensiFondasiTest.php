@@ -139,14 +139,6 @@ test('duplikat absensi siswa tanggal sama ditolak', function () {
     ]))->toThrow(QueryException::class);
 });
 
-test('qr token unik antar siswa', function () {
-    $s1 = buatSiswaAbsensi();
-    $s1->update(['qr_token' => 'token-unik-123']);
-    $s2 = buatSiswaAbsensi();
-
-    expect(fn () => $s2->update(['qr_token' => 'token-unik-123']))->toThrow(QueryException::class);
-});
-
 test('role guru-piket memiliki permission absensi, siswa dan ortu terkunci dari admin', function () {
     expect(Role::findByName('guru-piket')->hasPermissionTo('absensis.create'))->toBeTrue()
         ->and(Role::findByName('guru-piket')->hasPermissionTo('absensis.delete'))->toBeFalse()
@@ -154,8 +146,11 @@ test('role guru-piket memiliki permission absensi, siswa dan ortu terkunci dari 
         ->and(Role::findByName('siswa')->permissions)->toHaveCount(0);
 });
 
-test('pengaturan batas terlambat default 07:00', function () {
+test('jendela absen mandiri default sesuai rencana, batas terlambat digeser 07:15', function () {
     $this->seed(PengaturanSeeder::class);
 
-    expect(Pengaturan::nilai('batas_terlambat'))->toBe('07:00');
+    expect(Pengaturan::nilai('batas_terlambat'))->toBe('07:15')
+        ->and(Pengaturan::nilai('jam_buka_absen'))->toBe('07:00')
+        ->and(Pengaturan::nilai('jam_tutup_absen'))->toBe('07:45')
+        ->and(Pengaturan::nilai('menit_ganti_qr'))->toBe('10');
 });
