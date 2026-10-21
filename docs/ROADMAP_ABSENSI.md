@@ -14,6 +14,11 @@
 | 5 | WA: bangun queue + log di Laravel sekarang, konektor gateway `whatsapp-web.js` menyusul |
 | 6 | Batas terlambat default **07:00** via tabel `pengaturans` (bisa diubah admin) |
 | 7 | Eksekusi per fase, clustering: Absensi → E-Learning → CBT |
+| 8 | **Perubahan arah (okt 2026)**: QR absen mandiri — siswa yang scan, QR digenerate harian di akun setiap guru (Fase A5) |
+| 9 | Jendela absen: buka 07:00, telat 07:15, tutup 07:45; semuanya jadi pengaturan admin |
+| 10 | QR guru berganti tiap 10 menit (QR yang difoto cepat mati); interval ikut menjadi pengaturan |
+| 11 | Guru pemilik QR tercatat sebagai `dicatat_oleh` di baris absensi siswa |
+| 12 | Jalur lama (scan kamera kartu piket + QR kartu siswa) dihapus; grid manual tetap jalur cadangan |
 
 ## Fase
 
@@ -44,6 +49,19 @@
 - [x] Command `absensi:cek-belum-hadir` self-gating (jam admin + sekali sehari + `--tanggal` manual)
 - [x] Jadwal `everyFiveMinutes` + pengaturan `jam_cek_belum_hadir`, `cek_belum_hadir_terakhir`, `whatsapp_gateway_url`
 - [ ] Konektor gateway `whatsapp-web.js` (service terpisah — di luar repo ini)
+
+### Fase A5 — QR absen mandiri [RENCANA — menunggu persetujuan user]
+
+> Desain lengkap: `docs/superpowers/specs/2026-10-21-absensi-qr-mandiri-design.md`.
+> Jangan mulai kode sebelum persetujuan.
+
+- [ ] Migrasi: kunci `jam_buka_absen`, `jam_tutup_absen`, `menit_ganti_qr`; `batas_terlambat` digeser 07:15; drop `siswas.qr_token`
+- [ ] Ekstraksi service pencatatan absensi (helper di `AbsensiController`, param `dicatat_oleh` eksplisit)
+- [ ] Token harian guru: `hash_hmac` per slot `menit_ganti_qr`, tanpa tabel; halaman `guru/absensi-qr` + endpoint refresh JSON
+- [ ] Siswa: halaman absen mandiri (kamera `html5-qrcode`) + POST scan dengan jendela jam, status hadir/terlambat otomatis, idempoten
+- [ ] Hapus jalur lama: route+view scan piket, tombol "Scan QR" di grid, `regenerateQr`, blok QR kartu cetak
+- [ ] Pengaturan admin: 3 kunci baru + validasi relasi `jam_buka < batas < jam_tutup`
+- [ ] Test `AbsensiQrMandiriTest` (batas menit, token kadaluarsa, tabrakan manual, arrival-first, tanpa rombel) + pembaharuan test lama
 
 ## Catatan teknis
 
