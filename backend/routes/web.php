@@ -46,6 +46,7 @@ use App\Http\Controllers\Admin\WhatsappController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DokumenController;
 use App\Http\Controllers\Elearning\BerkasController as ElearningBerkasController;
+use App\Http\Controllers\Guru\AbsensiIzinController;
 use App\Http\Controllers\Guru\AbsensiQrController;
 use App\Http\Controllers\Guru\DashboardController as GuruDashboardController;
 use App\Http\Controllers\Ortu\DashboardController as OrtuDashboardController;
@@ -140,6 +141,8 @@ Route::prefix('guru')->name('guru.')->middleware(['auth', 'role:guru|guru-piket'
     Route::get('/dashboard', [GuruDashboardController::class, 'index'])->name('dashboard');
     Route::get('/absensi-qr', [AbsensiQrController::class, 'show'])->name('absensi-qr');
     Route::get('/absensi-qr/refresh', [AbsensiQrController::class, 'refresh'])->name('absensi-qr.refresh');
+    Route::post('/absensi-qr/izin', [AbsensiIzinController::class, 'store'])->name('absensi-qr.izin');
+    Route::post('/absensi-qr/izin/{absensi}/bukti', [AbsensiIzinController::class, 'storeBukti'])->name('absensi-qr.izin.bukti');
 });
 
 Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
