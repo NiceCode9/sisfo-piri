@@ -26,6 +26,8 @@
 
     @include('layouts.partials.alert')
 
+    @include('guru._nav', ['tabAktif' => 'dashboard'])
+
     @if ($ringkasan['kelas'] === 0)
         {{-- Nol rombel adalah hasil yang sah: guru baru terdaftar, atau
              penugasannya belum diisi. Menampilkan angka nol tanpa penjelasan

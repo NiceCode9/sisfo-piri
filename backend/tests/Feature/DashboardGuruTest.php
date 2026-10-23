@@ -259,6 +259,17 @@ test('brand sidebar guru mengarah ke dashboard guru', function () {
     expect($html)->toContain('href="'.route('guru.dashboard').'"');
 });
 
+test('dashboard guru menampilkan tab QR Absen', function () {
+    // Pengaduan nyata: nav guru hanya pernah di-include halaman QR-nya
+    // sendiri, jadi dari dashboard tab ini tidak terlihat.
+    $guru = guruTanpaKelas();
+
+    $html = $this->actingAs($guru)->get(route('guru.dashboard'))->assertOk()->getContent();
+
+    expect($html)->toContain('href="'.route('guru.absensi-qr').'"')
+        ->and($html)->toContain('QR Absen');
+});
+
 test('pengumpulan di luar kelas sendiri tidak masuk antrean penilaian', function () {
     $rombelSaya = rombelUjiGuru('7A');
     $rombelOrang = rombelUjiGuru('8B');

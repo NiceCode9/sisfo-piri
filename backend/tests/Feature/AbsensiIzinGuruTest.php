@@ -294,3 +294,58 @@ test('guru bisa mengunggah bukti menyusul dan menggantinya', function () {
     Storage::disk('berkas')->assertMissing($pertama);
     Storage::disk('berkas')->assertExists($baris->berkas_path);
 });
+
+test('kartu izin tampil dengan daftar siswa rombel terpilih', function () {
+    $rombel = rombelIzin();
+    $siswa = siswaIzin('86', 'Siswa Kartu Uji');
+    $guru = guruKartuIzin($rombel);
+
+    $this->actingAs($guru)->get(route('guru.absensi-qr'))->assertOk()
+        ->assertSee('Catatan Izin/Sakit')
+        ->assertSee('Siswa Kartu Uji')
+        ->assertSee((string) route('guru.absensi-qr.izin'));
+});
+
+test('rombel di luar cakupan tidak muncul sebagai pilihan kartu', function () {
+    $rombelA = rombelIzin();
+    $guru = guruKartuIzin($rombelA);
+
+    $guruBaris = Guru::where('user_id', $guru->id)->firstOrFail();
+    $rombelKeduaGuru = rombelIzinLain('7C');
+    Pengampu::create([
+        'guru_id' => $guruBaris->id,
+        'mata_pelajaran_id' => MataPelajaran::factory()->create()->id,
+        'rombel_id' => $rombelKeduaGuru->id,
+    ]);
+    rombelIzinLain('7D');
+
+    $html = $this->actingAs($guru)->get(route('guru.absensi-qr'))->assertOk()->getContent();
+
+    expect($html)->toContain('7A')->toContain('7C')->not->toContain('7D');
+});
+
+test('baris yang sudah tercatat tampil sebagai badge dan tanpa form', function () {
+    $rombel = rombelIzin();
+    $siswa = siswaIzin('87', 'Siswa Berbadge');
+    $guru = guruKartuIzin($rombel);
+
+    Absensi::create([
+        'rombel_id' => $rombel->id,
+        'siswa_id' => $siswa->id,
+        'tanggal' => today()->toDateString(),
+        'status' => 'izin',
+        'metode' => 'manual',
+    ]);
+
+    $html = $this->actingAs($guru)->get(route('guru.absensi-qr'))->assertOk()->getContent();
+
+    expect($html)->toContain('<span class="badge-nexus badge-info">Izin</span>')
+        ->not->toContain('name="status"');
+});
+
+test('guru tanpa penugasan melihat keadaan kosong kartu', function () {
+    $guru = guruKartuIzin(null);
+
+    $this->actingAs($guru)->get(route('guru.absensi-qr'))->assertOk()
+        ->assertSee('Tidak ada rombel yang diampu');
+});

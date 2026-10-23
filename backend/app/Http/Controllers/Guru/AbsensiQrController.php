@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
+use App\Models\Absensi;
 use App\Models\Pengaturan;
+use App\Models\Rombel;
+use App\Models\Siswa;
 use App\Services\TokenQrAbsensi;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
@@ -32,10 +35,36 @@ class AbsensiQrController extends Controller
     {
         $token = TokenQrAbsensi::generate((int) auth()->id());
 
+        // Data kartu Izin/Sakit: cakupan sama dengan area absensi, fail-closed
+        // untuk guru tanpa penugasan (spek 2026-10-23).
+        $rombelsIzin = Rombel::query()->with('kelas')
+            ->terjangkauUser(auth()->user(), Rombel::ROLE_ABSENSI_UNIVERSAL)
+            ->get();
+        $rombelIzinTerpilih = $rombelsIzin->firstWhere(
+            'id',
+            (int) request('rombel_id') ?: $rombelsIzin->first()?->id
+        );
+        $siswaKartu = $rombelIzinTerpilih
+            ? Siswa::with('user')
+                ->whereIn('id', $rombelIzinTerpilih->anggotaIdsAktif())
+                ->get()
+                ->sortBy(fn ($s) => $s->user?->name ?? '')
+                ->values()
+            : collect();
+        $absensiHariIni = Absensi::query()
+            ->where('rombel_id', $rombelIzinTerpilih?->id)
+            ->where('tanggal', today()->toDateString())
+            ->get()
+            ->keyBy('siswa_id');
+
         return view('guru.absensi-qr', $this->jendela() + [
             'qrSvg' => (string) QrCode::size(320)->generate($token),
             'menit_ganti' => TokenQrAbsensi::menitGanti(),
             'refreshRoute' => route('guru.absensi-qr.refresh'),
+            'rombelsIzin' => $rombelsIzin,
+            'rombelIzinTerpilih' => $rombelIzinTerpilih,
+            'siswaKartu' => $siswaKartu,
+            'absensiHariIni' => $absensiHariIni,
         ]);
     }
 
