@@ -7,3 +7,6 @@ Pre-flight scan:
 - Task 3 memakai route/filter dari Task 1–2; tanpa konflik nama lain.
 
 Task 1: complete (tests: vendor/bin/pest tests/Feature/AbsensiIzinGuruTest.php → 9/9 PASS 40 asersi; RED terverifikasi: 9 error "Route not defined").
+
+Task 2: Ruling: `$absensiHariIni` memuat baris `Absensi` penuh (keyBy siswa_id), bukan `pluck('status')` seperti draft rencana — kartu butuh model baris untuk route `dokumen.absensi` pada baris berbukti. — biaya salah: tidak ada, payload sama kecil.
+Task 2: complete (tests: vendor/bin/pest tests/Feature/AbsensiIzinGuruTest.php → 13/13 PASS 53 asersi; RED terverifikasi: 4 test view gagal sebelum kartu dirender).

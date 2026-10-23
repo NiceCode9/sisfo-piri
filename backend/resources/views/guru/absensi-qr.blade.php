@@ -11,7 +11,7 @@
     </div>
 </div>
 
-@include('layouts.partials.alert')
+@include('layouts.partials.alert', ['errorDitampilkan' => ['berkas']])
 
 @include('guru._nav', ['tabAktif' => 'absensi-qr'])
 

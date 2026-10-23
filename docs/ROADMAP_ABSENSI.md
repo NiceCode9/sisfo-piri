@@ -62,6 +62,15 @@
 - [x] Pengaturan admin: 3 kunci baru + validasi relasi `jam_buka < batas < jam_tutup`
 - [x] Test `AbsensiQrMandiriTest` (batas menit, token kadaluarsa, tabrakan manual, arrival-first, tanpa rombel) + pembaharuan test lama
 
+### Fase A6 — Kartu izin/sakit di jam pertama [SELESAI]
+
+> Desain lengkap: `docs/superpowers/specs/2026-10-23-absensi-izin-sakit-jam-pertama-design.md`.
+
+- [x] Kartu "Catatan Izin/Sakit" di `guru/absensi-qr` (pilih rombel terjangkau, daftar siswa, badge status hari ini)
+- [x] Endpoint `guru.absensi-qr.izin` (status `izin`/`sakit` + bukti opsional, baris manual baru saja, koreksi tetap lewat grid) + unggah bukti menyusul `guru.absensi-qr.izin.bukti`
+- [x] Penjaga sempit: rombel terjangkau `ROLE_ABSENSI_UNIVERSAL` + siswa anggota aktif; role `guru` boleh menulis tanpa `absensis.create`
+- [x] Test `AbsensiIzinGuruTest` (penjaga sempit, baris baru saja, bukti gambar, bukti menyusul, kartu view)
+
 ## Catatan teknis
 
 - Keanggotaan rombel diturunkan dari `RiwayatKelas` — absensi menempel `rombel_id` langsung agar histori utuh.
