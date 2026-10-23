@@ -24,6 +24,7 @@ use Database\Seeders\PpdbSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
@@ -293,6 +294,50 @@ test('guru bisa mengunggah bukti menyusul dan menggantinya', function () {
     expect($baris->berkas_path)->not->toBe($pertama);
     Storage::disk('berkas')->assertMissing($pertama);
     Storage::disk('berkas')->assertExists($baris->berkas_path);
+});
+
+test('menandai yang kalah balapan tidak menimpa baris pesaing', function () {
+    $rombel = rombelIzin();
+    $siswa = siswaIzin('88', 'Siswa Balapan Izin');
+    $guru = guruKartuIzin($rombel);
+
+    // Simulasi balapan sungguhan: perangkat lain menulis baris kunci yang
+    // sama tepat sebelum simpan kartu ini dijalankan (pola AbsensiInputTest).
+    $balapan = false;
+
+    Absensi::creating(function () use (&$balapan, $rombel, $siswa) {
+        if ($balapan) {
+            return;
+        }
+
+        $balapan = true;
+
+        DB::table('absensis')->insert([
+            'rombel_id' => $rombel->id,
+            'siswa_id' => $siswa->id,
+            'tanggal' => now()->toDateString(),
+            'status' => 'hadir',
+            'jam_datang' => '06:30:00',
+            'metode' => 'qr',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    });
+
+    $this->actingAs($guru)->post(route('guru.absensi-qr.izin'), [
+        'rombel_id' => $rombel->id,
+        'siswa_id' => $siswa->id,
+        'status' => 'izin',
+    ])->assertRedirect()->assertSessionHas('error');
+
+    $baris = Absensi::where('siswa_id', $siswa->id)->firstOrFail();
+
+    expect(Absensi::where('siswa_id', $siswa->id)->count())->toBe(1)
+        ->and($baris->status)->toBe('hadir')
+        ->and($baris->metode)->toBe('qr')
+        ->and(substr((string) $baris->jam_datang, 0, 5))->toBe('06:30');
+
+    Absensi::flushEventListeners();
 });
 
 test('kartu izin tampil dengan daftar siswa rombel terpilih', function () {
