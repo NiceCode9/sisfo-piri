@@ -17,6 +17,20 @@
   }
 
   /*
+    Heading memakai system serif stack (token premium). Kelas utility
+    font-headline-* tetap yang menentukan ukuran; aturan ini hanya
+    memastikan heading yang tidak diberi kelas font tetap serif.
+  */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: theme('fontFamily.serif');
+  }
+
+  /*
     Mockup memakai `::-webkit-scrollbar { display: none }`. Sengaja TIDAK
     disalin: di ruang ujian, siswa harus tetap bisa melihat ada konten di
     bawah lipatan. Scrollback-nya dibuat tipis supaya tidak memenuhi layar,
