@@ -70,7 +70,7 @@ export default {
         'on-surface-variant': '#57534e',
         'inverse-surface': '#292524',
         'inverse-on-surface': '#f5efe6',
-        outline: '#78716c',
+        outline: '#5c5651',
         'outline-variant': '#d6d3d1',
         'surface-tint': '#00288e',
 
