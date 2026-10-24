@@ -6,11 +6,12 @@ use App\Http\Controllers\Api\Cbt\ExamQuestionImageController;
 use App\Http\Controllers\Api\Cbt\ExamSessionController;
 use App\Http\Controllers\Api\Cbt\QuestionController;
 use App\Http\Controllers\Api\Cbt\ViolationController;
+use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Support\Facades\Route;
 
-Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:cbt-login');
+Route::post('/login', [AuthController::class, 'login'])->middleware([EncryptCookies::class, 'throttle:cbt-login']);
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware([EncryptCookies::class, 'cbt.cookie', 'auth:sanctum'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 
     Route::get('/exam/active', [ExamSessionController::class, 'active']);

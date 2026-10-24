@@ -46,6 +46,7 @@ class ExamMonitoringController extends Controller implements HasMiddleware
             ->map(function ($s) {
                 $remaining = $s->expected_end_at ? now()->diffInSeconds($s->expected_end_at, false) : null;
                 $isOnline = $s->last_heartbeat_at && $s->last_heartbeat_at->gt(now()->subSeconds(30));
+                $isStale = ! $s->last_heartbeat_at || $s->last_heartbeat_at->lt(now()->subSeconds(60));
 
                 return [
                     'id' => $s->id,
@@ -54,6 +55,7 @@ class ExamMonitoringController extends Controller implements HasMiddleware
                     'remaining_seconds' => $remaining,
                     'violation_count' => $s->violation_count,
                     'is_online' => $isOnline,
+                    'is_stale' => $isStale,
                     // Diambil lewat withCount, bukan $s->answers()->count()
                     // per sesi. Halaman ini dipoll berkala; pada kelas 40
                     // siswa itu berarti 40 query sia-sia tiap beberapa detik.
@@ -73,6 +75,7 @@ class ExamMonitoringController extends Controller implements HasMiddleware
                 // ditinggalkan siswa. Sebelumnya status ini tidak pernah diisi
                 // sehingga baris tersebut tetap terlihat sebagai ujian berjalan.
                 'expired' => $sessions->where('status', 'expired')->count(),
+                'stale' => $sessions->where('is_stale', true)->count(),
             ],
         ]);
     }

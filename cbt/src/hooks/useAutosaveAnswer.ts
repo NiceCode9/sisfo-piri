@@ -7,6 +7,26 @@ export function useAutosaveAnswer(examSessionId: number) {
   const timers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
   const pending = useRef<Record<number, string[]>>({});
 
+  const postWithRetry = useCallback(
+    async (questionId: number, answer: string[]) => {
+      const MAX_ATTEMPTS = 3;
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        try {
+          await api.post('/exam/answer', {
+            exam_session_id: examSessionId,
+            exam_question_id: questionId,
+            answer,
+          });
+          return true;
+        } catch {
+          if (attempt === MAX_ATTEMPTS) return false;
+        }
+      }
+      return false;
+    },
+    [examSessionId]
+  );
+
   const saveAnswer = useCallback(
     (questionId: number, answer: string[]) => {
       if (timers.current[questionId]) clearTimeout(timers.current[questionId]);
@@ -15,22 +35,17 @@ export function useAutosaveAnswer(examSessionId: number) {
 
       timers.current[questionId] = setTimeout(async () => {
         const payload = pending.current[questionId];
-        try {
-          await api.post('/exam/answer', {
-            exam_session_id: examSessionId,
-            exam_question_id: questionId,
-            answer: payload,
-          });
+        const ok = await postWithRetry(questionId, payload);
+        if (ok) {
           setSavingStatus(questionId, 'saved');
           delete pending.current[questionId];
-        } catch {
+        } else {
           setSavingStatus(questionId, 'error');
-        } finally {
-          delete timers.current[questionId];
         }
+        delete timers.current[questionId];
       }, 800);
     },
-    [examSessionId, setSavingStatus]
+    [examSessionId, setSavingStatus, postWithRetry]
   );
 
   const flush = useCallback(async () => {
@@ -41,20 +56,16 @@ export function useAutosaveAnswer(examSessionId: number) {
     timers.current = {};
     await Promise.all(
       entries.map(async ([qid, answer]) => {
-        try {
-          await api.post('/exam/answer', {
-            exam_session_id: examSessionId,
-            exam_question_id: Number(qid),
-            answer,
-          });
+        const ok = await postWithRetry(Number(qid), answer);
+        if (ok) {
           setSavingStatus(Number(qid), 'saved');
-        } catch {
+          delete pending.current[Number(qid)];
+        } else {
           setSavingStatus(Number(qid), 'error');
         }
       })
     );
-    pending.current = {};
-  }, [examSessionId, setSavingStatus]);
+  }, [examSessionId, setSavingStatus, postWithRetry]);
 
   return { saveAnswer, flush };
 }

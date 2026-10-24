@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import api from './services/api';
 import { useExamStore } from './store/examStore';
 import Login from './pages/Login';
@@ -8,7 +8,7 @@ import ExamRoom from './pages/ExamRoom';
 import Finished from './pages/Finished';
 
 function isAuthenticated() {
-  return !!localStorage.getItem('cbt_auth_token');
+  return localStorage.getItem('cbt_logged_in') === '1';
 }
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -17,6 +17,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 }
 
 function AppRoutes() {
+  const navigate = useNavigate();
   const [checking, setChecking] = useState(true);
   const setExamData = useExamStore((s) => s.setExamData);
   const hasSession = useExamStore((s) => !!s.meta);
@@ -29,7 +30,10 @@ function AppRoutes() {
       }
       try {
         const res = await api.get('/exam/active');
-        if (res.data.active) {
+        if (res.data.finished) {
+          const reason = res.data.finish_reason === 'expired' ? 'time_up' : (res.data.finish_reason ?? 'time_up');
+          navigate(`/finished?reason=${reason}`, { replace: true });
+        } else if (res.data.active) {
           const questionsRes = await api.get('/exam/questions', {
             params: { exam_session_id: res.data.exam_session_id },
           });
@@ -42,10 +46,12 @@ function AppRoutes() {
               startedAt: '',
               expectedEndAt: res.data.expected_end_at,
               violationCount: res.data.violation_count ?? 0,
+              serverTime: res.data.server_time ?? questionsRes.data.server_time,
             },
             questionsRes.data.questions,
             questionsRes.data.saved_answers ?? {}
           );
+          navigate('/exam', { replace: true });
         }
       } catch {
         // kalau /exam/active gagal (401 dsb), interceptor api.ts sudah handle redirect

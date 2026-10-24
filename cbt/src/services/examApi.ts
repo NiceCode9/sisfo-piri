@@ -16,7 +16,14 @@ export type ViolationType =
  * siswa dan `violation_count` di server berbeda, dan batas
  * `max_violation_count` bisa terlewati tanpa jejak.
  */
-const pendingViolations: { sessionId: number; type: ViolationType }[] = [];
+interface PendingViolation {
+  sessionId: number;
+  type: ViolationType;
+  clientRequestId: string;
+  meta?: Record<string, unknown>;
+}
+
+const pendingViolations: PendingViolation[] = [];
 let flushing = false;
 
 async function flushPendingViolations(): Promise<void> {
@@ -29,6 +36,9 @@ async function flushPendingViolations(): Promise<void> {
       await api.post('/exam/violation', {
         exam_session_id: item.sessionId,
         type: item.type,
+        meta: item.meta,
+        client_request_id: item.clientRequestId,
+        occurred_at: new Date().toISOString(),
       });
       pendingViolations.shift();
     }
@@ -44,12 +54,18 @@ export const reportViolation = (
   type: ViolationType,
   meta?: Record<string, unknown>
 ) => {
+  const clientRequestId =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
   return api
     .post('/exam/violation', {
       exam_session_id: examSessionId,
       type,
       meta,
       occurred_at: new Date().toISOString(),
+      client_request_id: clientRequestId,
     })
     .then(async (res) => {
       // Antrean tertinggal bisa terkirim sekarang juga.
@@ -59,7 +75,7 @@ export const reportViolation = (
     .catch(async () => {
       // Simpan untuk dicoba lagi; pemanggil menyelaraskan penghitung dari
       // respons server, bukan menebak sendiri.
-      pendingViolations.push({ sessionId: examSessionId, type });
+      pendingViolations.push({ sessionId: examSessionId, type, clientRequestId, meta });
       void flushPendingViolations();
       throw new Error('violation-queued');
     });

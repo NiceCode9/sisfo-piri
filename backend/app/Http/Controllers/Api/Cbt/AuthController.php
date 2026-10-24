@@ -38,19 +38,32 @@ class AuthController extends Controller
 
         $token = $user->createToken('cbt-token', ['cbt:access'])->plainTextToken;
 
+        $cookie = cookie(
+            'cbt_auth_token',
+            $token,
+            60 * 24,
+            '/',
+            null,
+            (bool) config('session.secure', false),
+            true,
+            false,
+            'lax'
+        );
+
         return response()->json([
             'token' => $token,
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
             ],
-        ]);
+        ])->withCookie($cookie);
     }
 
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
 
-        return response()->json(['message' => 'Logged out.']);
+        return response()->json(['message' => 'Logged out.'])
+            ->withCookie(cookie()->forget('cbt_auth_token'));
     }
 }

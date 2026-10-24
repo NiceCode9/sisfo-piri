@@ -18,7 +18,7 @@ export default function TokenEntry() {
     setLoading(true);
     try {
       const joinRes = await api.post('/exam/join', { token });
-      const { exam_session_id, exam, started_at, expected_end_at } = joinRes.data;
+      const { exam_session_id, exam, started_at, expected_end_at, server_time } = joinRes.data;
 
       const questionsRes = await api.get('/exam/questions', {
         params: { exam_session_id },
@@ -32,6 +32,7 @@ export default function TokenEntry() {
           maxViolationCount: exam.max_violation_count,
           startedAt: started_at,
           expectedEndAt: expected_end_at,
+           serverTime: server_time,
         },
         questionsRes.data.questions,
         questionsRes.data.saved_answers ?? {}

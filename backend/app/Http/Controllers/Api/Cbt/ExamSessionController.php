@@ -30,7 +30,31 @@ class ExamSessionController extends Controller
             ->first();
 
         if (! $session) {
-            return response()->json(['active' => false]);
+            // Tidak ada sesi ongoing. Kalau siswa punya sesi yang sudah
+            // selesai/expired/disqualified, kembalikan ringkasannya supaya
+            // frontend bisa menampilkan halaman selesai, bukan meminta token
+            // yang sudah tidak bisa dipakai lagi.
+            $terakhir = ExamSession::with('exam')
+                ->where('user_id', $request->user()->id)
+                ->whereIn('status', ['finished', 'expired', 'disqualified'])
+                ->latest('finished_at')
+                ->first();
+
+            if ($terakhir) {
+                return response()->json([
+                    'active' => false,
+                    'finished' => true,
+                    'exam' => [
+                        'id' => $terakhir->exam->id,
+                        'name' => $terakhir->exam->name,
+                    ],
+                    'status' => $terakhir->status,
+                    'finish_reason' => $terakhir->finish_reason,
+                    'server_time' => Carbon::now()->toIso8601String(),
+                ]);
+            }
+
+            return response()->json(['active' => false, 'server_time' => Carbon::now()->toIso8601String()]);
         }
 
         // Sesi yang waktunya sudah lewat tapi belum disentuh sweeper tidak
@@ -38,8 +62,19 @@ class ExamSessionController extends Controller
         // yang sudah tutup.
         if (Carbon::now()->gt($session->expected_end_at->copy()->addSeconds(5))) {
             $this->finalizeSession($session, 'time_up');
+            $session->refresh();
 
-            return response()->json(['active' => false]);
+            return response()->json([
+                'active' => false,
+                'finished' => true,
+                'exam' => [
+                    'id' => $session->exam->id,
+                    'name' => $session->exam->name,
+                ],
+                'status' => $session->status,
+                'finish_reason' => $session->finish_reason,
+                'server_time' => Carbon::now()->toIso8601String(),
+            ]);
         }
 
         return response()->json([
@@ -52,6 +87,7 @@ class ExamSessionController extends Controller
             ],
             'expected_end_at' => $session->expected_end_at->toIso8601String(),
             'violation_count' => $session->violation_count,
+            'server_time' => Carbon::now()->toIso8601String(),
         ]);
     }
 
@@ -170,6 +206,7 @@ class ExamSessionController extends Controller
             'started_at' => $session->started_at->toIso8601String(),
             'expected_end_at' => $session->expected_end_at->toIso8601String(),
             'violation_count' => $session->violation_count,
+            'server_time' => Carbon::now()->toIso8601String(),
         ]);
     }
 
@@ -268,7 +305,7 @@ class ExamSessionController extends Controller
         return ExamSession::where('user_id', $request->user()->id)
             ->where('exam_id', $examId)
             ->where('status', 'ongoing')
-            ->where('expected_end_at', '>', Carbon::now())
+            ->where('expected_end_at', '>', Carbon::now()->subSeconds(5))
             ->exists();
     }
 

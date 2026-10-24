@@ -17,6 +17,7 @@ export interface ExamMeta {
   startedAt: string;
   expectedEndAt: string;
   violationCount?: number;
+  serverTime?: string;
 }
 
 interface ExamStore {

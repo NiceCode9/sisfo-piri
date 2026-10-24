@@ -9,6 +9,7 @@ interface UseExamGuardOptions {
   onForceFinish: (reason: 'time_up' | 'violation_limit') => void;
   heartbeatIntervalMs?: number; // default 20000
   initialViolationCount?: number; // dari server GET /exam/active, agar refresh tidak reset
+  initialServerTime?: string; // ISO dari server untuk koreksi jam lokal
 }
 
 interface ExamGuardState {
@@ -26,19 +27,25 @@ export function useExamGuard({
   onForceFinish,
   heartbeatIntervalMs = 20000,
   initialViolationCount = 0,
+  initialServerTime,
 }: UseExamGuardOptions) {
+  const serverOffsetRef = useRef(
+    initialServerTime ? new Date(initialServerTime).getTime() - Date.now() : 0
+  );
+
   const [state, setState] = useState<ExamGuardState>({
     isFullscreen: false,
     violationCount: initialViolationCount,
     remainingSeconds: Math.max(
       0,
-      Math.floor((new Date(expectedEndAt).getTime() - Date.now()) / 1000)
+      Math.floor((new Date(expectedEndAt).getTime() - (Date.now() + serverOffsetRef.current)) / 1000)
     ),
     showViolationWarning: false,
     lastViolationType: null,
   });
 
   const finishedRef = useRef(false); // guard supaya finishExam tidak double-call
+  const devtoolsLastReportedRef = useRef(0);
 
   // --- Helper: catat pelanggaran, naikkan counter, cek batas ---
   // connection_lost tidak hitung batas curang (server juga kecualikan)
@@ -172,7 +179,11 @@ export function useExamGuard({
       const threshold = 160;
       const opened = window.outerWidth - window.innerWidth > threshold || window.outerHeight - window.innerHeight > threshold;
       if (opened && !finishedRef.current) {
-        recordViolation('devtools_suspected');
+        const now = Date.now();
+        if (now - devtoolsLastReportedRef.current > 10000) {
+          devtoolsLastReportedRef.current = now;
+          recordViolation('devtools_suspected');
+        }
       }
     };
     window.addEventListener('resize', checkDevtools);
@@ -185,7 +196,7 @@ export function useExamGuard({
       setState((prev) => {
         const remaining = Math.max(
           0,
-          Math.floor((new Date(expectedEndAt).getTime() - Date.now()) / 1000)
+          Math.floor((new Date(expectedEndAt).getTime() - (Date.now() + serverOffsetRef.current)) / 1000)
         );
         return { ...prev, remainingSeconds: remaining };
       });
@@ -195,11 +206,20 @@ export function useExamGuard({
 
   // --- 7. Heartbeat berkala ke server ---
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (!finishedRef.current) {
-        sendHeartbeat(examSessionId).catch(() => {});
+    const sync = async () => {
+      if (finishedRef.current) return;
+      try {
+        const res: any = await sendHeartbeat(examSessionId);
+        if (res?.data?.server_time) {
+          serverOffsetRef.current = new Date(res.data.server_time).getTime() - Date.now();
+        }
+      } catch {
+        // abaikan; offset lama tetap dipakai
       }
-    }, heartbeatIntervalMs);
+    };
+
+    void sync();
+    const interval = setInterval(sync, heartbeatIntervalMs);
     return () => clearInterval(interval);
   }, [examSessionId, heartbeatIntervalMs]);
 

@@ -70,6 +70,7 @@ function ExamRoomInner({ meta, questions }: { meta: ExamMeta; questions: Questio
     maxViolationCount: meta.maxViolationCount,
     expectedEndAt: meta.expectedEndAt,
     initialViolationCount: meta.violationCount ?? 0,
+    initialServerTime: meta.serverTime,
     onForceFinish: (reason) => {
       reset();
       navigate(`/finished?reason=${reason}`);

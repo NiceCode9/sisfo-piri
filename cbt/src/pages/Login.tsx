@@ -33,8 +33,9 @@ export default function Login() {
     setLoading(true);
     try {
       const res = await api.post('/login', { identifier, password });
-      localStorage.setItem('cbt_auth_token', res.data.token);
+      // Token auth kini dikirim lewat cookie HttpOnly, tidak disimpan di localStorage.
       localStorage.setItem('cbt_user_name', res.data.user.name);
+       localStorage.setItem('cbt_logged_in', '1');
       navigate('/token');
     } catch (err: any) {
       setError(err.response?.data?.message ?? 'Login gagal. Periksa kembali data Anda.');

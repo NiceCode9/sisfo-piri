@@ -194,7 +194,9 @@ class ExamController extends Controller implements HasMiddleware
     {
         $this->authorize('delete', $exam);
 
+        $examId = $exam->id;
         $exam->delete();
+        Cache::forget("exam:{$examId}:questions");
 
         return redirect()->route('admin.cbt.exams.index')->with('success', 'Ujian dihapus.');
     }

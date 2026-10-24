@@ -9,10 +9,10 @@ class ExamQuestionResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        // Pengacakan opsi kini dilakukan di QuestionController secara stabil per
+        // sesi, sehingga resource tidak boleh mengacak ulang (yang akan membuat
+        // urutan berubah tiap serialisasi).
         $options = $this->options;
-        if ($this->resource->exam->shuffle_options && is_array($options)) {
-            shuffle($options);
-        }
 
         return [
             'id' => $this->id,

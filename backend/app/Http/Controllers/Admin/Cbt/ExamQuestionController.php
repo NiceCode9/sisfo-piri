@@ -47,12 +47,11 @@ class ExamQuestionController extends Controller implements HasMiddleware
         $this->authorize('update', $question->exam);
 
         $examId = $question->exam_id;
-        // Sebelumnya ExamQuestionController sama sekali tidak menghapus file —
-        // hanya bank controller yang这么做, sehingga soal ujian yang dihapus
-        // meninggalkan berkas yatim di storage.
         $question->hapusGambarJikaTakDipakai();
         $question->delete();
-        Cache::forget("exam:{$examId}:questions");
+        if ($examId !== null) {
+            Cache::forget("exam:{$examId}:questions");
+        }
 
         return back()->with('success', 'Soal dihapus.');
     }
