@@ -480,7 +480,7 @@ function ExamRoomInner({ meta, questions }: { meta: ExamMeta; questions: Questio
 
       {/* ============ FOOTER ============ */}
       <footer className="flex shrink-0 flex-col items-center justify-between gap-2 border-t border-surface-container-high bg-surface-container-lowest px-gutter py-2 font-label-sm text-label-sm text-on-surface-variant sm:flex-row">
-        <span className="truncate">ExamPro Safe Browser Engine</span>
+        <span className="truncate">CBT SMKN Ngaglik</span>
         <span className="flex items-center gap-1.5">
           <Icon name="verified_user" size={16} className="text-tertiary" />
           Sesi Terenkripsi
