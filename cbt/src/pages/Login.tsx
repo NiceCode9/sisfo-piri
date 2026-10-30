@@ -60,7 +60,7 @@ export default function Login() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-tertiary-fixed-dim opacity-75" />
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-tertiary-container" />
             </span>
-            <span className="font-label-sm text-label-sm font-medium text-tertiary">Server Ujian Siaga</span>
+            <span className="font-label-sm text-label-sm font-medium text-on-surface-variant">Sesi Ujian</span>
           </div>
         </div>
       </header>
@@ -233,35 +233,6 @@ export default function Login() {
                 </ol>
               </div>
 
-              <div className="rounded-xl bg-surface-container-lowest p-space-lg shadow-md">
-                <div className="mb-space-sm flex items-center justify-between">
-                  <span className="font-label-md text-label-md font-semibold text-on-surface">
-                    Pemeriksaan Kesiapan Klien
-                  </span>
-                  <span className="font-label-sm text-label-sm font-bold text-tertiary">100% SIAP</span>
-                </div>
-                <div className="grid grid-cols-2 gap-space-sm">
-                  <div className="flex items-center gap-space-xs rounded-lg bg-surface-container-low p-space-sm">
-                    <Icon name="wifi" size={18} className="text-tertiary" />
-                    <div className="min-w-0">
-                      <p className="truncate font-label-sm text-label-sm font-medium text-on-surface">
-                        Koneksi Lokal
-                      </p>
-                      <p className="font-label-sm text-label-sm text-outline-variant">Tersambung</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-space-xs rounded-lg bg-surface-container-low p-space-sm">
-                    <Icon name="lock" size={18} className="text-tertiary" />
-                    <div className="min-w-0">
-                      <p className="truncate font-label-sm text-label-sm font-medium text-on-surface">
-                        Mode Layar Penuh
-                      </p>
-                      <p className="font-label-sm text-label-sm text-outline-variant">Diperlukan</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
               <div className="flex items-center justify-between rounded-xl bg-surface-container-high p-space-md">
                 <div className="flex items-center gap-space-sm">
                   <Icon name="support_agent" size={20} className="text-primary" />
@@ -285,7 +256,7 @@ export default function Login() {
             </p>
           </div>
           <div className="flex items-center gap-space-md">
-            <span className="font-label-sm text-label-sm text-outline">ExamPro Safe Browser Engine</span>
+            <span className="font-label-sm text-label-sm text-outline">CBT SMKN Ngaglik</span>
           </div>
         </div>
       </footer>
