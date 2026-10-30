@@ -75,7 +75,7 @@ export default function Finished() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-surface px-gutter py-space-xl">
-      <div className="w-full max-w-md rounded-2xl bg-surface-container-lowest p-space-lg shadow-xl">
+      <div className="w-full max-w-md rounded-2xl bg-surface-container-lowest p-space-lg shadow-lg">
         <div className="flex flex-col items-center gap-space-md text-center">
           <div className={`flex h-16 w-16 items-center justify-center rounded-full ${tone.chipBg} ${tone.chipText}`}>
             <Icon name={tone.icon} size={34} />

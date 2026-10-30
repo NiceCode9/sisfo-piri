@@ -274,7 +274,7 @@ function ExamRoomInner({ meta, questions }: { meta: ExamMeta; questions: Questio
             </div>
 
             {/* Kartu soal */}
-            <div className="flex flex-col gap-space-lg rounded-xl bg-surface-container-lowest p-space-lg shadow-sm">
+            <div className="flex flex-col gap-space-lg rounded-2xl bg-surface-container-lowest p-space-lg shadow-md">
               <div className="flex flex-col gap-space-md">
                 {gambarSoal && (
                   <img

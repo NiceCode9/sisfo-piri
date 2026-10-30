@@ -50,7 +50,7 @@ export default function TokenEntry() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-surface px-gutter py-space-xl">
-      <div className="w-full max-w-md rounded-xl bg-surface-container-lowest p-space-xl shadow-xl">
+      <div className="w-full max-w-md rounded-2xl bg-surface-container-lowest p-space-xl shadow-lg">
         <div className="mb-space-lg flex items-start gap-space-md">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-secondary-container/20">
             <Icon name="vpn_key" size={26} className="text-on-secondary-container" />

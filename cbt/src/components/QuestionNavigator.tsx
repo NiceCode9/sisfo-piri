@@ -29,15 +29,15 @@ export default function QuestionNavigator({ onSelect }: Props) {
       {/* Ringkasan status — memberi angka absolut sebelum siswa mulai
           menekan nomor satu per satu. */}
       <div className="grid grid-cols-3 gap-2 text-center">
-        <div className="flex flex-col items-center rounded-lg bg-tertiary-fixed/30 px-1 py-2">
+        <div className="flex flex-col items-center rounded-xl bg-tertiary-fixed/30 px-1 py-2">
           <span className="font-headline-sm text-headline-sm leading-none text-tertiary">{answeredCount}</span>
           <span className="mt-1 font-label-sm text-label-sm font-semibold text-tertiary">Terjawab</span>
         </div>
-        <div className="flex flex-col items-center rounded-lg bg-secondary-fixed/50 px-1 py-2">
+        <div className="flex flex-col items-center rounded-xl bg-secondary-fixed/50 px-1 py-2">
           <span className="font-headline-sm text-headline-sm leading-none text-on-secondary-fixed">{flaggedCount}</span>
           <span className="mt-1 font-label-sm text-label-sm font-semibold text-on-secondary-fixed">Ragu-ragu</span>
         </div>
-        <div className="flex flex-col items-center rounded-lg bg-surface-container px-1 py-2">
+        <div className="flex flex-col items-center rounded-xl bg-surface-container px-1 py-2">
           <span className="font-headline-sm text-headline-sm leading-none text-on-surface-variant">{emptyCount}</span>
           <span className="mt-1 font-label-sm text-label-sm font-semibold text-on-surface-variant">Kosong</span>
         </div>
@@ -77,7 +77,7 @@ export default function QuestionNavigator({ onSelect }: Props) {
                 onSelect?.(idx);
               }}
               aria-current={isActive ? 'true' : undefined}
-              className={`relative flex h-10 items-center justify-center rounded-lg font-label-grid-num text-label-grid-num transition-opacity hover:opacity-90 ${
+              className={`relative flex h-10 items-center justify-center rounded-xl font-label-grid-num text-label-grid-num transition-opacity hover:opacity-90 ${
                 isActive
                   ? 'bg-primary-fixed font-bold text-on-primary-fixed shadow-sm'
                   : isFlagged
