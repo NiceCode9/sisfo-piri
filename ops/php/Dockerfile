@@ -20,6 +20,7 @@ RUN apt-get update \
         mbstring \
     && pecl install redis \
     && docker-php-ext-enable redis \
+    && printf 'upload_max_filesize = 50M\npost_max_size = 55M\nmemory_limit = 128M\n' > /usr/local/etc/php/conf.d/99-sisfo-piri.ini \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

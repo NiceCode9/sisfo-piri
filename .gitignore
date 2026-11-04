@@ -32,3 +32,9 @@ wa-gateway/node_modules/
 wa-gateway/.wwebjs_auth/
 wa-gateway/.wwebjs_cache/
 wa-gateway/.env
+
+# Docker Compose secrets
+.env.compose
+# Local tooling (never commit)
+/.superpowers/
+/.codegraph/

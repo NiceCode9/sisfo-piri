@@ -5,14 +5,15 @@ This runbook deploys Sisfo Piri on one Ubuntu server behind the school router. M
 ## Server Layout
 
 ```bash
+cd /opt
+sudo git clone --branch develop https://github.com/NiceCode9/sisfo-piri.git /opt/sisfo-piri
 sudo mkdir -p /opt/sisfo-piri/{data/mysql,data/redis,backups}
 sudo chown -R 999:999 /opt/sisfo-piri/data/mysql /opt/sisfo-piri/data/redis
 sudo chown -R 33:33 /opt/sisfo-piri/backend/storage /opt/sisfo-piri/backend/bootstrap/cache
-sudo chmod -R 775 /opt/sisfo-piri/backups
-cd /opt
-sudo git clone --branch develop https://github.com/NiceCode9/sisfo-piri.git /opt/sisfo-piri
-sudo chown -R $USER:$USER /opt/sisfo-piri
+sudo chmod 775 /opt/sisfo-piri/backups
 ```
+
+Do not apply a recursive host-user chown over the entire project root. The MySQL and Redis directories must keep UID/GID 999, and Laravel storage must remain writable by container UID 33.
 
 If `/opt/sisfo-piri` already exists from another attempt, remove only the directory after confirming nothing useful remains.
 
@@ -112,8 +113,8 @@ docker compose up -d mysql redis
 Wait until both are healthy, then migrate, seed, and link storage:
 
 ```bash
-docker compose exec php php artisan migrate --force --seed
-docker compose exec php php artisan storage:link
+docker compose run --rm php php artisan migrate --force --seed
+docker compose run --rm php php artisan storage:link
 ```
 
 Seed on fresh installs is mandatory because permissions and menus come from seeders.
@@ -238,7 +239,12 @@ Enable Cloudflare Access for SSH before relying on it publicly. If Access is not
 
 ```bash
 sudo ufw default deny incoming
-sudo ufw allow 22/tcp
+sudo ufw allow from 10.0.0.0/8 to any port 22 proto tcp
+```
+
+Adjust `10.0.0.0/8` to the school/Tailscale subnet. Remove the SSH rule completely only after Cloudflare Access SSH or Tailscale is verified.
+
+```bash
 sudo ufw deny 80/tcp
 sudo ufw deny 443/tcp
 sudo ufw deny 3001/tcp
