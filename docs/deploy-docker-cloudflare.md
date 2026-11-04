@@ -1,8 +1,8 @@
-# Sisfo Piri: Docker Deployment Behind Cloudflare Tunnel
+# Sisfo Piri: Panduan Deploy Docker di Belakang Cloudflare Tunnel
 
-This runbook deploys Sisfo Piri on one Ubuntu server behind the school router. MySQL, Redis, PHP-FPM, Nginx, queue worker, scheduler, and the backup sidecar run in Docker. Cloudflare Tunnel runs natively on the host.
+Panduan ini men-deploy Sisfo Piri di satu server Ubuntu sekolah yang berada di balik router. MySQL, Redis, PHP-FPM, Nginx, queue worker, scheduler, dan backup sidecar dijalankan di Docker. Cloudflare Tunnel dijalankan langsung di host.
 
-## Server Layout
+## Tata Letak Server
 
 ```bash
 cd /opt
@@ -13,21 +13,21 @@ sudo chown -R 33:33 /opt/sisfo-piri/backend/storage /opt/sisfo-piri/backend/boot
 sudo chmod 775 /opt/sisfo-piri/backups
 ```
 
-Do not apply a recursive host-user chown over the entire project root. The MySQL and Redis directories must keep UID/GID 999, and Laravel storage must remain writable by container UID 33.
+Jangan jalankan `chown` rekursif untuk seluruh project root. Direktori MySQL dan Redis harus tetap UID/GID 999, dan storage Laravel harus tetap writable oleh container UID 33.
 
-If `/opt/sisfo-piri` already exists from another attempt, remove only the directory after confirming nothing useful remains.
+Jika `/opt/sisfo-piri` sudah ada dari percobaan sebelumnya, hapus direktori itu hanya setelah memastikan tidak ada data penting yang tertinggal.
 
-## Runtime Requirements
+## Persyaratan Runtime
 
-- Docker Engine and Docker Compose plugin
-- Node.js 20 and npm
+- Docker Engine dan plugin Docker Compose
+- Node.js 20 dan npm
 - PM2
 - cloudflared
-- SSH available for setup
+- SSH untuk setup awal
 
-Node, PM2, and cloudflared are intentionally not inside Docker.
+Node, PM2, dan cloudflared sengaja tidak masuk Docker. Sesuai rancangan akhir, hanya service inti aplikasi dan data yang containerized.
 
-## Secrets
+## Rahasia
 
 ```bash
 cd /opt/sisfo-piri
@@ -37,17 +37,17 @@ nano .env.compose
 nano backend/.env
 ```
 
-Set strong values in `.env.compose`:
+Isi nilai kuat di `.env.compose`:
 
 ```env
 MYSQL_DATABASE=sisfo_piri
 MYSQL_USER=sisfo
-MYSQL_PASSWORD=replace-with-a-strong-password
-MYSQL_ROOT_PASSWORD=replace-with-a-different-root-password
+MYSQL_PASSWORD=ganti-dengan-password-kuat
+MYSQL_ROOT_PASSWORD=ganti-dengan-password-root-yang-berbeda
 BACKUP_RETENTION_DAYS=7
 ```
 
-Set production values in `backend/.env`, including:
+Isi nilai produksi di `backend/.env`, termasuk:
 
 ```env
 APP_URL=https://smppiringaglik.sch.id
@@ -57,21 +57,21 @@ DB_HOST=mysql
 DB_PORT=3306
 DB_DATABASE=sisfo_piri
 DB_USERNAME=sisfo
-DB_PASSWORD=replace-with-the-same-password
+DB_PASSWORD=ganti-dengan-password-yang-sama
 REDIS_HOST=redis
 REDIS_PORT=6379
 SESSION_DRIVER=redis
 CACHE_STORE=redis
 QUEUE_CONNECTION=redis
 WHATSAPP_URL=http://host.docker.internal:3001/kirim
-WHATSAPP_TOKEN=replace-with-the-wa-gateway-token
+WHATSAPP_TOKEN=ganti-dengan-token-wa-gateway
 ```
 
-`backend/.env` is not published into Docker. The PHP service reads it through the bind mount at `/var/www/backend/.env`.
+File `backend/.env` tidak dipublish ke Docker. Service PHP tetap membacanya melalui bind mount di `/var/www/backend/.env`.
 
-## One-Time Host Prep
+## Persiapan Host Awal
 
-Prep Node dependencies for host builds:
+Siapkan dependensi Node untuk build di host:
 
 ```bash
 cd /opt/sisfo-piri/backend
@@ -83,14 +83,14 @@ npm ci
 npm run build
 ```
 
-Install Laravel PHP dependencies inside the PHP container:
+Instal dependensi PHP Laravel di dalam container PHP:
 
 ```bash
 cd /opt/sisfo-piri
 docker compose run --rm php composer install --no-dev --optimize-autoloader
 ```
 
-Ensure production host values are set in `backend/.env`:
+Pastikan nilai host produksi terisi di `backend/.env`:
 
 ```bash
 sed -i 's/^DB_HOST=.*/DB_HOST=mysql/' backend/.env
@@ -101,11 +101,11 @@ sed -i 's/^QUEUE_CONNECTION=.*/QUEUE_CONNECTION=redis/' backend/.env
 sed -i 's#^WHATSAPP_URL=.*#WHATSAPP_URL=http://host.docker.internal:3001/kirim#' backend/.env
 ```
 
-## Database Creation and Privileges
+## Pembuatan dan Hak Akses Database
 
-MySQL is initialized automatically when the container starts for the first time with the values from `.env.compose`: it creates `sisfo_piri`, grants all privileges on that database to `sisfo`, and configures the application password.
+MySQL diinisialisasi otomatis saat container pertama kali jalan dengan nilai dari `.env.compose`: database `sisfo_piri` dibuat, user `sisfo` diberi semua hak pada database itu, dan password aplikasi disesuaikan.
 
-Verify the automatic setup after first start:
+Verifikasi setup otomatis setelah pertama jalan:
 
 ```bash
 set -a
@@ -115,9 +115,9 @@ docker compose exec mysql mysqladmin ping -h localhost -u root -p"$MYSQL_ROOT_PA
 docker compose exec mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "SHOW DATABASES; SELECT User, Host FROM mysql.user WHERE User='$MYSQL_USER';"
 ```
 
-Expected: `sisfo_piri` exists and the `sisfo` user has a `%` host row.
+Hasil yang diharapkan: `sisfo_piri` ada dan user `sisfo` punya host row `%`.
 
-Manual fallback, if the automatic initialization was interrupted or you are reconnecting the data directory to an existing MySQL volume:
+Fallback manual, jika inisialisasi otomatis terputus atau direktori data MySQL lama disambungkan ulang:
 
 ```bash
 set -a
@@ -125,48 +125,49 @@ set -a
 set +a
 docker compose exec -T mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" <<'SQL'
 CREATE DATABASE IF NOT EXISTS sisfo_piri CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER IF NOT EXISTS 'sisfo'@'%' IDENTIFIED BY 'replace-with-the-same-password';
+CREATE USER IF NOT EXISTS 'sisfo'@'%' IDENTIFIED BY 'ganti-dengan-password-yang-sama';
 GRANT ALL PRIVILEGES ON sisfo_piri.* TO 'sisfo'@'%';
 FLUSH PRIVILEGES;
 SQL
 ```
 
-The fallback password must exactly match both `MYSQL_PASSWORD` and Laravel `DB_PASSWORD`.
-## First Deployment
+Password fallback harus persis sama dengan `MYSQL_PASSWORD` dan `DB_PASSWORD` di Laravel.
 
-Start the databases first:
+## Deployment Pertama
+
+Jalankan database dulu:
 
 ```bash
 cd /opt/sisfo-piri
 docker compose up -d mysql redis
 ```
 
-Wait until both are healthy, then migrate, seed, and link storage:
+Tunggu keduanya healthy, lalu migrate, seed, dan buat link storage:
 
 ```bash
 docker compose run --rm php php artisan migrate --force --seed
 docker compose run --rm php php artisan storage:link
 ```
 
-Seed on fresh installs is mandatory because permissions and menus come from seeders.
+Seed wajib pada instalasi fresh karena permission dan menu datang dari seeder.
 
-Start the remaining services:
+Jalankan sisa service:
 
 ```bash
 docker compose up -d --build
 ```
 
-Confirm state:
+Periksa state:
 
 ```bash
 docker compose ps
 ```
 
-Expected running services: `mysql`, `redis`, `php`, `queue-worker`, `scheduler`, `nginx`, `backup`.
+Service yang diharapkan jalan: `mysql`, `redis`, `php`, `queue-worker`, `scheduler`, `nginx`, `backup`.
 
-## Verification
+## Verifikasi
 
-Health and route checks:
+Pemeriksaan health dan route:
 
 ```bash
 curl -I http://127.0.0.1:8080/up
@@ -174,59 +175,61 @@ curl -I https://smppiringaglik.sch.id/up
 curl -I https://cbt.smppiringaglik.sch.id
 ```
 
-Application checks:
+Pemeriksaan aplikasi:
 
-- Log in to Laravel.
-- Open CBT and refresh a deep route; it must not 404.
-- Upload a file and request the resulting public storage URL.
-- Inspect `php artisan route:list` through the container if needed.
-- Check queue and scheduler status.
+- Login ke Laravel.
+- Buka CBT lalu refresh deep route; jangan sampai 404.
+- Upload satu file dan request URL public storage-nya.
+- Cek queue dan scheduler status.
+- Lakukan restore drill sebelum sign-off produksi.
 
-Local WhatsApp check:
+Pemeriksaan WhatsApp lokal:
 
 ```bash
 ssh -L 3001:127.0.0.1:3001 your-user@smppiringaglik.sch.id
 ```
 
-Open `http://127.0.0.1:3001/status` and `/qr` in the browser. From inside Laravel, notifications use `http://host.docker.internal:3001/kirim`, not `localhost`.
+Buka `http://127.0.0.1:3001/status` dan `/qr` di browser. Dari dalam Laravel, notifikasi menggunakan `http://host.docker.internal:3001/kirim`, bukan `localhost`. Jika `backend/.env` membiarkan `WHATSAPP_URL` kosong, fallback aplikasi menunjuk ke host-localhost dan akan gagal dari dalam container; periksa ini sebelum sign-off.
 
-Redis check:
+Pemeriksaan Redis:
 
 ```bash
 docker compose exec redis redis-cli ping
 ```
 
-## Backup and Restore
+Hasil yang diharapkan: `PONG`.
 
-The backup sidecar runs daily and retains seven days. Inspect output:
+## Backup dan Restore
+
+Backup sidecar jalan harian dan menyimpan 7 hari. Periksa output-nya:
 
 ```bash
 ls -lh /opt/sisfo-piri/backups
 gzip -t /opt/sisfo-piri/backups/*.sql.gz
 ```
 
-Storage is copied into the same directory as `storage-*.tar.gz`.
+Storage ikut disalin ke direktori yang sama sebagai `storage-*.tar.gz`.
 
-Restore drill before production sign-off:
+Restore drill sebelum sign-off produksi:
 
-1. Create or identify an empty test database.
-2. Restore one `mysql-*.sql.gz` archive into it.
-3. Restore one `storage-*.tar.gz` archive into a temporary storage path.
-4. Compare key table counts and inspect one uploaded file.
-5. Record the result in the deployment notes.
+1. Buat atau tentukan database test kosong.
+2. Restore satu arsip `mysql-*.sql.gz` ke database itu.
+3. Restore satu arsip `storage-*.tar.gz` ke path storage sementara.
+4. Bandingkan jumlah baris pada tabel penting dan periksa satu file upload.
+5. Catat hasilnya di catatan deployment.
 
-Copy backups to an external disk as part of your manual routine. The backups live on the same SSD as the database, so they do not protect against hardware loss.
+Salin backup ke disk eksternal sebagai rutinitas manual. Backup yang tersimpan di SSD yang sama dengan database tidak melindungi dari kerusakan hardware.
 
 ## Cloudflare Tunnel
 
-Install cloudflared natively:
+Instal cloudflared langsung di host:
 
 ```bash
 sudo apt update
 sudo apt install -y cloudflared
 ```
 
-Create one tunnel and map DNS:
+Buat satu tunnel dan petakan DNS:
 
 ```bash
 cloudflared tunnel login
@@ -235,11 +238,11 @@ cloudflared tunnel route dns sisfo-piri-school smppiringaglik.sch.id
 cloudflared tunnel route dns sisfo-piri-school cbt.smppiringaglik.sch.id
 ```
 
-Example config at `/root/.cloudflared/config.yml`:
+Contoh konfigurasi di `/root/.cloudflared/config.yml`:
 
 ```yaml
-tunnel: replace-with-tunnel-uuid
-credentials-file: /root/.cloudflared/replace-with-tunnel-uuid.json
+tunnel: ganti-dengan-uuid-tunnel
+credentials-file: /root/.cloudflared/ganti-dengan-uuid-tunnel.json
 
 ingress:
   - hostname: smppiringaglik.sch.id
@@ -249,14 +252,14 @@ ingress:
   - service: http_status:404
 ```
 
-Optional SSH tunnel:
+Tunnel SSH opsional:
 
 ```yaml
   - hostname: ssh.smppiringaglik.sch.id
     service: ssh://localhost:22
 ```
 
-Install and enable the service:
+Instal dan aktifkan service:
 
 ```bash
 cloudflared service install
@@ -264,16 +267,16 @@ systemctl enable --now cloudflared
 cloudflared tunnel info sisfo-piri-school
 ```
 
-Enable Cloudflare Access for SSH before relying on it publicly. If Access is not configured, keep SSH available through Tailscale as a fallback.
+Aktifkan Cloudflare Access untuk SSH sebelum mengandalkannya di produksi. Jika belum dikonfigurasi, SSH tetap tersedia lewat Tailscale sebagai fallback.
 
-## Host Firewall
+## Firewall Host
 
 ```bash
 sudo ufw default deny incoming
 sudo ufw allow from 10.0.0.0/8 to any port 22 proto tcp
 ```
 
-Adjust `10.0.0.0/8` to the school/Tailscale subnet. Remove the SSH rule completely only after Cloudflare Access SSH or Tailscale is verified.
+Sesuaikan `10.0.0.0/8` dengan subnet sekolah/Tailscale. Hapus rule SSH setelah Cloudflare Access SSH atau Tailscale terverifikasi.
 
 ```bash
 sudo ufw deny 80/tcp
@@ -284,11 +287,11 @@ sudo ufw deny 6379/tcp
 sudo ufw enable
 ```
 
-Do not change UFW to allow Docker's published port `8080`; Nginx must remain bound to `127.0.0.1:8080`. If you later open `8080`, Cloudflare would be bypassed.
+Jangan ubah UFW agar membuka port Docker `8080`. Nginx harus tetap bound ke `127.0.0.1:8080`. Jika nanti port 8080 dibuka, Cloudflare bisa dibypass.
 
-## Native Node and WA Gateway
+## Node dan WA Gateway Native
 
-Install Node.js 20 and npm, then build both applications on the host:
+Instal Node.js 20 dan npm, lalu build kedua aplikasi di host:
 
 ```bash
 cd /opt/sisfo-piri/backend
@@ -300,7 +303,7 @@ npm ci
 npm run build
 ```
 
-Run the gateway on its host:
+Jalankan gateway di host:
 
 ```bash
 cd /opt/sisfo-piri/wa-gateway
@@ -311,20 +314,20 @@ pm2 save
 pm2 startup
 ```
 
-Example `wa-gateway/.env`:
+Contoh `wa-gateway/.env`:
 
 ```env
 NODE_ENV=production
 PORT=3001
 HOST=127.0.0.1
-GATEWAY_TOKEN=replace-with-the-same-token
+GATEWAY_TOKEN=ganti-dengan-token-yang-sama
 ```
 
-Do not expose `3001` to the internet. Scan the QR using an SSH tunnel to `localhost:3001`.
+Jangan expose `3001` ke internet. Scan QR dengan SSH tunnel ke `localhost:3001`.
 
-## Updates
+## Pembaruan
 
-Later deployments follow this sequence:
+Deployment berikutnya mengikuti urutan ini:
 
 ```bash
 cd /opt/sisfo-piri
@@ -339,10 +342,10 @@ docker compose exec php php artisan migrate --force
 docker compose exec php php artisan queue:restart
 ```
 
-## Open Decisions
+## Keputusan Terbuka
 
-- Exact Cloudflare Access policy for SSH.
-- Whether the final backend domain uses the apex or `admin.` subdomain.
-- Retention period if seven days is not enough.
+- Kebijakan Cloudflare Access yang tepat untuk SSH.
+- Apakah domain backend Laravel final memakai domain apex atau subdomain `admin.`.
+- Masa retensi jika 7 hari belum cukup.
 
-See `docs/superpowers/specs/2026-11-04-docker-deploy-cloudflare-tunnel-design.md` for the approved design decisions.
+Lihat `docs/superpowers/specs/2026-11-04-docker-deploy-cloudflare-tunnel-design.md` untuk keputusan desain yang sudah disetujui.
