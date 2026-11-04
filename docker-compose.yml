@@ -1,24 +1,117 @@
 services:
+  mysql:
+    image: mysql:8.0
+    container_name: sisfo-mysql
+    restart: unless-stopped
+    env_file:
+      - .env.compose
+    volumes:
+      - /opt/sisfo-piri/data/mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
+    container_name: sisfo-redis
     restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - /opt/sisfo-piri/data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  php:
+    build:
+      context: .
+      dockerfile: ops/php/Dockerfile
+    container_name: sisfo-php
+    restart: unless-stopped
+    working_dir: /var/www/backend
+    env_file:
+      - .env.compose
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - /opt/sisfo-piri/backend:/var/www/backend
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   queue-worker:
-    image: php:8.3-cli
-    working_dir: /var/www/backend
-    volumes:
-      - ./backend:/var/www/backend
-    command: ["php", "artisan", "queue:work", "--sleep=3", "--tries=3", "--max-time=3600"]
-    depends_on:
-      - redis
+    build:
+      context: .
+      dockerfile: ops/php/Dockerfile
+    container_name: sisfo-queue-worker
     restart: unless-stopped
-    environment:
-      QUEUE_CONNECTION: redis
-      REDIS_HOST: redis
+    working_dir: /var/www/backend
+    command: ["php", "artisan", "queue:work", "redis", "--sleep=3", "--tries=3", "--max-time=3600"]
+    env_file:
+      - .env.compose
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - /opt/sisfo-piri/backend:/var/www/backend
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
-volumes:
-  redis_data:
+  scheduler:
+    build:
+      context: .
+      dockerfile: ops/php/Dockerfile
+    container_name: sisfo-scheduler
+    restart: unless-stopped
+    working_dir: /var/www/backend
+    command: ["php", "artisan", "schedule:work"]
+    env_file:
+      - .env.compose
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - /opt/sisfo-piri/backend:/var/www/backend
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  nginx:
+    build:
+      context: .
+      dockerfile: ops/nginx/Dockerfile
+    container_name: sisfo-nginx
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:80"
+    volumes:
+      - /opt/sisfo-piri/backend:/var/www/backend:ro
+      - /opt/sisfo-piri/cbt/dist:/var/www/cbt/dist:ro
+    depends_on:
+      - php
+
+  backup:
+    build:
+      context: .
+      dockerfile: ops/backup/Dockerfile
+    container_name: sisfo-backup
+    restart: unless-stopped
+    env_file:
+      - .env.compose
+    volumes:
+      - /opt/sisfo-piri/backups:/backups
+      - /opt/sisfo-piri/backend/storage:/storage:ro
+    depends_on:
+      mysql:
+        condition: service_healthy

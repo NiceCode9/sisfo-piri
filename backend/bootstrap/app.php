@@ -99,6 +99,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(CheckMaintenance::class);
         $middleware->append(SecurityHeaders::class);
 
+        // Cloudflare Tunnel terminates TLS before Nginx, so Laravel must trust
+        // the forwarded protocol and proxy address.
+        $middleware->trustProxies(at: '*');
+
         $middleware->priority([
             HandlePrecognitiveRequests::class,
             EncryptCookies::class,
