@@ -101,6 +101,37 @@ sed -i 's/^QUEUE_CONNECTION=.*/QUEUE_CONNECTION=redis/' backend/.env
 sed -i 's#^WHATSAPP_URL=.*#WHATSAPP_URL=http://host.docker.internal:3001/kirim#' backend/.env
 ```
 
+## Database Creation and Privileges
+
+MySQL is initialized automatically when the container starts for the first time with the values from `.env.compose`: it creates `sisfo_piri`, grants all privileges on that database to `sisfo`, and configures the application password.
+
+Verify the automatic setup after first start:
+
+```bash
+set -a
+. /opt/sisfo-piri/.env.compose
+set +a
+docker compose exec mysql mysqladmin ping -h localhost -u root -p"$MYSQL_ROOT_PASSWORD"
+docker compose exec mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "SHOW DATABASES; SELECT User, Host FROM mysql.user WHERE User='$MYSQL_USER';"
+```
+
+Expected: `sisfo_piri` exists and the `sisfo` user has a `%` host row.
+
+Manual fallback, if the automatic initialization was interrupted or you are reconnecting the data directory to an existing MySQL volume:
+
+```bash
+set -a
+. /opt/sisfo-piri/.env.compose
+set +a
+docker compose exec -T mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" <<'SQL'
+CREATE DATABASE IF NOT EXISTS sisfo_piri CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS 'sisfo'@'%' IDENTIFIED BY 'replace-with-the-same-password';
+GRANT ALL PRIVILEGES ON sisfo_piri.* TO 'sisfo'@'%';
+FLUSH PRIVILEGES;
+SQL
+```
+
+The fallback password must exactly match both `MYSQL_PASSWORD` and Laravel `DB_PASSWORD`.
 ## First Deployment
 
 Start the databases first:
