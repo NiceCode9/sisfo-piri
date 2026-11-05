@@ -407,6 +407,57 @@ docker compose exec php php artisan migrate --force
 docker compose exec php php artisan queue:restart
 ```
 
+## Command Docker yang Sering Dipakai
+
+```bash
+cd /opt/sisfo-piri
+docker compose ps
+docker compose logs -f
+docker compose logs -f nginx
+docker compose logs -f php
+docker compose restart nginx
+docker compose restart queue-worker
+docker compose stop
+docker compose down
+docker system df
+```
+
+### Menjalankan Artisan di container yang sudah jalan
+
+```bash
+docker compose exec php php artisan migrate --force
+docker compose exec php php artisan migrate --force --seed
+docker compose exec php php artisan storage:link
+docker compose exec php php artisan route:list
+docker compose exec php php artisan queue:restart
+docker compose exec php php artisan config:cache
+docker compose exec php php artisan route:cache
+docker compose exec php php artisan view:cache
+```
+
+### Menjalankan Artisan di container sementara
+
+```bash
+docker compose run --rm php php artisan migrate --force --seed
+docker compose run --rm php php artisan storage:link
+```
+
+### Perbarui setelah git pull
+
+```bash
+cd /opt/sisfo-piri
+git pull origin develop
+docker compose up -d --build php nginx queue-worker scheduler backup
+docker compose exec php php artisan migrate --force
+docker compose exec php php artisan queue:restart
+```
+
+### Catatan tentang `--rm`
+
+- `docker compose run --rm service command` membuat container sementara, menjalankan command, lalu otomatis menghapus container setelah selesai.
+- `docker compose exec service command` menjalankan command di container yang sedang running dan container tidak dihapus.
+- `--rm` berguna untuk perintah satu kali, seperti migrasi awal atau command Artisan sekali jalan, supaya container percobaan tidak menumpuk.
+- Untuk command harian di service yang sudah jalan, gunakan `docker compose exec`.
 ## Keputusan Terbuka
 
 - Kebijakan Cloudflare Access yang tepat untuk SSH.
