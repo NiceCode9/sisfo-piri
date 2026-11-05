@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 set -euo pipefail
 
 DB_HOST="${MYSQL_HOST:-mysql}"
