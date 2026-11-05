@@ -198,22 +198,6 @@ SQL
 
 Password fallback harus persis sama dengan `MYSQL_PASSWORD` dan `DB_PASSWORD` di Laravel.
 
-## Persiapan Image Docker
-
-Sebelum menjalankan stack, unduh image dasar MySQL dan Redis, lalu build image PHP dan Nginx. Queue worker, scheduler, dan backup memakai image PHP yang sama.
-
-```bash
-cd /opt/sisfo-piri
-docker compose pull mysql redis
-docker compose build php nginx backup
-```
-
-Image yang diunduh/dibangun meliputi:
-- `mysql:8.0`
-- `redis:7-alpine`
-- image PHP-FPM 8.3 dari `ops/php/Dockerfile`
-- image Nginx dari `ops/nginx/Dockerfile`
-- image backup dari `ops/backup/Dockerfile`
 ## Deployment Pertama
 
 Jalankan database dulu:
