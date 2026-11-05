@@ -2,7 +2,64 @@
 
 Panduan ini men-deploy Sisfo Piri di satu server Ubuntu sekolah yang berada di balik router. MySQL, Redis, PHP-FPM, Nginx, queue worker, scheduler, dan backup sidecar dijalankan di Docker. Cloudflare Tunnel dijalankan langsung di host.
 
-## Tata Letak Server
+## Instalasi Docker dan Docker Compose
+
+Instal Docker Engine dan plugin Compose dari repository resmi Docker:
+
+```bash
+sudo apt update
+sudo apt install -y ca-certificates curl gnupg
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo systemctl enable --now docker
+```
+
+Cek instalasi:
+
+```bash
+docker version
+docker compose version
+```
+
+Opsional: agar user shell bisa memakai Docker tanpa `sudo`, tambahkan:
+
+```bash
+sudo usermod -aG docker $USER
+```
+
+Lalu logout dan login ulang sebelum menjalankan Docker.
+
+## Instalasi Node.js dan PM2
+
+Instal Node.js 20:
+
+```bash
+sudo apt update
+sudo apt install -y curl gnupg
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+node -v
+npm -v
+```
+
+Jika `npm` belum terinstal:
+
+```bash
+sudo apt install -y npm
+```
+
+Instal PM2 global untuk WA gateway:
+
+```bash
+sudo npm install -g pm2
+pm2 -v
+```
+
+## Tata Letak Server## Tata Letak Server
 
 ```bash
 cd /opt
