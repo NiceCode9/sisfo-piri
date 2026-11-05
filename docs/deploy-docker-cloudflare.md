@@ -70,7 +70,15 @@ WHATSAPP_TOKEN=ganti-dengan-token-wa-gateway
 File `backend/.env` tidak dipublish ke Docker. Service PHP tetap membacanya melalui bind mount di `/var/www/backend/.env`.
 
 ## Persiapan Host Awal
+Pastikan direktori project dimiliki oleh user deploy (akun shell Anda), supaya `npm ci` tidak memerlukan `sudo`:
 
+```bash
+cd /opt/sisfo-piri
+sudo chown -R $USER:$USER backend cbt wa-gateway
+sudo chown -R 33:33 backend/storage backend/bootstrap/cache
+sudo chown -R 999:999 data/mysql data/redis
+sudo chown -R "$USER:$USER" "$HOME/.npm"
+```
 Siapkan dependensi Node untuk build di host:
 
 ```bash
