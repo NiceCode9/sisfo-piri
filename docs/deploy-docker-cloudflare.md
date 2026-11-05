@@ -166,6 +166,24 @@ sed -i 's/^QUEUE_CONNECTION=.*/QUEUE_CONNECTION=redis/' backend/.env
 sed -i 's#^WHATSAPP_URL=.*#WHATSAPP_URL=http://host.docker.internal:3001/kirim#' backend/.env
 ```
 
+Untuk memastikan semua nilai host produksi benar, jalankan perintah pemeriksaan nilai:
+
+```bash
+grep -E '^(DB_HOST|REDIS_HOST|SESSION_DRIVER|CACHE_STORE|QUEUE_CONNECTION|WHATSAPP_URL)=' backend/.env
+```
+
+Output yang diharapkan:
+
+```env
+DB_HOST=mysql
+REDIS_HOST=redis
+SESSION_DRIVER=redis
+CACHE_STORE=redis
+QUEUE_CONNECTION=redis
+WHATSAPP_URL=http://host.docker.internal:3001/kirim
+```
+
+Jika output yang muncul berbeda atau kosong, periksa file `backend/.env` secara manual.
 ## Pembuatan dan Hak Akses Database
 
 MySQL diinisialisasi otomatis saat container pertama kali jalan dengan nilai dari `.env.compose`: database `sisfo_piri` dibuat, user `sisfo` diberi semua hak pada database itu, dan password aplikasi disesuaikan.
