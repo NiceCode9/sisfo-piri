@@ -9,6 +9,7 @@ RUN apt-get update \
         libzip-dev \
         libxml2-dev \
         libonig-dev \
+        libmagickwand-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j"$(nproc)" \
         pdo_mysql \
@@ -18,8 +19,8 @@ RUN apt-get update \
         bcmath \
         xml \
         mbstring \
-    && pecl install redis \
-    && docker-php-ext-enable redis \
+    && pecl install redis imagick \
+    && docker-php-ext-enable redis imagick \
     && printf 'upload_max_filesize = 50M\npost_max_size = 55M\nmemory_limit = 128M\n' > /usr/local/etc/php/conf.d/99-sisfo-piri.ini \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
