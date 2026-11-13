@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Exceptions\GelombangTidakTersedia;
 use App\Http\Requests\Spmb\StorePendaftaranRequest;
+use App\Models\Berita;
 use App\Models\BerkasCalonSiswa;
 use App\Models\BiayaPendaftaran;
 use App\Models\Brosur;
@@ -36,6 +37,7 @@ class SpmbController extends Controller
             ? BiayaPendaftaran::where('tahun_ajaran_id', $tahunAjaranAktif->id)->orderBy('jenis_biaya')->get()
             : collect();
         $pengumumans = Pengumuman::where('status_aktif', true)->orderByDesc('tanggal_pengumuman')->limit(3)->get();
+        $beritaTerbaru = Berita::published()->orderByDesc('published_at')->limit(3)->get();
 
         // Jalur pendaftaran dan kuotanya ikut ke beranda, bukan cuma ke form.
         // Section "Jalur Pendaftaran" di landing page sebelumnya ditulis penuh
@@ -75,6 +77,7 @@ class SpmbController extends Controller
             'tahunAjaranAktif' => $tahunAjaranAktif,
             'biayas' => $biayas,
             'pengumumans' => $pengumumans,
+            'beritaTerbaru' => $beritaTerbaru,
             'jalurPendaftarans' => $jalurPendaftarans,
             'kuotaMap' => $kuotaMap,
             'gelombangs' => $gelombangs,

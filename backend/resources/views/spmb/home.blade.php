@@ -44,6 +44,8 @@
 
         @include('spmb.partials.pengumuman-home')
 
+        @include('spmb.partials.berita-home')
+
         @include('spmb.partials.ekstrakurikuler')
 
         @include('spmb.partials.galeri')

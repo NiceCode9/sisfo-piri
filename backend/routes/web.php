@@ -44,6 +44,7 @@ use App\Http\Controllers\Admin\TugasController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\WhatsappController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\BeritaController;
 use App\Http\Controllers\DokumenController;
 use App\Http\Controllers\Elearning\BerkasController as ElearningBerkasController;
 use App\Http\Controllers\Guru\AbsensiIzinController;
@@ -72,6 +73,9 @@ Route::get('/tentang', [SpmbController::class, 'about'])->name('spmb.about');
 Route::post('/pendaftaran', [SpmbController::class, 'store'])->name('spmb.store')->middleware('throttle:pendaftaran');
 Route::get('/pengumuman', [SpmbController::class, 'pengumumanIndex'])->name('spmb.pengumuman.index');
 Route::get('/pengumuman/{pengumuman}', [SpmbController::class, 'pengumumanShow'])->name('spmb.pengumuman.show');
+
+Route::get('/berita', [BeritaController::class, 'index'])->name('berita.index');
+Route::get('/berita/{berita:slug}', [BeritaController::class, 'show'])->name('berita.show');
 
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
 Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
