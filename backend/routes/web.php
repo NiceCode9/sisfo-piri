@@ -82,6 +82,12 @@ Route::get('/pengumuman/{pengumuman}', [SpmbController::class, 'pengumumanShow']
 
 Route::get('/berita', [BeritaController::class, 'index'])->name('berita.index');
 Route::get('/berita/{berita:slug}', [BeritaController::class, 'show'])->name('berita.show');
+Route::post('/berita/{berita:slug}/komentar', [BeritaController::class, 'storeKomentar'])
+    ->middleware('throttle:komentar-berita')
+    ->name('berita.komentar.store');
+Route::post('/berita/{berita:slug}/suka', [BeritaController::class, 'toggleLike'])
+    ->middleware('auth')
+    ->name('berita.like');
 
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
 Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');

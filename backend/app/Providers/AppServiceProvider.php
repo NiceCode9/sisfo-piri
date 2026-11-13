@@ -159,5 +159,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('absensi-scan', function (Request $request) {
             return Limit::perMinute(120)->by($request->user()?->id ?: $request->ip());
         });
+
+        RateLimiter::for('komentar-berita', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip());
+        });
     }
 }

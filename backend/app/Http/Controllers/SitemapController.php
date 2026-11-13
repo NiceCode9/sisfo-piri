@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Berita;
 use App\Models\Pengumuman;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Schema;
@@ -18,6 +19,7 @@ class SitemapController extends Controller
             ."Disallow: /siswa/\n"
             ."Disallow: /guru/\n"
             ."Disallow: /ortu/\n"
+            ."Disallow: /jurnalistik/\n"
             ."Disallow: /login\n"
             ."Disallow: /logout\n"
             ."Disallow: /dokumen/\n"
@@ -44,6 +46,13 @@ class SitemapController extends Controller
         $add(route('spmb.pendaftaran'), null, 'weekly', '0.9');
         $add(route('spmb.about'), null, 'monthly', '0.7');
         $add(route('spmb.pengumuman.index'), null, 'daily', '0.8');
+        $add(route('berita.index'), null, 'daily', '0.8');
+
+        if (Schema::hasTable('beritas')) {
+            foreach (Berita::published()->latest('published_at')->get() as $berita) {
+                $add(route('berita.show', $berita), optional($berita->updated_at)->toAtomString(), 'weekly', '0.7');
+            }
+        }
 
         if (Schema::hasTable('pengumuman')) {
             foreach (Pengumuman::where('status_aktif', true)->latest('tanggal_pengumuman')->get() as $p) {

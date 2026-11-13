@@ -54,9 +54,54 @@
                     <p class="mt-4 text-lg leading-relaxed text-ink-700">{{ $berita->ringkasan }}</p>
                 @endif
 
-                <div class="mt-8 whitespace-pre-line text-base leading-relaxed text-ink-800 sm:text-lg">
-                    {{ $berita->konten }}
+                <div class="mt-8 text-base leading-relaxed text-ink-800 sm:text-lg">
+                    {!! $berita->konten !!}
                 </div>
+
+                <div class="mt-8 flex flex-wrap items-center gap-3 border-t border-kertas-300 pt-6">
+                    @auth
+                        <form method="POST" action="{{ route('berita.like', $berita) }}">
+                            @csrf
+                            <button type="submit" class="inline-flex min-h-11 items-center rounded-md border border-kertas-300 px-4 text-sm font-semibold text-ink-800">
+                                {{ $liked ? 'Batal suka' : 'Suka' }} ({{ $berita->likes()->count() }})
+                            </button>
+                        </form>
+                    @else
+                        <span class="text-sm text-ink-600">{{ $berita->likes()->count() }} suka. Masuk untuk menyukai.</span>
+                    @endauth
+                    <a class="text-sm font-semibold text-primary-800" href="https://wa.me/?text={{ urlencode($berita->judul.' '.route('berita.show', $berita)) }}" target="_blank" rel="noopener">Bagikan WhatsApp</a>
+                </div>
+
+                <section class="mt-10">
+                    <h2 class="font-display text-xl font-extrabold text-ink-900">Komentar</h2>
+                    @if (session('success'))
+                        <p class="mt-3 text-sm text-secondary-700">{{ session('success') }}</p>
+                    @endif
+                    @if ($komentars->isEmpty())
+                        <p class="mt-3 text-sm text-ink-600">Belum ada komentar yang disetujui.</p>
+                    @else
+                        <ul class="mt-4 space-y-4">
+                            @foreach ($komentars as $komentar)
+                                <li class="border-b border-kertas-300 pb-3">
+                                    <p class="text-sm font-semibold text-ink-900">{{ $komentar->nama }}</p>
+                                    <p class="mt-1 text-sm text-ink-700">{{ $komentar->isi }}</p>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+
+                    <form method="POST" action="{{ route('berita.komentar.store', $berita) }}" class="mt-6 space-y-3">
+                        @csrf
+                        <input type="text" name="website" class="hidden" tabindex="-1" autocomplete="off">
+                        @guest
+                            <input type="text" name="nama" value="{{ old('nama') }}" placeholder="Nama" required class="w-full rounded-md border border-kertas-300 px-3 py-2">
+                            <input type="email" name="email" value="{{ old('email') }}" placeholder="Email" required class="w-full rounded-md border border-kertas-300 px-3 py-2">
+                        @endguest
+                        <textarea name="isi" required rows="4" placeholder="Tulis komentar" class="w-full rounded-md border border-kertas-300 px-3 py-2">{{ old('isi') }}</textarea>
+                        @error('isi')<p class="text-sm text-red-700">{{ $message }}</p>@enderror
+                        <button type="submit" class="inline-flex min-h-11 items-center rounded-md bg-primary-800 px-4 text-sm font-semibold text-white">Kirim komentar</button>
+                    </form>
+                </section>
 
                 @if ($berita->tags->isNotEmpty())
                     <div class="mt-8 flex flex-wrap gap-2">

@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Berita;
 use App\Models\KategoriBerita;
+use App\Models\Komentar;
+use App\Models\Like;
 use App\Models\Tag;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -50,6 +53,56 @@ class BeritaController extends Controller
             ->limit(3)
             ->get();
 
-        return view('spmb.berita.show', compact('berita', 'related'));
+        $komentars = $berita->komentars()->approved()->latest()->get();
+        $liked = auth()->check() && $berita->likes()->where('user_id', auth()->id())->exists();
+
+        return view('spmb.berita.show', compact('berita', 'related', 'komentars', 'liked'));
+    }
+
+    public function storeKomentar(Request $request, Berita $berita): RedirectResponse
+    {
+        abort_unless($berita->is_published, 404);
+
+        if ($request->filled('website')) {
+            return back();
+        }
+
+        $guest = $request->user() === null;
+        $validated = $request->validate([
+            'nama' => [$guest ? 'required' : 'nullable', 'string', 'max:100'],
+            'email' => [$guest ? 'required' : 'nullable', 'email', 'max:150'],
+            'isi' => ['required', 'string', 'max:2000'],
+        ]);
+
+        $user = $request->user();
+
+        Komentar::create([
+            'berita_id' => $berita->id,
+            'user_id' => $user?->id,
+            'nama' => $user ? $user->name : $validated['nama'],
+            'email' => $user ? $user->email : $validated['email'],
+            'isi' => strip_tags($validated['isi']),
+            'status' => 'pending',
+            'ip_address' => $request->ip(),
+        ]);
+
+        return back()->with('success', 'Komentar menunggu persetujuan.');
+    }
+
+    public function toggleLike(Request $request, Berita $berita): RedirectResponse
+    {
+        abort_unless($berita->is_published, 404);
+
+        $existing = Like::where('berita_id', $berita->id)->where('user_id', $request->user()->id)->first();
+        if ($existing) {
+            $existing->delete();
+        } else {
+            Like::create([
+                'berita_id' => $berita->id,
+                'user_id' => $request->user()->id,
+            ]);
+        }
+
+        return back();
     }
 }
