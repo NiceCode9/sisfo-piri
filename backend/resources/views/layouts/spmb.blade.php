@@ -3,8 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="@yield('meta_description', 'Pendaftaran Murid Baru ' . ($namaSekolah ?? '') . '. Lihat jalur pendaftaran, biaya, jadwal gelombang, dan cara mendaftar online.')">
-    <title>{{ $title ?? ($namaSekolah ?? 'Sekolah') }}</title>
+    @php
+        $metaDescription = trim($__env->yieldContent('meta_description')) ?: 'Pendaftaran Murid Baru ' . ($namaSekolah ?? '') . '. Lihat jalur pendaftaran, biaya, jadwal gelombang, dan cara mendaftar online.';
+        $pageTitle = $title ?? ($namaSekolah ?? 'Sekolah');
+    @endphp
+    <meta name="description" content="{{ $metaDescription }}">
+    <meta name="robots" content="@yield('robots', 'index, follow')">
+    <title>{{ $pageTitle }}</title>
+    <link rel="canonical" href="@yield('canonical', url()->current())">
+
+    <meta property="og:type" content="@yield('og_type', 'website')">
+    <meta property="og:site_name" content="{{ $namaSekolah ?? 'Sekolah' }}">
+    <meta property="og:title" content="@yield('og_title', $pageTitle)">
+    <meta property="og:description" content="@yield('og_description', $metaDescription)">
+    <meta property="og:url" content="@yield('canonical', url()->current())">
+    <meta property="og:image" content="@yield('og_image', asset('images/sekolah/gedung-960w.jpg'))">
+    <meta property="og:locale" content="id_ID">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="@yield('og_title', $pageTitle)">
+    <meta name="twitter:description" content="@yield('og_description', $metaDescription)">
+    <meta name="twitter:image" content="@yield('og_image', asset('images/sekolah/gedung-960w.jpg'))">
+
+    <script type="application/ld+json">
+    {!! json_encode([
+        '@context' => 'https://schema.org',
+        '@type' => 'EducationalOrganization',
+        'name' => $namaSekolah ?? 'Sekolah',
+        'url' => url('/'),
+        'image' => asset('images/sekolah/gedung-960w.jpg'),
+    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
+    </script>
 
     {{-- Warna address bar dan notch harus sama dengan warna atas halaman,
          kalau tidak ada garis putih di antara web app dan browser (PWA

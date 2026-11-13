@@ -59,6 +59,7 @@ use App\Http\Controllers\Siswa\PendaftaranController;
 use App\Http\Controllers\Siswa\ProfilController;
 use App\Http\Controllers\Siswa\RiwayatController;
 use App\Http\Controllers\Siswa\TugasController as SiswaTugasController;
+use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\SpmbController;
 use App\Models\BerkasCalonSiswa;
 use App\Support\RuteBeranda;
@@ -71,6 +72,9 @@ Route::get('/tentang', [SpmbController::class, 'about'])->name('spmb.about');
 Route::post('/pendaftaran', [SpmbController::class, 'store'])->name('spmb.store')->middleware('throttle:pendaftaran');
 Route::get('/pengumuman', [SpmbController::class, 'pengumumanIndex'])->name('spmb.pengumuman.index');
 Route::get('/pengumuman/{pengumuman}', [SpmbController::class, 'pengumumanShow'])->name('spmb.pengumuman.show');
+
+Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
+Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'create'])->name('login');
