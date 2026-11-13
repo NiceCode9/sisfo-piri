@@ -55,9 +55,9 @@ class BeritaController extends Controller implements HasMiddleware
             'published_at' => ['nullable', 'date'],
             'meta_title' => ['nullable', 'string', 'max:255'],
             'meta_description' => ['nullable', 'string', 'max:500'],
-            'gambar_utama' => ['nullable', 'image', 'max:4096'],
+            'gambar_utama' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'gallery' => ['nullable', 'array'],
-            'gallery.*' => ['image', 'max:4096'],
+            'gallery.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'tags' => ['nullable'],
         ]);
 
@@ -114,9 +114,9 @@ class BeritaController extends Controller implements HasMiddleware
             'published_at' => ['nullable', 'date'],
             'meta_title' => ['nullable', 'string', 'max:255'],
             'meta_description' => ['nullable', 'string', 'max:500'],
-            'gambar_utama' => ['nullable', 'image', 'max:4096'],
+            'gambar_utama' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'gallery' => ['nullable', 'array'],
-            'gallery.*' => ['image', 'max:4096'],
+            'gallery.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'tags' => ['nullable'],
         ]);
 

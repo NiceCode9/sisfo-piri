@@ -26,7 +26,7 @@ class MediaController extends Controller
     public function store(Request $request): RedirectResponse|JsonResponse
     {
         $request->validate([
-            'file' => ['required', 'image', 'max:4096'],
+            'file' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ]);
 
         $path = $request->file('file')->store('media', 'public');
