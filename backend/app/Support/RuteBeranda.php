@@ -45,6 +45,10 @@ final class RuteBeranda
             return 'guru.dashboard';
         }
 
+        if (! $user->hasRole(self::ROLE_ADMIN) && $user->hasRole('jurnalistik')) {
+            return 'jurnalistik.dashboard';
+        }
+
         return 'admin.dashboard';
     }
 }

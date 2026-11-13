@@ -50,6 +50,12 @@ use App\Http\Controllers\Elearning\BerkasController as ElearningBerkasController
 use App\Http\Controllers\Guru\AbsensiIzinController;
 use App\Http\Controllers\Guru\AbsensiQrController;
 use App\Http\Controllers\Guru\DashboardController as GuruDashboardController;
+use App\Http\Controllers\Jurnalistik\BeritaController as JurnalistikBeritaController;
+use App\Http\Controllers\Jurnalistik\DashboardController as JurnalistikDashboardController;
+use App\Http\Controllers\Jurnalistik\KategoriController as JurnalistikKategoriController;
+use App\Http\Controllers\Jurnalistik\KomentarController as JurnalistikKomentarController;
+use App\Http\Controllers\Jurnalistik\MediaController as JurnalistikMediaController;
+use App\Http\Controllers\Jurnalistik\TagController as JurnalistikTagController;
 use App\Http\Controllers\Ortu\DashboardController as OrtuDashboardController;
 use App\Http\Controllers\Ortu\ProfilController as OrtuProfilController;
 use App\Http\Controllers\Siswa\AbsensiMandiriController;
@@ -151,6 +157,21 @@ Route::prefix('guru')->name('guru.')->middleware(['auth', 'role:guru|guru-piket'
     Route::get('/absensi-qr/refresh', [AbsensiQrController::class, 'refresh'])->name('absensi-qr.refresh');
     Route::post('/absensi-qr/izin', [AbsensiIzinController::class, 'store'])->name('absensi-qr.izin');
     Route::post('/absensi-qr/izin/{absensi}/bukti', [AbsensiIzinController::class, 'storeBukti'])->name('absensi-qr.izin.bukti');
+});
+
+Route::prefix('jurnalistik')->name('jurnalistik.')->middleware(['auth', 'role:jurnalistik|admin'])->group(function () {
+    Route::get('/', JurnalistikDashboardController::class)->name('dashboard');
+    Route::resource('beritas', JurnalistikBeritaController::class)->except(['show']);
+    Route::patch('beritas/{berita}/publish', [JurnalistikBeritaController::class, 'publish'])->name('beritas.publish');
+    Route::resource('kategoris', JurnalistikKategoriController::class)->except(['show']);
+    Route::resource('tags', JurnalistikTagController::class)->except(['show']);
+    Route::get('komentars', [JurnalistikKomentarController::class, 'index'])->name('komentars.index');
+    Route::patch('komentars/{komentar}/approve', [JurnalistikKomentarController::class, 'approve'])->name('komentars.approve');
+    Route::patch('komentars/{komentar}/reject', [JurnalistikKomentarController::class, 'reject'])->name('komentars.reject');
+    Route::delete('komentars/{komentar}', [JurnalistikKomentarController::class, 'destroy'])->name('komentars.destroy');
+    Route::get('media', [JurnalistikMediaController::class, 'index'])->name('media.index');
+    Route::post('media', [JurnalistikMediaController::class, 'store'])->name('media.store');
+    Route::delete('media', [JurnalistikMediaController::class, 'destroy'])->name('media.destroy');
 });
 
 Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
