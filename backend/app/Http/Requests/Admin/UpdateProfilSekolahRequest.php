@@ -29,7 +29,7 @@ class UpdateProfilSekolahRequest extends FormRequest
             'website' => ['nullable', 'string', 'max:255', $this->websiteDomainRule()],
             'tahun_berdiri' => ['nullable', 'integer', 'min:1900', 'max:'.date('Y')],
             'akreditasi' => ['nullable', 'in:A,B,C'],
-            'logo' => ['nullable', 'image', 'mimes:png,jpg,jpeg,svg', 'max:2048'],
+            'logo' => ['nullable', 'image', 'mimes:png,jpg,jpeg,svg', 'max:5120'],
             'foto_gedung' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:5120'],
             'sambutan' => ['nullable', 'string', 'max:5000'],
             'visi' => ['nullable', 'string', 'max:5000'],

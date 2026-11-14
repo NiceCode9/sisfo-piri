@@ -104,7 +104,7 @@
                         @error('akreditasi')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                 </div>
-                @foreach (['logo' => ['Logo Sekolah', 'logo_path', 'PNG/JPG/SVG maks 2MB'], 'foto_gedung' => ['Foto Gedung', 'foto_gedung_path', 'JPG/PNG maks 5MB'], 'foto_kepala' => ['Foto Kepala Sekolah', 'foto_kepala_path', 'JPG/PNG maks 5MB']] as $input => [$label, $col, $hint])
+                @foreach (['logo' => ['Logo Sekolah', 'logo_path', 'PNG/JPG/SVG maks 5MB'], 'foto_gedung' => ['Foto Gedung', 'foto_gedung_path', 'JPG/PNG maks 5MB'], 'foto_kepala' => ['Foto Kepala Sekolah', 'foto_kepala_path', 'JPG/PNG maks 5MB']] as $input => [$label, $col, $hint])
                     <div class="col-12 col-sm-4">
                         <label class="form-label" for="{{ $input }}">{{ $label }}</label>
                         @if ($profil->$col)
