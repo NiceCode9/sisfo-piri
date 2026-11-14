@@ -20,8 +20,7 @@
     <link rel="stylesheet" href="{{ asset('assets/style.css') }}" />
     <style>
         .login-shell { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 1rem; position: relative; overflow: hidden; background: var(--bg-canvas, #f0f2f7); }
-        .login-bg { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transition: opacity 1s ease; pointer-events: none; }
-        .login-bg.is-loaded { opacity: .35; }
+        .login-bg { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: .35; pointer-events: none; }
         .login-card { position: relative; z-index: 1; width: 100%; max-width: 380px; background: var(--bg-surface, #fff); border: 1px solid var(--border-color, #e2e8f0); border-radius: 12px; padding: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
         .login-brand { text-align: center; margin-bottom: 1.5rem; }
         .login-brand-mark { display: inline-grid; place-items: center; width: 48px; height: 48px; border-radius: 10px; background: var(--bg-surface-2, #f8f9fc); border: 1px solid var(--border-color, #e2e8f0); overflow: hidden; }
@@ -60,7 +59,7 @@
     @endphp
 
     @if ($loginFotoGedung)
-        <div class="login-bg" id="loginBg" data-bg="{{ $loginFotoGedung }}"></div>
+        <div class="login-bg" id="loginBg" style="background-image: url('{{ $loginFotoGedung }}');"></div>
     @endif
 
     <div class="login-card">
@@ -120,13 +119,9 @@
             (function () {
                 var bg = document.getElementById('loginBg');
                 if (!bg) return;
-                var src = bg.getAttribute('data-bg');
-                if (!src) return;
-                bg.style.backgroundImage = 'url(' + JSON.stringify(src) + ')';
                 var img = new Image();
-                img.onload = function () { bg.classList.add('is-loaded'); };
                 img.onerror = function () { bg.style.display = 'none'; };
-                img.src = src;
+                img.src = '{{ $loginFotoGedung }}';
             })();
         </script>
     @endif
