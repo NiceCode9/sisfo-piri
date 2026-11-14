@@ -55,13 +55,30 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @if(config('services.ga.measurement_id'))
-        <!-- Google Analytics 4 -->
-        <script async src="https://www.googletagmanager.com/gtag/js?id={{ config('services.ga.measurement_id') }}"></script>
+        <!-- Google Analytics 4 — dimuat hanya setelah user menyetujui cookie -->
         <script>
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', '{{ config('services.ga.measurement_id') }}');
+            window.__GA_ID__ = '{{ config('services.ga.measurement_id') }}';
+            (function () {
+                var consent = null;
+                try { consent = localStorage.getItem('cookie-consent'); } catch (e) {}
+                if (consent === 'accepted') {
+                    loadGA(window.__GA_ID__);
+                }
+                function loadGA(id) {
+                    if (window.__ga_loaded__) return;
+                    window.__ga_loaded__ = true;
+                    var s = document.createElement('script');
+                    s.async = true;
+                    s.src = 'https://www.googletagmanager.com/gtag/js?id=' + id;
+                    document.head.appendChild(s);
+                    window.dataLayer = window.dataLayer || [];
+                    function gtag(){dataLayer.push(arguments);}
+                    window.gtag = gtag;
+                    gtag('js', new Date());
+                    gtag('config', id);
+                }
+                window.__loadGA__ = loadGA;
+            })();
         </script>
     @endif
     @stack('head')
@@ -205,5 +222,47 @@
         });
     </script>
     @stack('scripts')
+
+    {{-- Cookie consent banner (hanya jika GA4 aktif) --}}
+    @if(config('services.ga.measurement_id'))
+    <div id="cookieBanner" class="fixed bottom-0 inset-x-0 z-50 hidden">
+        <div class="mx-auto max-w-6xl px-5 py-4 sm:px-6">
+            <div class="rounded-2xl bg-ink-900 px-5 py-4 text-white shadow-float sm:flex sm:items-center sm:justify-between sm:gap-6">
+                <p class="text-sm leading-relaxed text-white/90">
+                    Website ini menggunakan cookie untuk analitik (Google Analytics) guna memahami kunjungan dan meningkatkan layanan.
+                    Baca <a href="{{ route('kebijakan-privasi') }}" class="underline hover:text-white">Kebijakan Privasi</a>.
+                </p>
+                <div class="mt-3 flex gap-2 sm:mt-0">
+                    <button type="button" id="cookieDecline" class="inline-flex min-h-10 items-center rounded-md border border-white/30 px-4 text-sm font-semibold text-white/90 hover:bg-white/10">
+                        Tolak
+                    </button>
+                    <button type="button" id="cookieAccept" class="inline-flex min-h-10 items-center rounded-md bg-white px-4 text-sm font-semibold text-ink-900 hover:bg-kertas-100">
+                        Setuju
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        (function () {
+            var banner = document.getElementById('cookieBanner');
+            if (!banner) return;
+            var consent = null;
+            try { consent = localStorage.getItem('cookie-consent'); } catch (e) {}
+            if (!consent) {
+                banner.classList.remove('hidden');
+            }
+            document.getElementById('cookieAccept')?.addEventListener('click', function () {
+                try { localStorage.setItem('cookie-consent', 'accepted'); } catch (e) {}
+                banner.classList.add('hidden');
+                if (window.__loadGA__) window.__loadGA__(window.__GA_ID__);
+            });
+            document.getElementById('cookieDecline')?.addEventListener('click', function () {
+                try { localStorage.setItem('cookie-consent', 'declined'); } catch (e) {}
+                banner.classList.add('hidden');
+            });
+        })();
+    </script>
+    @endif
 </body>
 </html>
