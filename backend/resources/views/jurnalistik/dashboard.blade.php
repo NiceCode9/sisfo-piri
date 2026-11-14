@@ -90,18 +90,30 @@
                 <div class="h4 mb-0">{{ number_format($viewsPerDay->sum()) }}</div>
             </div>
         </div>
-        @if($viewsPerDay->isNotEmpty())
-            <div class="small text-muted mb-2">Tren views per hari:</div>
-            <div class="d-flex align-items-end gap-2" style="height: 60px;">
-                @foreach($viewsPerDay as $day => $count)
-                    @php $max = $viewsPerDay->max() ?: 1; $h = (int) round(($count / $max) * 50) + 4; @endphp
-                    <div class="text-center" style="flex:1;">
-                        <div style="height: {{ $h }}px; background: var(--accent-primary); border-radius: 4px 4px 0 0;" title="{{ $day }}: {{ $count }}"></div>
-                        <small class="text-muted" style="font-size:10px;">{{ \Carbon\Carbon::parse($day)->format('d/m') }}</small>
-                    </div>
-                @endforeach
-            </div>
-        @endif
+        @php
+            // Lengkapi 7 hari terakhir (termasuk hari tanpa views) agar chart
+            // tidak "bolong" dan skala tetap konsisten.
+            $hariList = [];
+            for ($i = 6; $i >= 0; $i--) {
+                $d = now()->subDays($i)->toDateString();
+                $hariList[$d] = (int) ($viewsPerDay[$d] ?? 0);
+            }
+            $maxView = max($hariList) ?: 1;
+        @endphp
+        <div class="small text-muted mb-2">Tren views per hari (7 hari terakhir):</div>
+        <div class="d-flex align-items-end gap-1" style="height: 72px;">
+            @foreach($hariList as $day => $count)
+                @php $h = (int) round(($count / $maxView) * 56); @endphp
+                <div class="text-center" style="flex:1; min-width:0;">
+                    <div style="height: {{ $h }}px; min-height: {{ $count > 0 ? 4 : 1 }}px; background: var(--accent-primary); border-radius: 3px 3px 0 0; margin: 0 auto; width: 60%;" title="{{ \Carbon\Carbon::parse($day)->translatedFormat('d M') }}: {{ $count }} views"></div>
+                    <small class="text-muted d-block" style="font-size:9px; line-height:1;">{{ \Carbon\Carbon::parse($day)->format('d/m') }}</small>
+                </div>
+            @endforeach
+        </div>
+        <div class="d-flex justify-content-between mt-1">
+            <small class="text-muted" style="font-size:9px;">0</small>
+            <small class="text-muted" style="font-size:9px;">max {{ $maxView }}</small>
+        </div>
     </div>
 </div>
 
