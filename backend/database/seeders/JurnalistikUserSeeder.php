@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Spatie\Permission\Models\Role;
 
 class JurnalistikUserSeeder extends Seeder
 {
@@ -11,7 +12,8 @@ class JurnalistikUserSeeder extends Seeder
     {
         // Buat 2 pengguna dengan role jurnalistik, ikuti pola firstOrCreate DatabaseSeeder.
         // email unik, username unik.
-        User::firstOrCreate(
+        Role::firstOrCreate(['name' => 'jurnalistik', 'guard_name' => 'web']);
+        $user1 = User::firstOrCreate(
             ['email' => 'jurnalistik1@example.com'],
             [
                 'username' => 'jurnalistik1',

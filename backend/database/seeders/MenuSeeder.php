@@ -58,13 +58,21 @@ class MenuSeeder extends Seeder
             ['name' => 'Bank Soal', 'icon' => 'fa-solid fa-database', 'route' => 'admin.cbt.banks.index', 'permission' => 'cbt.view', 'order' => 37],
             ['name' => 'Ujian', 'icon' => 'fa-solid fa-laptop', 'route' => 'admin.cbt.exams.index', 'permission' => 'cbt.view', 'order' => 38],
 
-            ['name' => 'Sistem', 'is_header' => true, 'order' => 39],
-            ['name' => 'Role', 'icon' => 'fa-solid fa-user-tie', 'route' => 'admin.roles.index', 'permission' => 'roles.view', 'order' => 40],
-            ['name' => 'Menu', 'icon' => 'fa-solid fa-bars', 'route' => 'admin.menus.index', 'permission' => 'menus.view', 'order' => 41],
-            ['name' => 'Pengguna & Role', 'icon' => 'fa-solid fa-users-gear', 'route' => 'admin.users.index', 'permission' => 'users.view', 'order' => 42],
-            ['name' => 'Profil Sekolah', 'icon' => 'fa-solid fa-school', 'route' => 'admin.profil-sekolah.edit', 'permission' => 'profil-sekolahs.view', 'order' => 43],
-            ['name' => 'Pengaturan', 'icon' => 'fa-solid fa-gear', 'route' => 'admin.pengaturans.index', 'permission' => 'pengaturans.view', 'order' => 44],
-            ['name' => 'WhatsApp', 'icon' => 'fa-brands fa-whatsapp', 'route' => 'admin.whatsapp.index', 'permission' => 'whatsapp.view', 'order' => 45],
+            ['name' => 'Jurnalistik', 'is_header' => true, 'order' => 39],
+            ['name' => 'Dashboard Jurnalistik', 'icon' => 'fa-solid fa-newspaper', 'route' => 'jurnalistik.dashboard', 'permission' => 'beritas.view', 'order' => 40],
+            ['name' => 'Berita', 'icon' => 'fa-solid fa-file-lines', 'route' => 'jurnalistik.beritas.index', 'permission' => 'beritas.view', 'order' => 41],
+            ['name' => 'Kategori', 'icon' => 'fa-solid fa-folder', 'route' => 'jurnalistik.kategoris.index', 'permission' => 'kategoris.view', 'order' => 42],
+            ['name' => 'Tag', 'icon' => 'fa-solid fa-tags', 'route' => 'jurnalistik.tags.index', 'permission' => 'tags.view', 'order' => 43],
+            ['name' => 'Komentar', 'icon' => 'fa-solid fa-comments', 'route' => 'jurnalistik.komentars.index', 'permission' => 'komentars.view', 'order' => 44],
+            ['name' => 'Media', 'icon' => 'fa-solid fa-photo-film', 'route' => 'jurnalistik.media.index', 'permission' => 'media.view', 'order' => 45],
+
+            ['name' => 'Sistem', 'is_header' => true, 'order' => 46],
+            ['name' => 'Role', 'icon' => 'fa-solid fa-user-tie', 'route' => 'admin.roles.index', 'permission' => 'roles.view', 'order' => 47],
+            ['name' => 'Menu', 'icon' => 'fa-solid fa-bars', 'route' => 'admin.menus.index', 'permission' => 'menus.view', 'order' => 48],
+            ['name' => 'Pengguna & Role', 'icon' => 'fa-solid fa-users-gear', 'route' => 'admin.users.index', 'permission' => 'users.view', 'order' => 49],
+            ['name' => 'Profil Sekolah', 'icon' => 'fa-solid fa-school', 'route' => 'admin.profil-sekolah.edit', 'permission' => 'profil-sekolahs.view', 'order' => 50],
+            ['name' => 'Pengaturan', 'icon' => 'fa-solid fa-gear', 'route' => 'admin.pengaturans.index', 'permission' => 'pengaturans.view', 'order' => 51],
+            ['name' => 'WhatsApp', 'icon' => 'fa-brands fa-whatsapp', 'route' => 'admin.whatsapp.index', 'permission' => 'whatsapp.view', 'order' => 52],
         ];
 
         foreach ($menus as $menu) {
