@@ -155,7 +155,7 @@
                     </div>
 
                     {{-- Sidebar --}}
-                    <aside class="space-y-6">
+                    <aside class="space-y-6 lg:sticky lg:top-24 lg:self-start">
                         {{-- Kategori --}}
                         <div class="rounded-xl border border-kertas-300 bg-white p-5">
                             <h3 class="font-display text-base font-extrabold text-ink-900">Kategori</h3>
