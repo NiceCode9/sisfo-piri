@@ -16,6 +16,45 @@
     @section('og_image', asset('storage/' . $berita->gambar_utama))
 @endif
 
+@push('head')
+<script type="application/ld+json">
+{!! json_encode([
+    '@context' => 'https://schema.org',
+    '@graph' => [
+        [
+            '@type' => 'Article',
+            'headline' => $berita->meta_title ?: $berita->judul,
+            'description' => $berita->meta_description ?: \Illuminate\Support\Str::limit(strip_tags($berita->ringkasan ?: $berita->konten), 160),
+            'image' => $berita->gambar_utama ? asset('storage/' . $berita->gambar_utama) : null,
+            'datePublished' => optional($berita->published_at)->toIso8601String(),
+            'dateModified' => optional($berita->updated_at)->toIso8601String(),
+            'author' => [
+                '@type' => 'Person',
+                'name' => $berita->penulis?->name ?? 'Redaksi',
+            ],
+            'publisher' => [
+                '@type' => 'Organization',
+                'name' => $namaSekolah ?? 'Sekolah',
+            ],
+            'mainEntityOfPage' => [
+                '@type' => 'WebPage',
+                '@id' => route('berita.show', $berita),
+            ],
+            'keywords' => $berita->tags->pluck('nama')->implode(', '),
+        ],
+        [
+            '@type' => 'BreadcrumbList',
+            'itemListElement' => [
+                ['@type' => 'ListItem', 'position' => 1, 'name' => 'Beranda', 'item' => url('/')],
+                ['@type' => 'ListItem', 'position' => 2, 'name' => 'Berita', 'item' => route('berita.index')],
+                ['@type' => 'ListItem', 'position' => 3, 'name' => $berita->judul, 'item' => route('berita.show', $berita)],
+            ],
+        ],
+    ],
+], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
+</script>
+@endpush
+
 @section('content')
     <main id="konten-utama">
         @include('spmb.partials.navbar')

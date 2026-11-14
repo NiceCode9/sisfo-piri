@@ -54,6 +54,7 @@
     @fonts(['nunito', 'poppins'])
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @stack('head')
 </head>
 <body class="font-sans antialiased bg-kertas-100 text-ink-800">
 

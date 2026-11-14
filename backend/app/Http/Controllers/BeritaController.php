@@ -44,7 +44,7 @@ class BeritaController extends Controller
     {
         abort_unless($berita->is_published, 404);
 
-        $berita->increment('views_count');
+        $berita->load(['penulis', 'tags', 'kategori']);
 
         $related = Berita::published()
             ->where('kategori_berita_id', $berita->kategori_berita_id)
