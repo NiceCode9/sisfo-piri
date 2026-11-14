@@ -81,6 +81,11 @@ class Berita extends Model
         return $this->hasMany(Like::class);
     }
 
+    public function views(): HasMany
+    {
+        return $this->hasMany(BeritaView::class);
+    }
+
     public function scopePublished($query)
     {
         return $query->where('status', 'published')

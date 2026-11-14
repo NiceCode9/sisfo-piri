@@ -40,4 +40,8 @@ return [
         'token' => env('WHATSAPP_TOKEN', env('GATEWAY_TOKEN')),
     ],
 
+    'ga' => [
+        'measurement_id' => env('GA_MEASUREMENT_ID'),
+    ],
+
 ];

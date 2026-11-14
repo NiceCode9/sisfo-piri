@@ -63,6 +63,85 @@
     </div>
 </div>
 
+{{-- Analitik --}}
+<div class="card-nexus mt-3 mb-3">
+    <div class="card-header-nexus">
+        <div>
+            <h5 class="card-title">Analitik Pengunjung</h5>
+            <p class="card-subtitle">Data dari tracking internal (7 hari terakhir)</p>
+        </div>
+    </div>
+    <div class="card-body-nexus">
+        <div class="row g-3 mb-3">
+            <div class="col-6 col-md-3">
+                <div class="text-muted small">Total Views</div>
+                <div class="h4 mb-0">{{ number_format($totalViews) }}</div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="text-muted small">Unique Visitor</div>
+                <div class="h4 mb-0">{{ number_format($uniqueVisitors) }}</div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="text-muted small">Rata-rata Durasi Baca</div>
+                <div class="h4 mb-0">{{ gmdate('i:s', $avgDuration) }}</div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="text-muted small">Views 7 Hari</div>
+                <div class="h4 mb-0">{{ number_format($viewsPerDay->sum()) }}</div>
+            </div>
+        </div>
+        @if($viewsPerDay->isNotEmpty())
+            <div class="small text-muted mb-2">Tren views per hari:</div>
+            <div class="d-flex align-items-end gap-2" style="height: 60px;">
+                @foreach($viewsPerDay as $day => $count)
+                    @php $max = $viewsPerDay->max() ?: 1; $h = (int) round(($count / $max) * 50) + 4; @endphp
+                    <div class="text-center" style="flex:1;">
+                        <div style="height: {{ $h }}px; background: var(--accent-primary); border-radius: 4px 4px 0 0;" title="{{ $day }}: {{ $count }}"></div>
+                        <small class="text-muted" style="font-size:10px;">{{ \Carbon\Carbon::parse($day)->format('d/m') }}</small>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+    </div>
+</div>
+
+<div class="card-nexus mt-3 mb-3">
+    <div class="card-header-nexus">
+        <div>
+            <h5 class="card-title">Berita Terpopuler (30 hari)</h5>
+            <p class="card-subtitle">Berdasarkan jumlah views</p>
+        </div>
+    </div>
+    <div class="card-body-nexus p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th>Judul</th>
+                        <th>Views</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($topBerita as $b)
+                        <tr>
+                            <td class="fw-semibold">{{ \Illuminate\Support\Str::limit($b->judul, 50) }}</td>
+                            <td>{{ number_format($b->views_count) }}</td>
+                            <td class="text-end">
+                                <a href="{{ route('jurnalistik.beritas.edit', $b) }}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fa-solid fa-pen"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="3" class="text-center text-muted py-4">Belum ada data.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 <div class="row g-3">
     {{-- Berita terbaru --}}
     <div class="col-12 col-lg-7">

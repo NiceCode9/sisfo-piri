@@ -179,4 +179,30 @@
         ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
         </script>
     </main>
+
+@push('scripts')
+<script>
+(function () {
+    const url = '{{ route("berita.read", $berita) }}';
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    let seconds = 0;
+    let sent = 0;
+    const tick = () => { if (document.visibilityState === 'visible') seconds++; };
+    setInterval(tick, 1000);
+    const send = (final) => {
+        if (seconds <= sent) return;
+        sent = seconds;
+        const body = new URLSearchParams({ duration: seconds });
+        if (navigator.sendBeacon) {
+            navigator.sendBeacon(url, new Blob([body.toString()], { type: 'application/x-www-form-urlencoded' }));
+        } else {
+            fetch(url, { method: 'POST', headers: { 'X-CSRF-TOKEN': csrf, 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString(), keepalive: true }).catch(() => {});
+        }
+    };
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') send(true); });
+    window.addEventListener('pagehide', () => send(true));
+    setInterval(() => send(false), 15000);
+})();
+</script>
+@endpush
 @endsection

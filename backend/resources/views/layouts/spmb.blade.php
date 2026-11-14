@@ -54,6 +54,16 @@
     @fonts(['nunito', 'poppins'])
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @if(config('services.ga.measurement_id'))
+        <!-- Google Analytics 4 -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id={{ config('services.ga.measurement_id') }}"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '{{ config('services.ga.measurement_id') }}');
+        </script>
+    @endif
     @stack('head')
 </head>
 <body class="font-sans antialiased bg-kertas-100 text-ink-800">
@@ -194,5 +204,6 @@
             pasangHitungNaik();
         });
     </script>
+    @stack('scripts')
 </body>
 </html>
