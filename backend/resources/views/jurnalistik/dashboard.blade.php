@@ -4,16 +4,140 @@
 @section('breadcrumb', 'Jurnalistik')
 
 @section('content')
-<div class="page-header">
-    <h1 class="page-title">Dashboard Jurnalistik</h1>
+<div class="page-header d-flex flex-wrap align-items-start justify-content-between gap-3">
+    <div>
+        <h1 class="page-title">Dashboard Jurnalistik</h1>
+        <p class="page-subtitle mb-0">Ringkasan aktivitas redaksi.</p>
+    </div>
 </div>
+
+@include('layouts.partials.alert')
+
+{{-- Stat cards --}}
+<div class="row g-3 mb-3">
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card h-100">
+            <div class="stat-icon-wrap" style="background:rgba(79,70,229,.12);color:#4f46e5">
+                <i class="fa-solid fa-newspaper"></i>
+            </div>
+            <div class="stat-value">{{ number_format($totalBerita) }}</div>
+            <div class="stat-label">Total Berita</div>
+            <div class="stat-trend trend-neutral">{{ $draft }} draft &middot; {{ $published }} terbit</div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card h-100">
+            <div class="stat-icon-wrap" style="background:rgba(245,158,11,.12);color:#f59e0b">
+                <i class="fa-solid fa-clock"></i>
+            </div>
+            <div class="stat-value">{{ number_format($scheduled) }}</div>
+            <div class="stat-label">Terjadwal</div>
+            <div class="stat-trend trend-neutral">Belum terbit (future)</div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card h-100">
+            <div class="stat-icon-wrap" style="background:rgba(34,197,94,.12);color:#22c55e">
+                <i class="fa-solid fa-folder"></i>
+            </div>
+            <div class="stat-value">{{ number_format($totalKategori) }}</div>
+            <div class="stat-label">Kategori</div>
+            <div class="stat-trend trend-neutral">{{ $totalTag }} tag</div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card {{ $komentarPending > 0 ? 'stat-card-gradient' : '' }} h-100">
+            <div class="stat-icon-wrap" style="background:rgba(239,68,68,.12);color:#ef4444">
+                <i class="fa-solid fa-comments"></i>
+            </div>
+            <div class="stat-value">{{ number_format($komentarPending) }}</div>
+            <div class="stat-label">Komentar Pending</div>
+            <div class="stat-trend {{ $komentarPending > 0 ? 'trend-down' : 'trend-up' }}">
+                <i class="fa-solid {{ $komentarPending > 0 ? 'fa-triangle-exclamation' : 'fa-check' }}"></i>
+                {{ $komentarPending > 0 ? 'Perlu moderasi' : 'Semua bersih' }}
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row g-3">
-    <div class="col-md-3"><div class="card p-3"><div class="text-muted small">Total Berita</div><div class="h4 mb-0">{{ $totalBerita }}</div></div></div>
-    <div class="col-md-3"><div class="card p-3"><div class="text-muted small">Draft</div><div class="h4 mb-0">{{ $draft }}</div></div></div>
-    <div class="col-md-3"><div class="card p-3"><div class="text-muted small">Published</div><div class="h4 mb-0">{{ $published }}</div></div></div>
-    <div class="col-md-3"><div class="card p-3"><div class="text-muted small">Scheduled</div><div class="h4 mb-0">{{ $scheduled }}</div></div></div>
-    <div class="col-md-3"><div class="card p-3"><div class="text-muted small">Kategori</div><div class="h4 mb-0">{{ $totalKategori }}</div></div></div>
-    <div class="col-md-3"><div class="card p-3"><div class="text-muted small">Tag</div><div class="h4 mb-0">{{ $totalTag }}</div></div></div>
-    <div class="col-md-3"><div class="card p-3"><div class="text-muted small">Komentar Pending</div><div class="h4 mb-0">{{ $komentarPending }}</div></div></div>
+    {{-- Berita terbaru --}}
+    <div class="col-12 col-lg-7">
+        <div class="card-nexus h-100">
+            <div class="card-header-nexus">
+                <div>
+                    <h5 class="card-title">Berita Terbaru</h5>
+                    <p class="card-subtitle">5 berita terakhir yang dibuat</p>
+                </div>
+                <a href="{{ route('jurnalistik.beritas.index') }}" class="btn btn-nexus-outline btn-sm">Lihat semua</a>
+            </div>
+            <div class="card-body-nexus p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead>
+                            <tr>
+                                <th>Judul</th>
+                                <th>Kategori</th>
+                                <th>Status</th>
+                                <th>Tanggal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($beritaTerbaru as $b)
+                                <tr>
+                                    <td class="fw-semibold">{{ \Illuminate\Support\Str::limit($b->judul, 50) }}</td>
+                                    <td>{{ $b->kategori?->nama }}</td>
+                                    <td>
+                                        @if($b->status === 'published')
+                                            <span class="badge bg-success">Published</span>
+                                        @else
+                                            <span class="badge bg-secondary">Draft</span>
+                                        @endif
+                                    </td>
+                                    <td><small class="text-muted">{{ $b->created_at->diffForHumans() }}</small></td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="4" class="text-center text-muted py-4">Belum ada berita.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Komentar pending --}}
+    <div class="col-12 col-lg-5">
+        <div class="card-nexus h-100">
+            <div class="card-header-nexus">
+                <div>
+                    <h5 class="card-title">Komentar Pending</h5>
+                    <p class="card-subtitle">Menunggu moderasi</p>
+                </div>
+                <a href="{{ route('jurnalistik.komentars.index') }}" class="btn btn-nexus-outline btn-sm">Moderasi</a>
+            </div>
+            <div class="card-body-nexus p-0">
+                <ul class="list-group list-group-flush">
+                    @forelse($komentarTerbaru as $k)
+                        <li class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="fw-semibold small">{{ $k->nama ?: $k->user?->name }}</div>
+                                    <div class="text-muted small">{{ \Illuminate\Support\Str::limit($k->isi, 60) }}</div>
+                                    <small class="text-muted">{{ $k->berita?->judul }}</small>
+                                </div>
+                                <small class="text-muted">{{ $k->created_at->diffForHumans() }}</small>
+                            </div>
+                        </li>
+                    @empty
+                        <li class="list-group-item text-center text-muted py-4">Tidak ada komentar pending.</li>
+                    @endforelse
+                </ul>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection

@@ -21,6 +21,8 @@ class DashboardController extends Controller
             'totalKategori' => KategoriBerita::count(),
             'totalTag' => Tag::count(),
             'komentarPending' => Komentar::pending()->count(),
+            'beritaTerbaru' => Berita::with('kategori')->latest()->limit(5)->get(),
+            'komentarTerbaru' => Komentar::with('berita')->pending()->latest()->limit(5)->get(),
         ]);
     }
 }
