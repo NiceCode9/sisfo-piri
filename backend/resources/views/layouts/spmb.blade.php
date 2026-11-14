@@ -54,6 +54,8 @@
     @fonts(['nunito', 'poppins'])
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <!-- FontAwesome 6 (icons) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     @if(config('services.ga.measurement_id'))
         <!-- Google Analytics 4 — dimuat hanya setelah user menyetujui cookie -->
         <script>
