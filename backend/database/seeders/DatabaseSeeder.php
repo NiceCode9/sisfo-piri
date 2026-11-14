@@ -56,6 +56,8 @@ class DatabaseSeeder extends Seeder
             // data master. `DatabaseSeeder` sendiri tidak dipanggil oleh test
             // mana pun, jadi pemisahan ini tidak mengganggu test sama sekali.
             // DataMasterRealSeeder::class,
+            // Akun jurnalistik default.
+            JurnalistikUserSeeder::class,
         ]);
     }
 }
