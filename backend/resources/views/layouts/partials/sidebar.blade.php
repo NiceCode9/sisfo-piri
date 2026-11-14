@@ -9,14 +9,28 @@
     // Link brand harus ikut ke dashboard yang sama dengan dispatcher `/admin`.
     // Keduanya lewat RuteBeranda supaya tidak bisa berbeda.
     $sidebarBeranda = RuteBeranda::untuk($sidebarUser);
+
+    // Logo & nama sekolah dari profil (fallback ke default Nexus).
+    $sidebarSekolah = $profileSekolah ?? null;
+    $sidebarLogo = !empty($sidebarSekolah?->logo_path)
+        ? \Illuminate\Support\Facades\Storage::disk('public')->url($sidebarSekolah->logo_path)
+        : null;
+    $sidebarNamaSekolah = trim((string) ($sidebarSekolah?->nama_sekolah ?? ''));
+    if ($sidebarNamaSekolah === '' || preg_match('/^\s*(GANTI|TODO|ISI|DUMMY)\b/i', $sidebarNamaSekolah)) {
+        $sidebarNamaSekolah = 'Nexus';
+    }
 @endphp
 
 <!-- SIDEBAR -->
 <aside id="sidebar" class="sidebar" aria-label="Main Navigation">
     <a href="{{ route($sidebarBeranda) }}" class="sidebar-brand text-decoration-none">
-        <div class="brand-logo"><i class="fa-solid fa-hexagon"></i></div>
+        @if ($sidebarLogo)
+            <img src="{{ $sidebarLogo }}" alt="Logo {{ $sidebarNamaSekolah }}" class="brand-logo-img" style="width:32px;height:32px;object-fit:contain;border-radius:6px;">
+        @else
+            <div class="brand-logo"><i class="fa-solid fa-hexagon"></i></div>
+        @endif
         <div class="brand-text">
-            <span class="brand-name">Nexus</span>
+            <span class="brand-name">{{ $sidebarNamaSekolah }}</span>
             <span class="brand-tagline">Admin Dashboard</span>
         </div>
     </a>
@@ -53,8 +67,12 @@
 <div class="offcanvas offcanvas-start" tabindex="-1" id="mobileSidebar" aria-labelledby="mobileSidebarLabel">
     <div class="offcanvas-header border-bottom" style="border-color: rgba(255,255,255,0.05) !important; padding: 18px 20px;">
         <div class="d-flex align-items-center gap-2">
-            <div class="brand-logo"><i class="fa-solid fa-hexagon"></i></div>
-            <span class="brand-name text-white fw-bold">Nexus Admin</span>
+            @if ($sidebarLogo)
+                <img src="{{ $sidebarLogo }}" alt="Logo {{ $sidebarNamaSekolah }}" style="width:28px;height:28px;object-fit:contain;border-radius:6px;">
+            @else
+                <div class="brand-logo"><i class="fa-solid fa-hexagon"></i></div>
+            @endif
+            <span class="brand-name text-white fw-bold">{{ $sidebarNamaSekolah }}</span>
         </div>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
