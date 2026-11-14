@@ -47,6 +47,16 @@ class AppServiceProvider extends ServiceProvider
             $view->with('adminMenus', $menus);
         });
 
+        // Bagikan profil sekolah (termasuk logo) ke layout admin, supaya favicon
+        // dan elemen branding lain bisa memakai logo dari database.
+        View::composer('layouts.app', function ($view) {
+            if (Schema::hasTable('profil_sekolahs')) {
+                $view->with('profileSekolah', ProfilSekolah::aktif());
+            } else {
+                $view->with('profileSekolah', null);
+            }
+        });
+
         // Profil sekolah + statistik untuk seluruh halaman publik (spmb.*).
         View::composer('spmb.*', function ($view) {
             $adaProfil = Schema::hasTable('profil_sekolahs');

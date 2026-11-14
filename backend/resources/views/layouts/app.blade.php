@@ -23,6 +23,15 @@
     <!-- Nexus custom CSS -->
     <link rel="stylesheet" href="{{ asset('assets/style.css') }}" />
 
+    {{-- Favicon dari profil sekolah (fallback: favicon.ico) --}}
+    @php
+        $faviconUrl = !empty($profileSekolah?->logo_path)
+            ? \Illuminate\Support\Facades\Storage::disk('public')->url($profileSekolah->logo_path)
+            : asset('favicon.ico');
+    @endphp
+    <link rel="icon" href="{{ $faviconUrl }}" type="image/x-icon">
+    <link rel="apple-touch-icon" href="{{ $faviconUrl }}">
+
     @stack('styles')
 </head>
 <body>
