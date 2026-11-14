@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Jurnalistik;
 
 use App\Http\Controllers\Controller;
 use App\Models\KategoriBerita;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -23,7 +24,7 @@ class KategoriController extends Controller
         return view('jurnalistik.kategoris.create');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
             'nama' => ['required', 'string', 'max:255'],
@@ -31,11 +32,15 @@ class KategoriController extends Controller
             'deskripsi' => ['nullable', 'string'],
         ]);
 
-        KategoriBerita::create([
+        $kategori = KategoriBerita::create([
             'nama' => $validated['nama'],
             'slug' => $this->resolveSlug($validated['slug'] ?? null, $validated['nama']),
             'deskripsi' => $validated['deskripsi'] ?? null,
         ]);
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Kategori dibuat.', 'data' => $kategori]);
+        }
 
         return redirect()->route('jurnalistik.kategoris.index')->with('success', 'Kategori dibuat.');
     }
@@ -45,7 +50,7 @@ class KategoriController extends Controller
         return view('jurnalistik.kategoris.edit', ['kategori' => $kategori]);
     }
 
-    public function update(Request $request, KategoriBerita $kategori): RedirectResponse
+    public function update(Request $request, KategoriBerita $kategori): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
             'nama' => ['required', 'string', 'max:255'],
@@ -59,12 +64,20 @@ class KategoriController extends Controller
             'deskripsi' => $validated['deskripsi'] ?? null,
         ]);
 
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Kategori diperbarui.', 'data' => $kategori->fresh()]);
+        }
+
         return redirect()->route('jurnalistik.kategoris.index')->with('success', 'Kategori diperbarui.');
     }
 
-    public function destroy(KategoriBerita $kategori): RedirectResponse
+    public function destroy(KategoriBerita $kategori): RedirectResponse|JsonResponse
     {
         $kategori->delete();
+
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Kategori dihapus.']);
+        }
 
         return redirect()->route('jurnalistik.kategoris.index')->with('success', 'Kategori dihapus.');
     }

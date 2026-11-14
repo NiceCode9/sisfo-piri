@@ -4,9 +4,14 @@
 @section('breadcrumb', 'Berita')
 
 @section('content')
-<div class="page-header"><h1 class="page-title">Tambah Berita</h1></div>
+<div class="page-header">
+    <h1 class="page-title">Tambah Berita</h1>
+    <p class="page-subtitle mb-0">Tulis berita baru.</p>
+</div>
 @include('layouts.partials.alert')
-<form method="POST" action="{{ route('jurnalistik.beritas.store') }}" enctype="multipart/form-data">
+<div class="card-nexus mt-3">
+    <div class="card-body-nexus">
+        <form method="POST" action="{{ route('jurnalistik.beritas.store') }}" enctype="multipart/form-data">
     @csrf
     <div class="mb-3">
         <label class="form-label">Judul</label>
@@ -71,6 +76,8 @@
     <button class="btn btn-primary">Simpan</button>
     <a href="{{ route('jurnalistik.beritas.index') }}" class="btn btn-secondary">Batal</a>
 </form>
+    </div>
+</div>
 @push('scripts')
 <script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>
 <script>

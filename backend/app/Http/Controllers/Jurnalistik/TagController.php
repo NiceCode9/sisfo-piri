@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Jurnalistik;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tag;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -23,17 +24,21 @@ class TagController extends Controller
         return view('jurnalistik.tags.create');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
             'nama' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255'],
         ]);
 
-        Tag::create([
+        $tag = Tag::create([
             'nama' => $validated['nama'],
             'slug' => $this->resolveSlug($validated['slug'] ?? null, $validated['nama']),
         ]);
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Tag dibuat.', 'data' => $tag]);
+        }
 
         return redirect()->route('jurnalistik.tags.index')->with('success', 'Tag dibuat.');
     }
@@ -43,7 +48,7 @@ class TagController extends Controller
         return view('jurnalistik.tags.edit', compact('tag'));
     }
 
-    public function update(Request $request, Tag $tag): RedirectResponse
+    public function update(Request $request, Tag $tag): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
             'nama' => ['required', 'string', 'max:255'],
@@ -55,12 +60,20 @@ class TagController extends Controller
             'slug' => $this->resolveSlug($validated['slug'] ?? null, $validated['nama'], $tag->id),
         ]);
 
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Tag diperbarui.', 'data' => $tag->fresh()]);
+        }
+
         return redirect()->route('jurnalistik.tags.index')->with('success', 'Tag diperbarui.');
     }
 
-    public function destroy(Tag $tag): RedirectResponse
+    public function destroy(Tag $tag): RedirectResponse|JsonResponse
     {
         $tag->delete();
+
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Tag dihapus.']);
+        }
 
         return redirect()->route('jurnalistik.tags.index')->with('success', 'Tag dihapus.');
     }
