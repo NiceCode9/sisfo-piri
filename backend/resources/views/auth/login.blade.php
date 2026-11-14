@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Masuk - {{ config('app.name', 'Sisfo Sekolah') }}</title>
+    <title>Masuk - {{ $profil?->nama_sekolah_bersih ?? config('app.name', 'Sisfo Sekolah') }}</title>
     <meta name="description" content="Masuk untuk mengakses dashboard dan layanan sekolah." />
     <meta name="robots" content="noindex, nofollow" />
 
@@ -19,10 +19,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <link rel="stylesheet" href="{{ asset('assets/style.css') }}" />
     <style>
-        .login-shell { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 1rem; background: var(--bg-canvas, #f0f2f7); }
-        .login-card { width: 100%; max-width: 380px; background: var(--bg-surface, #fff); border: 1px solid var(--border-color, #e2e8f0); border-radius: 12px; padding: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+        .login-shell { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 1rem; position: relative; overflow: hidden; background: var(--bg-canvas, #f0f2f7); }
+        .login-bg { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transition: opacity 1s ease; pointer-events: none; }
+        .login-bg.is-loaded { opacity: .12; }
+        .login-card { position: relative; z-index: 1; width: 100%; max-width: 380px; background: var(--bg-surface, #fff); border: 1px solid var(--border-color, #e2e8f0); border-radius: 12px; padding: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
         .login-brand { text-align: center; margin-bottom: 1.5rem; }
-        .login-brand-mark { display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 10px; background: var(--accent-primary, #4f46e5); color: #fff; font-weight: 800; font-size: 1.1rem; }
+        .login-brand-mark { display: inline-grid; place-items: center; width: 48px; height: 48px; border-radius: 10px; background: var(--bg-surface-2, #f8f9fc); border: 1px solid var(--border-color, #e2e8f0); overflow: hidden; }
+        .login-brand-mark img { width: 100%; height: 100%; object-fit: contain; }
+        .login-brand-mark span { font-weight: 800; font-size: 1.2rem; color: var(--accent-primary, #4f46e5); }
         .login-brand-name { margin-top: .75rem; font-size: 1.1rem; font-weight: 700; color: var(--text-primary, #0f172a); }
         .login-brand-sub { font-size: .8rem; color: var(--text-muted, #94a3b8); }
         .login-field { margin-bottom: 1rem; }
@@ -42,10 +46,33 @@
     </style>
 </head>
 <body class="login-shell">
+    @php
+        $loginLogo = !empty($profil?->logo_path)
+            ? \Illuminate\Support\Facades\Storage::disk('public')->url($profil->logo_path)
+            : null;
+        $loginNama = trim((string) ($profil?->nama_sekolah_bersih ?? ''));
+        if ($loginNama === '' || preg_match('/^\s*(GANTI|TODO|ISI|DUMMY)\b/i', $loginNama)) {
+            $loginNama = config('app.name', 'Sisfo Sekolah');
+        }
+        $loginFotoGedung = !empty($profil?->foto_gedung_path)
+            ? \Illuminate\Support\Facades\Storage::disk('public')->url($profil->foto_gedung_path)
+            : null;
+    @endphp
+
+    @if ($loginFotoGedung)
+        <div class="login-bg" id="loginBg" style="background-image: url('{{ $loginFotoGedung }}');"></div>
+    @endif
+
     <div class="login-card">
         <div class="login-brand">
-            <div class="login-brand-mark">{{ mb_substr(config('app.name', 'S'), 0, 1) }}</div>
-            <div class="login-brand-name">{{ config('app.name', 'Sisfo Sekolah') }}</div>
+            <div class="login-brand-mark">
+                @if ($loginLogo)
+                    <img src="{{ $loginLogo }}" alt="Logo {{ $loginNama }}" />
+                @else
+                    <span>{{ mb_substr($loginNama, 0, 1) }}</span>
+                @endif
+            </div>
+            <div class="login-brand-name">{{ $loginNama }}</div>
             <div class="login-brand-sub">Masuk ke dashboard</div>
         </div>
 
@@ -84,9 +111,22 @@
         </form>
 
         <div class="login-footer">
-            &copy; {{ date('Y') }} {{ config('app.name', 'Sisfo Sekolah') }}
+            &copy; {{ date('Y') }} {{ $loginNama }}
         </div>
     </div>
+
+    @if ($loginFotoGedung)
+        <script>
+            (function () {
+                var bg = document.getElementById('loginBg');
+                if (bg) {
+                    var img = new Image();
+                    img.onload = function () { bg.classList.add('is-loaded'); };
+                    img.src = bg.style.backgroundImage.replace(/url\(['"]?(.*?)['"]?\)/, '$1');
+                }
+            })();
+        </script>
+    @endif
 
     <script>
         function togglePassword() {

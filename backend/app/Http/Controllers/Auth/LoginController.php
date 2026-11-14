@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\ProfilSekolah;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class LoginController extends Controller
@@ -16,7 +18,9 @@ class LoginController extends Controller
      */
     public function create(): View
     {
-        return view('auth.login');
+        $profil = Schema::hasTable('profil_sekolahs') ? ProfilSekolah::aktif() : null;
+
+        return view('auth.login', compact('profil'));
     }
 
     /**
