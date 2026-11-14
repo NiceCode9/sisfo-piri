@@ -21,9 +21,10 @@
     // sampai tautan mati.
     $navLinks = [
         ['label' => 'Beranda', 'url' => route('spmb.home')],
+        ['label' => 'Berita', 'url' => route('berita.index')],
+        ['label' => 'Pengumuman', 'url' => route('spmb.pengumuman.index')],
         ['label' => 'Cara Daftar', 'url' => route('spmb.home') . '#alur'],
         ['label' => 'Biaya', 'url' => route('spmb.home') . '#biaya'],
-        ['label' => 'Pengumuman', 'url' => route('spmb.pengumuman.index')],
         ['label' => 'Tentang', 'url' => route('spmb.about')],
     ];
 @endphp
