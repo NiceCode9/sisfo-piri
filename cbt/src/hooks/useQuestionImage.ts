@@ -25,8 +25,13 @@ export function useQuestionImage(url: string | null | undefined): string | null 
     let dibatalkan = false;
     let objectUrl: string | null = null;
 
+    // Backend mungkin mengirim URL absolut (lama, dari route()) atau path
+    // relatif (baru). Normalisasi ke path relatif agar axios memakai baseURL
+    // yang benar dan cookie ikut terkirim.
+    const path = url.startsWith('http') ? new URL(url).pathname.replace(/^\/api\/cbt/, '') : url;
+
     api
-      .get(url, { responseType: 'blob' })
+      .get(path, { responseType: 'blob' })
       .then((res) => {
         if (dibatalkan) return;
 
