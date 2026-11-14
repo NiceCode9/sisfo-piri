@@ -58,7 +58,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Bank Soal', 'icon' => 'fa-solid fa-database', 'route' => 'admin.cbt.banks.index', 'permission' => 'cbt.view', 'order' => 37],
             ['name' => 'Ujian', 'icon' => 'fa-solid fa-laptop', 'route' => 'admin.cbt.exams.index', 'permission' => 'cbt.view', 'order' => 38],
 
-            ['name' => 'Jurnalistik', 'is_header' => true, 'order' => 39],
+            ['name' => 'Jurnalistik', 'is_header' => true, 'permission' => 'beritas.view', 'order' => 39],
             ['name' => 'Dashboard Jurnalistik', 'icon' => 'fa-solid fa-newspaper', 'route' => 'jurnalistik.dashboard', 'permission' => 'beritas.view', 'order' => 40],
             ['name' => 'Berita', 'icon' => 'fa-solid fa-file-lines', 'route' => 'jurnalistik.beritas.index', 'permission' => 'beritas.view', 'order' => 41],
             ['name' => 'Kategori', 'icon' => 'fa-solid fa-folder', 'route' => 'jurnalistik.kategoris.index', 'permission' => 'kategoris.view', 'order' => 42],
