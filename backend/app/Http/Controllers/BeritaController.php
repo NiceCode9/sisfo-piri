@@ -50,14 +50,19 @@ class BeritaController extends Controller
         $berita->increment('views_count');
         $berita->load(['penulis', 'tags', 'kategori']);
 
-        // Catat view untuk analitik (durasi baca di-update via heartbeat).
-        BeritaView::create([
-            'berita_id' => $berita->id,
-            'user_id' => auth()->id(),
-            'ip_hash' => hash('sha256', (string) request()->ip()),
-            'session_id' => (string) request()->session()->getId(),
-            'duration_seconds' => 0,
-        ]);
+        // Catat view untuk analitik, kecuali bot/crawler (agar angka tidak
+        // tercemar oleh Googlebot, Bingbot, dsb.).
+        $ua = (string) request()->userAgent();
+        $isBot = (bool) preg_match('/bot|crawl|spider|slurp|mediapartners|facebookexternalhit|wget|curl/i', $ua);
+        if (! $isBot) {
+            BeritaView::create([
+                'berita_id' => $berita->id,
+                'user_id' => auth()->id(),
+                'ip_hash' => hash('sha256', (string) request()->ip()),
+                'session_id' => (string) request()->session()->getId(),
+                'duration_seconds' => 0,
+            ]);
+        }
 
         $related = Berita::published()
             ->where('kategori_berita_id', $berita->kategori_berita_id)

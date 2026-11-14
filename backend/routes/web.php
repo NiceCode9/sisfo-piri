@@ -80,6 +80,10 @@ Route::post('/pendaftaran', [SpmbController::class, 'store'])->name('spmb.store'
 Route::get('/pengumuman', [SpmbController::class, 'pengumumanIndex'])->name('spmb.pengumuman.index');
 Route::get('/pengumuman/{pengumuman}', [SpmbController::class, 'pengumumanShow'])->name('spmb.pengumuman.show');
 
+Route::get('/kebijakan-privasi', function () {
+    return view('spmb.kebijakan-privasi');
+})->name('kebijakan-privasi');
+
 Route::get('/berita', [BeritaController::class, 'index'])->name('berita.index');
 Route::get('/berita/{berita:slug}', [BeritaController::class, 'show'])->name('berita.show');
 Route::post('/berita/{berita:slug}/komentar', [BeritaController::class, 'storeKomentar'])
@@ -88,6 +92,8 @@ Route::post('/berita/{berita:slug}/komentar', [BeritaController::class, 'storeKo
 Route::post('/berita/{berita:slug}/suka', [BeritaController::class, 'toggleLike'])
     ->middleware('auth')
     ->name('berita.like');
+Route::post('/berita/{berita:slug}/baca', [BeritaController::class, 'recordRead'])
+    ->name('berita.read');
 
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
 Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');

@@ -197,7 +197,10 @@
     <div class="border-t border-primary-500">
         <div class="mx-auto flex max-w-6xl flex-col gap-2 px-5 py-6 text-sm text-primary-200 sm:px-6 md:flex-row md:items-center md:justify-between">
             <p>&copy; {{ $currentYear }} {{ $schoolName }}. Hak cipta dilindungi.</p>
-            <p>Penerimaan Murid Baru Tahun Ajaran {{ $tahunAjaranAktif?->nama_tahun_ajaran ?? 'berjalan' }}</p>
+            <p>
+                <a href="{{ route('kebijakan-privasi') }}" class="text-primary-200 underline hover:text-white">Kebijakan Privasi</a>
+                &middot; Penerimaan Murid Baru Tahun Ajaran {{ $tahunAjaranAktif?->nama_tahun_ajaran ?? 'berjalan' }}
+            </p>
         </div>
     </div>
 </footer>

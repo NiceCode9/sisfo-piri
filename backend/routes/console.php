@@ -15,3 +15,7 @@ Schedule::command('absensi:cek-belum-hadir')->everyFiveMinutes();
 // Tutup sesi CBT yang ditinggalkan siswa. Tanpa ini baris `ongoing` tidak
 // pernah berubah status kecuali siswa atau guru menyentuh endpointnya.
 Schedule::command('cbt:expire-sessions')->everyMinute()->withoutOverlapping();
+
+// Bersihkan data tracking kunjungan berita yang lebih lama dari 90 hari,
+// supaya tabel berita_views tidak tumbuh tanpa batas.
+Schedule::command('berita:prune-views')->weekly();
