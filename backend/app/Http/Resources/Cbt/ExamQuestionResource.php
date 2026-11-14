@@ -21,8 +21,12 @@ class ExamQuestionResource extends JsonResource
             // dua masalah sekaligus: membocorkan struktur disk, dan
             // dipakai SPA sebagai `src` sehingga resolve ke /cbt/questions/...
             // yang 404 (URL publik ada di bawah /storage).
+            //
+            // Pakai path relatif (bukan absolute dari route()) supaya tidak
+            // bergantung pada APP_URL yang sering salah di production. Frontend
+            // menggabungkannya dengan VITE_API_BASE_URL yang sudah benar.
             'question_image' => $this->question_image
-                ? route('api.cbt.exam.question-image', ['question' => $this->id])
+                ? '/exam/question-image/' . $this->id
                 : null,
             'type' => $this->type,
             'options' => $options,
