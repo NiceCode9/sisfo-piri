@@ -28,7 +28,21 @@ class QuestionBankQuestionController extends Controller implements HasMiddleware
 
         $imagePath = null;
         if ($request->hasFile('question_image')) {
-            $imagePath = $request->file('question_image')->store(ExamQuestion::IMAGE_DIR, ExamQuestion::DISK);
+            $stored = $request->file('question_image')->store(ExamQuestion::IMAGE_DIR, ExamQuestion::DISK);
+            $imagePath = $stored ?: null;
+            \Illuminate\Support\Facades\Log::info('cbt.upload', [
+                'hasFile' => true,
+                'stored' => $stored,
+                'originalName' => $request->file('question_image')->getClientOriginalName(),
+                'size' => $request->file('question_image')->getSize(),
+                'bank_id' => $bank->id,
+            ]);
+        } else {
+            \Illuminate\Support\Facades\Log::info('cbt.upload', [
+                'hasFile' => false,
+                'allFiles' => array_keys($request->allFiles()),
+                'bank_id' => $bank->id,
+            ]);
         }
 
         ExamQuestion::create([

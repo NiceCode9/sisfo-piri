@@ -266,8 +266,9 @@ test('API mengirim url gambar, bukan path storage mentah', function () {
 
     $gambar = $respons->json('questions.0.question_image');
 
+    // Path relatif (bukan path storage mentah) agar tidak bergantung APP_URL.
     // Path storage mentah membocorkan struktur disk dan 404 di SPA.
-    expect($gambar)->toContain('/api/cbt/exam/question-image/')
+    expect($gambar)->toContain('/exam/question-image/')
         ->and($gambar)->not->toContain('cbt/questions/');
 });
 

@@ -29,7 +29,19 @@ class ExamQuestionController extends Controller implements HasMiddleware
         $data['exam_id'] = $exam->id;
 
         if ($request->hasFile('question_image')) {
-            $data['question_image'] = $request->file('question_image')->store(ExamQuestion::IMAGE_DIR, ExamQuestion::DISK);
+            $stored = $request->file('question_image')->store(ExamQuestion::IMAGE_DIR, ExamQuestion::DISK);
+            $data['question_image'] = $stored ?: null;
+            \Illuminate\Support\Facades\Log::info('cbt.upload', [
+                'hasFile' => true,
+                'stored' => $stored,
+                'originalName' => $request->file('question_image')->getClientOriginalName(),
+                'size' => $request->file('question_image')->getSize(),
+            ]);
+        } else {
+            \Illuminate\Support\Facades\Log::info('cbt.upload', [
+                'hasFile' => false,
+                'allFiles' => array_keys($request->allFiles()),
+            ]);
         }
 
         ExamQuestion::create($data);
