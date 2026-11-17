@@ -9,6 +9,7 @@
     @php
         $tabs = [
             'dashboard' => ['label' => 'Dashboard', 'route' => 'guru.dashboard', 'icon' => 'fa-solid fa-th-large'],
+            'profil' => ['label' => 'Profil', 'route' => 'guru.profil', 'icon' => 'fa-solid fa-user'],
             'absensi-qr' => ['label' => 'QR Absen', 'route' => 'guru.absensi-qr', 'icon' => 'fa-solid fa-qrcode'],
             'absensi' => ['label' => 'Absensi', 'route' => 'admin.absensis.index', 'icon' => 'fa-solid fa-clipboard-check'],
             'tugas' => ['label' => 'Tugas', 'route' => 'admin.tugas.index', 'icon' => 'fa-solid fa-clipboard-question'],

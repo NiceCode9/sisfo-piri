@@ -167,6 +167,8 @@ Route::prefix('ortu')->name('ortu.')->middleware(['auth', 'role:orang-tua'])->gr
 
 Route::prefix('guru')->name('guru.')->middleware(['auth', 'role:guru|guru-piket'])->group(function () {
     Route::get('/dashboard', [GuruDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/profil', [App\Http\Controllers\Guru\ProfilController::class, 'show'])->name('profil');
+    Route::put('/profil', [App\Http\Controllers\Guru\ProfilController::class, 'update'])->name('profil.update');
     Route::get('/absensi-qr', [AbsensiQrController::class, 'show'])->name('absensi-qr');
     Route::get('/absensi-qr/refresh', [AbsensiQrController::class, 'refresh'])->name('absensi-qr.refresh');
     Route::post('/absensi-qr/izin', [AbsensiIzinController::class, 'store'])->name('absensi-qr.izin');
@@ -202,6 +204,9 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
             ? app(AdminDashboardController::class)->index()
             : redirect()->route($tujuan);
     })->name('dashboard');
+
+    Route::get('/profil', [App\Http\Controllers\Admin\ProfilController::class, 'show'])->name('profil');
+    Route::put('/profil', [App\Http\Controllers\Admin\ProfilController::class, 'update'])->name('profil.update');
 
     Route::resource('users', UserController::class)->except(['show']);
     Route::resource('roles', RoleController::class)->except(['show']);
