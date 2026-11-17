@@ -17,7 +17,7 @@
 <div class="card-nexus">
     <div class="card-header-nexus"><div><h5 class="card-title">Form Guru</h5><p class="card-subtitle">Akun login otomatis ber-role guru</p></div></div>
     <div class="card-body-nexus">
-        <form method="POST" action="{{ route('admin.gurus.store') }}">
+        <form method="POST" action="{{ route('admin.gurus.store') }}" enctype="multipart/form-data">
             @csrf
             @include('admin.gurus._form')
             <div class="d-flex gap-2 justify-content-end mt-2">

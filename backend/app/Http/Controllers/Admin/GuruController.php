@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -61,10 +62,18 @@ class GuruController extends Controller implements HasMiddleware
             ]);
             $user->assignRole('guru');
 
+            $fotoPath = null;
+            if (request()->hasFile('foto')) {
+                $fotoPath = request()->file('foto')->store('guru', 'public');
+            }
+
             Guru::create([
                 'user_id' => $user->id,
                 'nip' => $validated['nip'] ?? null,
                 'nama' => $validated['nama'],
+                'foto_path' => $fotoPath,
+                'tanggal_lahir' => $validated['tanggal_lahir'] ?? null,
+                'jabatan' => $validated['jabatan'] ?? null,
                 'jenis_kelamin' => $validated['jenis_kelamin'],
                 'telp' => $validated['telp'] ?? null,
                 'alamat' => $validated['alamat'] ?? null,
@@ -115,7 +124,15 @@ class GuruController extends Controller implements HasMiddleware
     {
         $validated = $request->validated();
 
-        DB::transaction(function () use ($validated, $guru) {
+        $fotoPath = $guru->foto_path;
+        if (request()->hasFile('foto')) {
+            if ($guru->foto_path) {
+                Storage::disk('public')->delete($guru->foto_path);
+            }
+            $fotoPath = request()->file('foto')->store('guru', 'public');
+        }
+
+        DB::transaction(function () use ($validated, $guru, $fotoPath) {
             $userData = [
                 'username' => $validated['telp'],
                 'name' => $validated['nama'],
@@ -127,6 +144,9 @@ class GuruController extends Controller implements HasMiddleware
             $guru->update([
                 'nip' => $validated['nip'] ?? null,
                 'nama' => $validated['nama'],
+                'foto_path' => $fotoPath,
+                'tanggal_lahir' => $validated['tanggal_lahir'] ?? null,
+                'jabatan' => $validated['jabatan'] ?? null,
                 'jenis_kelamin' => $validated['jenis_kelamin'],
                 'telp' => $validated['telp'] ?? null,
                 'alamat' => $validated['alamat'] ?? null,
@@ -141,6 +161,10 @@ class GuruController extends Controller implements HasMiddleware
     {
         if ($guru->pengampus()->exists() || $guru->waliRombels()->exists()) {
             return back()->with('error', "Guru {$guru->nama} masih memiliki penugasan/wali rombel dan tidak dapat dihapus. Nonaktifkan saja.");
+        }
+
+        if ($guru->foto_path) {
+            Storage::disk('public')->delete($guru->foto_path);
         }
 
         DB::transaction(function () use ($guru) {

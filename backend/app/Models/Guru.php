@@ -14,6 +14,9 @@ class Guru extends Model
         'user_id',
         'nip',
         'nama',
+        'foto_path',
+        'tanggal_lahir',
+        'jabatan',
         'jenis_kelamin',
         'telp',
         'alamat',
@@ -32,6 +35,7 @@ class Guru extends Model
 
     protected $casts = [
         'is_aktif' => 'boolean',
+        'tanggal_lahir' => 'date',
     ];
 
     public function user()

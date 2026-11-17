@@ -19,7 +19,7 @@
 <div class="card-nexus">
     <div class="card-header-nexus"><div><h5 class="card-title">Form Guru</h5><p class="card-subtitle">Kosongkan password bila tidak diubah</p></div></div>
     <div class="card-body-nexus">
-        <form method="POST" action="{{ route('admin.gurus.update', $guru) }}">
+        <form method="POST" action="{{ route('admin.gurus.update', $guru) }}" enctype="multipart/form-data">
             @csrf
             @method('PUT')
             @include('admin.gurus._form')

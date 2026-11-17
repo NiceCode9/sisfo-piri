@@ -17,6 +17,31 @@
 
 <div class="row g-3 mb-3">
     <div class="col-12 col-sm-4">
+        <label class="form-label" for="foto">Foto (JPG/PNG/WebP maks 5MB)</label>
+        @if (! empty($guru->foto_path ?? null))
+            <div class="mb-2"><img src="{{ Storage::disk('public')->url($guru->foto_path) }}" alt="{{ $guru->nama }}" style="max-height:120px;border-radius:8px;" /></div>
+        @endif
+        <input type="file" name="foto" id="foto" accept=".jpg,.jpeg,.png,.webp" class="form-control @error('foto') is-invalid @enderror" />
+        @error('foto')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+    </div>
+    <div class="col-12 col-sm-4">
+        <div class="form-floating">
+            <input type="date" name="tanggal_lahir" value="{{ old('tanggal_lahir', isset($guru->tanggal_lahir) ? $guru->tanggal_lahir->format('Y-m-d') : '') }}" class="form-control @error('tanggal_lahir') is-invalid @enderror" id="tanggal_lahir" />
+            <label for="tanggal_lahir">Tanggal Lahir</label>
+            @error('tanggal_lahir')<div class="invalid-feedback">{{ $message }}</div>@enderror
+        </div>
+    </div>
+    <div class="col-12 col-sm-4">
+        <div class="form-floating">
+            <input type="text" name="jabatan" value="{{ old('jabatan', $guru->jabatan ?? '') }}" class="form-control @error('jabatan') is-invalid @enderror" id="jabatan" placeholder="Guru Matematika" />
+            <label for="jabatan">Jabatan</label>
+            @error('jabatan')<div class="invalid-feedback">{{ $message }}</div>@enderror
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-12 col-sm-4">
         <div class="form-floating">
             <select name="jenis_kelamin" class="form-select @error('jenis_kelamin') is-invalid @enderror" id="jenis_kelamin" required>
                 <option value="L" @selected(old('jenis_kelamin', $guru->jenis_kelamin ?? 'L')==='L')>Laki-laki</option>

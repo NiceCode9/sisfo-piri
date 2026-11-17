@@ -26,6 +26,7 @@
         ['label' => 'Cara Daftar', 'url' => route('spmb.home') . '#alur'],
         ['label' => 'Biaya', 'url' => route('spmb.home') . '#biaya'],
         ['label' => 'Tentang', 'url' => route('spmb.about')],
+        ['label' => 'Guru', 'url' => route('spmb.guru')],
     ];
 @endphp
 

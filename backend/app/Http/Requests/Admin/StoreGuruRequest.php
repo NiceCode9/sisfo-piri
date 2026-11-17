@@ -23,6 +23,9 @@ class StoreGuruRequest extends FormRequest
         return [
             'nip' => ['nullable', 'string', 'max:50', 'unique:gurus,nip'],
             'nama' => ['required', 'string', 'max:255'],
+            'foto' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'tanggal_lahir' => ['nullable', 'date', 'before:today'],
+            'jabatan' => ['nullable', 'string', 'max:100'],
             'jenis_kelamin' => ['required', 'in:L,P'],
             'telp' => ['required', 'string', 'max:50', 'unique:users,username', $this->harusAngka()],
             'alamat' => ['nullable', 'string', 'max:1000'],

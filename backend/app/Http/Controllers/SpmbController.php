@@ -12,6 +12,7 @@ use App\Models\CalonSiswa;
 use App\Models\Ekstrakurikuler;
 use App\Models\Galeri;
 use App\Models\Gelombang;
+use App\Models\Guru;
 use App\Models\JalurPendaftaran;
 use App\Models\KuotaPendaftaran;
 use App\Models\LogStatusPendaftaran;
@@ -323,5 +324,12 @@ class SpmbController extends Controller
     public function about()
     {
         return view('spmb.about');
+    }
+
+    public function guru(): View
+    {
+        $gurus = Guru::aktif()->orderBy('nama')->get();
+
+        return view('spmb.guru', compact('gurus'));
     }
 }
