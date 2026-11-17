@@ -23,10 +23,17 @@
         ['label' => 'Beranda', 'url' => route('spmb.home')],
         ['label' => 'Berita', 'url' => route('berita.index')],
         ['label' => 'Pengumuman', 'url' => route('spmb.pengumuman.index')],
+        ['label' => 'Guru', 'url' => route('spmb.guru')],
+    ];
+
+    // "Tentang" jadi dropdown agar navbar tidak terlalu padat: tautan
+    // turunannya (Cara Daftar, Biaya, Guru & Karyawan) tidak lagi jadi
+    // item top-level.
+    $tentangLinks = [
+        ['label' => 'Tentang Sekolah', 'url' => route('spmb.about')],
+        ['label' => 'Guru & Karyawan', 'url' => route('spmb.guru')],
         ['label' => 'Cara Daftar', 'url' => route('spmb.home') . '#alur'],
         ['label' => 'Biaya', 'url' => route('spmb.home') . '#biaya'],
-        ['label' => 'Tentang', 'url' => route('spmb.about')],
-        ['label' => 'Guru', 'url' => route('spmb.guru')],
     ];
 @endphp
 
@@ -70,6 +77,25 @@
                         </a>
                     </li>
                 @endforeach
+                <li class="relative group">
+                    <a href="{{ route('spmb.about') }}"
+                       class="inline-flex min-h-11 items-center gap-1 rounded-md px-3 text-sm font-medium transition-colors
+                              {{ $transparent ? 'text-white/85 hover:bg-white/10 hover:text-white' : 'text-ink-700 hover:bg-primary-50 hover:text-primary-800' }}">
+                        Tentang
+                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </a>
+                    <div class="invisible absolute left-0 top-full z-50 mt-1 w-48 rounded-md border border-kertas-300 bg-kertas-100 py-1 opacity-0 shadow-float transition-all
+                                group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+                        @foreach ($tentangLinks as $link)
+                            <a href="{{ $link['url'] }}"
+                               class="block px-4 py-2 text-sm text-ink-700 transition-colors hover:bg-primary-50 hover:text-primary-800">
+                                {{ $link['label'] }}
+                            </a>
+                        @endforeach
+                    </div>
+                </li>
             </ul>
 
             <div class="hidden items-center gap-2 lg:flex">
@@ -113,6 +139,19 @@
                     </a>
                 </li>
             @endforeach
+            <li class="mt-2 border-t border-kertas-300 pt-2">
+                <span class="flex min-h-12 items-center px-2 text-base font-semibold text-ink-900">Tentang</span>
+                <ul class="ml-4 space-y-1">
+                    @foreach ($tentangLinks as $link)
+                        <li>
+                            <a href="{{ $link['url'] }}"
+                               class="flex min-h-11 items-center rounded-md px-2 text-sm font-medium text-ink-700 transition-colors hover:bg-primary-50">
+                                {{ $link['label'] }}
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
+            </li>
         </ul>
         <div class="mx-auto max-w-6xl px-5 pb-5 sm:px-6">
             <div class="grid gap-2 border-t border-kertas-300 pt-4">
