@@ -24,18 +24,9 @@
         ['icon' => 'shield-check', 'title' => 'Karakter', 'desc' => 'Berakhlak mulia dan menghargai perbedaan'],
     ];
 
-    // Fasilitas dirender sebagai kartu ikon, bukan foto. Versi lama memakai
-    // `via.placeholder.com`, layanan pihak ketiga yang sudah tidak bisa
-    // diandalkan: appearnya kotak abu-abu bertuliskan teks, bukan gambar
-    // fasilitas sekolah (R-36).
-    $fasilitasList = [
-        ['icon' => 'beaker', 'title' => 'Laboratorium IPA', 'desc' => 'Ruang praktikum sains lengkap dengan alat modern'],
-        ['icon' => 'book', 'title' => 'Perpustakaan', 'desc' => 'Koleksi ribuan buku dan area baca yang nyaman'],
-        ['icon' => 'bolt', 'title' => 'Lapangan Olahraga', 'desc' => 'Lapangan multifungsi untuk berbagai cabang olahraga'],
-        ['icon' => 'desktop', 'title' => 'Ruang Komputer', 'desc' => 'Lab komputer dengan akses internet untuk pembelajaran digital'],
-        ['icon' => 'sparkles', 'title' => 'Ruang Kesenian', 'desc' => 'Fasilitas untuk mengembangkan bakat seni dan musik siswa'],
-        ['icon' => 'mosque', 'title' => 'Masjid Sekolah', 'desc' => 'Tempat ibadah yang nyaman untuk kegiatan keagamaan'],
-    ];
+    // Fasilitas sekarang diambil dari database (tabel fasilitas) lewat view
+    // composer spmb.*; lihat bagian Fasilitas di bawah. Daftar hardcoded lama
+    // dihapus supaya tidak ada dua sumber kebenaran.
 
     $kepalaSekolah = (object) [
         'nama' => $profileSekolah?->nama_kepala_bersih,
@@ -506,37 +497,44 @@
         @endif
 
         {{-- ============ FASILITAS ============ --}}
-        <section class="bg-kertas-200 py-20 sm:py-24">
-            <div class="mx-auto max-w-6xl px-5 sm:px-6">
+        @if (! empty($fasilitasGrouped) && $fasilitasGrouped->isNotEmpty())
+            <section class="bg-kertas-200 py-20 sm:py-24">
+                <div class="mx-auto max-w-6xl px-5 sm:px-6">
 
-                <div class="max-w-2xl">
-                    <h2 class="reveal font-display text-3xl font-extrabold leading-tight text-ink-900 sm:text-4xl">
-                        Fasilitas penunjang belajar
-                    </h2>
-                    <p class="reveal mt-5 text-base leading-relaxed text-ink-600">
-                        Lingkungan belajar yang lengkap dan nyaman untuk mendukung
-                        tumbuh kembang siswa.
-                    </p>
-                </div>
+                    <div class="max-w-2xl">
+                        <h2 class="reveal font-display text-3xl font-extrabold leading-tight text-ink-900 sm:text-4xl">
+                            Fasilitas penunjang belajar
+                        </h2>
+                        <p class="reveal mt-5 text-base leading-relaxed text-ink-600">
+                            Lingkungan belajar yang lengkap dan nyaman untuk mendukung
+                            tumbuh kembang siswa.
+                        </p>
+                    </div>
 
-                <ul class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    @foreach ($fasilitasList as $fasilitas)
-                        <li class="reveal rounded-lg border border-kertas-300 bg-kertas-200 p-6">
-                            <span class="grid h-10 w-10 place-items-center rounded-md bg-secondary-50 text-secondary-700">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8"
-                                     viewBox="0 0 24 24" aria-hidden="true">
-                                    @foreach ($renderIcon($fasilitas['icon']) as $d)
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="{{ $d }}"/>
-                                    @endforeach
-                                </svg>
-                            </span>
-                            <h3 class="mt-5 font-display text-lg font-extrabold text-ink-900">{{ $fasilitas['title'] }}</h3>
-                            <p class="mt-2 text-sm leading-relaxed text-ink-600">{{ $fasilitas['desc'] }}</p>
-                        </li>
+                    @foreach ($fasilitasGrouped as $jenis => $items)
+                        <h3 class="reveal mt-12 font-display text-xl font-extrabold text-ink-900">{{ $jenis }}</h3>
+                        <div class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                            @foreach ($items as $fasilitas)
+                                <article class="reveal overflow-hidden rounded-lg border border-kertas-300 bg-kertas-100">
+                                    @if (! empty($fasilitas->fotos))
+                                        <img src="{{ Storage::disk('public')->url($fasilitas->fotos[0]) }}"
+                                             alt="{{ $fasilitas->nama }}"
+                                             class="block h-44 w-full object-cover"
+                                             loading="lazy" decoding="async">
+                                    @endif
+                                    <div class="p-5">
+                                        <h4 class="font-display text-lg font-extrabold text-ink-900">{{ $fasilitas->nama }}</h4>
+                                        @if ($fasilitas->deskripsi)
+                                            <p class="mt-2 text-sm leading-relaxed text-ink-600">{{ $fasilitas->deskripsi }}</p>
+                                        @endif
+                                    </div>
+                                </article>
+                            @endforeach
+                        </div>
                     @endforeach
-                </ul>
-            </div>
-        </section>
+                </div>
+            </section>
+        @endif
 
         {{-- ============ CTA ============ --}}
         <section class="on-dark bg-primary-900 py-20 sm:py-24">

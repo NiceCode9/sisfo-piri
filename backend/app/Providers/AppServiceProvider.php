@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Brosur;
+use App\Models\Fasilitas;
 use App\Models\Galeri;
 use App\Models\Guru;
 use App\Models\Menu;
@@ -72,6 +73,10 @@ class AppServiceProvider extends ServiceProvider
             $view->with('namaSekolah', trim((string) $profil?->nama_sekolah) ?: 'Sekolah');
             $view->with('jumlahSiswaAktif', Schema::hasTable('siswas') ? Siswa::where('is_aktif', true)->count() : 0);
             $view->with('jumlahGuruAktif', Schema::hasTable('gurus') ? Guru::where('is_aktif', true)->count() : 0);
+
+            $view->with('fasilitasGrouped', Schema::hasTable('fasilitas')
+                ? Fasilitas::aktif()->urut()->get()->groupBy('jenis')
+                : collect());
 
             // Usia sekolah dihitung dari tahun berdiri di profil. Null kalau
             // profil belum diisi, supaya halaman publik tidak mengarang angka.

@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\Cbt\SoalImportController;
 use App\Http\Controllers\Admin\Cbt\SoalImportPreviewController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EkstrakurikulerController;
+use App\Http\Controllers\Admin\FasilitasController;
 use App\Http\Controllers\Admin\GaleriController;
 use App\Http\Controllers\Admin\GelombangController;
 use App\Http\Controllers\Admin\GuruController;
@@ -213,6 +214,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::resource('pengumumans', PengumumanController::class)->except(['show']);
     Route::resource('brosurs', BrosurController::class)->except(['show']);
     Route::resource('galeris', GaleriController::class)->except(['show']);
+    Route::resource('fasilitas', FasilitasController::class)->except(['show'])->parameters(['fasilitas' => 'fasilitas']);
     Route::resource('gelombangs', GelombangController::class)->except(['show']);
     Route::resource('tahun-ajarans', TahunAjaranController::class)->except(['show']);
     Route::resource('jalur-pendaftarans', JalurPendaftaranController::class)->except(['show']);

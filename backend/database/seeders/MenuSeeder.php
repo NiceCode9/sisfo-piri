@@ -35,6 +35,7 @@ class MenuSeeder extends Seeder
             ['name' => 'Pengumuman', 'icon' => 'fa-solid fa-bullhorn', 'route' => 'admin.pengumumans.index', 'permission' => 'pengumumans.view', 'order' => 18],
             ['name' => 'Brosur', 'icon' => 'fa-solid fa-file-image', 'route' => 'admin.brosurs.index', 'permission' => 'brosurs.view', 'order' => 19],
             ['name' => 'Galeri', 'icon' => 'fa-solid fa-images', 'route' => 'admin.galeris.index', 'permission' => 'galeris.view', 'order' => 20],
+            ['name' => 'Fasilitas', 'icon' => 'fa-solid fa-building', 'route' => 'admin.fasilitas.index', 'permission' => 'fasilitas.view', 'order' => 21],
 
             ['name' => 'Akademik', 'is_header' => true, 'order' => 21],
             ['name' => 'Guru', 'icon' => 'fa-solid fa-chalkboard-user', 'route' => 'admin.gurus.index', 'permission' => 'gurus.view', 'order' => 22],
