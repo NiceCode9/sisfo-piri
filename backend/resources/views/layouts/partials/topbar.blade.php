@@ -65,14 +65,18 @@
                     <div class="u-role">{{ $topbarRole }}</div>
                 </div>
                 <div class="avatar-wrapper">
-                    <div class="avatar">{{ $topbarInitial }}</div>
+                    @if ($topbarUser?->foto_path)
+                        <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($topbarUser->foto_path) }}" alt="{{ $topbarName }}" class="avatar" style="object-fit:cover;" />
+                    @else
+                        <div class="avatar">{{ $topbarInitial }}</div>
+                    @endif
                     <span class="avatar-status status-online"></span>
                 </div>
             </div>
             <ul class="dropdown-menu dropdown-menu-end mt-2">
                 <li><div class="px-3 py-2"><div class="fw-bold" style="font-size: 14px; color: var(--text-primary)">{{ $topbarName }}</div><div style="font-size: 12px; color: var(--text-muted)">{{ $topbarEmail }}</div></div></li>
                 <li><hr class="dropdown-divider" /></li>
-                <li><a class="dropdown-item" href="#"><i class="fa-solid fa-circle-user"></i> My Profile</a></li>
+                <li><a class="dropdown-item" href="{{ auth()->user()?->hasRole('guru') ? route('guru.profil') : route('admin.profil') }}"><i class="fa-solid fa-circle-user"></i> My Profile</a></li>
                 <li><a class="dropdown-item" href="#"><i class="fa-solid fa-sliders"></i> Account Settings</a></li>
                 <li><a class="dropdown-item" href="#"><i class="fa-solid fa-credit-card"></i> Billing &amp; Plans</a></li>
                 <li><hr class="dropdown-divider" /></li>
