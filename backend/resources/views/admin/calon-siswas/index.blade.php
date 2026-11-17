@@ -72,7 +72,7 @@
                         <tr>
                             <td>
                                 <div style="font-weight: 600; font-size: 13px;">{{ $calon->no_pendaftaran }}</div>
-                                <div style="font-size: 11px; color: var(--text-muted);">{{ $calon->nik }}</div>
+                                <div style="font-size: 11px; color: var(--text-muted);">{{ $calon->nik ? substr($calon->nik, 0, 4).str_repeat('x', max(0, strlen($calon->nik) - 4)) : '-' }}</div>
                             </td>
                             <td style="font-size: 13px;">
                                 {{ $calon->nama_lengkap }}
