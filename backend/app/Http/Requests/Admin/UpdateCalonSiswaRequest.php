@@ -32,7 +32,15 @@ class UpdateCalonSiswaRequest extends FormRequest
         return [
             'jalur_pendaftaran_id' => ['required', 'integer', 'exists:jalur_pendaftarans,id'],
             'tahun_ajaran_id' => ['nullable', 'integer', 'exists:tahun_ajarans,id'],
-            'nik' => ['required', 'string', 'size:16', 'regex:/^[0-9]+$/', 'unique:calon_siswas,nik,'.$id],
+            'nik' => ['required', 'string', 'size:16', 'regex:/^[0-9]+$/', function (string $attribute, mixed $value, \Closure $fail) use ($id): void {
+                $query = CalonSiswa::where('nik_hash', hash('sha256', (string) $value));
+                if ($id) {
+                    $query->where('id', '!=', $id);
+                }
+                if ($query->exists()) {
+                    $fail('NIK sudah terdaftar.');
+                }
+            }],
             'nisn' => ['nullable', 'string', 'size:10', 'regex:/^[0-9]+$/', 'unique:calon_siswas,nisn,'.$id],
             'nama_lengkap' => ['required', 'string', 'max:255'],
             'jenis_kelamin' => ['required', 'in:L,P'],

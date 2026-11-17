@@ -30,7 +30,11 @@ class StoreCalonSiswaRequest extends FormRequest
         return [
             'jalur_pendaftaran_id' => ['required', 'integer', 'exists:jalur_pendaftarans,id'],
             'tahun_ajaran_id' => ['nullable', 'integer', 'exists:tahun_ajarans,id'],
-            'nik' => ['required', 'string', 'size:16', 'regex:/^[0-9]+$/', 'unique:calon_siswas,nik'],
+            'nik' => ['required', 'string', 'size:16', 'regex:/^[0-9]+$/', function (string $attribute, mixed $value, \Closure $fail): void {
+                if (CalonSiswa::where('nik_hash', hash('sha256', (string) $value))->exists()) {
+                    $fail('NIK sudah terdaftar.');
+                }
+            }],
             'nisn' => ['nullable', 'string', 'size:10', 'regex:/^[0-9]+$/', 'unique:calon_siswas,nisn'],
             'nama_lengkap' => ['required', 'string', 'max:255'],
             'jenis_kelamin' => ['required', 'in:L,P'],

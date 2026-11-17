@@ -27,6 +27,7 @@ class CalonSiswa extends Model
         'user_id',
         'no_pendaftaran',
         'nik',
+        'nik_hash',
         'nisn',
         'nama_lengkap',
         'jenis_kelamin',
@@ -45,6 +46,37 @@ class CalonSiswa extends Model
         'tahun_ajaran_id',
         'status_pendaftaran',
     ];
+
+    /**
+     * NIK disimpan terenkripsi di database. Aksesor mengembalikan nilai asli,
+     * mutator mengisi nik_hash (sha256) untuk pencarian/keunikan.
+     */
+    public function getNikAttribute(?string $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return $value;
+        }
+
+        try {
+            return decrypt($value);
+        } catch (\Throwable $e) {
+            // Data lama yang belum terenkripsi tetap bisa dibaca.
+            return $value;
+        }
+    }
+
+    public function setNikAttribute(?string $value): void
+    {
+        if ($value === null || $value === '') {
+            $this->attributes['nik'] = $value;
+            $this->attributes['nik_hash'] = null;
+
+            return;
+        }
+
+        $this->attributes['nik_hash'] = hash('sha256', $value);
+        $this->attributes['nik'] = encrypt($value);
+    }
 
     public function user()
     {

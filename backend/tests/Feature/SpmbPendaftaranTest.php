@@ -108,7 +108,7 @@ test('pendaftaran publik sukses dengan 5 berkas', function () {
 
     $response->assertRedirect(route('spmb.pendaftaran'));
     $response->assertSessionHas('success');
-    $calon = CalonSiswa::where('nik', '1234567890123456')->first();
+    $calon = CalonSiswa::where('nik_hash', hash('sha256', '1234567890123456'))->first();
     expect($calon)->not->toBeNull()
         ->and($calon->no_pendaftaran)->toStartWith('PPDB-');
     expect($calon->berkasCalonSiswa)->not->toBeNull();
@@ -664,7 +664,7 @@ test('pendaftaran ditolak sebelum gelombang dibuka', function () {
         'email' => 'belum@example.com',
     ]))->assertSessionHasErrors('gelombang_id');
 
-    expect(CalonSiswa::where('nik', '1234567890123800')->exists())->toBeFalse();
+    expect(CalonSiswa::where('nik_hash', hash('sha256', '1234567890123800'))->exists())->toBeFalse();
 });
 
 test('pendaftaran ditolak setelah semua gelombang lewat', function () {
@@ -692,7 +692,7 @@ test('pendaftaran ditolak setelah semua gelombang lewat', function () {
         'gelombang_id' => null,
     ]))->assertSessionHasErrors('gelombang_id');
 
-    expect(CalonSiswa::where('nik', '1234567890123900')->exists())->toBeFalse();
+    expect(CalonSiswa::where('nik_hash', hash('sha256', '1234567890123900'))->exists())->toBeFalse();
 });
 
 test('tanpa gelombang, pendaftaran tetap dibuka', function () {
@@ -705,7 +705,7 @@ test('tanpa gelombang, pendaftaran tetap dibuka', function () {
         'email' => 'tanpa-jadwal@example.com',
     ]))->assertSessionHasNoErrors();
 
-    expect(CalonSiswa::where('nik', '1234567890124000')->exists())->toBeTrue();
+    expect(CalonSiswa::where('nik_hash', hash('sha256', '1234567890124000'))->exists())->toBeTrue();
 });
 
 test('kuota gelombang penuh menutup pendaftaran', function () {
@@ -731,7 +731,7 @@ test('kuota gelombang penuh menutup pendaftaran', function () {
         'email' => 'penuh@example.com',
     ]))->assertSessionHasErrors('gelombang_id');
 
-    expect(CalonSiswa::where('nik', '1234567890124100')->exists())->toBeFalse();
+    expect(CalonSiswa::where('nik_hash', hash('sha256', '1234567890124100'))->exists())->toBeFalse();
 });
 
 test('halaman pendaftaran menampilkan peringatan ketika ditutup', function () {
@@ -860,7 +860,7 @@ test('pendaftaran ke jalur non-aktif ditolak walau POST langsung', function () {
         'email' => 'jalur-nonaktif@example.com',
     ]))->assertSessionHasErrors('jalur_pendaftaran_id');
 
-    expect(CalonSiswa::where('nik', '1234567890124200')->exists())->toBeFalse();
+    expect(CalonSiswa::where('nik_hash', hash('sha256', '1234567890124200'))->exists())->toBeFalse();
 
     // Jalur non-aktif tidak boleh muncul sebagai pilihan di wizard.
     $this->get(route('spmb.pendaftaran'))
@@ -885,7 +885,7 @@ test('agama pada form publik memakai pilihan baku yang sama dengan admin', funct
         'agama' => 'islam',
     ]))->assertSessionHasErrors('agama');
 
-    expect(CalonSiswa::where('nik', '1234567890124100')->exists())->toBeFalse();
+    expect(CalonSiswa::where('nik_hash', hash('sha256', '1234567890124100'))->exists())->toBeFalse();
 });
 
 test('halaman publik tidak lagi menjanjikan pembuatan akun terpisah', function () {
@@ -1034,7 +1034,7 @@ test('email yang sudah dipakai akun lain ditolak tanpa membocorkan pesan SQL', f
         ->and(strtolower($pesan))->not->toContain('unique constraint');
 
     // Tidak ada akun/calon yang bocor dari percobaan yang gagal.
-    expect(CalonSiswa::where('nik', '1234567890123400')->exists())->toBeFalse();
+    expect(CalonSiswa::where('nik_hash', hash('sha256', '1234567890123400'))->exists())->toBeFalse();
 });
 
 test('nisn yang sudah jadi username akun lain ditolak pada field nisn', function () {
@@ -1067,7 +1067,7 @@ test('nisn yang sudah jadi username akun lain ditolak pada field nisn', function
     ]);
 
     $response->assertSessionHasErrors('nisn');
-    expect(CalonSiswa::where('nik', '1234567890123401')->exists())->toBeFalse();
+    expect(CalonSiswa::where('nik_hash', hash('sha256', '1234567890123401'))->exists())->toBeFalse();
 });
 
 test('validasi nik 16 digit ditolak', function () {

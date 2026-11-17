@@ -105,7 +105,7 @@ test('jalur olahraga dengan 2 sertifikat berhasil', function () {
     ]));
 
     $response->assertRedirect(route('spmb.pendaftaran'));
-    $calon = CalonSiswa::where('nik', '9900000000000002')->first();
+    $calon = CalonSiswa::where('nik_hash', hash('sha256', '9900000000000002'))->first();
     expect($calon)->not->toBeNull()
         ->and($calon->sertifikatPrestasis)->toHaveCount(2);
     expect($calon->sertifikatPrestasis->pluck('nama_sertifikat')->all())
@@ -119,7 +119,7 @@ test('jalur reguler tanpa sertifikat tetap lolos', function () {
     $response = $this->post(route('spmb.store'), payloadPendaftaran($jalur->id, '03'));
 
     $response->assertRedirect(route('spmb.pendaftaran'));
-    $calon = CalonSiswa::where('nik', '9900000000000003')->first();
+    $calon = CalonSiswa::where('nik_hash', hash('sha256', '9900000000000003'))->first();
     expect($calon)->not->toBeNull()
         ->and($calon->sertifikatPrestasis)->toHaveCount(0);
 });
@@ -136,7 +136,7 @@ test('jalur reguler dengan baris sertifikat kosong dari browser tetap lolos', fu
 
     $response->assertSessionHasNoErrors();
     $response->assertRedirect(route('spmb.pendaftaran'));
-    expect(CalonSiswa::where('nik', '9900000000000006')->exists())->toBeTrue();
+    expect(CalonSiswa::where('nik_hash', hash('sha256', '9900000000000006'))->exists())->toBeTrue();
 });
 
 test('jalur reguler tetap bisa mengirim sertifikat bila diisi', function () {
@@ -149,7 +149,7 @@ test('jalur reguler tetap bisa mengirim sertifikat bila diisi', function () {
     ]));
 
     $response->assertRedirect(route('spmb.pendaftaran'));
-    $calon = CalonSiswa::where('nik', '9900000000000007')->first();
+    $calon = CalonSiswa::where('nik_hash', hash('sha256', '9900000000000007'))->first();
     expect($calon)->not->toBeNull()
         ->and($calon->sertifikatPrestasis)->toHaveCount(1);
 });
@@ -162,7 +162,7 @@ test('baris sertifikat kosong pada jalur wajib tetap ditolak', function () {
     ]));
 
     $response->assertSessionHasErrors('sertifikat');
-    expect(CalonSiswa::where('nik', '9900000000000008')->exists())->toBeFalse();
+    expect(CalonSiswa::where('nik_hash', hash('sha256', '9900000000000008'))->exists())->toBeFalse();
 });
 
 test('lebih dari 5 sertifikat ditolak', function () {
@@ -198,7 +198,7 @@ test('hapus calon menghapus file sertifikat', function () {
         ],
     ]))->assertRedirect(route('spmb.pendaftaran'));
 
-    $calon = CalonSiswa::where('nik', '9900000000000006')->first();
+    $calon = CalonSiswa::where('nik_hash', hash('sha256', '9900000000000006'))->first();
     $path = $calon->sertifikatPrestasis->first()->file_path;
     Storage::disk('berkas')->assertExists($path);
 
@@ -238,7 +238,7 @@ test('admin dapat menambah calon beserta sertifikat', function () {
     ]);
 
     $response->assertRedirect(route('admin.calon-siswas.index'));
-    $calon = CalonSiswa::where('nik', '9900000000000007')->first();
+    $calon = CalonSiswa::where('nik_hash', hash('sha256', '9900000000000007'))->first();
     expect($calon)->not->toBeNull()
         ->and($calon->sertifikatPrestasis)->toHaveCount(1);
 });
@@ -261,7 +261,7 @@ test('admin ditolak menambah calon ke jalur wajib sertifikat tanpa sertifikat', 
     ]);
 
     $response->assertSessionHasErrors('sertifikat');
-    expect(CalonSiswa::where('nik', '9900000000000008')->exists())->toBeFalse();
+    expect(CalonSiswa::where('nik_hash', hash('sha256', '9900000000000008'))->exists())->toBeFalse();
 });
 
 test('admin boleh menambah calon ke jalur reguler tanpa sertifikat', function () {
@@ -280,7 +280,7 @@ test('admin boleh menambah calon ke jalur reguler tanpa sertifikat', function ()
         'alamat' => 'Jl Reguler',
     ])->assertSessionHasNoErrors();
 
-    expect(CalonSiswa::where('nik', '9900000000000009')->exists())->toBeTrue();
+    expect(CalonSiswa::where('nik_hash', hash('sha256', '9900000000000009'))->exists())->toBeTrue();
 });
 
 test('edit calon jalur wajib yang sudah punya sertifikat tidak wajib upload ulang', function () {

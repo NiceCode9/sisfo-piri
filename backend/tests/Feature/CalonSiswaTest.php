@@ -134,7 +134,7 @@ test('super-admin dapat menambah calon siswa beserta berkas', function () {
     ]);
 
     $response->assertRedirect(route('admin.calon-siswas.index'));
-    $calon = CalonSiswa::where('nik', '1234567890123456')->first();
+    $calon = CalonSiswa::where('nik_hash', hash('sha256', '1234567890123456'))->first();
     expect($calon)->not->toBeNull()
         ->and($calon->berkasCalonSiswa)->not->toBeNull()
         ->and($calon->berkasCalonSiswa->ijazah_path)->not->toBeNull();
@@ -168,7 +168,7 @@ test('baris sertifikat kosong dari form admin tidak menggagalkan jalur non-wajib
 
     $response->assertSessionHasNoErrors();
     $response->assertRedirect(route('admin.calon-siswas.index'));
-    expect(CalonSiswa::where('nik', '1234567890123999')->exists())->toBeTrue();
+    expect(CalonSiswa::where('nik_hash', hash('sha256', '1234567890123999'))->exists())->toBeTrue();
 });
 
 test('edit tidak dapat memaksa status menjadi diterima', function () {
@@ -225,7 +225,7 @@ test('tambah calon selalu berstatus menunggu meski admin kirim accepted', functi
         'status_pendaftaran' => 'diterima',
     ])->assertRedirect(route('admin.calon-siswas.index'));
 
-    $calon = CalonSiswa::where('nik', '1234567890900222')->first();
+    $calon = CalonSiswa::where('nik_hash', hash('sha256', '1234567890900222'))->first();
 
     expect($calon)->not->toBeNull()
         ->and($calon->status_pendaftaran)->toBe('menunggu')
@@ -605,7 +605,7 @@ test('admin tetap boleh memilih jalur non-aktif untuk mencatat pendaftar terlamb
         'alamat' => 'Jl Walkin',
     ])->assertSessionHasNoErrors();
 
-    $calon = CalonSiswa::where('nik', '0001234567802100')->first();
+    $calon = CalonSiswa::where('nik_hash', hash('sha256', '0001234567802100'))->first();
 
     expect($calon)->not->toBeNull()
         ->and($calon->jalur_pendaftaran_id)->toBe($jalur->id);
@@ -885,7 +885,7 @@ test('penomoran pendaftaran tetap unik meski ada nomor yang terhapus', function 
 
     $response->assertSessionHasNoErrors();
     $nikBaru = str_pad('1234567800004', 16, '0', STR_PAD_LEFT);
-    $baru = CalonSiswa::where('nik', $nikBaru)->first();
+    $baru = CalonSiswa::where('nik_hash', hash('sha256', $nikBaru))->first();
 
     expect($baru)->not->toBeNull()
         ->and($baru->no_pendaftaran)->toStartWith('PPDB-'.date('Y').'-')

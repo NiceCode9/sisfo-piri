@@ -54,7 +54,11 @@ class StorePendaftaranRequest extends FormRequest
             ],
             'nama_lengkap' => ['required', 'string', 'max:255'],
             'jenis_kelamin' => ['required', 'in:L,P'],
-            'nik' => ['required', 'string', 'size:16', 'regex:/^[0-9]+$/', 'unique:calon_siswas,nik'],
+            'nik' => ['required', 'string', 'size:16', 'regex:/^[0-9]+$/', function (string $attribute, mixed $value, \Closure $fail): void {
+                if (CalonSiswa::where('nik_hash', hash('sha256', (string) $value))->exists()) {
+                    $fail('NIK sudah terdaftar.');
+                }
+            }],
             'nisn' => ['required', 'string', 'size:10', 'regex:/^[0-9]+$/', 'unique:calon_siswas,nisn', 'unique:users,username'],
             'tempat_lahir' => ['required', 'string', 'max:100'],
             'tanggal_lahir' => ['required', 'date', 'before:today'],
