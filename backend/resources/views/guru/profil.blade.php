@@ -18,7 +18,12 @@
 <div class="card-nexus" style="max-width:560px;">
     <div class="card-header-nexus"><h5 class="card-title">Ubah Password</h5></div>
     <div class="card-body-nexus">
-        <form method="POST" action="{{ route('guru.profil.update') }}">
+        @if (auth()->user()->foto_path)
+            <div class="mb-3 text-center">
+                <img src="{{ Storage::disk('public')->url(auth()->user()->foto_path) }}" alt="Foto" class="rounded" style="width:120px;height:120px;object-fit:cover;" />
+            </div>
+        @endif
+        <form method="POST" action="{{ route('guru.profil.update') }}" enctype="multipart/form-data">
             @csrf @method('PUT')
             <div class="row g-3 mb-3">
                 <div class="col-12 col-sm-6">
@@ -34,6 +39,11 @@
                         <label for="email">Email</label>
                         @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label" style="font-size:12px;" for="foto">Foto Profil (maks 2MB)</label>
+                    <input type="file" name="foto" id="foto" accept="image/*" class="form-control form-control-sm @error('foto') is-invalid @enderror" />
+                    @error('foto')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-12">
                     <div class="form-floating">
