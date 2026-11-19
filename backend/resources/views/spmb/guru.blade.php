@@ -30,12 +30,13 @@
                         @foreach ($gurus as $guru)
                             <article class="reveal overflow-hidden rounded-lg border border-kertas-300 bg-kertas-200">
                                 @if ($guru->foto_path)
-                                    <img src="{{ Storage::disk('public')->url($guru->foto_path) }}"
-                                         alt="{{ $guru->nama }}"
-                                         class="block h-56 w-full object-cover"
+                                    <img src="{{ route('spmb.guru.foto', $guru) }}"
+                                         alt="Foto {{ $guru->nama }}"
+                                         width="800" height="1000"
+                                         class="block aspect-[4/5] w-full object-cover object-top"
                                          loading="lazy" decoding="async">
                                 @else
-                                    <div class="grid h-56 place-items-center bg-kertas-300 text-ink-500">
+                                    <div class="grid aspect-[4/5] w-full place-items-center bg-kertas-300 text-ink-500">
                                         <span class="font-display text-4xl font-extrabold">{{ mb_substr($guru->nama, 0, 1) }}</span>
                                     </div>
                                 @endif

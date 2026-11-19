@@ -78,6 +78,7 @@ Route::get('/', [SpmbController::class, 'home'])->name('spmb.home');
 Route::get('/pendaftaran', [SpmbController::class, 'create'])->name('spmb.pendaftaran');
 Route::get('/tentang', [SpmbController::class, 'about'])->name('spmb.about');
 Route::get('/guru', [SpmbController::class, 'guru'])->name('spmb.guru');
+Route::get('/guru/{guru}/foto', [SpmbController::class, 'fotoGuru'])->name('spmb.guru.foto');
 Route::post('/pendaftaran', [SpmbController::class, 'store'])->name('spmb.store')->middleware('throttle:pendaftaran');
 Route::get('/pengumuman', [SpmbController::class, 'pengumumanIndex'])->name('spmb.pengumuman.index');
 Route::get('/pengumuman/{pengumuman}', [SpmbController::class, 'pengumumanShow'])->name('spmb.pengumuman.show');

@@ -26,8 +26,11 @@ use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SpmbController extends Controller
 {
@@ -331,5 +334,76 @@ class SpmbController extends Controller
         $gurus = Guru::aktif()->orderBy('nama')->get();
 
         return view('spmb.guru', compact('gurus'));
+    }
+
+    /**
+     * Foto guru ukuran kartu.
+     *
+     * Foto asli dari admin bisa sampai 5 MB, sedangkan kartu publik cuma
+     * butuh ~800px. Versi kecil dibuat sekali lalu dipakai ulang supaya foto
+     * lama ikut cepat tanpa perlu diunggah ulang.
+     */
+    public function fotoGuru(Guru $guru): StreamedResponse|RedirectResponse
+    {
+        $disk = Storage::disk('public');
+
+        abort_if($guru->foto_path === null || ! $disk->exists($guru->foto_path), 404);
+
+        $thumbPath = 'guru/thumbs/'.pathinfo($guru->foto_path, PATHINFO_FILENAME).'.jpg';
+
+        if (! $disk->exists($thumbPath)) {
+            $this->buatFotoKecil($disk->path($guru->foto_path), $disk->path($thumbPath));
+        }
+
+        if (! $disk->exists($thumbPath)) {
+            return redirect($disk->url($guru->foto_path));
+        }
+
+        return $disk->response($thumbPath, headers: [
+            'Cache-Control' => 'public, max-age=86400',
+        ]);
+    }
+
+    private function buatFotoKecil(string $sumber, string $tujuan): void
+    {
+        // Foto di atas 20 MP bisa menghabiskan memori GD; biarkan file asli dipakai.
+        $info = @getimagesize($sumber);
+        if (! $info || $info[0] * $info[1] > 20_000_000) {
+            return;
+        }
+
+        $gambar = match ($info['mime']) {
+            'image/jpeg' => @imagecreatefromjpeg($sumber),
+            'image/png' => @imagecreatefrompng($sumber),
+            'image/webp' => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($sumber) : null,
+            default => null,
+        };
+
+        if (! $gambar) {
+            return;
+        }
+
+        // Foto kamera ponsel menyimpan orientasi di EXIF; GD tidak membacanya.
+        $exif = function_exists('exif_read_data') ? @exif_read_data($sumber) : false;
+        $orientasi = is_array($exif) ? ($exif['Orientation'] ?? 1) : 1;
+        $gambar = match ($orientasi) {
+            3 => imagerotate($gambar, 180, 0),
+            6 => imagerotate($gambar, -90, 0),
+            8 => imagerotate($gambar, 90, 0),
+            default => $gambar,
+        };
+
+        $skala = min(1, 800 / imagesx($gambar));
+        $baru = imagecreatetruecolor(
+            (int) round(imagesx($gambar) * $skala),
+            (int) round(imagesy($gambar) * $skala)
+        );
+        imagefill($baru, 0, 0, imagecolorallocate($baru, 255, 255, 255));
+        imagecopyresampled($baru, $gambar, 0, 0, 0, 0, imagesx($baru), imagesy($baru), imagesx($gambar), imagesy($gambar));
+
+        File::ensureDirectoryExists(dirname($tujuan));
+        imagejpeg($baru, $tujuan, 82);
+        imagedestroy($gambar);
+        imagedestroy($baru);
     }
 }
