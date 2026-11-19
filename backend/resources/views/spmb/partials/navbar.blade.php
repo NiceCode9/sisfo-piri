@@ -86,7 +86,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
                         </svg>
                     </a>
-                    <div class="invisible absolute left-0 top-full z-50 mt-1 w-48 rounded-md border border-kertas-300 bg-kertas-100 py-1 opacity-0 shadow-float transition-all
+                    <div class="invisible absolute left-0 top-full z-50 w-48 rounded-md border border-kertas-300 bg-kertas-100 py-1 opacity-0 shadow-float transition-all
                                 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
                         @foreach ($tentangLinks as $link)
                             <a href="{{ $link['url'] }}"
@@ -189,7 +189,9 @@
                 el.classList.toggle('text-ink-500', solid);
             });
 
-            navbar.querySelectorAll('ul a').forEach((el) => {
+            // Hanya tautan top-level yang ikut berganti warna; tautan di dalam
+            // dropdown (nested) tidak, supaya tetap terbaca di atas kertas putih.
+            navbar.querySelectorAll('ul > li > a').forEach((el) => {
                 el.classList.toggle('text-white/85', !solid);
                 el.classList.toggle('hover:bg-white/10', !solid);
                 el.classList.toggle('hover:text-white', !solid);
