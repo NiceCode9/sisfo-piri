@@ -465,32 +465,59 @@
         </section>
 
         {{-- ============ SAMBUTAN KEPALA SEKOLAH ============ --}}
+        {{-- Potret dibatasi 220-260px dan badan teks 16px. Sambutan bisa
+             puluhan baris, dan potret selebar sepertiga section membuat kolom
+             kiri kosong jauh di bawah foto. Nama pindah ke bawah potret supaya
+             tanda tangan tetap menempel pada wajahnya. --}}
         @if ($kepalaSekolah->sambutan)
-            <section class="bg-kertas-200 py-20 sm:py-24">
+            <section id="sambutan" class="bg-kertas-200 py-20 sm:py-24">
                 <div class="mx-auto max-w-5xl px-5 sm:px-6">
-                    <div class="grid gap-8 sm:grid-cols-12 sm:gap-10">
+                    <h2 class="font-display text-3xl font-extrabold leading-tight text-ink-900 sm:text-4xl">
+                        Sambutan Kepala Sekolah
+                    </h2>
+
+                    <div class="mt-10 grid gap-10 md:grid-cols-[220px_minmax(0,1fr)] md:gap-12 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-14">
                         @if ($kepalaSekolah->foto)
-                            <div class="sm:col-span-4">
+                            <figure>
                                 <img src="{{ $kepalaSekolah->foto }}"
                                      alt="{{ $kepalaSekolah->nama ?: 'Kepala sekolah' }}"
                                      width="400" height="500"
-                                     class="aspect-[4/5] w-full rounded-md object-cover"
+                                     class="aspect-[4/5] w-full max-w-[220px] rounded-md object-cover md:max-w-none"
                                      loading="lazy" decoding="async">
-                            </div>
+                                @if ($kepalaSekolah->nama)
+                                    <figcaption class="mt-4">
+                                        <span class="block font-display text-base font-extrabold text-ink-900">{{ $kepalaSekolah->nama }}</span>
+                                        <span class="mt-1 block text-sm text-ink-700">{{ $kepalaSekolah->jabatan }} {{ $namaSekolah }}</span>
+                                    </figcaption>
+                                @endif
+                            </figure>
                         @endif
 
-                        <blockquote class="{{ $kepalaSekolah->foto ? 'sm:col-span-8' : 'sm:col-span-12' }}">
-                            <h2 class="font-display text-sm font-extrabold uppercase tracking-wider text-ink-500">
-                                Sambutan Kepala Sekolah
-                            </h2>
-                            <p class="mt-5 text-lg leading-relaxed text-ink-800">{{ $kepalaSekolah->sambutan }}</p>
-                            @if ($kepalaSekolah->nama)
-                                <footer class="mt-6 border-t border-kertas-300 pt-4">
+                        <div class="{{ $kepalaSekolah->foto ? '' : 'md:col-span-2' }}">
+                            <div class="relative max-w-[68ch] rounded-lg border border-kertas-300 bg-kertas-100 p-6 sm:p-8">
+                                @if ($kepalaSekolah->foto)
+                                    {{-- Ekor bubble mengarah ke potret: ke atas di
+                                         mobile, ke kiri saat potret ada di samping. --}}
+                                    <span aria-hidden="true"
+                                          class="absolute -top-2 left-8 h-4 w-4 rotate-45 border-l border-t border-kertas-300 bg-kertas-100 md:hidden"></span>
+                                    <span aria-hidden="true"
+                                          class="absolute -left-2 top-8 hidden h-4 w-4 rotate-45 border-b border-l border-kertas-300 bg-kertas-100 md:block"></span>
+                                @endif
+
+                                <blockquote>
+                                    <p class="hyphens-auto text-left text-[0.9375rem] leading-relaxed text-ink-800 sm:text-justify">{{ $kepalaSekolah->sambutan }}</p>
+                                </blockquote>
+                            </div>
+
+                            {{-- Tanpa foto, nama tidak punya tempat di samping:
+                                 jatuh ke bawah kutipan seperti sebelumnya. --}}
+                            @if (! $kepalaSekolah->foto && $kepalaSekolah->nama)
+                                <footer class="mt-6 max-w-[68ch] border-t border-kertas-300 pt-4">
                                     <span class="font-display text-base font-extrabold text-ink-900">{{ $kepalaSekolah->nama }}</span>
-                                    <span class="mt-0.5 block text-sm text-ink-500">{{ $kepalaSekolah->jabatan }} {{ $namaSekolah }}</span>
+                                    <span class="mt-0.5 block text-sm text-ink-700">{{ $kepalaSekolah->jabatan }} {{ $namaSekolah }}</span>
                                 </footer>
                             @endif
-                        </blockquote>
+                        </div>
                     </div>
                 </div>
             </section>
