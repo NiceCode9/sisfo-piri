@@ -213,6 +213,7 @@ class RiwayatSiswa
     {
         $tugas = Tugas::with('mataPelajaran')
             ->where('rombel_id', $rombelId)
+            ->where('is_aktif', true)
             ->get()
             ->groupBy(fn ($t) => $t->mata_pelajaran_id);
 

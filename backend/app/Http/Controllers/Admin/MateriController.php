@@ -70,6 +70,8 @@ class MateriController extends Controller implements HasMiddleware
         $validated['guru_id'] = Guru::where('user_id', $request->user()->id)->first()?->id;
         $validated['is_aktif'] = $request->boolean('is_aktif', true);
 
+        abort_unless(Rombel::terjangkauOleh($request->user(), (int) $validated['rombel_id']), 403);
+
         if ($request->hasFile('file')) {
             $validated['file_path'] = $request->file('file')->store('materi', Materi::DISK);
         }
@@ -103,11 +105,14 @@ class MateriController extends Controller implements HasMiddleware
         $validated = $request->validated();
         $validated['is_aktif'] = $request->boolean('is_aktif');
 
+        abort_unless(Rombel::terjangkauOleh($request->user(), (int) $validated['rombel_id']), 403);
+
         if ($request->hasFile('file')) {
+            $newPath = $request->file('file')->store('materi', Materi::DISK);
             if ($materi->file_path) {
                 Storage::disk(Materi::DISK)->delete($materi->file_path);
             }
-            $validated['file_path'] = $request->file('file')->store('materi', Materi::DISK);
+            $validated['file_path'] = $newPath;
         }
 
         unset($validated['file']);

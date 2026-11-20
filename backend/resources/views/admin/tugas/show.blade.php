@@ -29,17 +29,18 @@
     <div class="card-header-nexus"><h5 class="card-title">Pengumpulan ({{ $tugas->pengumpulans->count() }})</h5></div>
     <div class="card-body-nexus p-0">
         <div class="table-responsive"><table class="table-nexus w-100" style="font-size:13px;">
-            <thead><tr><th>Siswa</th><th>Status</th><th>Nilai</th><th>File</th></tr></thead>
+            <thead><tr><th>Siswa</th><th>Status</th><th>Jawaban</th><th>Nilai</th><th>File</th></tr></thead>
             <tbody>
                 @forelse($tugas->pengumpulans as $p)
                     <tr>
                         <td style="font-weight:600;">{{ $p->siswa->user->name ?? '-' }}</td>
                         <td>@if($p->is_terlambat)<span class="badge-nexus badge-warning">Terlambat</span>@else<span class="badge-nexus badge-info">Tepat</span>@endif</td>
+                        <td style="max-width:260px;white-space:pre-wrap;">{{ $p->jawaban_text ?: '—' }}</td>
                         <td>{{ $p->nilai === null ? '—' : $p->nilai }}</td>
                         <td>@if($p->file_path)<a href="{{ route('elearning.pengumpulan.berkas', $p) }}" target="_blank" class="text-primary">Download</a>@else — @endif</td>
                     </tr>
                 @empty
-                    <tr><td colspan="4" class="text-center py-4" style="color:var(--text-muted);">Belum ada pengumpulan.</td></tr>
+                    <tr><td colspan="5" class="text-center py-4" style="color:var(--text-muted);">Belum ada pengumpulan.</td></tr>
                 @endforelse
             </tbody>
         </table></div>

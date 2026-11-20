@@ -13,6 +13,7 @@
         <div class="card-nexus mb-2"><div class="card-body-nexus">
             <div><strong>{{ $p->siswa->user->name ?? '-' }}</strong> @if($p->is_terlambat)<span class="badge-nexus badge-warning">Terlambat</span>@endif</div>
             @if($p->file_path)<div><a href="{{ route('elearning.pengumpulan.berkas', $p) }}" target="_blank" class="text-primary">File</a></div>@endif
+            @if($p->jawaban_text)<div style="white-space:pre-wrap;">Jawaban: {{ $p->jawaban_text }}</div>@endif
             <div>Nilai: {{ $p->nilai === null ? '—' : $p->nilai }}</div>
             @if($p->catatan_guru)<div>Catatan: {{ $p->catatan_guru }}</div>@endif
         </div></div>

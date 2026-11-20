@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\StoreTugasRequest;
 use App\Http\Requests\Admin\UpdateTugasRequest;
 use App\Models\Guru;
 use App\Models\MataPelajaran;
+use App\Models\Pengampu;
 use App\Models\PengumpulanTugas;
 use App\Models\Rombel;
 use App\Models\Siswa;
@@ -20,6 +21,7 @@ use Illuminate\Http\Response;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -75,6 +77,9 @@ class TugasController extends Controller implements HasMiddleware
         // benar-benar membuat tugas, bukan pengganti yang menyesatkan.
         $validated['guru_id'] = Guru::where('user_id', $request->user()->id)->first()?->id;
         $validated['is_aktif'] = $request->boolean('is_aktif', true);
+
+        abort_unless(Rombel::terjangkauOleh($request->user(), (int) $validated['rombel_id']), 403);
+
         $tugas = Tugas::create($validated);
 
         return redirect()->route('admin.tugas.index')->with('success', "Tugas {$tugas->judul} ditambahkan.");
@@ -102,6 +107,9 @@ class TugasController extends Controller implements HasMiddleware
 
         $validated = $request->validated();
         $validated['is_aktif'] = $request->boolean('is_aktif');
+
+        abort_unless(Rombel::terjangkauOleh($request->user(), (int) $validated['rombel_id']), 403);
+
         $tuga->update($validated);
 
         return redirect()->route('admin.tugas.index')->with('success', 'Tugas diperbarui.');
@@ -110,6 +118,12 @@ class TugasController extends Controller implements HasMiddleware
     public function destroy(Tugas $tuga): RedirectResponse
     {
         $this->authorize('delete', $tuga);
+
+        foreach ($tuga->pengumpulans as $pengumpulan) {
+            if ($pengumpulan->file_path) {
+                Storage::disk(PengumpulanTugas::DISK)->delete($pengumpulan->file_path);
+            }
+        }
 
         $tuga->delete();
 
@@ -171,6 +185,15 @@ class TugasController extends Controller implements HasMiddleware
 
         $rekap = null;
 
+        if ($rombel && $mapelId && ! request()->user()->hasRole(Rombel::ROLE_UNIVERSAL)) {
+            $guru = Guru::where('user_id', request()->user()->id)->first();
+            $diizinkan = $guru && Pengampu::where('guru_id', $guru->id)
+                ->where('rombel_id', $rombel->id)
+                ->where('mata_pelajaran_id', (int) $mapelId)
+                ->exists();
+            abort_unless($diizinkan, 403);
+        }
+
         if ($rombel) {
             $rekap = $this->dataRekap($rombel->id, $mapelId ? (int) $mapelId : null);
         }
@@ -211,6 +234,15 @@ class TugasController extends Controller implements HasMiddleware
         $rombel = $rombels->firstWhere('id', $rombelId);
         abort_unless($rombel, 404);
 
+        if ($mapelId && ! request()->user()->hasRole(Rombel::ROLE_UNIVERSAL)) {
+            $guru = Guru::where('user_id', request()->user()->id)->first();
+            $diizinkan = $guru && Pengampu::where('guru_id', $guru->id)
+                ->where('rombel_id', $rombel->id)
+                ->where('mata_pelajaran_id', $mapelId)
+                ->exists();
+            abort_unless($diizinkan, 403);
+        }
+
         return $this->dataRekap($rombel->id, $mapelId);
     }
 
@@ -226,7 +258,7 @@ class TugasController extends Controller implements HasMiddleware
             ->orderBy('deadline')->orderBy('id')->get();
 
         $siswas = Siswa::with('user')
-            ->whereIn('id', $rombel->anggotaIds())
+            ->whereIn('id', $rombel->anggotaIdsUntukRekap())
             ->orderBy('nis')->get();
 
         $pengumpulans = PengumpulanTugas::whereIn('tugas_id', $tugasList->pluck('id'))

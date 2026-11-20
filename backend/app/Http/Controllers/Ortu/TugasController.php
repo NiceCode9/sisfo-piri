@@ -54,6 +54,7 @@ class TugasController extends Controller
     public function show(Tugas $tugas): View
     {
         abort_unless(in_array($tugas->rombel_id, $this->rombelAnakIds(), true), 403);
+        abort_unless($tugas->is_aktif, 404);
 
         $tugas->load(['mataPelajaran', 'rombel.kelas']);
 

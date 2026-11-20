@@ -16,7 +16,7 @@ class TugasPolicy
     public function view(User $user, Tugas $tugas): bool
     {
         if ($user->hasRole(Rombel::ROLE_UNIVERSAL)) {
-            return true;
+            return $user->can('tugas.view');
         }
 
         return Rombel::terjangkauOleh($user, $tugas->rombel_id);

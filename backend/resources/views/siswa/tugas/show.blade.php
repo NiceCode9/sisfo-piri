@@ -12,6 +12,7 @@
         <div class="alert alert-info" style="font-size:13px;">
             <div>Sudah dikumpulkan @if($pengumpulan->is_terlambat)<span class="badge-nexus badge-warning">Terlambat</span>@endif</div>
             @if($pengumpulan->file_path)<div><a href="{{ route('elearning.pengumpulan.berkas', $pengumpulan) }}" target="_blank" class="text-primary">File Anda</a></div>@endif
+            @if($pengumpulan->jawaban_text)<div style="white-space:pre-wrap;">Jawaban Anda: {{ $pengumpulan->jawaban_text }}</div>@endif
             @if($pengumpulan->nilai !== null)<div><strong>Nilai: {{ $pengumpulan->nilai }}</strong> @if($pengumpulan->nilai < ($tugas->mataPelajaran->kkm ?? 75))<span class="badge-nexus badge-danger">Di bawah KKM</span>@endif</div>@endif
             @if($pengumpulan->catatan_guru)<div>Catatan: {{ $pengumpulan->catatan_guru }}</div>@endif
         </div>

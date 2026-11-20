@@ -33,7 +33,10 @@ class TugasController extends Controller implements HasMiddleware
             ->latest()
             ->paginate(10);
 
-        $dikumpul = PengumpulanTugas::where('siswa_id', $siswa?->id)->pluck('tugas_id')->all();
+        $dikumpul = PengumpulanTugas::where('siswa_id', $siswa?->id)
+            ->whereIn('tugas_id', $tugas->getCollection()->pluck('id'))
+            ->pluck('tugas_id')
+            ->all();
 
         return view('siswa.tugas.index', ['tugas' => $tugas, 'dikumpul' => $dikumpul]);
     }
@@ -88,10 +91,11 @@ class TugasController extends Controller implements HasMiddleware
         $existing = PengumpulanTugas::where('tugas_id', $tugas->id)->where('siswa_id', $siswa->id)->first();
 
         if ($request->hasFile('file')) {
+            $newPath = $request->file('file')->store('tugas', PengumpulanTugas::DISK);
             if ($existing?->file_path) {
                 Storage::disk(PengumpulanTugas::DISK)->delete($existing->file_path);
             }
-            $data['file_path'] = $request->file('file')->store('tugas', PengumpulanTugas::DISK);
+            $data['file_path'] = $newPath;
         }
 
         PengumpulanTugas::updateOrCreate(

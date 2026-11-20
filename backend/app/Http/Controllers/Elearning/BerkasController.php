@@ -11,6 +11,7 @@ use App\Models\Tugas;
 use App\Models\User;
 use App\Models\WaliMurid;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -38,7 +39,13 @@ class BerkasController extends Controller
 
         abort_unless($this->bolehLihatMateri($user, $materi), 403);
 
-        return $this->alirkan($materi->file_path, Materi::DISK);
+        $nama = Str::slug($materi->judul ?: 'materi', '-') ?: 'materi';
+        $ekstensi = pathinfo($materi->file_path, PATHINFO_EXTENSION);
+        if ($ekstensi !== '') {
+            $nama .= '.'.$ekstensi;
+        }
+
+        return $this->alirkan($materi->file_path, Materi::DISK, $nama);
     }
 
     public function pengumpulan(PengumpulanTugas $pengumpulan): StreamedResponse
@@ -49,7 +56,15 @@ class BerkasController extends Controller
 
         abort_unless($this->bolehLihatPengumpulan($user, $pengumpulan), 403);
 
-        return $this->alirkan($pengumpulan->file_path, PengumpulanTugas::DISK);
+        $siswaNama = $pengumpulan->siswa?->user?->name ?: 'siswa';
+        $tugasJudul = $pengumpulan->tugas?->judul ?: 'tugas';
+        $nama = Str::slug($siswaNama.'-'.$tugasJudul, '-') ?: 'jawaban';
+        $ekstensi = pathinfo($pengumpulan->file_path, PATHINFO_EXTENSION);
+        if ($ekstensi !== '') {
+            $nama .= '.'.$ekstensi;
+        }
+
+        return $this->alirkan($pengumpulan->file_path, PengumpulanTugas::DISK, $nama);
     }
 
     private function bolehLihatMateri(?User $user, Materi $materi): bool
@@ -100,6 +115,12 @@ class BerkasController extends Controller
             return false;
         }
 
+        // Tugas non-aktif tidak boleh diakses siswa/wali; pengelola tetap
+        // boleh membaca berkas untuk penilaian.
+        if (! $tugas->is_aktif && ! Rombel::terjangkauOleh($user, $tugas->rombel_id)) {
+            return false;
+        }
+
         if (Rombel::terjangkauOleh($user, $tugas->rombel_id)) {
             return true;
         }
@@ -113,10 +134,10 @@ class BerkasController extends Controller
             ->exists();
     }
 
-    private function alirkan(string $path, string $disk): StreamedResponse
+    private function alirkan(string $path, string $disk, ?string $nama = null): StreamedResponse
     {
         abort_unless(Storage::disk($disk)->exists($path), 404);
 
-        return Storage::disk($disk)->response($path);
+        return Storage::disk($disk)->response($path, $nama);
     }
 }

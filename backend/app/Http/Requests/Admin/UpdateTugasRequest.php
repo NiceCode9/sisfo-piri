@@ -22,7 +22,7 @@ class UpdateTugasRequest extends FormRequest
             'mata_pelajaran_id' => ['required', 'integer', 'exists:mata_pelajarans,id'],
             'judul' => ['required', 'string', 'max:150'],
             'deskripsi' => ['nullable', 'string', 'max:2000'],
-            'deadline' => ['nullable', 'date'],
+            'deadline' => ['nullable', 'date', 'after:now'],
             'is_aktif' => ['sometimes', 'boolean'],
         ];
     }

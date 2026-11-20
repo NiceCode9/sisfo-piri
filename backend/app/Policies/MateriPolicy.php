@@ -25,7 +25,7 @@ class MateriPolicy
     public function view(User $user, Materi $materi): bool
     {
         if ($user->hasRole(Rombel::ROLE_UNIVERSAL)) {
-            return true;
+            return $user->can('materis.view');
         }
 
         return Rombel::terjangkauOleh($user, $materi->rombel_id);
