@@ -1,9 +1,11 @@
 <?php
 
+use App\Jobs\KirimNotifikasiWhatsapp;
 use App\Models\Absensi;
 use App\Models\Guru;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
+use App\Models\NotifikasiLog;
 use App\Models\Pengampu;
 use App\Models\Pengaturan;
 use App\Models\RiwayatKelas;
@@ -20,6 +22,7 @@ use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
 
 uses(RefreshDatabase::class);
 
@@ -421,4 +424,89 @@ test('batas terlambat dibaca dari cache dan dibuang saat pengaturan disimpan', f
     ])->assertSessionHas('success');
 
     expect(Pengaturan::nilai('batas_terlambat'))->toBe('07:00');
+});
+test('wali kelas bisa mencatat manual di kelasnya', function () {
+    $rombel = rombelAbsensiKartu();
+    $siswa = siswaAbsensiKartu('7201', 'Anak Manual', $rombel);
+    $guru = guruAbsensiKartu(wali: $rombel);
+
+    $this->actingAs($guru)->postJson(route('guru.absensi.manual'), [
+        'siswa_id' => $siswa->id,
+        'status' => 'hadir',
+    ])->assertOk();
+
+    $baris = Absensi::where('siswa_id', $siswa->id)->firstOrFail();
+
+    expect($baris->metode)->toBe('manual')
+        ->and($baris->dicatat_oleh)->toBe($guru->id)
+        ->and($baris->jam_datang)->not->toBeNull();
+});
+
+test('manual izin tidak mengisi jam datang', function () {
+    $rombel = rombelAbsensiKartu();
+    $siswa = siswaAbsensiKartu('7202', 'Anak Manual Izin', $rombel);
+    $guru = guruAbsensiKartu(ampu: $rombel);
+
+    $this->actingAs($guru)->postJson(route('guru.absensi.manual'), [
+        'siswa_id' => $siswa->id,
+        'status' => 'izin',
+    ])->assertOk();
+
+    expect(Absensi::where('siswa_id', $siswa->id)->firstOrFail()->jam_datang)->toBeNull();
+});
+
+test('manual menolak baris yang sudah tercatat', function () {
+    $rombel = rombelAbsensiKartu();
+    $siswa = siswaAbsensiKartu('7203', 'Anak Sudah', $rombel);
+    $guru = guruAbsensiKartu(wali: $rombel);
+
+    Absensi::create([
+        'siswa_id' => $siswa->id,
+        'rombel_id' => $rombel->id,
+        'tanggal' => today()->toDateString(),
+        'status' => 'hadir',
+        'metode' => 'qr',
+        'dicatat_oleh' => $guru->id,
+    ]);
+
+    $this->actingAs($guru)->postJson(route('guru.absensi.manual'), [
+        'siswa_id' => $siswa->id,
+        'status' => 'izin',
+    ])->assertStatus(422);
+
+    expect(Absensi::where('siswa_id', $siswa->id)->firstOrFail()->status)->toBe('hadir');
+});
+
+test('manual di luar kelas ditolak', function () {
+    $rombel = rombelAbsensiKartu();
+    $siswa = siswaAbsensiKartu('7204', 'Anak Manual Luar', $rombel);
+    $guru = guruTanpaKelasAbsensi();
+
+    $this->actingAs($guru)->postJson(route('guru.absensi.manual'), [
+        'siswa_id' => $siswa->id,
+        'status' => 'hadir',
+    ])->assertForbidden();
+
+    expect(Absensi::count())->toBe(0);
+});
+
+test('manual alpa mengantrekan notifikasi WhatsApp', function () {
+    Queue::fake();
+
+    $rombel = rombelAbsensiKartu();
+    $siswa = siswaAbsensiKartu('7205', 'Anak Alpa', $rombel);
+    $guru = guruAbsensiKartu(wali: $rombel);
+
+    $siswa->waliMurids()->create([
+        'user_id' => User::factory()->create()->id,
+        'no_whatsapp' => '081234567890',
+    ]);
+
+    $this->actingAs($guru)->postJson(route('guru.absensi.manual'), [
+        'siswa_id' => $siswa->id,
+        'status' => 'alpa',
+    ])->assertOk();
+
+    Queue::assertPushed(KirimNotifikasiWhatsapp::class);
+    expect(NotifikasiLog::where('tipe', 'whatsapp')->exists())->toBeTrue();
 });

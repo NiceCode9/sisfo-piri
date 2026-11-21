@@ -174,6 +174,8 @@ Route::prefix('guru')->name('guru.')->middleware(['auth', 'role:guru|guru-piket'
     Route::post('/absensi/scan', [GuruAbsensiController::class, 'scan'])
         ->name('absensi.scan')
         ->middleware('throttle:absensi-scan');
+    Route::post('/absensi/manual', [GuruAbsensiController::class, 'manual'])
+        ->name('absensi.manual');
     Route::post('/absensi/izin', [AbsensiIzinController::class, 'store'])->name('absensi.izin');
     Route::post('/absensi/izin/{absensi}/bukti', [AbsensiIzinController::class, 'storeBukti'])->name('absensi.izin.bukti');
 });

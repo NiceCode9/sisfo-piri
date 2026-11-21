@@ -1,4 +1,4 @@
-@php
+﻿@php
     $labelStatus = [
         'hadir' => 'Hadir',
         'terlambat' => 'Terlambat',
@@ -99,6 +99,20 @@
                                         @else
                                             <span style="color:var(--text-muted);">Koreksi oleh admin.</span>
                                         @endcan
+                                    @else
+                                        <form method="POST" action="{{ route('guru.absensi.manual') }}" data-manual class="d-flex gap-1 align-items-center">
+                                            @csrf
+                                            <input type="hidden" name="siswa_id" value="{{ $row['siswa']->id }}">
+                                            <input type="hidden" name="mode" value="{{ $mode }}">
+                                            <select name="status" class="form-select form-select-sm" style="font-size:11px;padding:2px 4px;max-width:92px;" aria-label="Status {{ $row['nis'] }}">
+                                                <option value="hadir">Hadir</option>
+                                                <option value="terlambat">Terlambat</option>
+                                                <option value="izin">Izin</option>
+                                                <option value="sakit">Sakit</option>
+                                                <option value="alpa">Alpa</option>
+                                            </select>
+                                            <button type="submit" class="btn btn-nexus btn-sm" style="font-size:11px;padding:2px 8px;">Catat</button>
+                                        </form>
                                     @endif
                                 </td>
                             </tr>

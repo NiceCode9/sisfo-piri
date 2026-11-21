@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Guru\StoreAbsensiManualRequest;
 use App\Models\Absensi;
 use App\Models\Pengaturan;
 use App\Models\Rombel;
 use App\Models\Siswa;
+use App\Services\NotifikasiAlpa;
 use App\Services\PencatatanAbsensi;
 use App\Services\TokenKartuSiswa;
+use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -180,6 +183,96 @@ class AbsensiController extends Controller
         return redirect()->route('guru.absensi', ['mode' => $mode])->with('success', $pesan);
     }
 
+    public function manual(StoreAbsensiManualRequest $request): JsonResponse|RedirectResponse
+    {
+        $user = $request->user();
+        $data = $request->validated();
+        $mode = $this->mode($data['mode'] ?? null);
+
+        $siswa = Siswa::with('user')->find((int) $data['siswa_id']);
+
+        if ($siswa === null || ! $siswa->is_aktif) {
+            return $this->gagalScan('Siswa tidak aktif atau tidak ditemukan.', $mode);
+        }
+
+        $rombel = Rombel::aktifUntukSiswa($siswa);
+
+        if ($rombel === null) {
+            return $this->gagalScan('Kelas siswa belum terdaftar.', $mode);
+        }
+
+        abort_unless(
+            Rombel::terjangkauOleh($user, $rombel->id, Rombel::ROLE_ABSENSI_UNIVERSAL),
+            403,
+            'Kelas ini bukan cakupan Anda.'
+        );
+
+        abort_unless(
+            in_array($siswa->id, $rombel->anggotaIdsAktif(), true),
+            403,
+            'Siswa bukan anggota kelas ini.'
+        );
+
+        $kunci = [
+            'siswa_id' => $siswa->id,
+            'rombel_id' => $rombel->id,
+            'tanggal' => today()->toDateString(),
+        ];
+
+        $absensi = Absensi::firstOrNew($kunci);
+
+        if ($absensi->exists) {
+            return $this->gagalScan('Sudah tercatat, koreksi lewat grid.', $mode);
+        }
+
+        $status = (string) $data['status'];
+        $absensi->rombel_id = $rombel->id;
+        $absensi->status = $status;
+        $absensi->metode = 'manual';
+        $absensi->dicatat_oleh = $user->id;
+
+        if (in_array($status, ['hadir', 'terlambat'], true)) {
+            $absensi->jam_datang = now()->format('H:i:s');
+        } else {
+            $absensi->jam_datang = null;
+        }
+
+        $tersimpan = PencatatanAbsensi::simpan($absensi, $kunci);
+
+        if (! $tersimpan->is($absensi)) {
+            return $this->gagalScan('Sudah tercatat, koreksi lewat grid.', $mode);
+        }
+
+        if ($status === 'alpa') {
+            NotifikasiAlpa::antrekan($rombel->id, today()->toDateString(), [$siswa->id]);
+        }
+
+        session(['absensi_rombel_id' => $rombel->id]);
+
+        $nama = $siswa->user?->name ?? $siswa->nis;
+        $pesan = "{$nama} dicatat {$status} (manual).";
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => $pesan,
+                'status' => $absensi->status,
+                'baru' => true,
+                'siswa' => [
+                    'id' => $siswa->id,
+                    'nama' => $nama,
+                    'nis' => $siswa->nis,
+                ],
+                'rombel' => [
+                    'id' => $rombel->id,
+                    'nama' => $rombel->kelas?->nama_kelas ?? (string) $rombel->id,
+                ],
+                'html' => view('guru._absensi-kelas', $this->daftar($rombel, $siswa->id) + ['mode' => $mode])->render(),
+            ]);
+        }
+
+        return redirect()->route('guru.absensi', ['mode' => $mode])->with('success', $pesan);
+    }
+
     private function rombelSesi($user): ?Rombel
     {
         $id = (int) session('absensi_rombel_id');
@@ -200,7 +293,7 @@ class AbsensiController extends Controller
     }
 
     /**
-     * @return array{rombel: Rombel, tanggal: \Carbon\CarbonInterface, baris: array<int, array{siswa: Siswa, absensi: ?Absensi, nama: string, nis: string}>, ringkasan: array<string, int>, siswaTerpilih: ?int}
+     * @return array{rombel: Rombel, tanggal: CarbonInterface, baris: array<int, array{siswa: Siswa, absensi: ?Absensi, nama: string, nis: string}>, ringkasan: array<string, int>, siswaTerpilih: ?int}
      */
     private function daftar(Rombel $rombel, ?int $siswaTerpilih = null): array
     {
