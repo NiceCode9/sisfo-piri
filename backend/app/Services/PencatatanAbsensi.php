@@ -20,7 +20,7 @@ class PencatatanAbsensi
     /**
      * Mencatat kehadiran dengan aturan "arrival pertama yang dihitung".
      */
-    public static function catat(int $siswaId, int $rombelId, Carbon $sekarang, string $status, string $metode, ?int $dicatatOleh): Absensi
+    public static function catat(int $siswaId, int $rombelId, Carbon $sekarang, string $status, string $metode, ?int $dicatatOleh, bool $catatJam = true): Absensi
     {
         $kunci = [
             // rombel_id masuk kunci, bukan hanya atribut. Tanpa itu, scan
@@ -40,7 +40,7 @@ class PencatatanAbsensi
             return $absensi;
         }
 
-        self::isiArrivalPertama($absensi, $status, $sekarang, $metode, $dicatatOleh);
+        self::isiArrivalPertama($absensi, $status, $sekarang, $metode, $dicatatOleh, $catatJam);
         $tersimpan = self::simpan($absensi, $kunci);
 
         if ($tersimpan->is($absensi)) {
@@ -57,7 +57,7 @@ class PencatatanAbsensi
         // Balapan: baris ini milik pencatatan perangkat lain, jadi perlakukan
         // sebagai pencatatan susulan — jam pertama dan status `hadir` tidak
         // boleh ditimpa.
-        self::isiArrivalPertama($tersimpan, $status, $sekarang, $metode, $dicatatOleh);
+        self::isiArrivalPertama($tersimpan, $status, $sekarang, $metode, $dicatatOleh, $catatJam);
         $tersimpan->save();
 
         return $tersimpan;
@@ -101,15 +101,19 @@ class PencatatanAbsensi
      * 06:55 lalu scan lagi 08:05 tidak boleh kehilangan catatan kehadiran tepat
      * waktunya dan tidak boleh dianggap terlambat karena scan kedua.
      */
-    protected static function isiArrivalPertama(Absensi $absensi, string $status, Carbon $sekarang, string $metode, ?int $dicatatOleh): void
+    protected static function isiArrivalPertama(Absensi $absensi, string $status, Carbon $sekarang, string $metode, ?int $dicatatOleh, bool $catatJam = true): void
     {
         if (! $absensi->exists) {
             $absensi->status = $status;
-            $absensi->jam_datang = $sekarang->format('H:i:s');
+            if ($catatJam && in_array($status, ['hadir', 'terlambat'], true)) {
+                $absensi->jam_datang = $sekarang->format('H:i:s');
+            } else {
+                $absensi->jam_datang = null;
+            }
         } else {
             $absensi->status = $absensi->status === 'hadir' ? 'hadir' : $status;
 
-            if (! $absensi->jam_datang) {
+            if ($catatJam && in_array($status, ['hadir', 'terlambat'], true) && ! $absensi->jam_datang) {
                 $absensi->jam_datang = $sekarang->format('H:i:s');
             }
         }

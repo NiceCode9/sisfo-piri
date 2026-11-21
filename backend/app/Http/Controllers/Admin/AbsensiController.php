@@ -312,8 +312,6 @@ class AbsensiController extends Controller implements HasMiddleware
             'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
         ]);
 
-        $this->rombelTerjangkau();
-
         $impor = new AbsensiImport(
             fn (int $rombelId): ?Rombel => Rombel::terjangkauUser(
                 request()->user(),
@@ -326,6 +324,7 @@ class AbsensiController extends Controller implements HasMiddleware
                 $status,
                 $metode,
                 auth()->id(),
+                false,
             ),
         );
 

@@ -826,3 +826,74 @@ test('simpan grid yang mengubah status tetap menulis manual dan histori', functi
     expect($baris->metode)->toBe('manual')
         ->and(AbsensiRiwayat::count())->toBe(1);
 });
+test('impor memakai riwayat kelas aktif, bukan kelas_id', function () {
+    $rombel = rombelUjiAbsensi();
+    $siswa = buatAnggotaRombel('5101', 'Anak Riwayat Impor', $rombel);
+
+    $kelasLain = Kelas::where('nama_kelas', '7B')->firstOrFail();
+    $siswa->update(['kelas_id' => $kelasLain->id]);
+
+    $this->actingAs(superAdmin())->post(route('admin.absensis.impor'), [
+        'file' => xlsxAbsensiUji([
+            ['rombel' => '7A', 'tahun_ajaran' => '', 'tanggal' => now()->toDateString(), 'nis' => $siswa->nis, 'status' => 'hadir'],
+        ]),
+    ])->assertSessionHas('success');
+
+    expect(Absensi::where('siswa_id', $siswa->id)->exists())->toBeTrue();
+});
+
+test('impor menolak siswa yang riwayat aktifnya bukan di rombel itu', function () {
+    $rombel = rombelUjiAbsensi();
+    $siswa = buatAnggotaRombel('5102', 'Anak Riwayat Lain', $rombel);
+
+    $kelasLain = Kelas::where('nama_kelas', '7B')->firstOrFail();
+    $rombelLain = Rombel::where('kelas_id', $kelasLain->id)
+        ->where('tahun_ajaran_id', $rombel->tahun_ajaran_id)
+        ->firstOrFail();
+
+    $siswa->update(['kelas_id' => $rombel->kelas_id]);
+    $siswa->riwayatKelas()->delete();
+    RiwayatKelas::create([
+        'siswa_id' => $siswa->id,
+        'kelas_id' => $rombelLain->kelas_id,
+        'tahun_ajaran_id' => $rombelLain->tahun_ajaran_id,
+        'status' => 'aktif',
+    ]);
+
+    $this->actingAs(superAdmin())->post(route('admin.absensis.impor'), [
+        'file' => xlsxAbsensiUji([
+            ['rombel' => '7A', 'tahun_ajaran' => '', 'tanggal' => now()->toDateString(), 'nis' => $siswa->nis, 'status' => 'hadir'],
+        ]),
+    ])->assertSessionHas('error');
+
+    expect(Absensi::where('siswa_id', $siswa->id)->exists())->toBeFalse();
+});
+
+test('impor tidak mengisi jam datang untuk status apa pun', function () {
+    $rombel = rombelUjiAbsensi();
+    $s1 = buatAnggotaRombel('5103', 'Anak Impor Hadir', $rombel);
+    $s2 = buatAnggotaRombel('5104', 'Anak Impor Izin', $rombel);
+
+    $this->actingAs(superAdmin())->post(route('admin.absensis.impor'), [
+        'file' => xlsxAbsensiUji([
+            ['rombel' => '7A', 'tahun_ajaran' => '', 'tanggal' => now()->toDateString(), 'nis' => $s1->nis, 'status' => 'hadir'],
+            ['rombel' => '7A', 'tahun_ajaran' => '', 'tanggal' => now()->toDateString(), 'nis' => $s2->nis, 'status' => 'izin'],
+        ]),
+    ])->assertSessionHas('success');
+
+    expect(Absensi::where('siswa_id', $s1->id)->firstOrFail()->jam_datang)->toBeNull()
+        ->and(Absensi::where('siswa_id', $s2->id)->firstOrFail()->jam_datang)->toBeNull();
+});
+
+test('impor menolak tahun ajaran yang tidak dikenal', function () {
+    $rombel = rombelUjiAbsensi();
+    $siswa = buatAnggotaRombel('5105', 'Anak Tahun Asing', $rombel);
+
+    $this->actingAs(superAdmin())->post(route('admin.absensis.impor'), [
+        'file' => xlsxAbsensiUji([
+            ['rombel' => '7A', 'tahun_ajaran' => '1999/2000', 'tanggal' => now()->toDateString(), 'nis' => $siswa->nis, 'status' => 'hadir'],
+        ]),
+    ])->assertSessionHas('error');
+
+    expect(Absensi::where('siswa_id', $siswa->id)->exists())->toBeFalse();
+});
