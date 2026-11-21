@@ -171,6 +171,8 @@ Route::prefix('guru')->name('guru.')->middleware(['auth', 'role:guru|guru-piket'
     Route::get('/profil', [App\Http\Controllers\Guru\ProfilController::class, 'show'])->name('profil');
     Route::put('/profil', [App\Http\Controllers\Guru\ProfilController::class, 'update'])->name('profil.update');
     Route::get('/absensi', [GuruAbsensiController::class, 'show'])->name('absensi');
+    Route::get('/absensi/cari', [GuruAbsensiController::class, 'cari'])->name('absensi.cari');
+    Route::post('/absensi/pilih', [GuruAbsensiController::class, 'pilih'])->name('absensi.pilih');
     Route::post('/absensi/scan', [GuruAbsensiController::class, 'scan'])
         ->name('absensi.scan')
         ->middleware('throttle:absensi-scan');

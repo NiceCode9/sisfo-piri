@@ -65,6 +65,41 @@
     </div>
 </div>
 
+<div class="card-nexus mt-3">
+    <div class="card-header-nexus"><h5 class="card-title">Cari Siswa</h5></div>
+    <div class="card-body-nexus">
+        <form method="GET" action="{{ route('guru.absensi.cari') }}" class="d-flex gap-2">
+            <input type="search" name="q" value="{{ $q ?? '' }}" class="form-control" placeholder="Cari nama atau NISN" aria-label="Cari siswa">
+            <button class="btn btn-nexus-outline text-nowrap">Cari</button>
+        </form>
+
+        @if (isset($hasilCari) && $hasilCari->isNotEmpty())
+            <div class="table-responsive mt-3">
+                <table class="table-nexus w-100">
+                    <thead><tr><th>Siswa</th><th>Kelas</th><th style="width:90px;">Tindakan</th></tr></thead>
+                    <tbody>
+                        @foreach ($hasilCari as $s)
+                            <tr>
+                                <td>{{ $s->user?->name ?? $s->nis }} <span class="text-muted" style="font-size:11px;">{{ $s->nis }}</span></td>
+                                <td>{{ $s->kelas_aktif ?? '-' }}</td>
+                                <td>
+                                    <form method="POST" action="{{ route('guru.absensi.pilih') }}">
+                                        @csrf
+                                        <input type="hidden" name="siswa_id" value="{{ $s->id }}">
+                                        <button class="btn btn-nexus btn-sm">Buka</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @elseif (isset($q) && $q !== '')
+            <p class="mb-0 mt-3" style="color:var(--text-muted);">Siswa tidak ditemukan di kelas yang Anda ampu.</p>
+        @endif
+    </div>
+</div>
+
 @if ($daftar)
     <div id="daftar-absensi" data-mode="{{ $mode }}" class="mt-3">
         @include('guru._absensi-kelas', $daftar + ['mode' => $mode])

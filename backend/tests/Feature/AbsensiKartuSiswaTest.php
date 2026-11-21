@@ -510,3 +510,40 @@ test('manual alpa mengantrekan notifikasi WhatsApp', function () {
     Queue::assertPushed(KirimNotifikasiWhatsapp::class);
     expect(NotifikasiLog::where('tipe', 'whatsapp')->exists())->toBeTrue();
 });
+test('cari hanya mengembalikan siswa dari kelas wali dan pengampu', function () {
+    $rombel = rombelAbsensiKartu();
+    $siswa = siswaAbsensiKartu('7301', 'Anak Cari', $rombel);
+    $guru = guruAbsensiKartu(wali: $rombel);
+    $lain = siswaAbsensiKartu('7302', 'Anak Kelas Lain', rombelAbsensiKartu('7B'));
+
+    $this->actingAs($guru)->get(route('guru.absensi.cari', ['q' => 'Anak']))
+        ->assertOk()
+        ->assertSee('Anak Cari')
+        ->assertDontSee('Anak Kelas Lain');
+});
+
+test('pilih membuka kelas siswa dan menyimpan session', function () {
+    $rombel = rombelAbsensiKartu();
+    $siswa = siswaAbsensiKartu('7303', 'Anak Pilih', $rombel);
+    $guru = guruAbsensiKartu(wali: $rombel);
+
+    $this->actingAs($guru)->post(route('guru.absensi.pilih'), [
+        'siswa_id' => $siswa->id,
+    ])->assertRedirect(route('guru.absensi', ['siswa_id' => $siswa->id, 'mode' => 'semua']));
+
+    expect(session('absensi_rombel_id'))->toBe($rombel->id);
+
+    $this->actingAs($guru)->get(route('guru.absensi', ['siswa_id' => $siswa->id, 'mode' => 'semua']))
+        ->assertOk()
+        ->assertSee('Anak Pilih')
+        ->assertSee('data-terpilih="1"', false);
+});
+
+test('pilih siswa di luar jangkauan ditolak', function () {
+    $siswa = siswaAbsensiKartu('7304', 'Anak Pilih Luar', rombelAbsensiKartu('7B'));
+    $guru = guruAbsensiKartu(wali: rombelAbsensiKartu());
+
+    $this->actingAs($guru)->post(route('guru.absensi.pilih'), [
+        'siswa_id' => $siswa->id,
+    ])->assertForbidden();
+});

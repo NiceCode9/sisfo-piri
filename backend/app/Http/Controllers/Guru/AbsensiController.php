@@ -8,6 +8,7 @@ use App\Models\Absensi;
 use App\Models\Pengaturan;
 use App\Models\Rombel;
 use App\Models\Siswa;
+use App\Models\TahunAjaran;
 use App\Services\NotifikasiAlpa;
 use App\Services\PencatatanAbsensi;
 use App\Services\TokenKartuSiswa;
@@ -36,10 +37,59 @@ class AbsensiController extends Controller
 
     public function show(Request $request): View
     {
+        return view('guru.absensi', $this->jendela() + $this->dataHalaman($request));
+    }
+
+    public function cari(Request $request): View
+    {
+        $request->validate(['q' => ['nullable', 'string', 'max:100']]);
+
+        return view('guru.absensi', $this->jendela() + $this->dataHalaman($request, true));
+    }
+
+    public function pilih(Request $request): RedirectResponse
+    {
+        $request->validate(['siswa_id' => ['required', 'integer', 'exists:siswas,id']]);
+
+        $user = $request->user();
+        $siswa = Siswa::with('user')->find((int) $request->input('siswa_id'));
+
+        abort_if($siswa === null || ! $siswa->is_aktif, 404, 'Siswa tidak aktif.');
+
+        $rombel = Rombel::aktifUntukSiswa($siswa);
+
+        abort_if($rombel === null, 404, 'Kelas siswa belum terdaftar.');
+
+        abort_unless(
+            Rombel::terjangkauOleh($user, $rombel->id, Rombel::ROLE_ABSENSI_UNIVERSAL),
+            403,
+            'Kelas ini bukan cakupan Anda.'
+        );
+
+        abort_unless(
+            in_array($siswa->id, $rombel->anggotaIdsAktif(), true),
+            403,
+            'Siswa bukan anggota kelas ini.'
+        );
+
+        session(['absensi_rombel_id' => $rombel->id]);
+
+        return redirect()->route('guru.absensi', [
+            'siswa_id' => $siswa->id,
+            'mode' => 'semua',
+        ])->with('success', 'Kelas '.($rombel->kelas?->nama_kelas ?? $rombel->id).' dibuka.');
+    }
+
+    /**
+     * Data bersama halaman absensi, agar `show()` dan `cari()` tidak
+     * menduplikasi query.
+     *
+     * @return array<string, mixed>
+     */
+    private function dataHalaman(Request $request, bool $cari = false): array
+    {
         $user = $request->user();
 
-        // Data kartu Izin/Sakit: cakupan sama dengan area absensi, fail-closed
-        // untuk guru tanpa penugasan (spek 2026-10-23).
         $rombelsIzin = Rombel::query()->with('kelas')
             ->terjangkauUser($user, Rombel::ROLE_ABSENSI_UNIVERSAL)
             ->get();
@@ -65,14 +115,49 @@ class AbsensiController extends Controller
             ? $this->daftar($rombelAbsensi, (int) $request->query('siswa_id') ?: null)
             : null;
 
-        return view('guru.absensi', $this->jendela() + [
+        $q = (string) $request->query('q', '');
+        $hasilCari = collect();
+
+        if ($cari && $q !== '') {
+            $tahunAktif = TahunAjaran::aktif()->first();
+            $rombels = Rombel::query()->with('kelas')
+                ->terjangkauUser($user, Rombel::ROLE_ABSENSI_UNIVERSAL);
+
+            if ($tahunAktif) {
+                $rombels->where('tahun_ajaran_id', $tahunAktif->id);
+            }
+
+            $rombelList = $rombels->get();
+            $ids = $rombelList->flatMap(fn (Rombel $r) => $r->anggotaIdsAktif())->unique()->values()->all();
+
+            $hasilCari = Siswa::with('user')
+                ->whereIn('id', $ids)
+                ->where('is_aktif', true)
+                ->where(function ($query) use ($q) {
+                    $query->where('nis', 'like', "%{$q}%")
+                        ->orWhere('nisn', 'like', "%{$q}%")
+                        ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$q}%"));
+                })
+                ->orderBy('nis')
+                ->limit(10)
+                ->get()
+                ->map(function (Siswa $s) {
+                    $s->kelas_aktif = Rombel::aktifUntukSiswa($s)?->kelas?->nama_kelas;
+
+                    return $s;
+                });
+        }
+
+        return [
             'rombelsIzin' => $rombelsIzin,
             'rombelIzinTerpilih' => $rombelIzinTerpilih,
             'siswaKartu' => $siswaKartu,
             'absensiHariIni' => $absensiHariIni,
             'daftar' => $daftar,
             'mode' => $this->mode($request->query('mode')),
-        ]);
+            'q' => $q,
+            'hasilCari' => $hasilCari,
+        ];
     }
 
     public function scan(Request $request): JsonResponse|RedirectResponse
