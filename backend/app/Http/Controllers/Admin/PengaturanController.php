@@ -24,7 +24,7 @@ class PengaturanController extends Controller implements HasMiddleware
     {
         $kunciList = [
             'batas_terlambat', 'jam_buka_absen', 'jam_tutup_absen', 'menit_ganti_qr',
-            'jam_cek_belum_hadir', 'cek_belum_hadir_terakhir',
+            'jam_cek_belum_hadir', 'cek_belum_hadir_terakhir', 'hari_libur',
             'semester_ganjil_mulai', 'semester_ganjil_selesai', 'semester_genap_mulai', 'semester_genap_selesai',
             'maintenance_mode', 'maintenance_pesan',
         ];

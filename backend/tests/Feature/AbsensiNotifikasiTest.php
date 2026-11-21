@@ -9,6 +9,7 @@ use App\Models\Rombel;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
+use Carbon\Carbon;
 use Database\Seeders\AkademikSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\PpdbSeeder;
@@ -232,6 +233,27 @@ test('command terjadwal self-gating sekali sehari', function () {
     $rombel = rombelNotifikasiUji();
     siswaNotifikasiUji('7001', 'Anak Notif Satu');
     Pengaturan::updateOrCreate(['kunci' => 'cek_belum_hadir_terakhir'], ['nilai' => now()->toDateString()]);
+
+    $this->artisan('absensi:cek-belum-hadir')->assertSuccessful();
+
+    expect(NotifikasiLog::count())->toBe(0);
+});
+test('pengingat belum hadir tidak jalan hari Minggu', function () {
+    $this->travelTo(Carbon::parse('2026-11-22 08:00:00'));
+    Pengaturan::updateOrCreate(['kunci' => 'jam_cek_belum_hadir'], ['nilai' => '08:00']);
+    Pengaturan::updateOrCreate(['kunci' => 'cek_belum_hadir_terakhir'], ['nilai' => null]);
+    Pengaturan::updateOrCreate(['kunci' => 'hari_libur'], ['nilai' => null]);
+
+    $this->artisan('absensi:cek-belum-hadir')->assertSuccessful();
+
+    expect(NotifikasiLog::count())->toBe(0);
+});
+
+test('pengingat belum hadir tidak jalan pada hari libur terdaftar', function () {
+    $this->travelTo(Carbon::parse('2026-11-23 08:00:00'));
+    Pengaturan::updateOrCreate(['kunci' => 'jam_cek_belum_hadir'], ['nilai' => '08:00']);
+    Pengaturan::updateOrCreate(['kunci' => 'cek_belum_hadir_terakhir'], ['nilai' => null]);
+    Pengaturan::updateOrCreate(['kunci' => 'hari_libur'], ['nilai' => '2026-11-23']);
 
     $this->artisan('absensi:cek-belum-hadir')->assertSuccessful();
 

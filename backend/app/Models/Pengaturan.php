@@ -24,6 +24,7 @@ class Pengaturan extends Model
         'jam_tutup_absen',
         'menit_ganti_qr',
         'jam_cek_belum_hadir',
+        'hari_libur',
         'semester_ganjil_mulai',
         'semester_ganjil_selesai',
         'semester_genap_mulai',
