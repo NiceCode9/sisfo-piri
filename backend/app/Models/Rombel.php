@@ -238,6 +238,35 @@ class Rombel extends Model
     }
 
     /**
+     * Rombel berjalan seorang siswa, dibaca dari `RiwayatKelas` aktif.
+     *
+     * Berbeda dari {@see untukSiswa()} yang memakai `siswa.kelas_id` dan
+     * mengembalikan banyak id: absensi butuh satu kelas operasional, dan
+     * `kelas_id` bisa basi setelah siswa pindah.
+     */
+    public static function aktifUntukSiswa(?Siswa $siswa): ?Rombel
+    {
+        if ($siswa === null) {
+            return null;
+        }
+
+        $riwayat = $siswa->riwayatKelas()
+            ->where('status', 'aktif')
+            ->orderByDesc('id')
+            ->first();
+
+        if ($riwayat === null) {
+            return null;
+        }
+
+        return static::with('kelas')
+            ->where('kelas_id', $riwayat->kelas_id)
+            ->where('tahun_ajaran_id', $riwayat->tahun_ajaran_id)
+            ->orderBy('id')
+            ->first();
+    }
+
+    /**
      * Histori lengkap satu rombel: penugasan + wali + daftar siswa.
      *
      * @return array{penugasan: Collection, wali: ?Guru, siswa: Collection}
