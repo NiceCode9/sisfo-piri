@@ -48,8 +48,8 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BeritaController;
 use App\Http\Controllers\DokumenController;
 use App\Http\Controllers\Elearning\BerkasController as ElearningBerkasController;
+use App\Http\Controllers\Guru\AbsensiController as GuruAbsensiController;
 use App\Http\Controllers\Guru\AbsensiIzinController;
-use App\Http\Controllers\Guru\AbsensiQrController;
 use App\Http\Controllers\Guru\DashboardController as GuruDashboardController;
 use App\Http\Controllers\Jurnalistik\BeritaController as JurnalistikBeritaController;
 use App\Http\Controllers\Jurnalistik\DashboardController as JurnalistikDashboardController;
@@ -170,10 +170,12 @@ Route::prefix('guru')->name('guru.')->middleware(['auth', 'role:guru|guru-piket'
     Route::get('/dashboard', [GuruDashboardController::class, 'index'])->name('dashboard');
     Route::get('/profil', [App\Http\Controllers\Guru\ProfilController::class, 'show'])->name('profil');
     Route::put('/profil', [App\Http\Controllers\Guru\ProfilController::class, 'update'])->name('profil.update');
-    Route::get('/absensi-qr', [AbsensiQrController::class, 'show'])->name('absensi-qr');
-    Route::get('/absensi-qr/refresh', [AbsensiQrController::class, 'refresh'])->name('absensi-qr.refresh');
-    Route::post('/absensi-qr/izin', [AbsensiIzinController::class, 'store'])->name('absensi-qr.izin');
-    Route::post('/absensi-qr/izin/{absensi}/bukti', [AbsensiIzinController::class, 'storeBukti'])->name('absensi-qr.izin.bukti');
+    Route::get('/absensi', [GuruAbsensiController::class, 'show'])->name('absensi');
+    Route::post('/absensi/scan', [GuruAbsensiController::class, 'scan'])
+        ->name('absensi.scan')
+        ->middleware('throttle:absensi-scan');
+    Route::post('/absensi/izin', [AbsensiIzinController::class, 'store'])->name('absensi.izin');
+    Route::post('/absensi/izin/{absensi}/bukti', [AbsensiIzinController::class, 'storeBukti'])->name('absensi.izin.bukti');
 });
 
 Route::prefix('jurnalistik')->name('jurnalistik.')->middleware(['auth', 'role:jurnalistik|admin'])->group(function () {

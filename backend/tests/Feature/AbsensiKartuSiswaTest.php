@@ -1,20 +1,25 @@
 <?php
 
+use App\Models\Absensi;
 use App\Models\Guru;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use App\Models\Pengampu;
+use App\Models\Pengaturan;
 use App\Models\RiwayatKelas;
 use App\Models\Rombel;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
 use App\Services\TokenKartuSiswa;
+use Carbon\Carbon;
 use Database\Seeders\AkademikSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\PpdbSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 
@@ -144,4 +149,276 @@ test('kartu pelajar memuat QR token siswa', function () {
         ->assertOk()
         ->assertSee('id="qr-kartu"', false)
         ->assertSee('<svg', false);
+});
+
+test('wali kelas bisa scan kartu siswa di kelasnya', function () {
+    $rombel = rombelAbsensiKartu();
+    $siswa = siswaAbsensiKartu('7101', 'Anak Wali', $rombel);
+    $guru = guruAbsensiKartu(wali: $rombel);
+
+    jamAbsensiKartu(7, 10);
+
+    $this->actingAs($guru)->postJson(route('guru.absensi.scan'), [
+        'kode' => TokenKartuSiswa::generate($siswa->id),
+    ])->assertOk()->assertJson(['status' => 'hadir']);
+
+    $baris = Absensi::where(['siswa_id' => $siswa->id, 'rombel_id' => $rombel->id])->firstOrFail();
+
+    expect($baris->metode)->toBe('qr')
+        ->and($baris->dicatat_oleh)->toBe($guru->id)
+        ->and(substr((string) $baris->jam_datang, 0, 5))->toBe('07:10');
+});
+
+test('pengampu mapel bisa scan kartu siswa di kelas yang diampu', function () {
+    $rombel = rombelAbsensiKartu();
+    $siswa = siswaAbsensiKartu('7102', 'Anak Ampu', $rombel);
+    $guru = guruAbsensiKartu(ampu: $rombel);
+
+    jamAbsensiKartu(7, 10);
+
+    $this->actingAs($guru)->postJson(route('guru.absensi.scan'), [
+        'kode' => TokenKartuSiswa::generate($siswa->id),
+    ])->assertOk();
+
+    expect(Absensi::where('siswa_id', $siswa->id)->exists())->toBeTrue();
+});
+
+test('guru di luar kelas siswa ditolak', function () {
+    $rombel = rombelAbsensiKartu();
+    $siswa = siswaAbsensiKartu('7103', 'Anak Luar', $rombel);
+    $guru = guruTanpaKelasAbsensi();
+
+    $this->actingAs($guru)->postJson(route('guru.absensi.scan'), [
+        'kode' => TokenKartuSiswa::generate($siswa->id),
+    ])->assertForbidden();
+
+    expect(Absensi::count())->toBe(0);
+});
+
+test('scan sebelum buka dan setelah tutup ditolak', function () {
+    $rombel = rombelAbsensiKartu();
+    $siswa = siswaAbsensiKartu('7104', 'Anak Jendela', $rombel);
+    $guru = guruAbsensiKartu(wali: $rombel);
+
+    jamAbsensiKartu(6, 59);
+    $this->actingAs($guru)->postJson(route('guru.absensi.scan'), [
+        'kode' => TokenKartuSiswa::generate($siswa->id),
+    ])->assertStatus(422);
+
+    jamAbsensiKartu(7, 46);
+    $this->actingAs($guru)->postJson(route('guru.absensi.scan'), [
+        'kode' => TokenKartuSiswa::generate($siswa->id),
+    ])->assertStatus(422);
+
+    expect(Absensi::count())->toBe(0);
+});
+
+test('scan lewat batas terlambat menghasilkan terlambat', function () {
+    $rombel = rombelAbsensiKartu();
+    $siswa = siswaAbsensiKartu('7105', 'Anak Telat', $rombel);
+    $guru = guruAbsensiKartu(wali: $rombel);
+
+    jamAbsensiKartu(7, 20);
+
+    $this->actingAs($guru)->postJson(route('guru.absensi.scan'), [
+        'kode' => TokenKartuSiswa::generate($siswa->id),
+    ])->assertOk()->assertJson(['status' => 'terlambat']);
+});
+
+test('scan ulang tidak mengubah jam datang pertama', function () {
+    $rombel = rombelAbsensiKartu();
+    $siswa = siswaAbsensiKartu('7106', 'Anak Ulang', $rombel);
+    $guru = guruAbsensiKartu(wali: $rombel);
+    $kode = TokenKartuSiswa::generate($siswa->id);
+
+    jamAbsensiKartu(7, 10);
+    $this->actingAs($guru)->postJson(route('guru.absensi.scan'), ['kode' => $kode])->assertOk();
+
+    jamAbsensiKartu(7, 20);
+    $this->actingAs($guru)->postJson(route('guru.absensi.scan'), ['kode' => $kode])->assertOk();
+
+    $baris = Absensi::where('siswa_id', $siswa->id)->firstOrFail();
+
+    expect($baris->status)->toBe('hadir')
+        ->and(substr((string) $baris->jam_datang, 0, 5))->toBe('07:10');
+});
+
+test('scan tidak menimpa baris manual', function () {
+    $rombel = rombelAbsensiKartu();
+    $siswa = siswaAbsensiKartu('7107', 'Anak Izin', $rombel);
+    $guru = guruAbsensiKartu(wali: $rombel);
+
+    Absensi::create([
+        'siswa_id' => $siswa->id,
+        'rombel_id' => $rombel->id,
+        'tanggal' => today()->toDateString(),
+        'status' => 'izin',
+        'metode' => 'manual',
+        'dicatat_oleh' => $guru->id,
+    ]);
+
+    jamAbsensiKartu(7, 10);
+    $this->actingAs($guru)->postJson(route('guru.absensi.scan'), [
+        'kode' => TokenKartuSiswa::generate($siswa->id),
+    ])->assertOk();
+
+    expect(Absensi::where('siswa_id', $siswa->id)->firstOrFail()->status)->toBe('izin');
+});
+
+test('scan menerima NISN sebagai fallback', function () {
+    $rombel = rombelAbsensiKartu();
+    $siswa = siswaAbsensiKartu('7109', 'Anak NISN', $rombel);
+    $guru = guruAbsensiKartu(wali: $rombel);
+
+    jamAbsensiKartu(7, 10);
+
+    $this->actingAs($guru)->postJson(route('guru.absensi.scan'), [
+        'kode' => $siswa->nisn,
+    ])->assertOk();
+
+    expect(Absensi::where('siswa_id', $siswa->id)->exists())->toBeTrue();
+});
+
+test('scan menolak token rusak dan siswa nonaktif', function () {
+    $rombel = rombelAbsensiKartu();
+    $siswa = siswaAbsensiKartu('7110', 'Anak Nonaktif', $rombel);
+    $guru = guruAbsensiKartu(wali: $rombel);
+
+    $this->actingAs($guru)->postJson(route('guru.absensi.scan'), [
+        'kode' => 'abskartu|'.$siswa->id.'|palsu',
+    ])->assertStatus(422);
+
+    $siswa->update(['is_aktif' => false]);
+
+    $this->actingAs($guru)->postJson(route('guru.absensi.scan'), [
+        'kode' => TokenKartuSiswa::generate($siswa->id),
+    ])->assertStatus(422);
+
+    expect(Absensi::count())->toBe(0);
+});
+
+test('halaman guru menampilkan kelas terakhir dan daftar hari ini', function () {
+    $rombel = rombelAbsensiKartu();
+    $siswa = siswaAbsensiKartu('7108', 'Anak Panel', $rombel);
+    $guru = guruAbsensiKartu(wali: $rombel);
+
+    jamAbsensiKartu(7, 10);
+
+    $this->actingAs($guru)->postJson(route('guru.absensi.scan'), [
+        'kode' => TokenKartuSiswa::generate($siswa->id),
+    ])->assertOk();
+
+    $this->actingAs($guru)->get(route('guru.absensi'))
+        ->assertOk()
+        ->assertSee('Anak Panel')
+        ->assertSee('Belum tercatat')
+        ->assertSee('Hadir');
+});
+
+test('balapan pada unique tidak berakhir sebagai 500', function () {
+    $rombel = rombelAbsensiKartu();
+    $siswa = siswaAbsensiKartu('7111', 'Anak Balapan', $rombel);
+    $guru = guruAbsensiKartu(wali: $rombel);
+    $this->travelTo(now()->startOfDay()->setTime(7, 10));
+    $payload = ['kode' => TokenKartuSiswa::generate($siswa->id)];
+
+    $balapan = false;
+
+    Absensi::creating(function () use (&$balapan, $rombel, $siswa) {
+        if ($balapan) {
+            return;
+        }
+
+        $balapan = true;
+
+        DB::table('absensis')->insert([
+            'rombel_id' => $rombel->id,
+            'siswa_id' => $siswa->id,
+            'tanggal' => now()->toDateString(),
+            'status' => 'hadir',
+            'jam_datang' => '06:30:00',
+            'metode' => 'qr',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    });
+
+    $this->actingAs($guru)->postJson(route('guru.absensi.scan'), $payload)
+        ->assertOk()
+        ->assertJson(['status' => 'hadir']);
+
+    expect(Absensi::where('siswa_id', $siswa->id)->count())->toBe(1);
+
+    $absensi = Absensi::where('siswa_id', $siswa->id)->firstOrFail();
+    expect(substr((string) $absensi->jam_datang, 0, 5))->toBe('06:30');
+
+    Absensi::flushEventListeners();
+});
+
+test('scan tengah malam ditolak karena jendela belum dibuka', function () {
+    $this->travelTo(Carbon::parse('2026-10-09 17:30:00', 'UTC'));
+
+    expect(now()->toDateString())->toBe('2026-10-10');
+
+    $rombel = rombelAbsensiKartu();
+    $siswa = siswaAbsensiKartu('7112', 'Anak Tengah Malam', $rombel);
+    $guru = guruAbsensiKartu(wali: $rombel);
+
+    $response = $this->actingAs($guru)->postJson(route('guru.absensi.scan'), [
+        'kode' => TokenKartuSiswa::generate($siswa->id),
+    ])->assertUnprocessable();
+
+    expect($response->json('message'))->toContain('belum dibuka')
+        ->and(Absensi::where('siswa_id', $siswa->id)->exists())->toBeFalse();
+});
+
+test('scan dibatasi rate limit', function () {
+    $rombel = rombelAbsensiKartu();
+    $siswa = siswaAbsensiKartu('7113', 'Anak Rate Limit', $rombel);
+    $guru = guruAbsensiKartu(wali: $rombel);
+
+    $this->travelTo(now()->startOfDay()->setTime(7, 10));
+    $payload = ['kode' => TokenKartuSiswa::generate($siswa->id)];
+
+    for ($i = 0; $i < 120; $i++) {
+        $this->actingAs($guru)->postJson(route('guru.absensi.scan'), $payload)->assertOk();
+    }
+
+    $this->actingAs($guru)->postJson(route('guru.absensi.scan'), $payload)->assertStatus(429);
+});
+
+test('batas terlambat dibaca dari cache dan dibuang saat pengaturan disimpan', function () {
+    Cache::flush();
+    Pengaturan::flushCache();
+
+    $rombel = rombelAbsensiKartu();
+    $siswa = siswaAbsensiKartu('7114', 'Anak Cache', $rombel);
+    $guru = guruAbsensiKartu(wali: $rombel);
+
+    $this->travelTo(now()->startOfDay()->setTime(7, 10));
+    $payload = ['kode' => TokenKartuSiswa::generate($siswa->id)];
+
+    $this->actingAs($guru)->postJson(route('guru.absensi.scan'), $payload)
+        ->assertOk()->assertJson(['status' => 'hadir']);
+
+    $query = 0;
+    DB::listen(function ($q) use (&$query) {
+        if (str_contains($q->sql, 'pengaturans') && in_array('batas_terlambat', (array) $q->bindings, true)) {
+            $query++;
+        }
+    });
+
+    $this->actingAs($guru)->postJson(route('guru.absensi.scan'), $payload)->assertOk();
+
+    expect($query)->toBe(0);
+
+    $admin = User::factory()->create();
+    $admin->assignRole('super-admin');
+
+    $this->actingAs($admin)->put(route('admin.pengaturans.update'), [
+        'jam_buka_absen' => '06:45',
+        'batas_terlambat' => '07:00',
+    ])->assertSessionHas('success');
+
+    expect(Pengaturan::nilai('batas_terlambat'))->toBe('07:00');
 });

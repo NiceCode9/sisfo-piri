@@ -10,8 +10,8 @@
         $tabs = [
             'dashboard' => ['label' => 'Dashboard', 'route' => 'guru.dashboard', 'icon' => 'fa-solid fa-th-large'],
             'profil' => ['label' => 'Profil', 'route' => 'guru.profil', 'icon' => 'fa-solid fa-user'],
-            'absensi-qr' => ['label' => 'QR Absen', 'route' => 'guru.absensi-qr', 'icon' => 'fa-solid fa-qrcode'],
-            'absensi' => ['label' => 'Absensi', 'route' => 'admin.absensis.index', 'icon' => 'fa-solid fa-clipboard-check'],
+            'absensi' => ['label' => 'Absensi Kelas', 'route' => 'guru.absensi', 'icon' => 'fa-solid fa-clipboard-check'],
+            'grid-absensi' => ['label' => 'Grid Absensi', 'route' => 'admin.absensis.index', 'icon' => 'fa-solid fa-table-list'],
             'tugas' => ['label' => 'Tugas', 'route' => 'admin.tugas.index', 'icon' => 'fa-solid fa-clipboard-question'],
             'ujian' => ['label' => 'Ujian CBT', 'route' => 'admin.cbt.exams.index', 'icon' => 'fa-solid fa-file-question'],
         ];
