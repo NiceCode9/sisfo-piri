@@ -558,3 +558,11 @@ test('pilih siswa di luar jangkauan ditolak', function () {
         'siswa_id' => $siswa->id,
     ])->assertForbidden();
 });
+test('scan mandiri siswa sudah tidak tersedia', function () {
+    $siswa = siswaAbsensiKartu('7401', 'Anak Scan Lama');
+
+    $this->actingAs($siswa->user)->get('/siswa/absensi/scan')->assertNotFound();
+    $this->actingAs($siswa->user)->postJson('/siswa/absensi/scan', ['token' => 'apa saja'])->assertNotFound();
+
+    $this->actingAs($siswa->user)->get(route('siswa.absensi'))->assertOk();
+});

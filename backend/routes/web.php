@@ -59,7 +59,6 @@ use App\Http\Controllers\Jurnalistik\MediaController as JurnalistikMediaControll
 use App\Http\Controllers\Jurnalistik\TagController as JurnalistikTagController;
 use App\Http\Controllers\Ortu\DashboardController as OrtuDashboardController;
 use App\Http\Controllers\Ortu\ProfilController as OrtuProfilController;
-use App\Http\Controllers\Siswa\AbsensiMandiriController;
 use App\Http\Controllers\Siswa\BerkasController;
 use App\Http\Controllers\Siswa\DashboardController;
 use App\Http\Controllers\Siswa\MateriController as SiswaMateriController;
@@ -136,13 +135,6 @@ Route::prefix('siswa')->name('siswa.')->middleware(['auth', 'role:siswa'])->grou
     Route::get('/kelas', [RiwayatController::class, 'kelas'])->name('kelas');
     Route::get('/riwayat', [RiwayatController::class, 'riwayat'])->name('riwayat');
     Route::get('/absensi', [RiwayatController::class, 'absensi'])->name('absensi');
-    Route::get('/absensi/scan', [AbsensiMandiriController::class, 'show'])->name('absensi.scan');
-    Route::post('/absensi/scan', [AbsensiMandiriController::class, 'store'])
-        ->name('absensi.scan.store')
-        // Kamera siswa bisa memindai berulang selama QR masih di frame; tanpa
-        // batas ini satu perangkat bisa membanjiri server dengan permintaan
-        // yang isinya identik.
-        ->middleware('throttle:absensi-scan');
     Route::get('/materi', [SiswaMateriController::class, 'index'])->name('materi.index');
     Route::get('/materi/{materi}', [SiswaMateriController::class, 'show'])->name('materi.show');
     Route::get('/tugas', [SiswaTugasController::class, 'index'])->name('tugas.index');
