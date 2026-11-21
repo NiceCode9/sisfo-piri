@@ -125,7 +125,6 @@ class PermissionSeeder extends Seeder
             'absensis.view',
             'absensis.create',
             'absensis.edit',
-            'absensis.delete',
             'pengaturans.view',
             'pengaturans.edit',
             'whatsapp.view',
@@ -166,6 +165,9 @@ class PermissionSeeder extends Seeder
         foreach ($permissions as $name) {
             Permission::firstOrCreate(['name' => $name, 'guard_name' => 'web']);
         }
+
+        // Permission absensis.delete tidak dipakai lagi; hapus dari instalasi lama.
+        Permission::where('name', 'absensis.delete')->delete();
 
         // super-admin: semua permission; admin: kelola tanpa hapus.
         Role::firstOrCreate(['name' => 'super-admin', 'guard_name' => 'web'])

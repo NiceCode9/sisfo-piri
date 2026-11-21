@@ -16,6 +16,7 @@ use Database\Seeders\RoleSeeder;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 uses(RefreshDatabase::class);
@@ -141,7 +142,7 @@ test('duplikat absensi siswa tanggal sama ditolak', function () {
 
 test('role guru-piket memiliki permission absensi, siswa dan ortu terkunci dari admin', function () {
     expect(Role::findByName('guru-piket')->hasPermissionTo('absensis.create'))->toBeTrue()
-        ->and(Role::findByName('guru-piket')->hasPermissionTo('absensis.delete'))->toBeFalse()
+        ->and(Permission::where('name', 'absensis.delete')->exists())->toBeFalse()
         ->and(Role::findByName('orang-tua')->permissions)->toHaveCount(0)
         ->and(Role::findByName('siswa')->permissions)->toHaveCount(0);
 });
