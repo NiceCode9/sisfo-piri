@@ -897,3 +897,33 @@ test('impor menolak tahun ajaran yang tidak dikenal', function () {
 
     expect(Absensi::where('siswa_id', $siswa->id)->exists())->toBeFalse();
 });
+test('hapus baris absensi tidak menghapus histori koreksi', function () {
+    $rombel = rombelUjiAbsensi();
+    $siswa = buatAnggotaRombel('5201', 'Anak Histori', $rombel);
+
+    $absensi = Absensi::create([
+        'siswa_id' => $siswa->id,
+        'rombel_id' => $rombel->id,
+        'tanggal' => now()->toDateString(),
+        'status' => 'hadir',
+        'metode' => 'manual',
+    ]);
+
+    AbsensiRiwayat::create([
+        'absensi_id' => $absensi->id,
+        'siswa_id' => $siswa->id,
+        'rombel_id' => $rombel->id,
+        'tanggal' => now()->toDateString(),
+        'status_sebelum' => 'hadir',
+        'status_sesudah' => 'izin',
+        'alasan' => 'Surat menyusul',
+        'dicatat_oleh' => superAdmin()->id,
+    ]);
+
+    $absensi->delete();
+
+    $riwayat = AbsensiRiwayat::firstOrFail();
+
+    expect($riwayat->absensi_id)->toBeNull()
+        ->and($riwayat->alasan)->toBe('Surat menyusul');
+});
