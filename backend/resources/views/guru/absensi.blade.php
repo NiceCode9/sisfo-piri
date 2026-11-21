@@ -25,25 +25,29 @@
                 </div>
             </div>
             <div class="card-body-nexus">
-                <form method="POST" action="{{ route('guru.absensi.scan') }}" id="form-scan" class="d-flex flex-column flex-sm-row gap-2">
-                    @csrf
-                    <input type="hidden" name="mode" value="{{ $mode }}">
-                    <input
-                        type="text"
-                        name="kode"
-                        id="kode-kartu"
-                        class="form-control"
-                        placeholder="Scan kartu, tempel kode, atau ketik NISN"
-                        autocomplete="off"
-                        autocapitalize="off"
-                        spellcheck="false"
-                        required
-                        autofocus
-                    >
-                    <button type="submit" class="btn btn-nexus text-nowrap">Catat</button>
-                </form>
-
-                <div id="hasil-scan" class="mt-3" aria-live="polite"></div>
+                <div data-scanner>
+                    <video id="kamera-absensi" playsinline muted class="w-100 d-none" aria-label="Pratinjau kamera"></video>
+                    <p id="status-kamera" class="mb-2" style="font-size:12.5px;color:var(--text-muted);">Kamera belum dinyalakan.</p>
+                    <button type="button" id="mulai-kamera" class="btn btn-nexus-outline btn-sm">Mulai kamera</button>
+                    <form method="POST" action="{{ route('guru.absensi.scan') }}" id="form-scan" class="d-flex gap-2 mt-3">
+                        @csrf
+                        <input type="hidden" name="mode" value="{{ $mode }}">
+                        <input
+                            type="text"
+                            name="kode"
+                            id="kode-kartu"
+                            class="form-control"
+                            placeholder="Scan kartu, tempel kode, atau ketik NISN"
+                            autocomplete="off"
+                            autocapitalize="off"
+                            spellcheck="false"
+                            required
+                            autofocus
+                        >
+                        <button type="submit" class="btn btn-nexus text-nowrap">Catat</button>
+                    </form>
+                    <div id="hasil-scan" class="mt-3" aria-live="polite"></div>
+                </div>
 
                 <p class="mb-0 mt-3" style="font-size:12.5px;color:var(--text-muted);">
                     Jendela absen: buka <strong>{{ $jam_buka }}</strong>,
@@ -113,4 +117,9 @@
 @endif
 
 @include('guru._izin-sakit')
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="{{ asset('assets/absensi-scan.js') }}"></script>
+@endpush
 @endsection

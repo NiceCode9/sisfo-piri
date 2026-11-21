@@ -300,6 +300,17 @@ test('scan menolak token rusak dan siswa nonaktif', function () {
     expect(Absensi::count())->toBe(0);
 });
 
+test('halaman guru memuat scanner dan fallback input', function () {
+    $rombel = rombelAbsensiKartu();
+    $guru = guruAbsensiKartu(wali: $rombel);
+
+    $this->actingAs($guru)->get(route('guru.absensi'))
+        ->assertOk()
+        ->assertSee('data-scanner', false)
+        ->assertSee('absensi-scan.js')
+        ->assertSee('name="kode"', false);
+});
+
 test('halaman guru menampilkan kelas terakhir dan daftar hari ini', function () {
     $rombel = rombelAbsensiKartu();
     $siswa = siswaAbsensiKartu('7108', 'Anak Panel', $rombel);
