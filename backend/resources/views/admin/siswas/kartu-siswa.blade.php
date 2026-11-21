@@ -148,6 +148,18 @@
             line-height: 1.4;
         }
 
+        .card-back-qr {
+            width: 120px;
+            height: 120px;
+            margin-bottom: 4px;
+            background: #fff;
+        }
+
+        .card-back-qr svg {
+            width: 100%;
+            height: 100%;
+        }
+
         .card-back-footer {
             position: absolute;
             bottom: 0;
@@ -263,6 +275,9 @@
                                 {{-- BACK --}}
                                 <div class="id-card-face id-card-back">
                                     <div class="card-back-inner">
+                                        <div id="qr-kartu" class="card-back-qr" aria-label="QR absensi {{ $siswa->nama }}">
+                                            {!! $siswa->qr !!}
+                                        </div>
                                         <div class="card-back-rules">
                                             Kartu ini milik {{ $schoolName }}.<br>
                                             Jika ditemukan, harap dikembalikan ke bagian Tata Usaha sekolah.

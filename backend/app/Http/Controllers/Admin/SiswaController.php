@@ -13,6 +13,7 @@ use App\Models\RiwayatKelas;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
+use App\Services\TokenKartuSiswa;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -20,6 +21,7 @@ use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class SiswaController extends Controller implements HasMiddleware
@@ -208,6 +210,7 @@ class SiswaController extends Controller implements HasMiddleware
             'nisn' => $siswa->nisn ?? '-',
             'kelas' => $siswa->kelas?->nama_kelas ?? '-',
             'foto' => $foto,
+            'qr' => (string) QrCode::size(120)->generate(TokenKartuSiswa::generate($siswa->id)),
         ]]);
 
         return view('admin.siswas.kartu-siswa', [

@@ -132,3 +132,16 @@ test('token kartu siswa hanya berlaku untuk id yang ditandatangani', function ()
         ->and(TokenKartuSiswa::baca('abskartu|'.$siswa->id.'|palsu'))->toBeNull()
         ->and(TokenKartuSiswa::baca('bukan-token'))->toBeNull();
 });
+
+test('kartu pelajar memuat QR token siswa', function () {
+    $siswa = siswaAbsensiKartu('7003', 'Anak Kartu');
+
+    $admin = User::factory()->create();
+    $admin->assignRole('super-admin');
+
+    $this->actingAs($admin)
+        ->get(route('admin.siswas.kartu', $siswa))
+        ->assertOk()
+        ->assertSee('id="qr-kartu"', false)
+        ->assertSee('<svg', false);
+});

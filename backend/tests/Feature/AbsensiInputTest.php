@@ -1053,15 +1053,3 @@ test('scan ditolak bila sudah berbaris catatan manual guru', function () {
         ->and(Absensi::where('siswa_id', $siswa->id)->firstOrFail()->status)->toBe('sakit')
         ->and(Absensi::where('siswa_id', $siswa->id)->count())->toBe(1);
 });
-
-test('kartu pelajar tidak lagi membawa QR absensi', function () {
-    $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu');
-
-    // QR harian kini milik akun guru; kartu siswa tinggal identitas, jadi
-    // tidak ada blok QR di sisi belakangnya.
-    $this->actingAs(superAdmin())->get(route('admin.siswas.kartu', $siswa))
-        ->assertOk()
-        ->assertDontSee('SCAN UNTUK ABSENSI')
-        ->assertDontSee('qr-box')
-        ->assertDontSee('<svg', false);
-});
