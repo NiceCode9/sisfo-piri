@@ -31,7 +31,7 @@ class KirimNotifikasiWhatsapp implements ShouldQueue
     {
         $log = NotifikasiLog::find($this->logId);
 
-        if (! $log || $log->status !== 'antri') {
+        if (! $log || ! in_array($log->status, ['antri', 'gagal'], true)) {
             return;
         }
 

@@ -259,3 +259,35 @@ test('pengingat belum hadir tidak jalan pada hari libur terdaftar', function () 
 
     expect(NotifikasiLog::count())->toBe(0);
 });
+test('job WhatsApp mencoba lagi log yang berstatus gagal', function () {
+    $log = NotifikasiLog::create([
+        'tipe' => 'whatsapp',
+        'tujuan' => '081234567890',
+        'pesan' => 'Uji retry',
+        'status' => 'gagal',
+    ]);
+
+    config()->set('services.whatsapp.url', 'https://wa.example.test/kirim');
+    Http::fake(['*' => Http::response('ok', 200)]);
+
+    (new KirimNotifikasiWhatsapp($log->id))->handle();
+
+    expect($log->refresh()->status)->toBe('terkirim');
+});
+
+test('job WhatsApp tidak mengirim ulang log terkirim', function () {
+    $log = NotifikasiLog::create([
+        'tipe' => 'whatsapp',
+        'tujuan' => '081234567890',
+        'pesan' => 'Uji terkirim',
+        'status' => 'terkirim',
+    ]);
+
+    config()->set('services.whatsapp.url', 'https://wa.example.test/kirim');
+    Http::fake(['*' => Http::response('ok', 200)]);
+
+    (new KirimNotifikasiWhatsapp($log->id))->handle();
+
+    Http::assertNothingSent();
+    expect($log->refresh()->status)->toBe('terkirim');
+});
