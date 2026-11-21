@@ -121,6 +121,7 @@ class AbsensiController extends Controller implements HasMiddleware
 
         $jumlah = DB::transaction(function () use ($validated, $alasan) {
             $count = 0;
+            $alpaDitulis = [];
 
             foreach ($validated['status'] as $siswaId => $status) {
                 $kunci = [
@@ -141,6 +142,15 @@ class AbsensiController extends Controller implements HasMiddleware
                     ? ['status' => $absensi->status, 'jam' => $absensi->jam_datang]
                     : null;
 
+                $koreksi = $sebelum !== null && ($sebelum['status'] !== $status || $sebelum['jam'] !== $absensi->jam_datang);
+
+                // Baris yang tidak berubah tidak disentuh: metode, pencatat,
+                // dan jam pertama milik scan/guru tetap utuh. Notifikasi alpa
+                // hanya untuk baris yang benar-benar ditulis sebagai alpa.
+                if ($sebelum !== null && ! $koreksi) {
+                    continue;
+                }
+
                 $absensi->rombel_id = $validated['rombel_id'];
                 $absensi->status = $status;
                 $absensi->metode = 'manual';
@@ -149,8 +159,6 @@ class AbsensiController extends Controller implements HasMiddleware
                 if (! $absensi->exists && in_array($status, ['hadir', 'terlambat'], true) && ! $absensi->jam_datang) {
                     $absensi->jam_datang = now()->format('H:i:s');
                 }
-
-                $koreksi = $sebelum !== null && ($sebelum['status'] !== $absensi->status || $sebelum['jam'] !== $absensi->jam_datang);
 
                 if ($koreksi) {
                     $this->pastikanBolehMengerjakanKoreksi($alasan);
@@ -166,14 +174,25 @@ class AbsensiController extends Controller implements HasMiddleware
                 }
 
                 $count++;
+
+                if ($status === 'alpa') {
+                    $alpaDitulis[] = (int) $siswaId;
+                }
             }
 
-            return $count;
+            return [$count, $alpaDitulis];
         });
 
-        NotifikasiAlpa::antrekan($validated['rombel_id'], $validated['tanggal'], array_keys(
-            array_filter($validated['status'], fn ($status) => $status === 'alpa')
-        ));
+        [$jumlah, $alpaDitulis] = $jumlah;
+
+        NotifikasiAlpa::antrekan($validated['rombel_id'], $validated['tanggal'], $alpaDitulis);
+
+        if ($jumlah === 0) {
+            return redirect()->route('admin.absensis.index', [
+                'rombel_id' => $validated['rombel_id'],
+                'tanggal' => $validated['tanggal'],
+            ])->with('success', 'Tidak ada perubahan.');
+        }
 
         return redirect()->route('admin.absensis.index', [
             'rombel_id' => $validated['rombel_id'],

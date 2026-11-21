@@ -772,3 +772,57 @@ test('batch menolak siswa luar rombel', function () {
     expect(Absensi::count())->toBe(0);
     expect($rombel7B->id)->not->toBe($rombel->id);
 });
+test('simpan grid tidak mengubah baris QR yang tidak berubah', function () {
+    $rombel = rombelUjiAbsensi();
+    $siswa = buatAnggotaRombel('5001', 'Anak QR Tetap', $rombel);
+    $pencatat = User::factory()->create(['name' => 'Pencatat QR']);
+
+    Absensi::create([
+        'siswa_id' => $siswa->id,
+        'rombel_id' => $rombel->id,
+        'tanggal' => now()->toDateString(),
+        'status' => 'hadir',
+        'jam_datang' => '06:30:00',
+        'metode' => 'qr',
+        'dicatat_oleh' => $pencatat->id,
+    ]);
+
+    $this->actingAs(superAdmin())->post(route('admin.absensis.batch'), [
+        'rombel_id' => $rombel->id,
+        'tanggal' => now()->toDateString(),
+        'status' => [$siswa->id => 'hadir'],
+    ])->assertSessionHas('success');
+
+    $baris = Absensi::where('siswa_id', $siswa->id)->firstOrFail();
+
+    expect($baris->metode)->toBe('qr')
+        ->and($baris->dicatat_oleh)->toBe($pencatat->id)
+        ->and(AbsensiRiwayat::count())->toBe(0);
+});
+
+test('simpan grid yang mengubah status tetap menulis manual dan histori', function () {
+    $rombel = rombelUjiAbsensi();
+    $siswa = buatAnggotaRombel('5002', 'Anak QR Koreksi', $rombel);
+
+    Absensi::create([
+        'siswa_id' => $siswa->id,
+        'rombel_id' => $rombel->id,
+        'tanggal' => now()->toDateString(),
+        'status' => 'hadir',
+        'jam_datang' => '06:30:00',
+        'metode' => 'qr',
+        'dicatat_oleh' => User::factory()->create()->id,
+    ]);
+
+    $this->actingAs(superAdmin())->post(route('admin.absensis.batch'), [
+        'rombel_id' => $rombel->id,
+        'tanggal' => now()->toDateString(),
+        'alasan' => 'Koreksi status',
+        'status' => [$siswa->id => 'izin'],
+    ])->assertSessionHas('success');
+
+    $baris = Absensi::where('siswa_id', $siswa->id)->firstOrFail();
+
+    expect($baris->metode)->toBe('manual')
+        ->and(AbsensiRiwayat::count())->toBe(1);
+});
