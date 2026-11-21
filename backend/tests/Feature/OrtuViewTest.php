@@ -201,3 +201,21 @@ test('ganti password tanpa current_password ditolak', function () {
         'password_confirmation' => 'barupassword',
     ])->assertSessionHasErrors('password_saat_ini');
 });
+test('persentase orang tua menghitung satu tanggal sekali walau ada dua rombel', function () {
+    $rombelA = Rombel::whereHas('kelas', fn ($q) => $q->where('nama_kelas', '7A'))
+        ->where('tahun_ajaran_id', TahunAjaran::aktif()->first()->id)->firstOrFail();
+    $rombelB = Rombel::whereHas('kelas', fn ($q) => $q->where('nama_kelas', '7B'))
+        ->where('tahun_ajaran_id', TahunAjaran::aktif()->first()->id)->firstOrFail();
+
+    $siswa = siswaOrtuUji('8001', 'Anak Ortu Satu', $rombelA);
+    $ortu = User::where('username', 'ortu-'.$siswa->nisn)->firstOrFail();
+
+    Absensi::create(['rombel_id' => $rombelA->id, 'siswa_id' => $siswa->id, 'tanggal' => now()->format('Y-m-01'), 'status' => 'hadir', 'metode' => 'manual']);
+    Absensi::create(['rombel_id' => $rombelB->id, 'siswa_id' => $siswa->id, 'tanggal' => now()->format('Y-m-01'), 'status' => 'terlambat', 'metode' => 'manual']);
+    Absensi::create(['rombel_id' => $rombelA->id, 'siswa_id' => $siswa->id, 'tanggal' => now()->format('Y-m-02'), 'status' => 'alpa', 'metode' => 'manual']);
+
+    $response = $this->actingAs($ortu)->get(route('ortu.dashboard'))->assertOk();
+    $persen = $response->viewData('persenPerSiswa');
+
+    expect($persen[$siswa->id])->toBe(50);
+});
