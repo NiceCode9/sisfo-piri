@@ -15,6 +15,8 @@ use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
 use App\Services\TokenKartuSiswa;
+use BaconQrCode\Encoder\Encoder;
+use BaconQrCode\Common\ErrorCorrectionLevel;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -369,7 +371,7 @@ class SiswaController extends Controller implements HasMiddleware
 
         if ($siswa !== null) {
 
-            $siswas = collect([$siswa]);
+            $siswas = Siswa::whereKey($siswa->id)->get();
 
         } else {
 
@@ -427,7 +429,7 @@ class SiswaController extends Controller implements HasMiddleware
 
                 'foto' => $foto,
 
-                'qr' => (string) QrCode::size(120)->generate(TokenKartuSiswa::generate($s->id)),
+                'qr' => self::qrHtml(TokenKartuSiswa::generate($s->id)),
 
             ];
 
@@ -536,4 +538,28 @@ class SiswaController extends Controller implements HasMiddleware
 
     }
 
+    public static function qrHtml(string $token): string
+    {
+        $qrCode = Encoder::encode($token, ErrorCorrectionLevel::L());
+        $matrix = $qrCode->getMatrix();
+        $size = $matrix->getWidth();
+
+        $html = '<table cellspacing="0" cellpadding="0" style="border-collapse:collapse;margin:0 auto;">';
+
+        for ($y = 0; $y < $size; $y++) {
+            $html .= '<tr>';
+
+            for ($x = 0; $x < $size; $x++) {
+                $black = $matrix->get($x, $y) === 1;
+                $color = $black ? '#000' : '#fff';
+                $html .= '<td width="2" height="2" bgcolor="'.$color.'">&nbsp;</td>';
+            }
+
+            $html .= '</tr>';
+        }
+
+        $html .= '</table>';
+
+        return $html;
+    }
 }
