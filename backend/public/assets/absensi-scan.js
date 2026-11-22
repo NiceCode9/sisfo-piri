@@ -20,10 +20,23 @@
     let jedaHingga = 0;
     let rafId = null;
 
+    function escapeHtml(teks) {
+        return String(teks || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
     function tampilPesan(teks, ok) {
         if (!hasil) return;
-        hasil.textContent = teks || '';
-        hasil.style.color = ok ? 'var(--accent-primary)' : 'var(--text-secondary)';
+        if (!teks) { hasil.innerHTML = ''; return; }
+        hasil.innerHTML =
+            '<div class="alert alert-' + (ok ? 'success' : 'danger') + ' py-2 px-3 mb-0 d-flex align-items-center gap-2" role="alert" style="font-size:13px;">' +
+            '<i class="fa-solid ' + (ok ? 'fa-circle-check' : 'fa-circle-xmark') + '"></i>' +
+            '<span>' + escapeHtml(teks) + '</span></div>';
+        clearTimeout(hasil._timer);
+        hasil._timer = setTimeout(function () { hasil.innerHTML = ''; }, ok ? 4000 : 6000);
     }
 
     function kirimScan(kode) {
