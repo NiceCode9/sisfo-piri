@@ -46,7 +46,7 @@
                         >
                         <button type="submit" class="btn btn-nexus text-nowrap">Catat</button>
                     </form>
-                    <div id="hasil-scan" class="mt-3" aria-live="polite"></div>
+                    <div id="hasil-scan" class="mt-3" aria-live="polite" style="min-height:38px;"></div>
                 </div>
 
                 <p class="mb-0 mt-3" style="font-size:12.5px;color:var(--text-muted);">
