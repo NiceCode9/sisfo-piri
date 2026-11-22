@@ -150,8 +150,36 @@ test('kartu pelajar memuat QR token siswa', function () {
     $this->actingAs($admin)
         ->get(route('admin.siswas.kartu', $siswa))
         ->assertOk()
-        ->assertSee('id="qr-kartu"', false)
+        ->assertSee('Sisi Depan')
+        ->assertSee('Sisi Belakang')
+        ->assertSee('card-back-qr', false)
         ->assertSee('<svg', false);
+});
+
+test('cetak kartu massal mengikuti filter kelas dan butuh izin lihat siswa', function () {
+    $siswa = siswaAbsensiKartu('7004', 'Anak Massal', rombelAbsensiKartu('7A'));
+    siswaAbsensiKartu('7005', 'Anak Lain', rombelAbsensiKartu('7B'));
+
+    $admin = User::factory()->create();
+    $admin->assignRole('super-admin');
+
+    $this->actingAs($admin)
+        ->get(route('admin.siswas.kartu.massal', ['kelas' => $siswa->kelas_id]))
+        ->assertOk()
+        ->assertSee('Anak Massal')
+        ->assertDontSee('Anak Lain');
+
+    $this->actingAs($admin)
+        ->get(route('admin.siswas.kartu.massal', ['search' => 'Anak Massal']))
+        ->assertOk()
+        ->assertSee('Anak Massal')
+        ->assertDontSee('Anak Lain');
+
+    $polos = User::factory()->create();
+
+    $this->actingAs($polos)
+        ->get(route('admin.siswas.kartu.massal'))
+        ->assertForbidden();
 });
 
 test('wali kelas bisa scan kartu siswa di kelasnya', function () {

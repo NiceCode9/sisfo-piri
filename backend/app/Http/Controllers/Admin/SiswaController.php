@@ -10,14 +10,10 @@ use App\Imports\SiswaImport;
 use App\Models\Kelas;
 use App\Models\ProfilSekolah;
 use App\Models\RiwayatKelas;
-use App\Models\Rombel;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
 use App\Services\TokenKartuSiswa;
-use BaconQrCode\Common\ErrorCorrectionLevel;
-use BaconQrCode\Encoder\Encoder;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -28,7 +24,6 @@ use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
-use Symfony\Component\HttpFoundation\Response;
 
 class SiswaController extends Controller implements HasMiddleware
 {
@@ -37,7 +32,7 @@ class SiswaController extends Controller implements HasMiddleware
 
         return [
 
-            new Middleware('permission:siswas.view', only: ['index', 'show', 'kartu']),
+            new Middleware('permission:siswas.view', only: ['index', 'show', 'kartu', 'kartuMassal']),
 
             new Middleware('permission:siswas.create', only: ['create', 'store', 'template', 'import']),
 
@@ -363,106 +358,21 @@ class SiswaController extends Controller implements HasMiddleware
 
     }
 
-    /**
-     * Unduh kartu pelajar (satu atau banyak siswa) sebagai PDF siap potong.
-     */
-    public function kartuPdf(Request $request, ?Siswa $siswa = null): Response
-    {
-
-        if ($siswa !== null) {
-
-            $siswas = Siswa::whereKey($siswa->id)->get();
-
-        } else {
-
-            $rombelId = (int) $request->query('rombel_id');
-
-            $rombel = $rombelId ? Rombel::findOrFail($rombelId) : null;
-
-            $query = Siswa::with(['user', 'calonSiswa.berkasCalonSiswa', 'kelas', 'tahunAjaran']);
-
-            if ($rombel) {
-
-                $query->whereIn('id', $rombel->anggotaIdsAktif());
-
-            }
-
-            $ids = $request->query('ids');
-
-            if (is_array($ids) && $ids !== []) {
-
-                $query->whereIn('id', $ids);
-
-            }
-
-            $siswas = $query->orderBy('nis')->get();
-
-        }
-
-        $siswas->load(['user', 'calonSiswa.berkasCalonSiswa', 'kelas', 'tahunAjaran']);
-
-        $siswaList = $siswas->map(function (Siswa $s) {
-
-            $foto = null;
-
-            if ($s->calonSiswa?->berkasCalonSiswa?->foto_path) {
-
-                $path = $s->calonSiswa->berkasCalonSiswa->foto_path;
-
-                if (Storage::disk('berkas')->exists($path)) {
-
-                    $mime = pathinfo($path, PATHINFO_EXTENSION) === 'png' ? 'image/png' : 'image/jpeg';
-
-                    $foto = 'data:'.$mime.';base64,'.base64_encode(Storage::disk('berkas')->get($path));
-
-                }
-
-            }
-
-            return (object) [
-
-                'nama' => $s->user?->name ?? $s->calonSiswa?->nama_lengkap ?? '-',
-
-                'nisn' => $s->nisn ?? '-',
-
-                'kelas' => $s->kelas?->nama_kelas ?? '-',
-
-                'foto' => $foto,
-
-                'qr' => self::qrHtml(TokenKartuSiswa::generate($s->id)),
-
-            ];
-
-        });
-
-        $sekolah = ProfilSekolah::aktif();
-
-        $tahunAjaran = $siswas->first()?->tahunAjaran?->nama_tahun_ajaran;
-
-        $pdf = Pdf::loadView('admin.siswas.kartu-siswa-pdf', [
-
-            'siswaList' => $siswaList,
-
-            'sekolah' => $sekolah,
-
-            'tahunAjaran' => $tahunAjaran,
-
-        ])->setPaper('a4', 'portrait');
-
-        return $pdf->download('kartu-siswa.pdf');
-
-    }
-
     public function kartuMassal(Request $request): View
     {
-        $rombelId = (int) $request->query('rombel_id');
-        $rombel = $rombelId ? Rombel::findOrFail($rombelId) : null;
+        $tahunMode = $request->query('tahun', 'aktif');
+        $tahunAktif = TahunAjaran::aktif()->first();
+        $search = $request->query('search');
 
-        $query = Siswa::with(['user', 'calonSiswa.berkasCalonSiswa', 'kelas', 'tahunAjaran']);
-
-        if ($rombel) {
-            $query->whereIn('id', $rombel->anggotaIdsAktif());
-        }
+        $query = Siswa::with(['user', 'calonSiswa.berkasCalonSiswa', 'kelas', 'tahunAjaran'])
+            ->when($request->filled('kelas'), fn ($q) => $q->where('kelas_id', $request->integer('kelas')))
+            ->when($search, fn ($q) => $q->where(fn ($qq) => $qq
+                ->where('nis', 'like', "%{$search}%")
+                ->orWhere('nisn', 'like', "%{$search}%")
+                ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%"))
+            ))
+            ->when($tahunMode === 'aktif' && $tahunAktif, fn ($q) => $q->where('tahun_ajaran_id', $tahunAktif->id))
+            ->when(is_numeric($tahunMode), fn ($q) => $q->where('tahun_ajaran_id', $tahunMode));
 
         $ids = $request->query('ids');
         if (is_array($ids) && $ids !== []) {
@@ -491,14 +401,10 @@ class SiswaController extends Controller implements HasMiddleware
             ];
         });
 
-        $sekolah = ProfilSekolah::aktif();
-
         return view('admin.siswas.kartu-siswa', [
             'siswaList' => $siswaList,
             'tahunAjaran' => $siswas->first()?->tahunAjaran?->nama_tahun_ajaran,
-            'sekolah' => $sekolah,
-            'schoolName' => $sekolah?->nama_sekolah ?? 'Sekolah',
-            'schoolLogo' => $sekolah?->logo_path ? route('dokumen.profil', ['path' => $sekolah->logo_path]) : null,
+            'sekolah' => ProfilSekolah::aktif(),
         ]);
     }
 
@@ -585,30 +491,5 @@ class SiswaController extends Controller implements HasMiddleware
 
         return redirect()->route('admin.siswas.index')->with('success', 'Siswa dihapus beserta akunnya.');
 
-    }
-
-    public static function qrHtml(string $token): string
-    {
-        $qrCode = Encoder::encode($token, ErrorCorrectionLevel::L());
-        $matrix = $qrCode->getMatrix();
-        $size = $matrix->getWidth();
-
-        $html = '<table cellspacing="0" cellpadding="0" style="border-collapse:collapse;margin:0 auto;">';
-
-        for ($y = 0; $y < $size; $y++) {
-            $html .= '<tr>';
-
-            for ($x = 0; $x < $size; $x++) {
-                $black = $matrix->get($x, $y) === 1;
-                $color = $black ? '#000' : '#fff';
-                $html .= '<td width="2" height="2" bgcolor="'.$color.'">&nbsp;</td>';
-            }
-
-            $html .= '</tr>';
-        }
-
-        $html .= '</table>';
-
-        return $html;
     }
 }

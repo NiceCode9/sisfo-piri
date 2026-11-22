@@ -14,6 +14,6 @@
         ];
     @endphp
     @foreach($tabs as $key => $tab)
-        <a href="{{ route($tab['route']) }}" class="btn btn-sm {{ ($tabAktif ?? '') === $key ? 'btn-primary' : 'btn-nexus-outline' }}"><i class="{{ $tab['icon'] }}"></i> {{ $tab['label'] }}</a>
+        <a href="{{ route($tab['route']) }}" @if($key === 'kartu') target="_blank" @endif class="btn btn-sm {{ ($tabAktif ?? '') === $key ? 'btn-primary' : 'btn-nexus-outline' }}"><i class="{{ $tab['icon'] }}"></i> {{ $tab['label'] }}</a>
     @endforeach
 </div>

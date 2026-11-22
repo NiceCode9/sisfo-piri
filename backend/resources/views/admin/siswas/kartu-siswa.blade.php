@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cetak Kartu Pelajar</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <style>
@@ -16,62 +15,136 @@
             --brand-accent: #10b981;
         }
 
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: 'Poppins', sans-serif;
-            background: #f1f5f9;
+            margin: 0;
+            font-family: 'Poppins', Arial, sans-serif;
+            background: #e2e8f0;
+            color: #1f2937;
         }
 
-        /* Ukuran kartu standar CR80 (kartu pelajar/ID card): 85.6mm x 54mm */
-        .id-card-wrapper {
-            perspective: 1200px;
-            width: 337px;  /* ~85.6mm pada 96dpi screen preview */
-            height: 212px; /* ~54mm */
+        /* ===== TOOLBAR (screen only) ===== */
+        .toolbar {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 10px 16px;
+            padding: 12px 16px;
+            background: #fff;
+            border-bottom: 1px solid #cbd5e1;
         }
 
-        .id-card {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            transition: transform 0.6s;
-            transform-style: preserve-3d;
+        .toolbar h1 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .toolbar .hint {
+            margin: 0;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .btn-print {
+            border: 0;
+            border-radius: 8px;
+            background: var(--brand-primary);
+            color: #fff;
+            font: 600 13px 'Poppins', Arial, sans-serif;
+            padding: 9px 16px;
             cursor: pointer;
         }
 
-        .id-card.is-flipped {
-            transform: rotateY(180deg);
+        .btn-print:hover {
+            background: var(--brand-primary-dark);
+        }
+
+        /* ===== SHEET ===== */
+        .preview {
+            padding: 20px 12px 40px;
+        }
+
+        .paper {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto 20px;
+            padding: 8mm;
+            background: #fff;
+            box-shadow: 0 6px 24px rgba(15, 23, 42, 0.12);
+        }
+
+        .sheet-title {
+            margin: 0 0 4mm;
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .sheet {
+            display: grid;
+            grid-template-columns: repeat(2, 85.6mm);
+            grid-auto-rows: 54mm;
+            gap: 2mm;
+            justify-content: center;
+            align-content: start;
+        }
+
+        /* ===== CARD (CR80: 85.6mm x 54mm) ===== */
+        .id-card {
+            position: relative;
+            width: 85.6mm;
+            height: 54mm;
+            overflow: hidden;
+            border-radius: 3.5mm;
+            background: #fff;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.16);
+            break-inside: avoid;
         }
 
         .id-card-face {
-            position: absolute;
-            inset: 0;
-            backface-visibility: hidden;
-            border-radius: 14px;
-            overflow: hidden;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            width: 100%;
+            height: 100%;
             background: #fff;
-        }
-
-        .id-card-back {
-            transform: rotateY(180deg);
         }
 
         /* ===== FRONT ===== */
         .card-front-header {
-            background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%);
-            padding: 10px 14px;
             display: flex;
             align-items: center;
             gap: 8px;
+            padding: 10px 14px;
+            background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%);
             color: #fff;
         }
 
-        .card-front-header img.logo {
+        .card-front-header img.logo,
+        .card-front-header .logo {
             width: 28px;
             height: 28px;
-            object-fit: contain;
-            background: #fff;
+            flex-shrink: 0;
             border-radius: 6px;
+            background: #fff;
             padding: 2px;
+            object-fit: contain;
+        }
+
+        .card-front-header .logo-fallback {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--brand-primary);
         }
 
         .card-front-header .school-name {
@@ -86,31 +159,53 @@
             opacity: 0.85;
         }
 
-        .card-photo {
-            width: 68px;
-            height: 82px;
-            object-fit: cover;
-            border-radius: 8px;
-            border: 2px solid var(--brand-secondary);
-            background: #e5e7eb;
-            flex-shrink: 0;
-        }
-
         .card-body-front {
+            display: flex;
+            gap: 12px;
             padding: 12px 14px;
         }
 
+        .card-photo {
+            width: 68px;
+            height: 82px;
+            flex-shrink: 0;
+            border: 2px solid var(--brand-secondary);
+            border-radius: 8px;
+            background: #e5e7eb;
+            object-fit: cover;
+        }
+
+        .card-photo-fallback {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            font-weight: 700;
+            color: #64748b;
+        }
+
+        .card-info {
+            min-width: 0;
+            padding-top: 4px;
+        }
+
         .siswa-name {
+            margin-bottom: 2px;
             font-size: 13px;
             font-weight: 700;
-            color: #1f2937;
-            margin-bottom: 2px;
             line-height: 1.2;
+            color: #1f2937;
+            overflow-wrap: anywhere;
         }
 
         .siswa-meta {
+            margin-bottom: 4px;
             font-size: 9px;
             color: #6b7280;
+        }
+
+        .siswa-meta:last-child {
+            margin-bottom: 0;
         }
 
         .siswa-meta strong {
@@ -119,115 +214,121 @@
 
         .card-front-footer {
             position: absolute;
+            right: 0;
             bottom: 0;
             left: 0;
-            right: 0;
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 14px;
             background: var(--brand-accent);
             color: #fff;
             font-size: 7px;
-            padding: 4px 14px;
-            display: flex;
-            justify-content: space-between;
         }
 
         /* ===== BACK ===== */
         .card-back-inner {
-            padding: 14px;
-            height: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            height: 100%;
+            padding: 10px 14px 18px;
             text-align: center;
         }
 
-        .card-back-rules {
-            font-size: 6.5px;
-            color: #9ca3af;
-            margin-top: 8px;
-            line-height: 1.4;
-        }
-
         .card-back-qr {
-            width: 120px;
-            height: 120px;
-            margin-bottom: 4px;
+            width: 32mm;
+            height: 32mm;
+            margin-bottom: 2mm;
             background: #fff;
         }
 
         .card-back-qr svg {
+            display: block;
             width: 100%;
             height: 100%;
         }
 
-        .card-back-footer {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: var(--brand-primary-dark);
-            color: #fff;
+        .card-back-rules {
             font-size: 6.5px;
-            padding: 4px 14px;
-            text-align: center;
-        }
-
-        .flip-hint {
-            font-size: 11px;
+            line-height: 1.4;
             color: #6b7280;
         }
 
-        @page {
-            size: A4 portrait;
-            margin: 10mm;
+        .card-back-footer {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            padding: 4px 14px;
+            background: var(--brand-primary-dark);
+            color: #fff;
+            font-size: 6.5px;
+            text-align: center;
         }
 
         /* ===== PRINT ===== */
+        @page {
+            size: A4 portrait;
+            margin: 8mm;
+        }
+
         @media print {
             body {
                 background: #fff;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
             }
-            .no-print {
+
+            .no-print,
+            .sheet-title {
                 display: none !important;
             }
+
+            .preview {
+                padding: 0;
+            }
+
+            .paper {
+                width: auto;
+                min-height: 0;
+                margin: 0;
+                padding: 0;
+                box-shadow: none;
+            }
+
+            .paper-back {
+                break-before: page;
+                page-break-before: always;
+            }
+
             .id-card {
-                transform: none !important;
-                transition: none !important;
+                border-radius: 0;
+                box-shadow: none;
+                outline: 0.2mm dashed #cbd5e1;
             }
-            .id-card-back {
-                transform: none !important;
-                position: static;
+        }
+
+        @media screen and (max-width: 840px) {
+            .paper {
+                width: 100%;
+                min-height: 0;
+                padding: 12px;
             }
-            .id-card-face {
-                position: static !important;
-                box-shadow: none !important;
-                backface-visibility: visible !important;
-                page-break-inside: avoid;
-            }
-            .id-card-back {
-                transform: none !important;
-            }
-            .print-pair {
-                display: flex !important;
-                gap: 6mm;
-                margin-bottom: 6mm;
-                page-break-inside: avoid;
-            }
-            .id-card-wrapper {
-                cursor: default;
+
+            .sheet {
+                grid-template-columns: 85.6mm;
             }
         }
     </style>
 </head>
 <body>
 
-    <div class="no-print mb-3">
-        <button onclick="window.print()" class="btn btn-primary btn-sm"><i class="fa-solid fa-print"></i> Cetak / Simpan PDF</button>
+    <div class="toolbar no-print">
+        <h1>Cetak Kartu Pelajar</h1>
+        <button type="button" class="btn-print" onclick="window.print()">Cetak / Simpan PDF</button>
+        <p class="hint">Di dialog cetak, matikan "Headers and footers" agar hasil bersih.</p>
     </div>
-
-    <style>
-        @media print { .no-print { display: none !important; } }
-    </style>
 
     @php
         $schoolName = trim((string) $sekolah?->nama_sekolah) ?: 'Sekolah';
@@ -236,94 +337,72 @@
         $siswaList = $siswaList ?? collect();
     @endphp
 
-    <div class="container py-5">
-        <div class="d-flex justify-content-between align-items-center mb-4 no-print">
-            <div>
-                <h1 class="h4 fw-bold mb-1">Cetak Kartu Pelajar</h1>
-                <p class="text-muted small mb-0">Klik kartu untuk membalik (preview)</p>
-            </div>
-            <button type="button" class="btn btn-primary" onclick="window.print()">
-                Cetak Kartu
-            </button>
-        </div>
-
-        <div class="row row-cols-1 row-cols-md-2 g-4">
-            @foreach ($siswaList as $siswa)
-                <div class="col print-pair-wrapper">
-                    <div class="d-flex flex-wrap gap-3 print-pair">
-
-                        {{-- ===== KARTU (depan + belakang, flip di layar) ===== --}}
-                        <div class="id-card-wrapper js-flip-card">
-                            <div class="id-card">
-
-                                {{-- FRONT --}}
-                                <div class="id-card-face id-card-front">
-                                    <div class="card-front-header">
-                                        @if($schoolLogo)
-                                            <img src="{{ $schoolLogo }}" alt="Logo" class="logo">
-                                        @else
-                                            <div class="logo d-flex align-items-center justify-content-center fw-bold" style="color: var(--brand-primary);">{{ strtoupper(mb_substr($schoolName, 0, 1)) }}</div>
-                                        @endif
-                                        <div>
-                                            <div class="school-name">{{ $schoolName }}</div>
-                                            <div class="card-label">KARTU PELAJAR</div>
-                                        </div>
-                                    </div>
-
-                                    <div class="card-body-front d-flex gap-3">
-                                        @if(!empty($siswa->foto))
-                                            <img src="{{ $siswa->foto }}" alt="Foto {{ $siswa->nama }}" class="card-photo">
-                                        @else
-                                            <div class="card-photo d-flex align-items-center justify-content-center fw-bold fs-4 text-secondary">{{ strtoupper(mb_substr($siswa->nama, 0, 1)) }}</div>
-                                        @endif
-                                        <div class="pt-1">
-                                            <div class="siswa-name">{{ $siswa->nama }}</div>
-                                            <div class="siswa-meta mb-1">NISN: <strong>{{ $siswa->nisn }}</strong></div>
-                                            <div class="siswa-meta mb-1">Kelas: <strong>{{ $siswa->kelas }}</strong></div>
-                                            <div class="siswa-meta">T.A. <strong>{{ $tahunAjaran }}</strong></div>
-                                        </div>
-                                    </div>
-
-                                    <div class="card-front-footer">
-                                        <span>Berlaku selama menjadi siswa aktif</span>
-                                    </div>
+    <div class="preview">
+        <section class="paper">
+            <h2 class="sheet-title">Sisi Depan</h2>
+            <div class="sheet">
+                @foreach ($siswaList as $siswa)
+                    <div class="id-card">
+                        <div class="id-card-face id-card-front">
+                            <div class="card-front-header">
+                                @if($schoolLogo)
+                                    <img src="{{ $schoolLogo }}" alt="Logo" class="logo">
+                                @else
+                                    <div class="logo logo-fallback">{{ strtoupper(mb_substr($schoolName, 0, 1)) }}</div>
+                                @endif
+                                <div>
+                                    <div class="school-name">{{ $schoolName }}</div>
+                                    <div class="card-label">KARTU PELAJAR</div>
                                 </div>
+                            </div>
 
-                                {{-- BACK --}}
-                                <div class="id-card-face id-card-back">
-                                    <div class="card-back-inner">
-                                        <div id="qr-kartu" class="card-back-qr" aria-label="QR absensi {{ $siswa->nama }}">
-                                            {!! $siswa->qr !!}
-                                        </div>
-                                        <div class="card-back-rules">
-                                            Kartu ini milik {{ $schoolName }}.<br>
-                                            Jika ditemukan, harap dikembalikan ke bagian Tata Usaha sekolah.
-                                        </div>
-                                    </div>
-                                    <div class="card-back-footer">
-                                        NISN: {{ $siswa->nisn }} &middot; {{ $schoolName }}
-                                    </div>
+                            <div class="card-body-front">
+                                @if(!empty($siswa->foto))
+                                    <img src="{{ $siswa->foto }}" alt="Foto {{ $siswa->nama }}" class="card-photo">
+                                @else
+                                    <div class="card-photo card-photo-fallback">{{ strtoupper(mb_substr($siswa->nama, 0, 1)) }}</div>
+                                @endif
+                                <div class="card-info">
+                                    <div class="siswa-name">{{ $siswa->nama }}</div>
+                                    <div class="siswa-meta">NISN: <strong>{{ $siswa->nisn }}</strong></div>
+                                    <div class="siswa-meta">Kelas: <strong>{{ $siswa->kelas }}</strong></div>
+                                    <div class="siswa-meta">T.A. <strong>{{ $tahunAjaran }}</strong></div>
                                 </div>
+                            </div>
 
+                            <div class="card-front-footer">
+                                <span>Berlaku selama menjadi siswa aktif</span>
                             </div>
                         </div>
+                    </div>
+                @endforeach
+            </div>
+        </section>
 
-                        <div class="flip-hint no-print d-flex align-items-center">
-                            👆 Klik kartu untuk lihat sisi belakang
+        <section class="paper paper-back">
+            <h2 class="sheet-title">Sisi Belakang</h2>
+            <div class="sheet">
+                @foreach ($siswaList as $siswa)
+                    <div class="id-card">
+                        <div class="id-card-face id-card-back">
+                            <div class="card-back-inner">
+                                <div class="card-back-qr" aria-label="QR absensi {{ $siswa->nama }}">
+                                    {!! $siswa->qr !!}
+                                </div>
+                                <div class="card-back-rules">
+                                    Kartu ini milik {{ $schoolName }}.<br>
+                                    Jika ditemukan, harap dikembalikan ke bagian Tata Usaha sekolah.
+                                </div>
+                            </div>
+                            <div class="card-back-footer">
+                                NISN: {{ $siswa->nisn }} &middot; {{ $schoolName }}
+                            </div>
                         </div>
                     </div>
-                </div>
-            @endforeach
-        </div>
+                @endforeach
+            </div>
+        </section>
     </div>
-
-    <script>
-        document.querySelectorAll('.js-flip-card').forEach((wrapper) => {
-            wrapper.addEventListener('click', () => {
-                wrapper.querySelector('.id-card').classList.toggle('is-flipped');
-            });
-        });
-    </script>
 
 </body>
 </html>

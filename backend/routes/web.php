@@ -159,12 +159,6 @@ Route::prefix('siswa')->name('siswa.')->middleware(['auth', 'role:siswa'])->grou
             'sekolah' => $sekolah,
         ]);
     })->name('kartu');
-    Route::get('/kartu/pdf', function () {
-        $siswa = auth()->user()?->siswa;
-        abort_if($siswa === null, 404);
-
-        return app(SiswaController::class)->kartuPdf(request(), $siswa);
-    })->name('kartu.pdf');
     Route::get('/materi', [SiswaMateriController::class, 'index'])->name('materi.index');
     Route::get('/materi/{materi}', [SiswaMateriController::class, 'show'])->name('materi.show');
     Route::get('/tugas', [SiswaTugasController::class, 'index'])->name('tugas.index');
@@ -313,8 +307,6 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::post('siswas/import', [SiswaController::class, 'import'])->name('siswas.import');
     Route::get('siswas/{siswa}/kartu', [SiswaController::class, 'kartu'])->name('siswas.kartu');
     Route::get('siswas/kartu/massal', [SiswaController::class, 'kartuMassal'])->name('siswas.kartu.massal');
-    Route::get('siswas/{siswa}/kartu/pdf', [SiswaController::class, 'kartuPdf'])->name('siswas.kartu.pdf');
-    Route::get('siswas/kartu/pdf', [SiswaController::class, 'kartuPdf'])->name('siswas.kartu.pdf.massal');
     Route::resource('siswas', SiswaController::class);
     Route::get('siswas/{siswa}/riwayat', [RiwayatSiswaController::class, 'show'])->name('siswas.riwayat');
     Route::get('absensis', [AbsensiController::class, 'index'])->name('absensis.index');

@@ -14,7 +14,9 @@
             <a href="{{ route('admin.siswas.template') }}" class="btn btn-nexus-outline btn-sm"><i class="fa-solid fa-file-excel"></i> Template</a>
             <button type="button" class="btn btn-nexus-outline btn-sm" data-bs-toggle="modal" data-bs-target="#modalImport"><i class="fa-solid fa-file-import"></i> Import</button>
             <a href="{{ route('admin.siswas.create') }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Tambah Siswa</a>
-            <a href="{{ route('admin.siswas.kartu.massal', ['rombel_id' => request('kelas'), 'ids' => $siswas->pluck('id')->all()]) }}" class="btn btn-nexus-outline btn-sm" target="_blank"><i class="fa-solid fa-id-card"></i> Cetak Kartu (Print)</a>
+        @endcan
+        @can('siswas.view')
+            <a href="{{ route('admin.siswas.kartu.massal', request()->only(['search', 'kelas', 'tahun'])) }}" class="btn btn-nexus-outline btn-sm" target="_blank"><i class="fa-solid fa-id-card"></i> Cetak Kartu</a>
         @endcan
     </div>
 </div>
@@ -70,7 +72,6 @@
                                     @can('siswas.view')
                                         <a href="{{ route('admin.siswas.show', $s) }}" class="btn-icon btn btn-nexus-outline btn-sm" aria-label="Detail"><i class="fa-solid fa-eye"></i></a>
                                         <a href="{{ route('admin.siswas.kartu', $s) }}" class="btn-icon btn btn-nexus-outline btn-sm" aria-label="Kartu" target="_blank"><i class="fa-solid fa-id-card"></i></a>
-                                        <a href="{{ route('admin.siswas.kartu.pdf', $s) }}" class="btn-icon btn btn-nexus-outline btn-sm" aria-label="Kartu PDF"><i class="fa-solid fa-file-pdf"></i></a>
                                     @endcan
                                     @can('siswas.edit')<a href="{{ route('admin.siswas.edit', $s) }}" class="btn-icon btn btn-nexus-outline btn-sm" aria-label="Ubah"><i class="fa-solid fa-pencil"></i></a>@endcan
                                     @can('siswas.delete')<form action="{{ route('admin.siswas.destroy', $s) }}" method="POST" class="d-inline">@csrf @method('DELETE')<button type="submit" class="btn-icon btn btn-nexus-outline btn-sm text-danger" data-confirm="Hapus siswa {{ $s->user->name ?? '' }} beserta akunnya?"><i class="fa-solid fa-trash"></i></button></form>@endcan
