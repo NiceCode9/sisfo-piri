@@ -177,6 +177,11 @@
             color: #6b7280;
         }
 
+        @page {
+            size: A4 portrait;
+            margin: 10mm;
+        }
+
         /* ===== PRINT ===== */
         @media print {
             body {
@@ -196,7 +201,11 @@
             .id-card-face {
                 position: static !important;
                 box-shadow: none !important;
+                backface-visibility: visible !important;
                 page-break-inside: avoid;
+            }
+            .id-card-back {
+                transform: none !important;
             }
             .print-pair {
                 display: flex !important;
