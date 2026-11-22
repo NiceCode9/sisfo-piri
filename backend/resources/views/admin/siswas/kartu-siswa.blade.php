@@ -12,7 +12,7 @@
             --brand-primary: #2563eb;
             --brand-primary-dark: #1e3a8a;
             --brand-secondary: #f59e0b;
-            --brand-accent: #10b981;
+            --brand-accent: #047857;
         }
 
         * {
@@ -58,8 +58,9 @@
             border-radius: 8px;
             background: var(--brand-primary);
             color: #fff;
-            font: 600 13px 'Poppins', Arial, sans-serif;
-            padding: 9px 16px;
+            font: 600 14px 'Poppins', Arial, sans-serif;
+            padding: 12px 18px;
+            min-height: 44px;
             cursor: pointer;
         }
 
@@ -327,7 +328,7 @@
     <div class="toolbar no-print">
         <h1>Cetak Kartu Pelajar</h1>
         <button type="button" class="btn-print" onclick="window.print()">Cetak / Simpan PDF</button>
-        <p class="hint">Di dialog cetak, matikan "Headers and footers" agar hasil bersih.</p>
+        <p class="hint"><strong>Penting:</strong> di dialog cetak, buka "More settings" dan matikan "Headers and footers". Untuk menyimpan PDF, pilih "Save as PDF" di tujuan cetak.</p>
     </div>
 
     @php
