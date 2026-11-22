@@ -135,6 +135,11 @@ Route::prefix('siswa')->name('siswa.')->middleware(['auth', 'role:siswa'])->grou
     Route::get('/kelas', [RiwayatController::class, 'kelas'])->name('kelas');
     Route::get('/riwayat', [RiwayatController::class, 'riwayat'])->name('riwayat');
     Route::get('/absensi', [RiwayatController::class, 'absensi'])->name('absensi');
+    Route::get('/kartu/pdf', function () {
+        $siswa = auth()->user()?->siswa;
+        abort_if($siswa === null, 404);
+        return app(\App\Http\Controllers\Admin\SiswaController::class)->kartuPdf(request(), $siswa);
+    })->name('kartu.pdf');
     Route::get('/materi', [SiswaMateriController::class, 'index'])->name('materi.index');
     Route::get('/materi/{materi}', [SiswaMateriController::class, 'show'])->name('materi.show');
     Route::get('/tugas', [SiswaTugasController::class, 'index'])->name('tugas.index');
