@@ -140,15 +140,9 @@ test('scan mandiri hanya jalur akun siswa, guru ditolak middleware role', functi
     $siswa = siswaOtorisasiUji('6102', 'Anak Scan Mandiri', $rombel);
     $guru = guruRoleUji('guru', 'Guru Bukan Siswa');
 
-    // Alur baru: siswa yang memindai QR milik sendiri. Akun guru tidak punya
-    // halaman scan siswa — pendekatan lama (guru memindai kartu siswa) bisa
-    // dipinjam akun besar/rombel yang salah, jadi jalurnya dihapus, bukan
-    // diberi pengecualian.
-    $this->actingAs($guru)->get(route('siswa.absensi.scan'))->assertForbidden();
-
-    $this->actingAs($guru)->postJson(route('siswa.absensi.scan.store'), [
-        'token' => TokenQrAbsensi::generate($guru->id),
-    ])->assertForbidden();
+    // Alur scan mandiri siswa sudah dihapus; halaman dan endpoint tidak ada lagi.
+    $this->actingAs($guru)->get('/siswa/absensi/scan')->assertNotFound();
+    $this->actingAs($guru)->postJson('/siswa/absensi/scan', ['token' => 'apa saja'])->assertNotFound();
 
     expect(Absensi::where('siswa_id', $siswa->id)->exists())->toBeFalse();
 });

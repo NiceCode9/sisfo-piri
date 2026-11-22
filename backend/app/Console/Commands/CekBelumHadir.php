@@ -9,6 +9,7 @@ use App\Models\Pengaturan;
 use App\Models\Rombel;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
+use Carbon\Carbon;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -28,7 +29,7 @@ class CekBelumHadir extends Command
         // Mode terjadwal: hanya jalan pada jam yang diatur admin (±5 menit)
         // dan sekali sehari. Mode manual (--tanggal) selalu jalan.
         if (! $manual && ! $this->bolehJalanTerjadwal($tanggal)) {
-            $this->line('Belum waktunya (diatur: '.Pengaturan::nilai('jam_cek_belum_hadir', '08:00').').');
+            $this->line('Tidak jalan: hari Minggu, hari libur, atau di luar jam cek.');
 
             return self::SUCCESS;
         }
@@ -82,6 +83,21 @@ class CekBelumHadir extends Command
 
     protected function bolehJalanTerjadwal(string $tanggal): bool
     {
+        $hari = Carbon::parse($tanggal);
+
+        if ($hari->isSunday()) {
+            return false;
+        }
+
+        $libur = collect(explode(',', (string) (Pengaturan::nilai('hari_libur', '') ?? '')))
+            ->map(fn (string $t) => trim($t))
+            ->filter()
+            ->contains($hari->toDateString());
+
+        if ($libur) {
+            return false;
+        }
+
         if (Pengaturan::nilai('cek_belum_hadir_terakhir') === $tanggal) {
             return false;
         }

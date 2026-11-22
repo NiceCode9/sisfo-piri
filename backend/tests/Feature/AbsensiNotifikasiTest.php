@@ -9,6 +9,7 @@ use App\Models\Rombel;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
+use Carbon\Carbon;
 use Database\Seeders\AkademikSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\PpdbSeeder;
@@ -236,4 +237,57 @@ test('command terjadwal self-gating sekali sehari', function () {
     $this->artisan('absensi:cek-belum-hadir')->assertSuccessful();
 
     expect(NotifikasiLog::count())->toBe(0);
+});
+test('pengingat belum hadir tidak jalan hari Minggu', function () {
+    $this->travelTo(Carbon::parse('2026-11-22 08:00:00'));
+    Pengaturan::updateOrCreate(['kunci' => 'jam_cek_belum_hadir'], ['nilai' => '08:00']);
+    Pengaturan::updateOrCreate(['kunci' => 'cek_belum_hadir_terakhir'], ['nilai' => null]);
+    Pengaturan::updateOrCreate(['kunci' => 'hari_libur'], ['nilai' => null]);
+
+    $this->artisan('absensi:cek-belum-hadir')->assertSuccessful();
+
+    expect(NotifikasiLog::count())->toBe(0);
+});
+
+test('pengingat belum hadir tidak jalan pada hari libur terdaftar', function () {
+    $this->travelTo(Carbon::parse('2026-11-23 08:00:00'));
+    Pengaturan::updateOrCreate(['kunci' => 'jam_cek_belum_hadir'], ['nilai' => '08:00']);
+    Pengaturan::updateOrCreate(['kunci' => 'cek_belum_hadir_terakhir'], ['nilai' => null]);
+    Pengaturan::updateOrCreate(['kunci' => 'hari_libur'], ['nilai' => '2026-11-23']);
+
+    $this->artisan('absensi:cek-belum-hadir')->assertSuccessful();
+
+    expect(NotifikasiLog::count())->toBe(0);
+});
+test('job WhatsApp mencoba lagi log yang berstatus gagal', function () {
+    $log = NotifikasiLog::create([
+        'tipe' => 'whatsapp',
+        'tujuan' => '081234567890',
+        'pesan' => 'Uji retry',
+        'status' => 'gagal',
+    ]);
+
+    config()->set('services.whatsapp.url', 'https://wa.example.test/kirim');
+    Http::fake(['*' => Http::response('ok', 200)]);
+
+    (new KirimNotifikasiWhatsapp($log->id))->handle();
+
+    expect($log->refresh()->status)->toBe('terkirim');
+});
+
+test('job WhatsApp tidak mengirim ulang log terkirim', function () {
+    $log = NotifikasiLog::create([
+        'tipe' => 'whatsapp',
+        'tujuan' => '081234567890',
+        'pesan' => 'Uji terkirim',
+        'status' => 'terkirim',
+    ]);
+
+    config()->set('services.whatsapp.url', 'https://wa.example.test/kirim');
+    Http::fake(['*' => Http::response('ok', 200)]);
+
+    (new KirimNotifikasiWhatsapp($log->id))->handle();
+
+    Http::assertNothingSent();
+    expect($log->refresh()->status)->toBe('terkirim');
 });

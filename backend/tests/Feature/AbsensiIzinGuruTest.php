@@ -58,7 +58,7 @@ if (! function_exists('rombelIzinLain')) {
 
 if (! function_exists('siswaIzin')) {
     /**
-     * Siswa aktif di rombel — pola siswaQrMandiri, tapi mandiri agar file ini
+     * Siswa aktif di rombel â€” pola siswaQrMandiri, tapi mandiri agar file ini
      * bisa dijalankan sendiri dengan `vendor/bin/pest tests/Feature/...`.
      */
     function siswaIzin(string $nis, string $nama, ?Rombel $rombel = null): Siswa
@@ -126,12 +126,12 @@ test('guru menandai izin dengan bukti dan barisnya tersimpan manual', function (
     $siswa = siswaIzin('77', 'Siswa Izin Uji');
     $guru = guruKartuIzin($rombel);
 
-    $this->actingAs($guru)->post(route('guru.absensi-qr.izin'), [
+    $this->actingAs($guru)->post(route('guru.absensi.izin'), [
         'rombel_id' => $rombel->id,
         'siswa_id' => $siswa->id,
         'status' => 'izin',
         'berkas' => UploadedFile::fake()->image('surat.png'),
-    ])->assertRedirect(route('guru.absensi-qr', ['rombel_id' => $rombel->id]))->assertSessionHas('success');
+    ])->assertRedirect(route('guru.absensi', ['rombel_id' => $rombel->id]))->assertSessionHas('success');
 
     $baris = Absensi::where(['siswa_id' => $siswa->id, 'rombel_id' => $rombel->id])->firstOrFail();
 
@@ -150,7 +150,7 @@ test('menandai sakit tanpa bukti tetap tercatat tanpa bukti', function () {
     $siswa = siswaIzin('78', 'Siswa Sakit Uji');
     $guru = guruKartuIzin($rombel);
 
-    $this->actingAs($guru)->post(route('guru.absensi-qr.izin'), [
+    $this->actingAs($guru)->post(route('guru.absensi.izin'), [
         'rombel_id' => $rombel->id,
         'siswa_id' => $siswa->id,
         'status' => 'sakit',
@@ -175,7 +175,7 @@ test('menandai siswa yang sudah tercatat mengembalikan pesan dan tidak mengubah 
         'metode' => 'qr',
     ]);
 
-    $this->actingAs($guru)->post(route('guru.absensi-qr.izin'), [
+    $this->actingAs($guru)->post(route('guru.absensi.izin'), [
         'rombel_id' => $rombel->id,
         'siswa_id' => $siswa->id,
         'status' => 'izin',
@@ -190,7 +190,7 @@ test('siswa di luar daftar rombel ditolak', function () {
     $siswaLain = siswaIzin('80', 'Siswa Kelas Lain', rombelIzinLain());
     $guru = guruKartuIzin($rombel);
 
-    $this->actingAs($guru)->post(route('guru.absensi-qr.izin'), [
+    $this->actingAs($guru)->post(route('guru.absensi.izin'), [
         'rombel_id' => $rombel->id,
         'siswa_id' => $siswaLain->id,
         'status' => 'izin',
@@ -204,7 +204,7 @@ test('rombel milik guru lain ditolak', function () {
     $siswa = siswaIzin('81', 'Siswa Rommel Lain', $rombelLain);
     $guru = guruKartuIzin(rombelIzin());
 
-    $this->actingAs($guru)->post(route('guru.absensi-qr.izin'), [
+    $this->actingAs($guru)->post(route('guru.absensi.izin'), [
         'rombel_id' => $rombelLain->id,
         'siswa_id' => $siswa->id,
         'status' => 'izin',
@@ -219,7 +219,7 @@ test('berkas bukan gambar ditolak dan baris tidak terbentuk', function () {
     $siswa = siswaIzin('82', 'Siswa Berkas Pdf');
     $guru = guruKartuIzin($rombel);
 
-    $this->actingAs($guru)->post(route('guru.absensi-qr.izin'), [
+    $this->actingAs($guru)->post(route('guru.absensi.izin'), [
         'rombel_id' => $rombel->id,
         'siswa_id' => $siswa->id,
         'status' => 'izin',
@@ -234,7 +234,7 @@ test('status selain izin dan sakit ditolak', function () {
     $siswa = siswaIzin('83', 'Siswa Status Alpa');
     $guru = guruKartuIzin($rombel);
 
-    $this->actingAs($guru)->post(route('guru.absensi-qr.izin'), [
+    $this->actingAs($guru)->post(route('guru.absensi.izin'), [
         'rombel_id' => $rombel->id,
         'siswa_id' => $siswa->id,
         'status' => 'alpa',
@@ -251,7 +251,7 @@ test('guru biasa tanpa izin grid tetap bisa menandai izin', function () {
     // Jaga asumsinya: role guru memang tidak memegang absensis.create.
     expect($guru->can('absensis.create'))->toBeFalse();
 
-    $this->actingAs($guru)->post(route('guru.absensi-qr.izin'), [
+    $this->actingAs($guru)->post(route('guru.absensi.izin'), [
         'rombel_id' => $rombel->id,
         'siswa_id' => $siswa->id,
         'status' => 'sakit',
@@ -276,7 +276,7 @@ test('guru bisa mengunggah bukti menyusul dan menggantinya', function () {
     ]);
 
     $this->actingAs($guru)
-        ->post(route('guru.absensi-qr.izin.bukti', $baris), ['berkas' => UploadedFile::fake()->image('pertama.jpg')])
+        ->post(route('guru.absensi.izin.bukti', $baris), ['berkas' => UploadedFile::fake()->image('pertama.jpg')])
         ->assertRedirect()->assertSessionHas('success');
 
     $baris->refresh();
@@ -286,7 +286,7 @@ test('guru bisa mengunggah bukti menyusul dan menggantinya', function () {
     Storage::disk('berkas')->assertExists($pertama);
 
     $this->actingAs($guru)
-        ->post(route('guru.absensi-qr.izin.bukti', $baris), ['berkas' => UploadedFile::fake()->image('kedua.jpg')])
+        ->post(route('guru.absensi.izin.bukti', $baris), ['berkas' => UploadedFile::fake()->image('kedua.jpg')])
         ->assertRedirect()->assertSessionHas('success');
 
     $baris->refresh();
@@ -324,7 +324,7 @@ test('menandai yang kalah balapan tidak menimpa baris pesaing', function () {
         ]);
     });
 
-    $this->actingAs($guru)->post(route('guru.absensi-qr.izin'), [
+    $this->actingAs($guru)->post(route('guru.absensi.izin'), [
         'rombel_id' => $rombel->id,
         'siswa_id' => $siswa->id,
         'status' => 'izin',
@@ -345,10 +345,10 @@ test('kartu izin tampil dengan daftar siswa rombel terpilih', function () {
     $siswa = siswaIzin('86', 'Siswa Kartu Uji');
     $guru = guruKartuIzin($rombel);
 
-    $this->actingAs($guru)->get(route('guru.absensi-qr'))->assertOk()
+    $this->actingAs($guru)->get(route('guru.absensi'))->assertOk()
         ->assertSee('Catatan Izin/Sakit')
         ->assertSee('Siswa Kartu Uji')
-        ->assertSee((string) route('guru.absensi-qr.izin'));
+        ->assertSee((string) route('guru.absensi.izin'));
 });
 
 test('rombel di luar cakupan tidak muncul sebagai pilihan kartu', function () {
@@ -364,7 +364,7 @@ test('rombel di luar cakupan tidak muncul sebagai pilihan kartu', function () {
     ]);
     rombelIzinLain('7D');
 
-    $html = $this->actingAs($guru)->get(route('guru.absensi-qr'))->assertOk()->getContent();
+    $html = $this->actingAs($guru)->get(route('guru.absensi'))->assertOk()->getContent();
 
     expect($html)->toContain('7A')->toContain('7C')->not->toContain('7D');
 });
@@ -382,7 +382,7 @@ test('baris yang sudah tercatat tampil sebagai badge dan tanpa form', function (
         'metode' => 'manual',
     ]);
 
-    $html = $this->actingAs($guru)->get(route('guru.absensi-qr'))->assertOk()->getContent();
+    $html = $this->actingAs($guru)->get(route('guru.absensi'))->assertOk()->getContent();
 
     expect($html)->toContain('<span class="badge-nexus badge-info">Izin</span>')
         ->not->toContain('name="status"');
@@ -391,6 +391,6 @@ test('baris yang sudah tercatat tampil sebagai badge dan tanpa form', function (
 test('guru tanpa penugasan melihat keadaan kosong kartu', function () {
     $guru = guruKartuIzin(null);
 
-    $this->actingAs($guru)->get(route('guru.absensi-qr'))->assertOk()
+    $this->actingAs($guru)->get(route('guru.absensi'))->assertOk()
         ->assertSee('Tidak ada rombel yang diampu');
 });

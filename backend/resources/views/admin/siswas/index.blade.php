@@ -15,6 +15,9 @@
             <button type="button" class="btn btn-nexus-outline btn-sm" data-bs-toggle="modal" data-bs-target="#modalImport"><i class="fa-solid fa-file-import"></i> Import</button>
             <a href="{{ route('admin.siswas.create') }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Tambah Siswa</a>
         @endcan
+        @can('siswas.view')
+            <a href="{{ route('admin.siswas.kartu.massal', request()->only(['search', 'kelas', 'tahun'])) }}" class="btn btn-nexus-outline btn-sm" target="_blank"><i class="fa-solid fa-id-card"></i> Cetak Kartu</a>
+        @endcan
     </div>
 </div>
 

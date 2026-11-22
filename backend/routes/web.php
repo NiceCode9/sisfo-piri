@@ -48,8 +48,8 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BeritaController;
 use App\Http\Controllers\DokumenController;
 use App\Http\Controllers\Elearning\BerkasController as ElearningBerkasController;
+use App\Http\Controllers\Guru\AbsensiController as GuruAbsensiController;
 use App\Http\Controllers\Guru\AbsensiIzinController;
-use App\Http\Controllers\Guru\AbsensiQrController;
 use App\Http\Controllers\Guru\DashboardController as GuruDashboardController;
 use App\Http\Controllers\Jurnalistik\BeritaController as JurnalistikBeritaController;
 use App\Http\Controllers\Jurnalistik\DashboardController as JurnalistikDashboardController;
@@ -59,7 +59,6 @@ use App\Http\Controllers\Jurnalistik\MediaController as JurnalistikMediaControll
 use App\Http\Controllers\Jurnalistik\TagController as JurnalistikTagController;
 use App\Http\Controllers\Ortu\DashboardController as OrtuDashboardController;
 use App\Http\Controllers\Ortu\ProfilController as OrtuProfilController;
-use App\Http\Controllers\Siswa\AbsensiMandiriController;
 use App\Http\Controllers\Siswa\BerkasController;
 use App\Http\Controllers\Siswa\DashboardController;
 use App\Http\Controllers\Siswa\MateriController as SiswaMateriController;
@@ -70,9 +69,12 @@ use App\Http\Controllers\Siswa\TugasController as SiswaTugasController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\SpmbController;
 use App\Models\BerkasCalonSiswa;
+use App\Models\ProfilSekolah;
+use App\Services\TokenKartuSiswa;
 use App\Support\RuteBeranda;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 Route::get('/', [SpmbController::class, 'home'])->name('spmb.home');
 Route::get('/pendaftaran', [SpmbController::class, 'create'])->name('spmb.pendaftaran');
@@ -136,13 +138,27 @@ Route::prefix('siswa')->name('siswa.')->middleware(['auth', 'role:siswa'])->grou
     Route::get('/kelas', [RiwayatController::class, 'kelas'])->name('kelas');
     Route::get('/riwayat', [RiwayatController::class, 'riwayat'])->name('riwayat');
     Route::get('/absensi', [RiwayatController::class, 'absensi'])->name('absensi');
-    Route::get('/absensi/scan', [AbsensiMandiriController::class, 'show'])->name('absensi.scan');
-    Route::post('/absensi/scan', [AbsensiMandiriController::class, 'store'])
-        ->name('absensi.scan.store')
-        // Kamera siswa bisa memindai berulang selama QR masih di frame; tanpa
-        // batas ini satu perangkat bisa membanjiri server dengan permintaan
-        // yang isinya identik.
-        ->middleware('throttle:absensi-scan');
+    Route::get('/kartu', function () {
+        $siswa = auth()->user()?->siswa;
+        abort_if($siswa === null, 404);
+        $siswa->load(['user', 'calonSiswa.berkasCalonSiswa', 'kelas', 'tahunAjaran']);
+        $sekolah = ProfilSekolah::aktif();
+        $siswaList = collect([(object) [
+            'nama' => $siswa->user?->name ?? $siswa->calonSiswa?->nama_lengkap ?? '-',
+            'nisn' => $siswa->nisn ?? '-',
+            'kelas' => $siswa->kelas?->nama_kelas ?? '-',
+            'foto' => $siswa->calonSiswa?->berkasCalonSiswa?->foto_path
+                ? route('dokumen.berkas', [$siswa->calonSiswa->berkasCalonSiswa, 'foto_path'])
+                : null,
+            'qr' => (string) QrCode::size(120)->generate(TokenKartuSiswa::generate($siswa->id)),
+        ]]);
+
+        return view('admin.siswas.kartu-siswa', [
+            'siswaList' => $siswaList,
+            'tahunAjaran' => $siswa->tahunAjaran?->nama_tahun_ajaran,
+            'sekolah' => $sekolah,
+        ]);
+    })->name('kartu');
     Route::get('/materi', [SiswaMateriController::class, 'index'])->name('materi.index');
     Route::get('/materi/{materi}', [SiswaMateriController::class, 'show'])->name('materi.show');
     Route::get('/tugas', [SiswaTugasController::class, 'index'])->name('tugas.index');
@@ -170,10 +186,16 @@ Route::prefix('guru')->name('guru.')->middleware(['auth', 'role:guru|guru-piket'
     Route::get('/dashboard', [GuruDashboardController::class, 'index'])->name('dashboard');
     Route::get('/profil', [App\Http\Controllers\Guru\ProfilController::class, 'show'])->name('profil');
     Route::put('/profil', [App\Http\Controllers\Guru\ProfilController::class, 'update'])->name('profil.update');
-    Route::get('/absensi-qr', [AbsensiQrController::class, 'show'])->name('absensi-qr');
-    Route::get('/absensi-qr/refresh', [AbsensiQrController::class, 'refresh'])->name('absensi-qr.refresh');
-    Route::post('/absensi-qr/izin', [AbsensiIzinController::class, 'store'])->name('absensi-qr.izin');
-    Route::post('/absensi-qr/izin/{absensi}/bukti', [AbsensiIzinController::class, 'storeBukti'])->name('absensi-qr.izin.bukti');
+    Route::get('/absensi', [GuruAbsensiController::class, 'show'])->name('absensi');
+    Route::get('/absensi/cari', [GuruAbsensiController::class, 'cari'])->name('absensi.cari');
+    Route::post('/absensi/pilih', [GuruAbsensiController::class, 'pilih'])->name('absensi.pilih');
+    Route::post('/absensi/scan', [GuruAbsensiController::class, 'scan'])
+        ->name('absensi.scan')
+        ->middleware('throttle:absensi-scan');
+    Route::post('/absensi/manual', [GuruAbsensiController::class, 'manual'])
+        ->name('absensi.manual');
+    Route::post('/absensi/izin', [AbsensiIzinController::class, 'store'])->name('absensi.izin');
+    Route::post('/absensi/izin/{absensi}/bukti', [AbsensiIzinController::class, 'storeBukti'])->name('absensi.izin.bukti');
 });
 
 Route::prefix('jurnalistik')->name('jurnalistik.')->middleware(['auth', 'role:jurnalistik|admin'])->group(function () {
@@ -284,6 +306,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::get('siswas/template', [SiswaController::class, 'template'])->name('siswas.template');
     Route::post('siswas/import', [SiswaController::class, 'import'])->name('siswas.import');
     Route::get('siswas/{siswa}/kartu', [SiswaController::class, 'kartu'])->name('siswas.kartu');
+    Route::get('siswas/kartu/massal', [SiswaController::class, 'kartuMassal'])->name('siswas.kartu.massal');
     Route::resource('siswas', SiswaController::class);
     Route::get('siswas/{siswa}/riwayat', [RiwayatSiswaController::class, 'show'])->name('siswas.riwayat');
     Route::get('absensis', [AbsensiController::class, 'index'])->name('absensis.index');

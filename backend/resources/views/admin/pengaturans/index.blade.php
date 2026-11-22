@@ -11,7 +11,7 @@
     </div>
 </div>
 
-@include('layouts.partials.alert', ['errorDitampilkan' => ['batas_terlambat', 'jam_buka_absen', 'jam_tutup_absen', 'menit_ganti_qr', 'jam_cek_belum_hadir', 'maintenance_pesan', 'semester_ganjil_mulai', 'semester_ganjil_selesai', 'semester_genap_mulai', 'semester_genap_selesai']])
+@include('layouts.partials.alert', ['errorDitampilkan' => ['batas_terlambat', 'jam_buka_absen', 'jam_tutup_absen', 'menit_ganti_qr', 'jam_cek_belum_hadir', 'hari_libur', 'maintenance_pesan', 'semester_ganjil_mulai', 'semester_ganjil_selesai', 'semester_genap_mulai', 'semester_genap_selesai']])
 
 <form method="POST" action="{{ route('admin.pengaturans.update') }}">
     @csrf @method('PUT')
@@ -57,6 +57,11 @@
                 </div>
                 <div class="col-12">
                     <label class="form-label" style="font-size:12px;">Cek Belum Hadir Terakhir: <strong>{{ $pengaturan['cek_belum_hadir_terakhir'] ?? '—' }}</strong></label>
+                </div>
+                <div class="col-12">
+                    <label for="hari_libur" class="form-label" style="font-size:12px;">Hari Libur (YYYY-MM-DD, pisahkan koma)</label>
+                    <textarea name="hari_libur" id="hari_libur" rows="2" class="form-control @error('hari_libur') is-invalid @enderror" placeholder="2026-12-25,2027-01-01">{{ old('hari_libur', $pengaturan['hari_libur'] ?? '') }}</textarea>
+                    @error('hari_libur')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
             </div>
         </div>

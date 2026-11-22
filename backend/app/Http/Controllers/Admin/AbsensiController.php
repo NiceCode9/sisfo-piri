@@ -9,15 +9,14 @@ use App\Http\Requests\Admin\AbsensiFilterRequest;
 use App\Http\Requests\Admin\StoreAbsensiBatchRequest;
 use App\Http\Requests\Admin\StoreBuktiAbsensiRequest;
 use App\Imports\AbsensiImport;
-use App\Jobs\KirimNotifikasiWhatsapp;
 use App\Models\Absensi;
 use App\Models\AbsensiRiwayat;
 use App\Models\Guru;
-use App\Models\NotifikasiLog;
 use App\Models\Pengaturan;
 use App\Models\Rombel;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
+use App\Services\NotifikasiAlpa;
 use App\Services\PencatatanAbsensi;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -122,6 +121,7 @@ class AbsensiController extends Controller implements HasMiddleware
 
         $jumlah = DB::transaction(function () use ($validated, $alasan) {
             $count = 0;
+            $alpaDitulis = [];
 
             foreach ($validated['status'] as $siswaId => $status) {
                 $kunci = [
@@ -142,6 +142,15 @@ class AbsensiController extends Controller implements HasMiddleware
                     ? ['status' => $absensi->status, 'jam' => $absensi->jam_datang]
                     : null;
 
+                $koreksi = $sebelum !== null && ($sebelum['status'] !== $status || $sebelum['jam'] !== $absensi->jam_datang);
+
+                // Baris yang tidak berubah tidak disentuh: metode, pencatat,
+                // dan jam pertama milik scan/guru tetap utuh. Notifikasi alpa
+                // hanya untuk baris yang benar-benar ditulis sebagai alpa.
+                if ($sebelum !== null && ! $koreksi) {
+                    continue;
+                }
+
                 $absensi->rombel_id = $validated['rombel_id'];
                 $absensi->status = $status;
                 $absensi->metode = 'manual';
@@ -150,8 +159,6 @@ class AbsensiController extends Controller implements HasMiddleware
                 if (! $absensi->exists && in_array($status, ['hadir', 'terlambat'], true) && ! $absensi->jam_datang) {
                     $absensi->jam_datang = now()->format('H:i:s');
                 }
-
-                $koreksi = $sebelum !== null && ($sebelum['status'] !== $absensi->status || $sebelum['jam'] !== $absensi->jam_datang);
 
                 if ($koreksi) {
                     $this->pastikanBolehMengerjakanKoreksi($alasan);
@@ -167,63 +174,30 @@ class AbsensiController extends Controller implements HasMiddleware
                 }
 
                 $count++;
+
+                if ($status === 'alpa') {
+                    $alpaDitulis[] = (int) $siswaId;
+                }
             }
 
-            return $count;
+            return [$count, $alpaDitulis];
         });
 
-        $this->antrekanNotifikasiAlpa($validated['rombel_id'], $validated['tanggal'], array_keys(
-            array_filter($validated['status'], fn ($status) => $status === 'alpa')
-        ));
+        [$jumlah, $alpaDitulis] = $jumlah;
+
+        NotifikasiAlpa::antrekan($validated['rombel_id'], $validated['tanggal'], $alpaDitulis);
+
+        if ($jumlah === 0) {
+            return redirect()->route('admin.absensis.index', [
+                'rombel_id' => $validated['rombel_id'],
+                'tanggal' => $validated['tanggal'],
+            ])->with('success', 'Tidak ada perubahan.');
+        }
 
         return redirect()->route('admin.absensis.index', [
             'rombel_id' => $validated['rombel_id'],
             'tanggal' => $validated['tanggal'],
         ])->with('success', "{$jumlah} absensi tersimpan.");
-    }
-
-    /**
-     * Buat log + dispatch WA untuk siswa alpa (satu per no WA).
-     *
-     * @param  array<int>  $siswaIds
-     */
-    protected function antrekanNotifikasiAlpa(int $rombelId, string $tanggal, array $siswaIds): void
-    {
-        if ($siswaIds === []) {
-            return;
-        }
-
-        $rombel = Rombel::with('kelas')->find($rombelId);
-
-        $siswas = Siswa::with(['user', 'waliMurids'])
-            ->whereIn('id', $siswaIds)
-            ->get();
-
-        foreach ($siswas as $siswa) {
-            foreach ($siswa->waliMurids->pluck('no_whatsapp')->filter()->unique() as $nomor) {
-                // Idempoten per (siswa, rombel, tanggal, nomor). Guru sering
-                // menyimpan batch berulang untuk koreksi; tanpa kunci, tiap
-                // simpanan mengirim ulang pesan "alpa" yang sama ke orang tua.
-                $kunci = hash('sha256', "whatsapp|alpa|{$siswa->id}|{$rombelId}|{$tanggal}|{$nomor}");
-
-                $log = NotifikasiLog::firstOrCreate(
-                    ['kunci' => $kunci],
-                    [
-                        'tipe' => 'whatsapp',
-                        'tujuan' => $nomor,
-                        'pesan' => KirimNotifikasiWhatsapp::pesanAlpa(
-                            $siswa->user?->name ?? '-',
-                            $rombel->kelas->nama_kelas ?? '-',
-                            $tanggal
-                        ),
-                    ],
-                );
-
-                if ($log->wasRecentlyCreated) {
-                    KirimNotifikasiWhatsapp::dispatch($log->id);
-                }
-            }
-        }
     }
 
     /**
@@ -338,8 +312,6 @@ class AbsensiController extends Controller implements HasMiddleware
             'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
         ]);
 
-        $this->rombelTerjangkau();
-
         $impor = new AbsensiImport(
             fn (int $rombelId): ?Rombel => Rombel::terjangkauUser(
                 request()->user(),
@@ -352,6 +324,7 @@ class AbsensiController extends Controller implements HasMiddleware
                 $status,
                 $metode,
                 auth()->id(),
+                false,
             ),
         );
 
@@ -362,7 +335,7 @@ class AbsensiController extends Controller implements HasMiddleware
         foreach (array_keys($impor->rombelTanggalAlpa) as $kunci) {
             [$rombelId, $tanggal] = explode('|', $kunci, 2);
 
-            $this->antrekanNotifikasiAlpa((int) $rombelId, $tanggal, $this->siswaAlpaRombel((int) $rombelId, $tanggal));
+            NotifikasiAlpa::antrekan((int) $rombelId, $tanggal, NotifikasiAlpa::siswaAlpa((int) $rombelId, $tanggal));
         }
 
         $gagal = $impor->failures();
@@ -380,21 +353,6 @@ class AbsensiController extends Controller implements HasMiddleware
         }
 
         return back()->with('success', "Import selesai: {$ringkas}.");
-    }
-
-    /**
-     * ID siswa berstatus alpa pada satu rombel dan tanggal, untuk notifikasi.
-     *
-     * @return array<int>
-     */
-    protected function siswaAlpaRombel(int $rombelId, string $tanggal): array
-    {
-        return Absensi::where('rombel_id', $rombelId)
-            ->whereDate('tanggal', $tanggal)
-            ->where('status', 'alpa')
-            ->pluck('siswa_id')
-            ->map(fn ($id) => (int) $id)
-            ->all();
     }
 
     /**

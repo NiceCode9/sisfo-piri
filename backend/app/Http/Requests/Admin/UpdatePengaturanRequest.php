@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Models\Pengaturan;
+use Carbon\Carbon;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
@@ -25,6 +26,7 @@ class UpdatePengaturanRequest extends FormRequest
             'jam_tutup_absen' => ['sometimes', 'required', 'date_format:H:i'],
             'menit_ganti_qr' => ['sometimes', 'required', 'integer', 'min:5', 'max:120'],
             'jam_cek_belum_hadir' => ['sometimes', 'required', 'date_format:H:i'],
+            'hari_libur' => ['sometimes', 'nullable', 'string', 'max:2000'],
             'semester_ganjil_mulai' => ['sometimes', 'required', 'date_format:m-d'],
             'semester_ganjil_selesai' => ['sometimes', 'required', 'date_format:m-d'],
             'semester_genap_mulai' => ['sometimes', 'required', 'date_format:m-d'],
@@ -46,6 +48,17 @@ class UpdatePengaturanRequest extends FormRequest
 
             if (! ($buka < $batas && $batas < $tutup)) {
                 $validator->errors()->add('jam_buka_absen', 'Urutan jam tidak masuk akal: jam buka harus lebih awal dari batas terlambat, dan batas terlambat lebih awal dari jam tutup.');
+            }
+
+            $libur = (string) ($this->input('hari_libur') ?? Pengaturan::nilai('hari_libur', '') ?? '');
+            foreach (explode(',', $libur) as $tanggal) {
+                $tanggal = trim($tanggal);
+                if ($tanggal === '') {
+                    continue;
+                }
+                if (Carbon::createFromFormat('Y-m-d', $tanggal) === false) {
+                    $validator->errors()->add('hari_libur', "Format tanggal libur '{$tanggal}' tidak valid (YYYY-MM-DD).");
+                }
             }
         });
     }

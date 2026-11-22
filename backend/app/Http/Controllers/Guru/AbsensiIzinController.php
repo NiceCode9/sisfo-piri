@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Storage;
  * Penandaan izin/sakit milik kartu di halaman QR Absen (spek 2026-10-23).
  *
  * Pengecualian tulis sempit untuk role guru di sinilah tempatnya: endpoint
- * ini tidak menuntut `absensis.create`, tapi membawa penjaga sendiri —
+ * ini tidak menuntut `absensis.create`, tapi membawa penjaga sendiri â€”
  * rombel harus terjangkau, siswa harus anggota aktif rombel itu, status
  * hanya izin/sakit, dan baris hanya boleh baru. Koreksi lewat grid, bukan
  * kartu, sebagaimana aturan alasan koreksi yang ada.
@@ -37,8 +37,8 @@ class AbsensiIzinController extends Controller
         $absensi = Absensi::firstOrNew($kunci);
 
         if ($absensi->exists) {
-            return $this->keHalamanQr($rombel->id)
-                ->with('error', 'Absensi siswa ini sudah tercatat — koreksinya lewat grid absensi.');
+            return $this->keHalamanAbsensi($rombel->id)
+                ->with('error', 'Absensi siswa ini sudah tercatat â€” koreksinya lewat grid absensi.');
         }
 
         // Feld diisi eksplisit, bukan mass-assignment, agar penjaga di atas
@@ -52,8 +52,8 @@ class AbsensiIzinController extends Controller
 
         if (! $tersimpan->is($absensi)) {
             // Balapan: baris terbukti sudah ada milik pencatatan lain.
-            return $this->keHalamanQr($rombel->id)
-                ->with('error', 'Absensi siswa ini sudah tercatat — koreksinya lewat grid absensi.');
+            return $this->keHalamanAbsensi($rombel->id)
+                ->with('error', 'Absensi siswa ini sudah tercatat â€” koreksinya lewat grid absensi.');
         }
 
         $berkasPath = null;
@@ -65,7 +65,7 @@ class AbsensiIzinController extends Controller
 
         $namaSiswa = $absensi->siswa->user?->name ?? 'Siswa';
 
-        return $this->keHalamanQr($rombel->id)
+        return $this->keHalamanAbsensi($rombel->id)
             ->with('success', sprintf('%s ditandai %s.', $namaSiswa, $absensi->status));
     }
 
@@ -106,8 +106,8 @@ class AbsensiIzinController extends Controller
         abort_unless(in_array($siswaId, $rombel->anggotaIdsAktif(), true), 403, 'Siswa bukan anggota rombel ini.');
     }
 
-    private function keHalamanQr(int $rombelId): RedirectResponse
+    private function keHalamanAbsensi(int $rombelId): RedirectResponse
     {
-        return redirect()->route('guru.absensi-qr', ['rombel_id' => $rombelId]);
+        return redirect()->route('guru.absensi', ['rombel_id' => $rombelId]);
     }
 }

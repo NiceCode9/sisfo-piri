@@ -190,8 +190,6 @@ class AbsensiImport implements SkipsEmptyRows, SkipsOnFailure, ToCollection, Wit
         $tahun = $this->tahunAjaranDari($row['tahun_ajaran'] ?? null);
 
         if ($tahun === null) {
-            $this->gagal('Tahun ajaran aktif belum ditentukan, tidak bisa menentukan rombel.');
-
             return;
         }
 
@@ -312,11 +310,22 @@ class AbsensiImport implements SkipsEmptyRows, SkipsOnFailure, ToCollection, Wit
         $teks = $this->teks($nilai);
 
         if ($teks === '') {
-            return TahunAjaran::aktif()->first();
+            $aktif = TahunAjaran::aktif()->first();
+
+            if ($aktif === null) {
+                $this->gagal('Tahun ajaran aktif belum ditentukan, tidak bisa menentukan rombel.');
+            }
+
+            return $aktif;
         }
 
-        return TahunAjaran::where('nama', $teks)->first()
-            ?? TahunAjaran::aktif()->first();
+        $tahun = TahunAjaran::where('nama', $teks)->first();
+
+        if ($tahun === null) {
+            $this->gagal("Tahun ajaran '{$teks}' tidak ditemukan.");
+        }
+
+        return $tahun;
     }
 
     private function cariRombel(string $kelas, int $tahunAjaranId): ?Rombel
@@ -334,13 +343,12 @@ class AbsensiImport implements SkipsEmptyRows, SkipsOnFailure, ToCollection, Wit
 
     private function cariSiswa(Rombel $rombel, string $nis): ?Siswa
     {
-        $siswa = Siswa::where('nis', $nis)
-            ->where('kelas_id', $rombel->kelas_id)
-            ->where('tahun_ajaran_id', $rombel->tahun_ajaran_id)
-            ->first();
+        $siswa = Siswa::where('nis', $nis)->first();
 
-        if ($siswa === null) {
-            $this->gagal("NIS '{$nis}' tidak terdaftar di kelas {$rombel->kelas->nama_kelas}.");
+        if ($siswa === null || ! in_array($siswa->id, $rombel->anggotaIdsAktif(), true)) {
+            $this->gagal("NIS '{$nis}' bukan anggota aktif kelas {$rombel->kelas->nama_kelas}.");
+
+            return null;
         }
 
         return $siswa;

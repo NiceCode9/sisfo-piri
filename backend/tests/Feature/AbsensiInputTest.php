@@ -12,7 +12,6 @@ use App\Models\Rombel;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
-use App\Services\TokenQrAbsensi;
 use Carbon\Carbon;
 use Database\Seeders\AkademikSeeder;
 use Database\Seeders\PermissionSeeder;
@@ -85,20 +84,6 @@ if (! function_exists('rombelUjiAbsensi')) {
         return Rombel::whereHas('kelas', fn ($q) => $q->where('nama_kelas', $kelas))
             ->where('tahun_ajaran_id', TahunAjaran::aktif()->first()->id)
             ->firstOrFail();
-    }
-
-    /**
-     * Akun guru yang QR-nya dipakai uji scan mandiri.
-     *
-     * Hanya butuh akun: QR harian dibangun dari id pengguna, tanpa tabel
-     * token dan tanpa mengandalkan penugasan rombel.
-     */
-    function guruQrAbsensi(string $nama = 'Guru Pembawa QR'): User
-    {
-        $user = User::factory()->create(['username' => 'guru-qr-'.str()->random(6), 'name' => $nama]);
-        $user->assignRole('guru');
-
-        return $user;
     }
 
     /**
@@ -253,111 +238,7 @@ test('tanggal masa depan ditolak', function () {
             'tanggal' => now()->addDay()->toDateString(),
         ]))
         ->assertSessionHasErrors('tanggal');
-});
 
-test('balapan pada unique tidak berakhir sebagai 500', function () {
-    $rombel = rombelUjiAbsensi();
-    $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
-    $this->travelTo(now()->startOfDay()->setTime(7, 10));
-    $payload = ['token' => TokenQrAbsensi::generate(guruQrAbsensi()->id)];
-
-    // Simulasikan balapan sungguhan: tepat sebelum baris pertama ditulis,
-    // perangkat lain berhasil lebih dulu menyisipkan baris untuk kunci yang
-    // sama. Tanpa penanganan unique, insert ini meledak jadi 500.
-    $balapan = false;
-
-    Absensi::creating(function () use (&$balapan, $rombel, $siswa) {
-        if ($balapan) {
-            return;
-        }
-
-        $balapan = true;
-
-        DB::table('absensis')->insert([
-            'rombel_id' => $rombel->id,
-            'siswa_id' => $siswa->id,
-            'tanggal' => now()->toDateString(),
-            'status' => 'hadir',
-            'jam_datang' => '06:30:00',
-            'metode' => 'qr',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-    });
-
-    $this->actingAs($siswa->user)->postJson(route('siswa.absensi.scan.store'), $payload)
-        ->assertOk()
-        ->assertJson(['status' => 'hadir', 'baru' => false]);
-
-    expect(Absensi::where('siswa_id', $siswa->id)->count())->toBe(1);
-
-    // Arrival pertama milik perangkat lain harus tetap utuh.
-    $absensi = Absensi::where('siswa_id', $siswa->id)->firstOrFail();
-    expect(substr((string) $absensi->jam_datang, 0, 5))->toBe('06:30');
-
-    Absensi::flushEventListeners();
-});
-
-test('scan dibatasi rate limit', function () {
-    $rombel = rombelUjiAbsensi();
-    $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
-    $akun = $siswa->user;
-
-    // Kamera memindai berulang selama QR guru ada di dalam frame, jadi
-    // endpoint ini harus punya batas sendiri, bukan throttle bawaan.
-    $this->travelTo(now()->startOfDay()->setTime(7, 10));
-    $payload = ['token' => TokenQrAbsensi::generate(guruQrAbsensi()->id)];
-
-    for ($i = 0; $i < 120; $i++) {
-        $this->actingAs($akun)->postJson(route('siswa.absensi.scan.store'), $payload)->assertOk();
-    }
-
-    $this->actingAs($akun)->postJson(route('siswa.absensi.scan.store'), $payload)->assertStatus(429);
-});
-
-test('batas terlambat dibaca dari cache dan dibuang saat pengaturan disimpan', function () {
-    Cache::flush();
-    Pengaturan::flushCache();
-
-    $rombel = rombelUjiAbsensi();
-    $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
-    $akun = $siswa->user;
-    $akun->refresh();
-
-    // 07:10 pas berada di dalam jendela (buka 07:00, batas 07:15).
-    $this->travelTo(now()->startOfDay()->setTime(7, 10));
-    $payload = ['token' => TokenQrAbsensi::generate(guruQrAbsensi()->id)];
-
-    $this->actingAs($akun)->postJson(route('siswa.absensi.scan.store'), $payload)
-        ->assertOk()->assertJson(['status' => 'hadir']);
-
-    // Scan kedua harus memakai nilai yang sama tanpa query ulang. Yang dihitung
-    // adalah nilai yang dikirim sebagai binding, bukan teks SQL: query-nya
-    // berbentuk `select * from pengaturan where kunci = ? limit 1` sehingga
-    // nama kuncinya tidak pernah muncul di SQL dan pemeriksaan berbasis
-    // `str_contains($sql, ...)` akan selalu nol. `CheckMaintenance` juga
-    // membaca `maintenance_mode` di setiap request, jadi filter kuncinya
-    // wajib.
-    $query = 0;
-    DB::listen(function ($q) use (&$query) {
-        if (str_contains($q->sql, 'pengaturans') && in_array('batas_terlambat', (array) $q->bindings, true)) {
-            $query++;
-        }
-    });
-
-    $this->actingAs($akun)->postJson(route('siswa.absensi.scan.store'), $payload)->assertOk();
-
-    expect($query)->toBe(0);
-
-    // Admin mengubah batas; nilai baru harus berlaku segera, bukan setelah
-    // cache kedaluwarsa.
-    $admin = superAdmin();
-    $this->actingAs($admin)->put(route('admin.pengaturans.update'), [
-        'jam_buka_absen' => '06:45',
-        'batas_terlambat' => '07:00',
-    ])->assertSessionHas('success');
-
-    expect(Pengaturan::nilai('batas_terlambat'))->toBe('07:00');
 });
 
 test('penanda cek-belum-hadir tidak ikut di-cache', function () {
@@ -891,177 +772,158 @@ test('batch menolak siswa luar rombel', function () {
     expect(Absensi::count())->toBe(0);
     expect($rombel7B->id)->not->toBe($rombel->id);
 });
-
-test('scan sukses mencatat hadir dan mencatat guru pemilik QR', function () {
+test('simpan grid tidak mengubah baris QR yang tidak berubah', function () {
     $rombel = rombelUjiAbsensi();
-    $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
-    $guru = guruQrAbsensi();
+    $siswa = buatAnggotaRombel('5001', 'Anak QR Tetap', $rombel);
+    $pencatat = User::factory()->create(['name' => 'Pencatat QR']);
 
-    // 07:10 pas: dalam jendela, sebelum batas terlambat 07:15.
-    $this->travelTo(now()->startOfDay()->setTime(7, 10));
-
-    $this->actingAs($siswa->user)->postJson(route('siswa.absensi.scan.store'), [
-        'token' => TokenQrAbsensi::generate($guru->id),
-    ])->assertOk()->assertJson(['status' => 'hadir', 'baru' => true]);
-
-    $absensi = Absensi::where('siswa_id', $siswa->id)->firstOrFail();
-
-    // Guru yang QR-nya dipindai yang dicatat, bukan pemegang akun yang
-    // mengirim scan (di sini keduanya beda arah: yang menekan kirim adalah
-    // siswa, dan siswa tidak ikut jadi pencatat).
-    expect($absensi->metode)->toBe('qr')
-        ->and($absensi->dicatat_oleh)->toBe($guru->id)
-        ->and(substr((string) $absensi->jam_datang, 0, 5))->toBe('07:10');
-});
-
-test('zona waktu aplikasi bukan UTC', function () {
-    // Absensi membandingkan jam scan dengan batas jam dari `Pengaturan` dan
-    // mengambil tanggal dari `now()`. Bila zona waktu aplikasi kembali ke UTC,
-    // seluruh jendela 00:00-06:59 WIB masuk ke tanggal sebelumnya dan siswa
-    // yang datang tepat waktu ditandai terlambat. `zona-waktu:audit` dipakai
-    // untuk menghitung dampak pada data yang sudah ada.
-    expect(config('app.timezone'))->not->toBe('UTC');
-});
-
-test('scan tengah malam ditolak karena jendela belum dibuka', function () {
-    // Instan dikunci dalam UTC secara absolut, bukan lewat `Carbon::parse`
-    // tanpa zona — kalau begitu "sekarang" ikut zona aplikasi dan testnya
-    // selalu lolos apa pun zonanya, yaitu tidak membuktikan apa pun.
-    //
-    // 09 Oktober 17:30 UTC = 10 Oktober 00:30 WIB. Jendela absen baru dibuka
-    // 07:00, jadi permintaan ini ditolak alih-alih disimpan dengan tanggal
-    // yang salah.
-    $this->travelTo(Carbon::parse('2026-10-09 17:30:00', 'UTC'));
-
-    expect(now()->toDateString())->toBe('2026-10-10');
-
-    $rombel = rombelUjiAbsensi();
-    $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
-
-    $response = $this->actingAs($siswa->user)->postJson(route('siswa.absensi.scan.store'), [
-        'token' => TokenQrAbsensi::generate(guruQrAbsensi()->id),
-    ])->assertUnprocessable();
-
-    expect($response->json('message'))->toContain('belum dibuka')
-        ->and(Absensi::where('siswa_id', $siswa->id)->exists())->toBeFalse();
-});
-
-test('scan larut malam ditolak karena jendela sudah tutup', function () {
-    // 10 Oktober 16:30 UTC = 10 Oktober 23:30 WIB. Sistem tidak lagi menerima
-    // scan lewat 07:45; pencatatan menyusul lewat grid guru.
-    $this->travelTo(Carbon::parse('2026-10-10 16:30:00', 'UTC'));
-
-    $rombel = rombelUjiAbsensi();
-    $siswa = buatAnggotaRombel('4002', 'Anak Absen Malam', $rombel);
-
-    $response = $this->actingAs($siswa->user)->postJson(route('siswa.absensi.scan.store'), [
-        'token' => TokenQrAbsensi::generate(guruQrAbsensi()->id),
-    ])->assertUnprocessable();
-
-    expect($response->json('message'))->toContain('ditutup')
-        ->and(Absensi::where('siswa_id', $siswa->id)->exists())->toBeFalse();
-});
-
-test('scan lewat batas tercatat terlambat', function () {
-    $rombel = rombelUjiAbsensi();
-    $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
-
-    // 07:20 pas: sudah lewat batas 07:15, masih sebelum tutup 07:45.
-    $this->travelTo(now()->startOfDay()->setTime(7, 20));
-
-    $this->actingAs($siswa->user)->postJson(route('siswa.absensi.scan.store'), [
-        'token' => TokenQrAbsensi::generate(guruQrAbsensi()->id),
-    ])->assertOk()->assertJson(['status' => 'terlambat']);
-});
-
-test('scan token asing ditolak', function () {
-    $rombel = rombelUjiAbsensi();
-    $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
-    $akun = $siswa->user;
-
-    $response = $this->actingAs($akun)->postJson(route('siswa.absensi.scan.store'), [
-        'token' => 'absqr|ngawur-total',
-    ])->assertUnprocessable();
-
-    expect($response->json('message'))->toContain('QR tidak berlaku');
-});
-
-test('scan ulang hari sama tidak duplikat', function () {
-    $rombel = rombelUjiAbsensi();
-    $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu', $rombel);
-    $akun = $siswa->user;
-
-    $this->travelTo(now()->startOfDay()->setTime(7, 10));
-    $payload = ['token' => TokenQrAbsensi::generate(guruQrAbsensi()->id)];
-
-    $this->actingAs($akun)->postJson(route('siswa.absensi.scan.store'), $payload)->assertOk();
-    $this->actingAs($akun)->postJson(route('siswa.absensi.scan.store'), $payload)
-        ->assertOk()->assertJson(['baru' => false]);
-
-    expect(Absensi::where('siswa_id', $siswa->id)->count())->toBe(1);
-});
-
-test('scan susulan tidak menimpa jam dan status kehadiran pertama', function () {
-    $rombel = rombelUjiAbsensi();
-    $siswa = buatAnggotaRombel('4002', 'Anak Scan Ganda', $rombel);
-    $akun = $siswa->user;
-
-    // Scan pertama tepat waktu.
-    $this->travelTo(now()->startOfDay()->setTime(7, 10));
-    $payload = ['token' => TokenQrAbsensi::generate(guruQrAbsensi()->id)];
-    $this->actingAs($akun)->postJson(route('siswa.absensi.scan.store'), $payload)
-        ->assertOk()->assertJson(['status' => 'hadir', 'baru' => true]);
-    $pertama = Absensi::where('siswa_id', $siswa->id)->firstOrFail();
-
-    // Scan kedua setelah batas, masih dalam jendela. Absensi tepat waktunya
-    // tidak boleh hilang dan siswa tidak boleh dianggap terlambat hanya
-    // karena scan susulan.
-    $this->travelTo(now()->startOfDay()->setTime(7, 20));
-    $this->actingAs($akun)->postJson(route('siswa.absensi.scan.store'), $payload)
-        ->assertOk()->assertJson(['status' => 'hadir', 'baru' => false]);
-
-    $absensi = Absensi::where('siswa_id', $siswa->id)->firstOrFail();
-
-    expect($absensi->jam_datang)->toBe($pertama->jam_datang)
-        ->and($absensi->status)->toBe('hadir')
-        ->and(Absensi::where('siswa_id', $siswa->id)->count())->toBe(1);
-});
-
-test('scan ditolak bila sudah berbaris catatan manual guru', function () {
-    $rombel = rombelUjiAbsensi();
-    $siswa = buatAnggotaRombel('4003', 'Anak Sudah Dicatat', $rombel);
-    $akun = $siswa->user;
-    $akun->refresh();
-
-    // Catatan manual guru hari ini: scan tidak pernah menimpanya, karena
-    // penaganan lewat jalur guru butuh alasan dan meninggalkan jejak koreksi.
     Absensi::create([
-        'rombel_id' => $rombel->id,
         'siswa_id' => $siswa->id,
+        'rombel_id' => $rombel->id,
         'tanggal' => now()->toDateString(),
-        'status' => 'sakit',
+        'status' => 'hadir',
+        'jam_datang' => '06:30:00',
+        'metode' => 'qr',
+        'dicatat_oleh' => $pencatat->id,
+    ]);
+
+    $this->actingAs(superAdmin())->post(route('admin.absensis.batch'), [
+        'rombel_id' => $rombel->id,
+        'tanggal' => now()->toDateString(),
+        'status' => [$siswa->id => 'hadir'],
+    ])->assertSessionHas('success');
+
+    $baris = Absensi::where('siswa_id', $siswa->id)->firstOrFail();
+
+    expect($baris->metode)->toBe('qr')
+        ->and($baris->dicatat_oleh)->toBe($pencatat->id)
+        ->and(AbsensiRiwayat::count())->toBe(0);
+});
+
+test('simpan grid yang mengubah status tetap menulis manual dan histori', function () {
+    $rombel = rombelUjiAbsensi();
+    $siswa = buatAnggotaRombel('5002', 'Anak QR Koreksi', $rombel);
+
+    Absensi::create([
+        'siswa_id' => $siswa->id,
+        'rombel_id' => $rombel->id,
+        'tanggal' => now()->toDateString(),
+        'status' => 'hadir',
+        'jam_datang' => '06:30:00',
+        'metode' => 'qr',
+        'dicatat_oleh' => User::factory()->create()->id,
+    ]);
+
+    $this->actingAs(superAdmin())->post(route('admin.absensis.batch'), [
+        'rombel_id' => $rombel->id,
+        'tanggal' => now()->toDateString(),
+        'alasan' => 'Koreksi status',
+        'status' => [$siswa->id => 'izin'],
+    ])->assertSessionHas('success');
+
+    $baris = Absensi::where('siswa_id', $siswa->id)->firstOrFail();
+
+    expect($baris->metode)->toBe('manual')
+        ->and(AbsensiRiwayat::count())->toBe(1);
+});
+test('impor memakai riwayat kelas aktif, bukan kelas_id', function () {
+    $rombel = rombelUjiAbsensi();
+    $siswa = buatAnggotaRombel('5101', 'Anak Riwayat Impor', $rombel);
+
+    $kelasLain = Kelas::where('nama_kelas', '7B')->firstOrFail();
+    $siswa->update(['kelas_id' => $kelasLain->id]);
+
+    $this->actingAs(superAdmin())->post(route('admin.absensis.impor'), [
+        'file' => xlsxAbsensiUji([
+            ['rombel' => '7A', 'tahun_ajaran' => '', 'tanggal' => now()->toDateString(), 'nis' => $siswa->nis, 'status' => 'hadir'],
+        ]),
+    ])->assertSessionHas('success');
+
+    expect(Absensi::where('siswa_id', $siswa->id)->exists())->toBeTrue();
+});
+
+test('impor menolak siswa yang riwayat aktifnya bukan di rombel itu', function () {
+    $rombel = rombelUjiAbsensi();
+    $siswa = buatAnggotaRombel('5102', 'Anak Riwayat Lain', $rombel);
+
+    $kelasLain = Kelas::where('nama_kelas', '7B')->firstOrFail();
+    $rombelLain = Rombel::where('kelas_id', $kelasLain->id)
+        ->where('tahun_ajaran_id', $rombel->tahun_ajaran_id)
+        ->firstOrFail();
+
+    $siswa->update(['kelas_id' => $rombel->kelas_id]);
+    $siswa->riwayatKelas()->delete();
+    RiwayatKelas::create([
+        'siswa_id' => $siswa->id,
+        'kelas_id' => $rombelLain->kelas_id,
+        'tahun_ajaran_id' => $rombelLain->tahun_ajaran_id,
+        'status' => 'aktif',
+    ]);
+
+    $this->actingAs(superAdmin())->post(route('admin.absensis.impor'), [
+        'file' => xlsxAbsensiUji([
+            ['rombel' => '7A', 'tahun_ajaran' => '', 'tanggal' => now()->toDateString(), 'nis' => $siswa->nis, 'status' => 'hadir'],
+        ]),
+    ])->assertSessionHas('error');
+
+    expect(Absensi::where('siswa_id', $siswa->id)->exists())->toBeFalse();
+});
+
+test('impor tidak mengisi jam datang untuk status apa pun', function () {
+    $rombel = rombelUjiAbsensi();
+    $s1 = buatAnggotaRombel('5103', 'Anak Impor Hadir', $rombel);
+    $s2 = buatAnggotaRombel('5104', 'Anak Impor Izin', $rombel);
+
+    $this->actingAs(superAdmin())->post(route('admin.absensis.impor'), [
+        'file' => xlsxAbsensiUji([
+            ['rombel' => '7A', 'tahun_ajaran' => '', 'tanggal' => now()->toDateString(), 'nis' => $s1->nis, 'status' => 'hadir'],
+            ['rombel' => '7A', 'tahun_ajaran' => '', 'tanggal' => now()->toDateString(), 'nis' => $s2->nis, 'status' => 'izin'],
+        ]),
+    ])->assertSessionHas('success');
+
+    expect(Absensi::where('siswa_id', $s1->id)->firstOrFail()->jam_datang)->toBeNull()
+        ->and(Absensi::where('siswa_id', $s2->id)->firstOrFail()->jam_datang)->toBeNull();
+});
+
+test('impor menolak tahun ajaran yang tidak dikenal', function () {
+    $rombel = rombelUjiAbsensi();
+    $siswa = buatAnggotaRombel('5105', 'Anak Tahun Asing', $rombel);
+
+    $this->actingAs(superAdmin())->post(route('admin.absensis.impor'), [
+        'file' => xlsxAbsensiUji([
+            ['rombel' => '7A', 'tahun_ajaran' => '1999/2000', 'tanggal' => now()->toDateString(), 'nis' => $siswa->nis, 'status' => 'hadir'],
+        ]),
+    ])->assertSessionHas('error');
+
+    expect(Absensi::where('siswa_id', $siswa->id)->exists())->toBeFalse();
+});
+test('hapus baris absensi tidak menghapus histori koreksi', function () {
+    $rombel = rombelUjiAbsensi();
+    $siswa = buatAnggotaRombel('5201', 'Anak Histori', $rombel);
+
+    $absensi = Absensi::create([
+        'siswa_id' => $siswa->id,
+        'rombel_id' => $rombel->id,
+        'tanggal' => now()->toDateString(),
+        'status' => 'hadir',
         'metode' => 'manual',
     ]);
 
-    $this->travelTo(now()->startOfDay()->setTime(7, 10));
+    AbsensiRiwayat::create([
+        'absensi_id' => $absensi->id,
+        'siswa_id' => $siswa->id,
+        'rombel_id' => $rombel->id,
+        'tanggal' => now()->toDateString(),
+        'status_sebelum' => 'hadir',
+        'status_sesudah' => 'izin',
+        'alasan' => 'Surat menyusul',
+        'dicatat_oleh' => superAdmin()->id,
+    ]);
 
-    $response = $this->actingAs($akun)->postJson(route('siswa.absensi.scan.store'), [
-        'token' => TokenQrAbsensi::generate(guruQrAbsensi()->id),
-    ])->assertUnprocessable();
+    $absensi->delete();
 
-    expect($response->json('message'))->toContain('sudah dicatat guru')
-        ->and(Absensi::where('siswa_id', $siswa->id)->firstOrFail()->status)->toBe('sakit')
-        ->and(Absensi::where('siswa_id', $siswa->id)->count())->toBe(1);
-});
+    $riwayat = AbsensiRiwayat::firstOrFail();
 
-test('kartu pelajar tidak lagi membawa QR absensi', function () {
-    $siswa = buatAnggotaRombel('4001', 'Anak Absen Satu');
-
-    // QR harian kini milik akun guru; kartu siswa tinggal identitas, jadi
-    // tidak ada blok QR di sisi belakangnya.
-    $this->actingAs(superAdmin())->get(route('admin.siswas.kartu', $siswa))
-        ->assertOk()
-        ->assertDontSee('SCAN UNTUK ABSENSI')
-        ->assertDontSee('qr-box')
-        ->assertDontSee('<svg', false);
+    expect($riwayat->absensi_id)->toBeNull()
+        ->and($riwayat->alasan)->toBe('Surat menyusul');
 });

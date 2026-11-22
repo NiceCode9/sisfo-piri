@@ -8,12 +8,12 @@
             'kelas' => ['label' => 'Riwayat Kelas', 'route' => 'siswa.kelas', 'icon' => 'fa-solid fa-school-flag'],
             'riwayat' => ['label' => 'Riwayat Saya', 'route' => 'siswa.riwayat', 'icon' => 'fa-solid fa-timeline'],
             'absensi' => ['label' => 'Absensi Saya', 'route' => 'siswa.absensi', 'icon' => 'fa-solid fa-clipboard-check'],
-            'absen' => ['label' => 'Absen Mandiri', 'route' => 'siswa.absensi.scan', 'icon' => 'fa-solid fa-qrcode'],
+            'kartu' => ['label' => 'Kartu Pelajar', 'route' => 'siswa.kartu', 'icon' => 'fa-solid fa-id-card'],
             'materi' => ['label' => 'Materi', 'route' => 'siswa.materi.index', 'icon' => 'fa-solid fa-book-open-reader'],
             'tugas' => ['label' => 'Tugas', 'route' => 'siswa.tugas.index', 'icon' => 'fa-solid fa-clipboard-question'],
         ];
     @endphp
     @foreach($tabs as $key => $tab)
-        <a href="{{ route($tab['route']) }}" class="btn btn-sm {{ ($tabAktif ?? '') === $key ? 'btn-primary' : 'btn-nexus-outline' }}"><i class="{{ $tab['icon'] }}"></i> {{ $tab['label'] }}</a>
+        <a href="{{ route($tab['route']) }}" @if($key === 'kartu') target="_blank" @endif class="btn btn-sm {{ ($tabAktif ?? '') === $key ? 'btn-primary' : 'btn-nexus-outline' }}"><i class="{{ $tab['icon'] }}"></i> {{ $tab['label'] }}</a>
     @endforeach
 </div>

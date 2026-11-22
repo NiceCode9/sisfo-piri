@@ -79,12 +79,18 @@ class DashboardController extends Controller
                 ->get()
                 ->keyBy(fn (Rombel $rombel) => $rombel->kelas_id.':'.$rombel->tahun_ajaran_id);
 
-        $porsiPerSiswa = Absensi::whereIn('siswa_id', $siswaIds)
+        $totalPerSiswa = Absensi::whereIn('siswa_id', $siswaIds)
             ->where('tanggal', 'like', $bulan.'%')
-            ->selectRaw('siswa_id, status, COUNT(DISTINCT tanggal) as jumlah')
-            ->groupBy('siswa_id', 'status')
-            ->get()
-            ->groupBy('siswa_id');
+            ->selectRaw('siswa_id, COUNT(DISTINCT tanggal) as total')
+            ->groupBy('siswa_id')
+            ->pluck('total', 'siswa_id');
+
+        $hadirPerSiswa = Absensi::whereIn('siswa_id', $siswaIds)
+            ->where('tanggal', 'like', $bulan.'%')
+            ->whereIn('status', ['hadir', 'terlambat'])
+            ->selectRaw('siswa_id, COUNT(DISTINCT tanggal) as total')
+            ->groupBy('siswa_id')
+            ->pluck('total', 'siswa_id');
 
         foreach ($anak as $tautan) {
             $siswa = $tautan->siswa;
@@ -93,13 +99,9 @@ class DashboardController extends Controller
                 $rombel = $rombels->get($siswa->kelas_id.':'.$siswa->tahun_ajaran_id);
                 $waliPerSiswa[$siswa->id] = $rombel?->waliGuru?->nama;
 
-                $rekap = [];
-                foreach ($porsiPerSiswa->get($siswa->id, collect()) as $baris) {
-                    $rekap[$baris->status] = (int) $baris->jumlah;
-                }
-
-                $total = array_sum($rekap);
-                $persenPerSiswa[$siswa->id] = $total ? round((($rekap['hadir'] ?? 0) + ($rekap['terlambat'] ?? 0)) / $total * 100) : null;
+                $total = (int) ($totalPerSiswa[$siswa->id] ?? 0);
+                $hadir = (int) ($hadirPerSiswa[$siswa->id] ?? 0);
+                $persenPerSiswa[$siswa->id] = $total ? (int) round($hadir / $total * 100) : null;
             }
         }
 
