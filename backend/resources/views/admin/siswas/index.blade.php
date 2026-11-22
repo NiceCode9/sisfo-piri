@@ -14,7 +14,7 @@
             <a href="{{ route('admin.siswas.template') }}" class="btn btn-nexus-outline btn-sm"><i class="fa-solid fa-file-excel"></i> Template</a>
             <button type="button" class="btn btn-nexus-outline btn-sm" data-bs-toggle="modal" data-bs-target="#modalImport"><i class="fa-solid fa-file-import"></i> Import</button>
             <a href="{{ route('admin.siswas.create') }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Tambah Siswa</a>
-            <a href="{{ route('admin.siswas.kartu.pdf.massal', ['rombel_id' => request('kelas'), 'ids' => $siswas->pluck('id')->all()]) }}" class="btn btn-nexus-outline btn-sm"><i class="fa-solid fa-file-pdf"></i> Cetak Kartu (PDF)</a>
+            <a href="{{ route('admin.siswas.kartu.massal', ['rombel_id' => request('kelas'), 'ids' => $siswas->pluck('id')->all()]) }}" class="btn btn-nexus-outline btn-sm" target="_blank"><i class="fa-solid fa-id-card"></i> Cetak Kartu (Print)</a>
         @endcan
     </div>
 </div>

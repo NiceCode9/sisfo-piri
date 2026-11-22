@@ -69,9 +69,12 @@ use App\Http\Controllers\Siswa\TugasController as SiswaTugasController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\SpmbController;
 use App\Models\BerkasCalonSiswa;
+use App\Models\ProfilSekolah;
+use App\Services\TokenKartuSiswa;
 use App\Support\RuteBeranda;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 Route::get('/', [SpmbController::class, 'home'])->name('spmb.home');
 Route::get('/pendaftaran', [SpmbController::class, 'create'])->name('spmb.pendaftaran');
@@ -135,10 +138,32 @@ Route::prefix('siswa')->name('siswa.')->middleware(['auth', 'role:siswa'])->grou
     Route::get('/kelas', [RiwayatController::class, 'kelas'])->name('kelas');
     Route::get('/riwayat', [RiwayatController::class, 'riwayat'])->name('riwayat');
     Route::get('/absensi', [RiwayatController::class, 'absensi'])->name('absensi');
+    Route::get('/kartu', function () {
+        $siswa = auth()->user()?->siswa;
+        abort_if($siswa === null, 404);
+        $siswa->load(['user', 'calonSiswa.berkasCalonSiswa', 'kelas', 'tahunAjaran']);
+        $sekolah = ProfilSekolah::aktif();
+        $siswaList = collect([(object) [
+            'nama' => $siswa->user?->name ?? $siswa->calonSiswa?->nama_lengkap ?? '-',
+            'nisn' => $siswa->nisn ?? '-',
+            'kelas' => $siswa->kelas?->nama_kelas ?? '-',
+            'foto' => $siswa->calonSiswa?->berkasCalonSiswa?->foto_path
+                ? route('dokumen.berkas', [$siswa->calonSiswa->berkasCalonSiswa, 'foto_path'])
+                : null,
+            'qr' => (string) QrCode::size(120)->generate(TokenKartuSiswa::generate($siswa->id)),
+        ]]);
+
+        return view('admin.siswas.kartu-siswa', [
+            'siswaList' => $siswaList,
+            'tahunAjaran' => $siswa->tahunAjaran?->nama_tahun_ajaran,
+            'sekolah' => $sekolah,
+        ]);
+    })->name('kartu');
     Route::get('/kartu/pdf', function () {
         $siswa = auth()->user()?->siswa;
         abort_if($siswa === null, 404);
-        return app(\App\Http\Controllers\Admin\SiswaController::class)->kartuPdf(request(), $siswa);
+
+        return app(SiswaController::class)->kartuPdf(request(), $siswa);
     })->name('kartu.pdf');
     Route::get('/materi', [SiswaMateriController::class, 'index'])->name('materi.index');
     Route::get('/materi/{materi}', [SiswaMateriController::class, 'show'])->name('materi.show');
@@ -287,6 +312,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::get('siswas/template', [SiswaController::class, 'template'])->name('siswas.template');
     Route::post('siswas/import', [SiswaController::class, 'import'])->name('siswas.import');
     Route::get('siswas/{siswa}/kartu', [SiswaController::class, 'kartu'])->name('siswas.kartu');
+    Route::get('siswas/kartu/massal', [SiswaController::class, 'kartuMassal'])->name('siswas.kartu.massal');
     Route::get('siswas/{siswa}/kartu/pdf', [SiswaController::class, 'kartuPdf'])->name('siswas.kartu.pdf');
     Route::get('siswas/kartu/pdf', [SiswaController::class, 'kartuPdf'])->name('siswas.kartu.pdf.massal');
     Route::resource('siswas', SiswaController::class);

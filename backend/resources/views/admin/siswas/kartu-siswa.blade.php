@@ -212,6 +212,14 @@
 </head>
 <body>
 
+    <div class="no-print mb-3">
+        <button onclick="window.print()" class="btn btn-primary btn-sm"><i class="fa-solid fa-print"></i> Cetak / Simpan PDF</button>
+    </div>
+
+    <style>
+        @media print { .no-print { display: none !important; } }
+    </style>
+
     @php
         $schoolName = trim((string) $sekolah?->nama_sekolah) ?: 'Sekolah';
         $schoolLogo = $sekolah?->logo_path ? Storage::disk('public')->url($sekolah->logo_path) : null;

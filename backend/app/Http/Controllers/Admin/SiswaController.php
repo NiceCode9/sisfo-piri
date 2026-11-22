@@ -15,8 +15,8 @@ use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
 use App\Services\TokenKartuSiswa;
-use BaconQrCode\Encoder\Encoder;
 use BaconQrCode\Common\ErrorCorrectionLevel;
+use BaconQrCode\Encoder\Encoder;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -451,6 +451,55 @@ class SiswaController extends Controller implements HasMiddleware
 
         return $pdf->download('kartu-siswa.pdf');
 
+    }
+
+    public function kartuMassal(Request $request): View
+    {
+        $rombelId = (int) $request->query('rombel_id');
+        $rombel = $rombelId ? Rombel::findOrFail($rombelId) : null;
+
+        $query = Siswa::with(['user', 'calonSiswa.berkasCalonSiswa', 'kelas', 'tahunAjaran']);
+
+        if ($rombel) {
+            $query->whereIn('id', $rombel->anggotaIdsAktif());
+        }
+
+        $ids = $request->query('ids');
+        if (is_array($ids) && $ids !== []) {
+            $query->whereIn('id', $ids);
+        }
+
+        $siswas = $query->orderBy('nis')->get();
+
+        $siswaList = $siswas->map(function (Siswa $s) {
+            $foto = null;
+
+            if ($s->calonSiswa?->berkasCalonSiswa?->foto_path) {
+                $path = $s->calonSiswa->berkasCalonSiswa->foto_path;
+
+                if (Storage::disk('berkas')->exists($path)) {
+                    $foto = route('dokumen.berkas', [$s->calonSiswa->berkasCalonSiswa, 'foto_path']);
+                }
+            }
+
+            return (object) [
+                'nama' => $s->user?->name ?? $s->calonSiswa?->nama_lengkap ?? '-',
+                'nisn' => $s->nisn ?? '-',
+                'kelas' => $s->kelas?->nama_kelas ?? '-',
+                'foto' => $foto,
+                'qr' => (string) QrCode::size(120)->generate(TokenKartuSiswa::generate($s->id)),
+            ];
+        });
+
+        $sekolah = ProfilSekolah::aktif();
+
+        return view('admin.siswas.kartu-siswa', [
+            'siswaList' => $siswaList,
+            'tahunAjaran' => $siswas->first()?->tahunAjaran?->nama_tahun_ajaran,
+            'sekolah' => $sekolah,
+            'schoolName' => $sekolah?->nama_sekolah ?? 'Sekolah',
+            'schoolLogo' => $sekolah?->logo_path ? route('dokumen.profil', ['path' => $sekolah->logo_path]) : null,
+        ]);
     }
 
     /**
