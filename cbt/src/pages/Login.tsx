@@ -82,7 +82,7 @@ export default function Login() {
             <div className="flex items-center gap-space-sm rounded-full bg-surface-container-lowest px-space-md py-space-xs shadow-sm">
               <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-tertiary-fixed-dim" />
               <span className="font-label-sm text-label-sm font-medium text-on-surface">
-                SMKN NGAGLIK
+                SMP PIRI NGAGLIK
               </span>
               <span className="font-label-sm text-label-sm text-outline-variant">|</span>
               <span className="font-label-sm text-label-sm font-semibold text-primary">Sesi Ujian Online</span>
@@ -252,11 +252,11 @@ export default function Login() {
           <div className="flex items-center gap-space-xs">
             <Icon name="verified_user" size={16} className="text-outline" />
             <p className="font-label-sm text-label-sm text-on-surface-variant">
-              &copy; SMKN Ngaglik — Portal Ujian CBT. Hak Cipta Dilindungi.
+              &copy; SMP PIRI NGAGLIK — Portal Ujian CBT. Hak Cipta Dilindungi.
             </p>
           </div>
           <div className="flex items-center gap-space-md">
-            <span className="font-label-sm text-label-sm text-outline">CBT SMKN Ngaglik</span>
+            <span className="font-label-sm text-label-sm text-outline">CBT SMP PIRI NGAGLIK</span>
           </div>
         </div>
       </footer>
