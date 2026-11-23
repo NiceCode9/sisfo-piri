@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cetak Kartu Pelajar</title>
+    <title>Cetak Kartu Absensi</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
@@ -326,7 +326,7 @@
 <body>
 
     <div class="toolbar no-print">
-        <h1>Cetak Kartu Pelajar</h1>
+        <h1>Cetak Kartu Absensi</h1>
         <button type="button" class="btn-print" onclick="window.print()">Cetak / Simpan PDF</button>
         <p class="hint"><strong>Penting:</strong> di dialog cetak, buka "More settings" dan matikan "Headers and footers". Untuk menyimpan PDF, pilih "Save as PDF" di tujuan cetak.</p>
     </div>
@@ -353,7 +353,7 @@
                                 @endif
                                 <div>
                                     <div class="school-name">{{ $schoolName }}</div>
-                                    <div class="card-label">KARTU PELAJAR</div>
+                                    <div class="card-label">KARTU ABSENSI</div>
                                 </div>
                             </div>
 

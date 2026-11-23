@@ -233,7 +233,7 @@ test('halaman kartu siswa tampilkan data asli', function () {
     $response = $this->actingAs(superAdmin())->get(route('admin.siswas.kartu', $siswa));
 
     $response->assertOk();
-    foreach (['Siswa Kartu', '0070012001', '7A', 'KARTU PELAJAR'] as $marker) {
+    foreach (['Siswa Kartu', '0070012001', '7A', 'KARTU ABSENSI'] as $marker) {
         $response->assertSee($marker, false);
     }
 });
