@@ -215,6 +215,6 @@
         </div>
     </section>
 
-    @include('spmb.partials.footer')
+    {{-- @include('spmb.partials.footer') --}}
 </main>
 @endsection
