@@ -21,6 +21,7 @@ use App\Models\ExamToken;
 use App\Models\Guru;
 use App\Models\MataPelajaran;
 use App\Models\Pengampu;
+use App\Models\QuestionBank;
 use App\Models\Rombel;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
@@ -278,4 +279,52 @@ test('guru pemilik boleh menghapus ujiannya sendiri yang belum ada sesinya', fun
         ->getContent();
 
     expect($html)->toContain(actionHapus($exam));
+});
+
+test('detail ujian menampilkan soal bernomor, kunci jawaban, dan total poin', function () {
+    $exam = Exam::factory()->create();
+    ExamQuestion::factory()->milikUjian($exam->id)->create([
+        'question_text' => 'Soal yang dibuat belakangan',
+        'order' => 2,
+        'score' => 10,
+        'correct_answer' => ['b'],
+    ]);
+    ExamQuestion::factory()->milikUjian($exam->id)->create([
+        'question_text' => 'Soal yang harus tampil lebih dulu',
+        'order' => 1,
+        'score' => 20,
+        'correct_answer' => ['a', 'c'],
+    ]);
+
+    $html = $this->actingAs(adminUjian())
+        ->get(route('admin.cbt.exams.show', $exam))
+        ->assertOk()
+        ->getContent();
+
+    expect(strpos($html, 'Soal yang harus tampil lebih dulu'))->toBeLessThan(strpos($html, 'Soal yang dibuat belakangan'))
+        ->and($html)->toContain('2 soal · 30 poin')
+        ->and($html)->toContain('Hapus soal nomor 1?')
+        ->and($html)->toContain('Hapus soal nomor 2?')
+        ->and($html)->toContain('A, C');
+});
+
+test('salinan bank tidak bisa dipilih ulang dan centangan mulai dari nol', function () {
+    $exam = Exam::factory()->create();
+    $bank = QuestionBank::factory()->create(['mata_pelajaran_id' => $exam->mata_pelajaran_id]);
+    $sudahAda = ExamQuestion::factory()->milikBank($bank->id)->create(['question_text' => 'Soal lama']);
+    $baru = ExamQuestion::factory()->milikBank($bank->id)->create(['question_text' => 'Soal baru']);
+    ExamQuestion::factory()->milikUjian($exam->id)->create([
+        'question_bank_id' => $sudahAda->id,
+        'question_text' => 'Soal lama',
+    ]);
+
+    $html = $this->actingAs(adminUjian())
+        ->get(route('admin.cbt.exams.show', $exam))
+        ->assertOk()
+        ->getContent();
+
+    expect($html)->toContain('Sudah disalin')
+        ->and($html)->toContain('0 soal dipilih')
+        ->and($html)->toContain('value="'.$sudahAda->id.'" class="mt-1" disabled')
+        ->and($html)->not->toContain('value="'.$baru->id.'" class="mt-1" disabled');
 });
