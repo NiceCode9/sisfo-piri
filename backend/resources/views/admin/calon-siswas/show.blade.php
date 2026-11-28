@@ -8,12 +8,12 @@
     <style>
         /* Modern CSS Variables */
         :root {
-            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-            --info-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-            --dark-gradient: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
-            --danger-gradient: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
+            --primary-gradient: #667eea;
+            --success-gradient: #667eea;
+            --warning-gradient: #667eea;
+            --info-gradient: #667eea;
+            --dark-gradient: #667eea;
+            --danger-gradient: #667eea;
 
             --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
             --card-hover-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
@@ -23,7 +23,7 @@
 
         /* Global Styles */
         body {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            background: #667eea;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
 
@@ -36,16 +36,7 @@
             position: relative;
         }
 
-        .header-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
-            pointer-events: none;
-        }
+        /* grain overlay removed */
 
         .header-content {
             display: flex;
@@ -99,28 +90,28 @@
         }
 
         .status-badge.status-diterima {
-            background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
+            background: #667eea;
             color: white;
         }
 
         .status-badge.status-ditolak {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+            background: #667eea;
             color: white;
         }
 
         .status-badge.status-menunggu,
         .status-badge.status-daftar_ulang {
-            background: linear-gradient(135deg, #ffd43b 0%, #fab005 100%);
+            background: #667eea;
             color: #333;
         }
 
         .status-badge.status-berhasil {
-            background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
+            background: #667eea;
             color: white;
         }
 
         .status-badge.status-pending {
-            background: linear-gradient(135deg, #ffd43b 0%, #fab005 100%);
+            background: #667eea;
             color: #333;
         }
 
@@ -132,12 +123,12 @@
             transition: var(--transition);
             overflow: hidden;
             margin-bottom: 1.5rem;
-            backdrop-filter: blur(10px);
+            
             background: rgba(255, 255, 255, 0.95);
         }
 
         .modern-card:hover {
-            transform: translateY(-5px);
+            
             box-shadow: var(--card-hover-shadow);
         }
 
@@ -223,7 +214,7 @@
         .info-item:hover {
             background: #e9ecef;
             border-left-color: #667eea;
-            transform: translateX(5px);
+            
         }
 
         .info-label {
@@ -265,17 +256,17 @@
         }
 
         .parent-card:hover {
-            transform: translateY(-3px);
+            
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
 
         .parent-father .parent-header {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            background: #667eea;
             color: white;
         }
 
         .parent-mother .parent-header {
-            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            background: #667eea;
             color: white;
         }
 
@@ -306,7 +297,7 @@
 
         .document-item:hover {
             background: #f8f9fa;
-            transform: translateX(5px);
+            
         }
 
         .document-item:last-child {
@@ -416,12 +407,12 @@
         }
 
         .payment-summary-pending {
-            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            background: #667eea;
             border: 2px solid #ffc107;
         }
 
         .payment-summary-complete {
-            background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+            background: #667eea;
             border: 2px solid #17a2b8;
         }
 
@@ -469,7 +460,7 @@
 
         /* Installment Info */
         .installment-info {
-            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            background: #667eea;
             border-radius: var(--border-radius);
             padding: 1.5rem;
             margin-bottom: 1.5rem;
@@ -569,7 +560,7 @@
         }
 
         .fee-item:hover {
-            transform: translateY(-3px);
+            
             box-shadow: 0 10px 25px rgba(255, 193, 7, 0.2);
         }
 
@@ -623,17 +614,17 @@
         }
 
         .badge-success {
-            background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
+            background: #667eea;
             color: white;
         }
 
         .badge-danger {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+            background: #667eea;
             color: white;
         }
 
         .badge-info {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            background: #667eea;
             color: white;
         }
 
@@ -713,7 +704,7 @@
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            background: #667eea, transparent);
             transition: left 0.5s;
         }
 
@@ -722,24 +713,24 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #667eea;
             color: white;
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
         }
 
         .btn-primary:hover {
-            transform: translateY(-2px);
+            
             box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
         }
 
         .btn-warning {
-            background: linear-gradient(135deg, #ffd43b 0%, #fab005 100%);
+            background: #667eea;
             color: #333;
             box-shadow: 0 4px 12px rgba(255, 212, 59, 0.3);
         }
 
         .btn-warning:hover {
-            transform: translateY(-2px);
+            
             box-shadow: 0 8px 20px rgba(255, 212, 59, 0.4);
         }
 
@@ -747,7 +738,7 @@
             border: 2px solid rgba(255, 255, 255, 0.3);
             color: white;
             background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
+            
         }
 
         .btn-outline-light:hover {
@@ -900,41 +891,29 @@
         /* Animation Classes */
         .fade-in {
             opacity: 0;
-            transform: translateY(20px);
-            animation: fadeIn 0.6s ease forwards;
+            
+            
         }
 
-        @keyframes fadeIn {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        
         }
 
         .slide-in-left {
             opacity: 0;
-            transform: translateX(-20px);
-            animation: slideInLeft 0.6s ease forwards;
+            
+            
         }
 
-        @keyframes slideInLeft {
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
+        
         }
 
         .slide-in-right {
             opacity: 0;
-            transform: translateX(20px);
-            animation: slideInRight 0.6s ease forwards;
+            
+            
         }
 
-        @keyframes slideInRight {
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
+        
         }
 
         /* Utility Classes */
@@ -946,50 +925,13 @@
         }
 
         .glass-effect {
-            backdrop-filter: blur(10px);
+            
             background: rgba(255, 255, 255, 0.9);
         }
 
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
+        
 
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 10px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
-        }
-
-        /* Loading Animation */
-        .loading {
-            position: relative;
-            overflow: hidden;
-        }
-
-        .loading::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-            animation: loading 1.5s infinite;
-        }
-
-        @keyframes loading {
-            0% {
-                left: -100%;
-            }
+        
 
             100% {
                 left: 100%;
