@@ -554,7 +554,7 @@ test('diskon gelombang tidak memotong biaya wajib selain pendaftaran', function 
     // Setiap biaya wajib selain pendaftaran tetap memakai harga normal.
     $lainnya = BiayaPendaftaran::where('tahun_ajaran_id', $tahun)
         ->where('wajib_bayar', true)
-        ->where('jenis_biaya', '!=', 'Biaya Pendaftaran')
+        ->where('jenis_biaya', 'not like', 'Biaya Pendaftaran%')
         ->get();
 
     foreach ($lainnya as $biaya) {

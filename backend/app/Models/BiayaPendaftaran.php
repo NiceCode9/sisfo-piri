@@ -16,6 +16,7 @@ class BiayaPendaftaran extends Model
         'mata_uang',
         'wajib_bayar',
         'dapat_diangsur',
+        'target',
         'max_cicilan',
         'min_dp',
         'jangka_waktu_hari',

@@ -155,7 +155,7 @@ test('destroy menghapus baris dan file bukti', function () {
         'jumlah' => 50000,
         'metode_pembayaran' => 'transfer',
         'bukti_pembayaran_path' => UploadedFile::fake()->create('hapus.pdf', 100, 'application/pdf')->store('bukti', 'berkas'),
-        'status' => 'berhasil',
+        'status' => 'menunggu',
     ]);
     $path = $bayar->bukti_pembayaran_path;
 

@@ -24,6 +24,7 @@ class UpdateBiayaPendaftaranRequest extends FormRequest
             'mata_uang' => ['nullable', 'string', 'max:10'],
             'wajib_bayar' => ['required', 'boolean'],
             'dapat_diangsur' => ['required', 'boolean'],
+            'target' => ['nullable', 'string', 'in:semua,krm,non_krm'],
             'max_cicilan' => ['nullable', 'integer', 'min:1', 'max:60'],
             'min_dp' => ['nullable', 'numeric', 'min:0'],
             'jangka_waktu_hari' => ['nullable', 'integer', 'min:1'],

@@ -154,6 +154,11 @@ class PembayaranLainnyaController extends Controller implements HasMiddleware
     public function updateStatus(PembayaranLainnya $pembayaranLainnya): RedirectResponse
     {
         request()->validate(['status' => ['required', 'in:menunggu,berhasil,gagal']]);
+
+        if ($pembayaranLainnya->status === 'berhasil' && request('status') !== 'berhasil') {
+            return back()->with('error', 'Pembayaran lainnya yang sudah terverifikasi tidak dapat dibatalkan.');
+        }
+
         $pembayaranLainnya->update(['status' => request('status')]);
 
         return back()->with('success', 'Status pembayaran diubah ke '.request('status').'.');
@@ -161,6 +166,10 @@ class PembayaranLainnyaController extends Controller implements HasMiddleware
 
     public function destroy(PembayaranLainnya $pembayaranLainnya): RedirectResponse
     {
+        if ($pembayaranLainnya->status === 'berhasil') {
+            return back()->with('error', 'Pembayaran lainnya yang sudah terverifikasi tidak dapat dihapus.');
+        }
+
         // File dihapus setelah baris benar-benar terhapus.
         $berkas = new Berkas;
         $berkas->hapus($pembayaranLainnya->bukti_pembayaran_path);

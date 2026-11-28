@@ -45,10 +45,27 @@ class TagihanCalon
 
     public static function untuk(CalonSiswa $calon): self
     {
-        return new self(
-            $calon,
-            $calon->tahunAjaran?->biayaPendaftaran ?? collect(),
-        );
+        $calon->loadMissing('berkasCalonSiswa');
+
+        $hasKrm = $calon->hasKrm();
+
+        $biaya = ($calon->tahunAjaran?->biayaPendaftaran ?? collect())
+            ->filter(function ($item) use ($hasKrm) {
+                $target = $item->target ?? 'semua';
+
+                if ($target === 'krm') {
+                    return $hasKrm;
+                }
+
+                if ($target === 'non_krm') {
+                    return ! $hasKrm;
+                }
+
+                return true;
+            })
+            ->values();
+
+        return new self($calon, $biaya);
     }
 
     public function totalBiaya(): float

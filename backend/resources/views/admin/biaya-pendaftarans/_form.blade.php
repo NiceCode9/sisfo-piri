@@ -72,6 +72,19 @@
     </div>
     <div class="col-12 col-sm-4">
         <div class="form-floating">
+            <select name="target" id="target" class="form-select @error('target') is-invalid @enderror">
+                <option value="semua" @selected(old('target', $biaya->target ?? 'semua') === 'semua')>Semua siswa</option>
+                <option value="krm" @selected(old('target', $biaya->target ?? 'semua') === 'krm')>Pemegang KRM</option>
+                <option value="non_krm" @selected(old('target', $biaya->target ?? 'semua') === 'non_krm')>Non-KRM</option>
+            </select>
+            <label for="target">Berlaku untuk</label>
+            @error('target')<div class="invalid-feedback">{{ $message }}</div>@enderror
+        </div>
+    </div>
+</div>
+<div class="row g-3 mb-3">
+    <div class="col-12">
+        <div class="form-floating">
             <textarea name="keterangan" id="keterangan" class="form-control @error('keterangan') is-invalid @enderror" placeholder="Keterangan" style="height:58px">{{ old('keterangan', $biaya->keterangan ?? '') }}</textarea>
             <label for="keterangan">Keterangan</label>
             @error('keterangan')<div class="invalid-feedback">{{ $message }}</div>@enderror

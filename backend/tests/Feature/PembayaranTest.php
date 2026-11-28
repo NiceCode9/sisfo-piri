@@ -326,7 +326,12 @@ test('status diterima auto-create 4 tagihan wajib', function () {
     ])->assertRedirect();
 
     $tagihan = Pembayaran::where('calon_siswa_id', $calon->id)->get();
-    $wajib = BiayaPendaftaran::where('tahun_ajaran_id', $calon->tahun_ajaran_id)->where('wajib_bayar', true)->get();
+    $wajib = BiayaPendaftaran::where('tahun_ajaran_id', $calon->tahun_ajaran_id)
+        ->where('wajib_bayar', true)
+        ->where(function ($q) {
+            $q->where('target', '!=', 'krm')->orWhereNull('target');
+        })
+        ->get();
 
     expect($tagihan)->toHaveCount($wajib->count())
         ->and($wajib->count())->toBe(4);
@@ -641,6 +646,37 @@ test('filter tanggal mulai sampai hanya kembalikan baris dalam rentang', functio
     $response->assertOk();
     $response->assertSee('PAY-2026-0302', false);
     $response->assertDontSee('PAY-2026-0301', false);
+});
+
+test('calon dengan KRM ditagih biaya pendaftaran KRM saat diterima', function () {
+    $user = User::factory()->create();
+    $calon = buatCalon(['user_id' => $user->id]);
+    $calon->berkasCalonSiswa()->create(['krm_path' => 'berkas/krm.pdf', 'status_verifikasi' => true]);
+
+    $this->actingAs(superAdmin())->patch(route('admin.calon-siswas.status', $calon), [
+        'status' => 'diterima',
+    ])->assertRedirect();
+
+    $tagihan = Pembayaran::where('calon_siswa_id', $calon->id)->get();
+    $jenis = $tagihan->pluck('biayaPendaftaran.jenis_biaya')->all();
+
+    expect($jenis)->toContain('Biaya Pendaftaran KRM')
+        ->and($jenis)->not->toContain('Biaya Pendaftaran');
+});
+
+test('calon tanpa KRM ditagih biaya pendaftaran reguler saat diterima', function () {
+    $user = User::factory()->create();
+    $calon = buatCalon(['user_id' => $user->id]);
+
+    $this->actingAs(superAdmin())->patch(route('admin.calon-siswas.status', $calon), [
+        'status' => 'diterima',
+    ])->assertRedirect();
+
+    $tagihan = Pembayaran::where('calon_siswa_id', $calon->id)->get();
+    $jenis = $tagihan->pluck('biayaPendaftaran.jenis_biaya')->all();
+
+    expect($jenis)->toContain('Biaya Pendaftaran')
+        ->and($jenis)->not->toContain('Biaya Pendaftaran KRM');
 });
 
 test('store angsuran ditolak bila biaya tidak dapat diangsur', function () {

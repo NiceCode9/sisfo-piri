@@ -139,6 +139,14 @@ class CalonSiswa extends Model
      * Definisi "lunas" hanya ada di `App\Support\TagihanCalon` supaya halaman
      * detail dan pemilih pembayaran tidak pernah berbeda jawaban.
      */
+    /**
+     * Apakah calon memegang Kartu Rentan Miskin (KRM) berdasarkan berkas unggahan.
+     */
+    public function hasKrm(): bool
+    {
+        return (bool) ($this->berkasCalonSiswa?->krm_path);
+    }
+
     public function tagihan(): TagihanCalon
     {
         return TagihanCalon::untuk($this);

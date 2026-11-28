@@ -17,6 +17,7 @@ use App\Support\Penomor;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -106,7 +107,7 @@ class PembayaranController extends Controller implements HasMiddleware
             'pembayaran' => $pembayaran,
             'sekolah' => $sekolah,
             'terbilang' => $this->terbilang($pembayaran->jumlah).' rupiah',
-            'petugas' => auth()->user()->name,
+            'petugas' => auth()->user()?->name ?? 'Petugas',
         ])->download('kwitansi-'.$pembayaran->kode_pembayaran.'.pdf');
     }
 
@@ -176,7 +177,7 @@ class PembayaranController extends Controller implements HasMiddleware
 
         // Validasi tautan cicilan: milik calon yang sama dan belum dibayar
         if (! empty($validated['detail_angsuran_id'])) {
-            $detail = DetailAngsuran::with('rencanaAngsuran')->findOrFail($validated['detail_angsuran_id']);
+            $detail = DetailAngsuran::with('rencanaAngsuran')->lockForUpdate()->findOrFail($validated['detail_angsuran_id']);
 
             if ($detail->rencanaAngsuran->calon_siswa_id !== (int) $validated['calon_siswa_id']) {
                 return back()->with('error', 'Cicilan tidak milik calon siswa ini.')->withInput();
@@ -207,8 +208,16 @@ class PembayaranController extends Controller implements HasMiddleware
             $validated['tanggal_pembayaran'] = $validated['tanggal_pembayaran'] ?? now()->toDateString();
         }
 
-        $pembayaran = Pembayaran::create(collect($validated)->except(['buat_angsuran', 'dp_dibayar', 'jumlah_cicilan', 'tanggal_mulai', 'redirect_to'])->toArray());
-        Penomor::pembayaran($pembayaran);
+        $pembayaran = null;
+
+        try {
+            DB::transaction(function () use (&$pembayaran, $validated) {
+                $pembayaran = Pembayaran::create(collect($validated)->except(['buat_angsuran', 'dp_dibayar', 'jumlah_cicilan', 'tanggal_mulai', 'redirect_to'])->toArray());
+                Penomor::pembayaran($pembayaran);
+            });
+        } catch (QueryException $e) {
+            return back()->with('error', 'Cicilan ini sudah memiliki pembayaran. Muat ulang halaman.')->withInput();
+        }
 
         // Pembayaran cicilan yang langsung berhasil menutup detail + rencana
         // (tutupCicilan melunasi induk otomatis saat cicilan terakhir dibayar).
@@ -258,6 +267,7 @@ class PembayaranController extends Controller implements HasMiddleware
         $duplikat = RencanaAngsuran::where('calon_siswa_id', $validated['calon_siswa_id'])
             ->where('biaya_pendaftaran_id', $biaya->id)
             ->where('status', 'aktif')
+            ->lockForUpdate()
             ->exists();
 
         if ($duplikat) {
@@ -266,85 +276,99 @@ class PembayaranController extends Controller implements HasMiddleware
 
         $sisa = $total - $dp;
 
-        DB::transaction(function () use ($request, $validated, $biaya, $total, $dp, $n, $sisa) {
-            $induk = Pembayaran::create([
-                'calon_siswa_id' => $validated['calon_siswa_id'],
-                'biaya_pendaftaran_id' => $biaya->id,
-                'kode_pembayaran' => Penomor::placeholder('PAY'),
-                'jumlah' => $total,
-                'metode_pembayaran' => $validated['metode_pembayaran'],
-                'jenis_pembayaran' => 'penuh',
-                'tanggal_pembayaran' => $validated['tanggal_pembayaran'] ?? null,
-                'status' => 'menunggu',
-                'catatan' => $validated['catatan'] ?? null,
-                'keterangan_angsuran' => $validated['keterangan_angsuran'] ?? null,
-            ]);
-            Penomor::pembayaran($induk);
+        try {
+            DB::transaction(function () use ($request, $validated, $biaya, $total, $dp, $n, $sisa) {
+                $duplikat = RencanaAngsuran::where('calon_siswa_id', $validated['calon_siswa_id'])
+                    ->where('biaya_pendaftaran_id', $biaya->id)
+                    ->where('status', 'aktif')
+                    ->lockForUpdate()
+                    ->exists();
 
-            $dpBayar = null;
-            if ($dp > 0) {
-                $bukti = $request->hasFile('bukti_pembayaran_path')
-                    ? $request->file('bukti_pembayaran_path')->store('bukti', 'berkas')
-                    : null;
+                if ($duplikat) {
+                    throw new \RuntimeException('Sudah ada rencana angsuran aktif untuk calon dan biaya ini.');
+                }
 
-                $dpBayar = Pembayaran::create([
+                $induk = Pembayaran::create([
                     'calon_siswa_id' => $validated['calon_siswa_id'],
                     'biaya_pendaftaran_id' => $biaya->id,
                     'kode_pembayaran' => Penomor::placeholder('PAY'),
-                    'jumlah' => $dp,
+                    'jumlah' => $total,
                     'metode_pembayaran' => $validated['metode_pembayaran'],
-                    'jenis_pembayaran' => 'dp_angsuran',
-                    'bukti_pembayaran_path' => $bukti,
-                    'tanggal_pembayaran' => $validated['tanggal_pembayaran'] ?? now()->toDateString(),
-                    'status' => 'berhasil',
-                    'keterangan_angsuran' => 'DP angsuran untuk '.$induk->kode_pembayaran,
+                    'jenis_pembayaran' => 'penuh',
+                    'tanggal_pembayaran' => $validated['tanggal_pembayaran'] ?? null,
+                    'status' => 'menunggu',
+                    'catatan' => $validated['catatan'] ?? null,
+                    'keterangan_angsuran' => $validated['keterangan_angsuran'] ?? null,
                 ]);
-                Penomor::pembayaran($dpBayar);
-            }
+                Penomor::pembayaran($induk);
 
-            $rencana = RencanaAngsuran::create([
-                'calon_siswa_id' => $validated['calon_siswa_id'],
-                'biaya_pendaftaran_id' => $biaya->id,
-                'pembayaran_id' => $induk->id,
-                'kode_angsuran' => Penomor::placeholder('ANG'),
-                'total_biaya' => $total,
-                'dp_dibayar' => $dp,
-                'sisa_hutang' => $sisa,
-                'jumlah_cicilan' => $n,
-                'nominal_per_cicilan' => $sisa / $n,
-                'tanggal_mulai' => $validated['tanggal_mulai'],
-                'tanggal_selesai' => Carbon::parse($validated['tanggal_mulai'])->addMonthsNoOverflow($n - 1)->toDateString(),
-                'status' => 'aktif',
-            ]);
-            Penomor::angsuran($rencana);
+                $dpBayar = null;
+                if ($dp > 0) {
+                    $bukti = $request->hasFile('bukti_pembayaran_path')
+                        ? $request->file('bukti_pembayaran_path')->store('bukti', 'berkas')
+                        : null;
 
-            // Baris ke-0 = DP, ikut termasuk sebagai angsuran (sudah dibayar)
-            if ($dpBayar) {
-                $dpDetail = $rencana->detailAngsuran()->create([
-                    'cicilan_ke' => 0,
-                    'nominal_cicilan' => $dp,
-                    'tanggal_jatuh_tempo' => now()->toDateString(),
-                    'denda' => 0,
-                    'total_bayar' => $dp,
-                    'tanggal_bayar' => now()->toDateString(),
-                    'status' => 'dibayar',
+                    $dpBayar = Pembayaran::create([
+                        'calon_siswa_id' => $validated['calon_siswa_id'],
+                        'biaya_pendaftaran_id' => $biaya->id,
+                        'kode_pembayaran' => Penomor::placeholder('PAY'),
+                        'jumlah' => $dp,
+                        'metode_pembayaran' => $validated['metode_pembayaran'],
+                        'jenis_pembayaran' => 'dp_angsuran',
+                        'bukti_pembayaran_path' => $bukti,
+                        'tanggal_pembayaran' => $validated['tanggal_pembayaran'] ?? now()->toDateString(),
+                        'status' => 'berhasil',
+                        'keterangan_angsuran' => 'DP angsuran untuk '.$induk->kode_pembayaran,
+                    ]);
+                    Penomor::pembayaran($dpBayar);
+                }
+
+                $rencana = RencanaAngsuran::create([
+                    'calon_siswa_id' => $validated['calon_siswa_id'],
+                    'biaya_pendaftaran_id' => $biaya->id,
+                    'pembayaran_id' => $induk->id,
+                    'kode_angsuran' => Penomor::placeholder('ANG'),
+                    'total_biaya' => $total,
+                    'dp_dibayar' => $dp,
+                    'sisa_hutang' => $sisa,
+                    'jumlah_cicilan' => $n,
+                    'nominal_per_cicilan' => $sisa / $n,
+                    'tanggal_mulai' => $validated['tanggal_mulai'],
+                    'tanggal_selesai' => Carbon::parse($validated['tanggal_mulai'])->addMonthsNoOverflow($n - 1)->toDateString(),
+                    'status' => 'aktif',
                 ]);
-                $dpBayar->update(['detail_angsuran_id' => $dpDetail->id]);
-            }
+                Penomor::angsuran($rencana);
 
-            $perCicilan = floor($sisa / $n);
-            $mulai = Carbon::parse($validated['tanggal_mulai']);
+                // Baris ke-0 = DP, ikut termasuk sebagai angsuran (sudah dibayar)
+                if ($dpBayar) {
+                    $dpDetail = $rencana->detailAngsuran()->create([
+                        'cicilan_ke' => 0,
+                        'nominal_cicilan' => $dp,
+                        'tanggal_jatuh_tempo' => now()->toDateString(),
+                        'denda' => 0,
+                        'total_bayar' => $dp,
+                        'tanggal_bayar' => now()->toDateString(),
+                        'status' => 'dibayar',
+                    ]);
+                    $dpBayar->update(['detail_angsuran_id' => $dpDetail->id]);
+                }
 
-            for ($i = 1; $i <= $n; $i++) {
-                $rencana->detailAngsuran()->create([
-                    'cicilan_ke' => $i,
-                    'nominal_cicilan' => $i === $n ? $sisa - ($perCicilan * ($n - 1)) : $perCicilan,
-                    'tanggal_jatuh_tempo' => $mulai->copy()->addMonthsNoOverflow($i - 1)->toDateString(),
-                    'denda' => 0,
-                    'status' => 'belum_bayar',
-                ]);
-            }
-        });
+                $perCicilan = floor($sisa / $n);
+                $mulai = Carbon::parse($validated['tanggal_mulai']);
+
+                for ($i = 1; $i <= $n; $i++) {
+                    $rencana->detailAngsuran()->create([
+                        'cicilan_ke' => $i,
+                        'nominal_cicilan' => $i === $n ? $sisa - ($perCicilan * ($n - 1)) : $perCicilan,
+                        'tanggal_jatuh_tempo' => $mulai->copy()->addMonthsNoOverflow($i - 1)->toDateString(),
+                        'denda' => 0,
+                        'status' => 'belum_bayar',
+                    ]);
+                }
+            });
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage())->withInput();
+        }
 
         return $this->redirectAfterStore($request, "Tagihan + rencana angsuran {$n}x berhasil dibuat.");
     }
@@ -428,6 +452,13 @@ class PembayaranController extends Controller implements HasMiddleware
     public function updateStatus(Pembayaran $pembayaran): RedirectResponse
     {
         request()->validate(['status' => ['required', 'in:menunggu,berhasil,gagal']]);
+
+        // Pembayaran yang sudah terverifikasi tidak boleh diturunkan statusnya
+        // (mencegah inkonsistensi detail/rencana dan pembalikan pendapatan diam-diam).
+        if ($pembayaran->status === 'berhasil' && request('status') !== 'berhasil') {
+            return back()->with('error', 'Pembayaran yang sudah terverifikasi tidak dapat dibatalkan. Buat koreksi manual bila perlu.');
+        }
+
         $pembayaran->update(['status' => request('status')]);
 
         // Sinkron cicilan: pembayaran cicilan yang terverifikasi menutup detail + rencana
@@ -443,6 +474,10 @@ class PembayaranController extends Controller implements HasMiddleware
 
     public function destroy(Pembayaran $pembayaran): RedirectResponse
     {
+        if ($pembayaran->status === 'berhasil') {
+            return back()->with('error', 'Pembayaran yang sudah terverifikasi tidak dapat dihapus.');
+        }
+
         if ($pembayaran->detailAngsuran && $pembayaran->detailAngsuran->status === 'dibayar') {
             return back()->with('error', 'Pembayaran cicilan yang sudah terverifikasi tidak dapat dihapus.');
         }

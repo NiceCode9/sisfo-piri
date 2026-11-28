@@ -234,7 +234,16 @@ class PpdbSeeder extends Seeder
                 'jumlah' => 100000,
                 'mata_uang' => 'IDR',
                 'wajib_bayar' => true,
-                'keterangan' => 'Biaya administrasi pendaftaran PPDB',
+                'target' => 'non_krm',
+                'keterangan' => 'Biaya administrasi pendaftaran PPDB (non-KRM)',
+            ],
+            [
+                'jenis_biaya' => 'Biaya Pendaftaran KRM',
+                'jumlah' => 90000,
+                'mata_uang' => 'IDR',
+                'wajib_bayar' => true,
+                'target' => 'krm',
+                'keterangan' => 'Biaya administrasi pendaftaran PPDB (pemegang KRM)',
             ],
             [
                 'jenis_biaya' => 'Uang Pangkal',

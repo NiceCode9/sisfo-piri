@@ -303,17 +303,32 @@ class CalonSiswaController extends Controller implements HasMiddleware
                         ]
                     );
 
+                    $calonSiswa->loadMissing('berkasCalonSiswa');
+                    $calonHasKrm = $calonSiswa->hasKrm();
+
                     // Auto-create pembayaran untuk semua biaya wajib tahun tersebut
                     $biayasWajib = BiayaPendaftaran::where('tahun_ajaran_id', $calonSiswa->tahun_ajaran_id)
                         ->where('wajib_bayar', true)
                         ->get();
 
                     foreach ($biayasWajib as $biaya) {
+                        $target = $biaya->target ?? 'semua';
+
+                        // Varian biaya pendaftaran KRM/non-KRM hanya ditagihkan
+                        // sesuai status KRM calon.
+                        if ($target === 'krm' && ! $calonHasKrm) {
+                            continue;
+                        }
+
+                        if ($target === 'non_krm' && $calonHasKrm) {
+                            continue;
+                        }
+
                         // Diskon gelombang (`diskon_persen`) selama ini tidak
                         // pernah dipakai. Terapkan ke biaya pendaftaran saja -
                         // diskon Opsional-kinduk bukan berarti seluruh biaya
                         // wajib jadi gratis.
-                        $diskon = strcasecmp((string) $biaya->jenis_biaya, self::JENIS_BIAYA_PENDAFTARAN) === 0
+                        $diskon = str_starts_with(strtolower((string) $biaya->jenis_biaya), strtolower(self::JENIS_BIAYA_PENDAFTARAN))
                             ? ($calonSiswa->gelombang?->diskon_efektif ?? 0)
                             : 0;
 
@@ -340,6 +355,11 @@ class CalonSiswaController extends Controller implements HasMiddleware
                                 'status' => 'menunggu',
                             ]
                         );
+
+                        // Re-terima calon: tagihan yang sempat dibatalkan diaktifkan lagi.
+                        if ($pembayaran->status === 'batal') {
+                            $pembayaran->update(['status' => 'menunggu']);
+                        }
 
                         if (str_starts_with($pembayaran->kode_pembayaran, 'PAY-')) {
                             Penomor::pembayaran($pembayaran);
