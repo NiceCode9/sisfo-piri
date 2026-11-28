@@ -1,1100 +1,152 @@
 @extends('layouts.app')
 
-@section('title', 'Nexus Admin ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Detail Calon Siswa')
+@section('title', 'Detail Calon Siswa - Nexus Admin')
 @section('breadcrumb', 'Detail Calon Siswa')
 
 @push('styles')
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
     <style>
-        /* Modern CSS Variables */
-        :root {
-            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-            --info-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-            --dark-gradient: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
-            --danger-gradient: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
-
-            --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            --card-hover-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-            --border-radius: 1rem;
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        /* Global Styles */
-        body {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        }
-
-        /* Header Section */
-        .header-section {
-            background: var(--primary-gradient);
-            border-radius: var(--border-radius);
-            margin-bottom: 2rem;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .header-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
-            pointer-events: none;
-        }
-
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 2rem;
-            position: relative;
-            z-index: 1;
-        }
-
-        .breadcrumb-modern {
-            background: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .breadcrumb-link {
-            color: rgba(255, 255, 255, 0.8);
-            text-decoration: none;
-            transition: var(--transition);
-        }
-
-        .breadcrumb-link:hover {
-            color: white;
-        }
-
-        .page-title {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: white;
-            margin: 0;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .page-subtitle {
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 1.1rem;
-            margin: 0.5rem 0 0 0;
-        }
-
-        /* Status Badge */
-        .status-badge {
-            padding: 0.75rem 1.5rem;
-            border-radius: 50px;
-            font-weight: 600;
-            font-size: 0.95rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-
-        .status-badge.status-diterima {
-            background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
-            color: white;
-        }
-
-        .status-badge.status-ditolak {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
-            color: white;
-        }
-
-        .status-badge.status-menunggu,
-        .status-badge.status-daftar_ulang {
-            background: linear-gradient(135deg, #ffd43b 0%, #fab005 100%);
-            color: #333;
-        }
-
-        .status-badge.status-berhasil {
-            background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
-            color: white;
-        }
-
-        .status-badge.status-pending {
-            background: linear-gradient(135deg, #ffd43b 0%, #fab005 100%);
-            color: #333;
-        }
-
-        /* Modern Cards */
-        .modern-card {
-            border: none;
-            border-radius: var(--border-radius);
-            box-shadow: var(--card-shadow);
-            transition: var(--transition);
-            overflow: hidden;
-            margin-bottom: 1.5rem;
-            backdrop-filter: blur(10px);
-            background: rgba(255, 255, 255, 0.95);
-        }
-
-        .modern-card:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--card-hover-shadow);
-        }
-
-        /* Card Headers */
-        .card-header-primary {
-            background: var(--primary-gradient);
-            color: white;
-            border: none;
-            padding: 1.5rem;
-        }
-
-        .card-header-success {
-            background: var(--success-gradient);
-            color: white;
-            border: none;
-            padding: 1.5rem;
-        }
-
-        .card-header-warning {
-            background: var(--warning-gradient);
-            color: white;
-            border: none;
-            padding: 1.5rem;
-        }
-
-        .card-header-info {
-            background: var(--info-gradient);
-            color: #333;
-            border: none;
-            padding: 1.5rem;
-        }
-
-        .card-header-dark {
-            background: var(--dark-gradient);
-            color: white;
-            border: none;
-            padding: 1.5rem;
-        }
-
-        .card-header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .card-title {
-            margin: 0;
-            font-weight: 600;
-            font-size: 1.25rem;
-        }
-
-        .card-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        /* Info Sections */
-        .info-section {
-            height: 100%;
-        }
-
+        /* Memakai token tema yang sama dengan halaman admin lain supaya mode gelap tetap konsisten. */
+        .card-header-content { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; width: 100%; }
         .section-title {
-            color: #495057;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid #e9ecef;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+            margin-bottom: 16px;
         }
-
-        .info-grid {
-            display: grid;
-            gap: 1.25rem;
-        }
-
+        .info-grid { display: grid; gap: 12px; }
         .info-item {
-            padding: 1rem;
-            border-radius: 0.75rem;
-            background: #f8f9fa;
-            transition: var(--transition);
-            border-left: 4px solid transparent;
-        }
-
-        .info-item:hover {
-            background: #e9ecef;
-            border-left-color: #667eea;
-            transform: translateX(5px);
-        }
-
-        .info-label {
-            font-size: 0.875rem;
-            color: #6c757d;
-            font-weight: 500;
-            margin-bottom: 0.5rem;
-            display: block;
-        }
-
-        .info-value {
-            font-weight: 600;
-            color: #212529;
-            font-size: 1rem;
-        }
-
-        .info-value.primary {
-            font-size: 1.25rem;
-            color: #667eea;
-        }
-
-        .contact-link {
-            color: inherit;
-            text-decoration: none;
-            transition: var(--transition);
-        }
-
-        .contact-link:hover {
-            color: #667eea;
-        }
-
-        /* Parent Cards */
-        .parent-card {
-            background: #f8f9fa;
-            border-radius: var(--border-radius);
-            overflow: hidden;
-            height: 100%;
-            transition: var(--transition);
-        }
-
-        .parent-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        }
-
-        .parent-father .parent-header {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white;
-        }
-
-        .parent-mother .parent-header {
-            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-            color: white;
-        }
-
-        .parent-header {
-            padding: 1rem 1.5rem;
-            font-weight: 600;
-            font-size: 1.1rem;
-        }
-
-        .parent-info {
-            padding: 1.5rem;
-        }
-
-        /* Document List */
-        .document-list {
-            padding: 0;
-        }
-
-        .document-item {
-            display: flex;
-            align-items: center;
-            padding: 1.25rem 1.5rem;
-            text-decoration: none;
-            color: inherit;
-            transition: var(--transition);
-            border-bottom: 1px solid #e9ecef;
-        }
-
-        .document-item:hover {
-            background: #f8f9fa;
-            transform: translateX(5px);
-        }
-
-        .document-item:last-child {
-            border-bottom: none;
-        }
-
-        .document-icon {
-            width: 3rem;
-            height: 3rem;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 1rem;
-            color: white;
-            font-size: 1.25rem;
-        }
-
-        .document-info {
-            flex: 1;
-        }
-
-        .document-name {
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-        }
-
-        .document-desc {
-            font-size: 0.875rem;
-            color: #6c757d;
-        }
-
-        .document-action {
-            color: #667eea;
-            font-size: 1.25rem;
-        }
-
-        /* Payment History */
-        .payment-history {
-            padding: 0;
-        }
-
-        .payment-item {
-            display: grid;
-            grid-template-columns: auto 1fr auto auto;
-            gap: 1rem;
-            align-items: center;
-            padding: 1.25rem 1.5rem;
-            border-bottom: 1px solid #e9ecef;
-            transition: var(--transition);
-        }
-
-        .payment-item:hover {
-            background: #f8f9fa;
-        }
-
-        .payment-item:last-child {
-            border-bottom: none;
-        }
-
-        .payment-date {
-            text-align: center;
-        }
-
-        .date-main {
-            font-weight: 600;
-            font-size: 0.9rem;
-        }
-
-        .date-code {
-            font-size: 0.75rem;
-            color: #6c757d;
-        }
-
-        .payment-details {
-            flex: 1;
-        }
-
-        .payment-type {
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-        }
-
-        .payment-method,
-        .payment-note {
-            font-size: 0.875rem;
-            color: #6c757d;
-        }
-
-        .payment-amount {
-            text-align: right;
-        }
-
-        .amount {
-            font-weight: 700;
-            color: #51cf66;
-            margin-bottom: 0.25rem;
-        }
-
-        /* Payment Summary */
-        .payment-summary {
-            border-radius: var(--border-radius);
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .payment-summary-pending {
-            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
-            border: 2px solid #ffc107;
-        }
-
-        .payment-summary-complete {
-            background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
-            border: 2px solid #17a2b8;
-        }
-
-        .summary-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .summary-title {
-            font-weight: 700;
-            font-size: 1.25rem;
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .payment-summary-pending .summary-title {
-            color: #856404;
-        }
-
-        .payment-summary-complete .summary-title {
-            color: #0c5460;
-        }
-
-        .summary-amount {
-            font-size: 2rem;
-            font-weight: 800;
-            margin-bottom: 0.5rem;
-        }
-
-        .payment-summary-pending .summary-amount {
-            color: #856404;
-        }
-
-        .payment-summary-complete .summary-amount {
-            color: #0c5460;
-        }
-
-        .summary-detail {
-            font-size: 0.875rem;
-            opacity: 0.8;
-        }
-
-        /* Installment Info */
-        .installment-info {
-            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-            border-radius: var(--border-radius);
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            border: 2px solid #2196f3;
-        }
-
-        .installment-title,
-        .installment-list-title {
-            color: #1976d2;
-            font-weight: 600;
-            margin-bottom: 1rem;
-        }
-
-        .installment-item {
-            text-align: center;
-            padding: 1rem;
-            background: rgba(255, 255, 255, 0.7);
-            border-radius: 0.5rem;
-        }
-
-        .installment-item label {
-            font-size: 0.875rem;
-            color: #6c757d;
-            margin-bottom: 0.5rem;
-            display: block;
-        }
-
-        .installment-item .value {
-            font-weight: 700;
-            color: #1976d2;
-        }
-
-        .installment-list {
-            background: rgba(255, 255, 255, 0.7);
-            border-radius: 0.75rem;
-            overflow: hidden;
-        }
-
-        .installment-row {
-            display: grid;
-            grid-template-columns: auto 1fr auto auto;
-            gap: 1rem;
-            align-items: center;
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid rgba(25, 118, 210, 0.1);
-        }
-
-        .installment-row:last-child {
-            border-bottom: none;
-        }
-
-        .installment-number {
-            width: 2rem;
-            height: 2rem;
-            background: #1976d2;
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 0.875rem;
-        }
-
-        .installment-date {
-            font-size: 0.875rem;
-            color: #6c757d;
-        }
-
-        .installment-amount {
-            font-weight: 600;
-            color: #1976d2;
-        }
-
-        /* Fee Items */
-        .unpaid-title {
-            color: #dc3545;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            margin-top: 2rem;
-        }
-
-        .unpaid-fees {
-            display: grid;
-            gap: 1rem;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        }
-
-        .fee-item {
-            background: #fff3cd;
-            border: 2px solid #ffc107;
-            border-radius: var(--border-radius);
-            padding: 1.25rem;
-            transition: var(--transition);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .fee-item:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(255, 193, 7, 0.2);
-        }
-
-        .fee-info {
-            margin-bottom: 1rem;
-            flex: 1;
-        }
-
-        .fee-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 0.75rem;
-        }
-
-        .fee-name {
-            margin: 0;
-            font-weight: 600;
-            color: #856404;
-        }
-
-        .fee-badges {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .fee-amount {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #856404;
-            margin-bottom: 0.5rem;
-        }
-
-        .fee-desc {
-            font-size: 0.875rem;
-            color: #6c757d;
-        }
-
-        .fee-action {
-            display: flex;
-            justify-content: flex-end;
-            gap: 0.5rem;
-        }
-
-        /* Badges */
-        .badge {
-            padding: 0.5rem 0.75rem;
-            border-radius: 50px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-
-        .badge-success {
-            background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
-            color: white;
-        }
-
-        .badge-danger {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
-            color: white;
-        }
-
-        .badge-info {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white;
-        }
-
-        /* Alerts */
-        .alert-modern {
-            border: none;
-            border-radius: var(--border-radius);
-            padding: 1.25rem 1.5rem;
-            padding-right: 3rem;
-            position: relative;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        .alert-modern .btn-close {
-            width: 1em;
-            height: 1em;
-            padding: 0.25rem;
-            background-color: transparent;
-            font-size: 0.875rem;
-            position: absolute;
-            top: 0.75rem;
-            right: 0.75rem;
-        }
-
-        .alert-content {
-            display: flex;
-            align-items: flex-start;
-            gap: 1rem;
-        }
-
-        .alert-icon {
-            font-size: 1.25rem;
-            margin-top: 0.125rem;
-        }
-
-        .alert-text {
-            flex: 1;
-        }
-
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 3rem 1.5rem;
-        }
-
-        .empty-icon {
-            font-size: 4rem;
-            color: #dee2e6;
-            margin-bottom: 1rem;
-        }
-
-        .empty-title {
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-
-        .empty-text {
-            color: #6c757d;
-            margin: 0;
-        }
-
-        /* Buttons */
-        .btn {
-            border-radius: 0.75rem;
-            font-weight: 600;
-            padding: 0.75rem 1.5rem;
-            transition: var(--transition);
-            border: none;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.5s;
-        }
-
-        .btn:hover::before {
-            left: 100%;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-warning {
-            background: linear-gradient(135deg, #ffd43b 0%, #fab005 100%);
-            color: #333;
-            box-shadow: 0 4px 12px rgba(255, 212, 59, 0.3);
-        }
-
-        .btn-warning:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(255, 212, 59, 0.4);
-        }
-
-        .btn-outline-light {
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-        }
-
-        .btn-outline-light:hover {
-            border-color: white;
-            background: white;
-            color: #333;
-        }
-
-        .btn-outline-primary {
-            border: 2px solid #667eea;
-            color: #667eea;
-            background: transparent;
-        }
-
-        .btn-outline-primary:hover {
-            background: #667eea;
-            color: white;
-        }
-
-        /* Forms */
-        .form-control,
-        .form-select {
-            border: 2px solid #e9ecef;
-            border-radius: 0.75rem;
-            padding: 0.75rem 1rem;
-            transition: var(--transition);
-            background: #fff;
-        }
-
-        .form-control:focus,
-        .form-select:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-            background: #fff;
-        }
-
-        .form-label {
-            font-weight: 600;
-            color: #495057;
-            margin-bottom: 0.75rem;
-            display: flex;
-            align-items: center;
-        }
-
-        .input-group-text {
-            border: 2px solid #e9ecef;
-            border-right: none;
-            background: #667eea;
-            color: white;
-            font-weight: 600;
-            border-radius: 0.75rem 0 0 0.75rem;
-        }
-
-        .input-group .form-control {
-            border-left: none;
-            border-radius: 0 0.75rem 0.75rem 0;
-        }
-
-        /* Modal */
-        .modal-content {
-            border: none;
-            border-radius: var(--border-radius);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-            overflow: hidden;
-        }
-
-        .modal-header {
-            background: var(--primary-gradient);
-            color: white;
-            border: none;
-            padding: 1.5rem;
-        }
-
-        .modal-title {
-            font-weight: 600;
-            margin: 0;
-        }
-
-        .modal-header .btn-close {
-            filter: invert(1);
-        }
-
-        .modal-body {
-            padding: 2rem;
-        }
-
-        .modal-footer {
-            background: #f8f9fa;
-            border: none;
-            padding: 1.5rem 2rem;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .header-content {
-                flex-direction: column;
-                text-align: center;
-                gap: 1rem;
-            }
-
-            .page-title {
-                font-size: 2rem;
-            }
-
-            .card-header-content {
-                flex-direction: column;
-                gap: 1rem;
-                text-align: center;
-            }
-
-            .summary-content {
-                flex-direction: column;
-                text-align: center;
-                gap: 1rem;
-            }
-
-            .fee-header {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-
-            .payment-item {
-                grid-template-columns: 1fr;
-                gap: 0.5rem;
-                text-align: center;
-            }
-
-            .installment-row {
-                grid-template-columns: 1fr;
-                gap: 0.5rem;
-                text-align: center;
-            }
-
-            .document-item {
-                flex-direction: column;
-                text-align: center;
-                gap: 1rem;
-            }
-
-            .modal-body {
-                padding: 1rem;
-            }
-
-            .btn-lg {
-                padding: 1rem 2rem;
-                font-size: 1.1rem;
-            }
-        }
-
-        /* Animation Classes */
-        .fade-in {
-            opacity: 0;
-            transform: translateY(20px);
-            animation: fadeIn 0.6s ease forwards;
-        }
-
-        @keyframes fadeIn {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .slide-in-left {
-            opacity: 0;
-            transform: translateX(-20px);
-            animation: slideInLeft 0.6s ease forwards;
-        }
-
-        @keyframes slideInLeft {
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        .slide-in-right {
-            opacity: 0;
-            transform: translateX(20px);
-            animation: slideInRight 0.6s ease forwards;
-        }
-
-        @keyframes slideInRight {
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        /* Utility Classes */
-        .text-gradient {
-            background: var(--primary-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .glass-effect {
-            backdrop-filter: blur(10px);
-            background: rgba(255, 255, 255, 0.9);
-        }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 10px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
-        }
-
-        /* Loading Animation */
-        .loading {
-            position: relative;
-            overflow: hidden;
-        }
-
-        .loading::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-            animation: loading 1.5s infinite;
-        }
-
-        @keyframes loading {
-            0% {
-                left: -100%;
-            }
-
-            100% {
-                left: 100%;
-            }
+            padding: 10px 12px;
+            background: var(--bg-surface-2);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            overflow-wrap: anywhere;
+        }
+        .info-label { display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 2px; }
+        .info-value { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+        .info-value.primary { font-size: 14px; }
+        .contact-link { color: var(--accent-primary); text-decoration: none; }
+        .contact-link:hover { text-decoration: underline; }
+
+        .parent-card { background: var(--bg-surface-2); border: 1px solid var(--border-color); border-radius: var(--radius-md); height: 100%; }
+        .parent-header { padding: 10px 14px; font-weight: 700; font-size: 13px; border-bottom: 1px solid var(--border-color); }
+        .parent-info { padding: 14px; display: grid; gap: 12px; }
+        .parent-info .info-item { background: var(--bg-surface); }
+
+        .document-item { display: flex; align-items: center; gap: 12px; padding: 12px 20px; color: var(--text-primary); text-decoration: none; border-bottom: 1px solid var(--border-subtle); }
+        .document-item:last-child { border-bottom: 0; }
+        .document-item:hover { background: var(--bg-surface-2); }
+        .document-icon { width: 34px; height: 34px; flex: 0 0 34px; display: grid; place-items: center; border-radius: var(--radius-sm); background: var(--accent-soft); color: var(--accent-primary); }
+        .document-info { min-width: 0; flex: 1; }
+        .document-name { font-weight: 600; font-size: 13px; }
+        .document-desc { font-size: 12px; color: var(--text-secondary); }
+        .document-action { color: var(--accent-primary); }
+
+        .payment-item { display: grid; grid-template-columns: auto minmax(0,1fr) auto auto; gap: 16px; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border-subtle); }
+        .payment-item:last-child { border-bottom: 0; }
+        .payment-date { text-align: center; }
+        .date-main { font-weight: 600; font-size: 12px; }
+        .date-code { font-size: 11px; color: var(--text-secondary); }
+        .payment-type { font-weight: 600; font-size: 13px; }
+        .payment-method, .payment-note { font-size: 12px; color: var(--text-secondary); }
+        .payment-amount { text-align: right; display: grid; gap: 4px; justify-items: end; }
+        .amount { font-weight: 700; color: var(--text-primary); }
+
+        .payment-summary { padding: 16px; margin-bottom: 16px; background: var(--bg-surface-2); border: 1px solid var(--border-color); border-radius: var(--radius-md); }
+        .summary-content { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+        .summary-title { font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        .summary-amount { font-size: 22px; font-weight: 800; }
+        .summary-detail { font-size: 12px; color: var(--text-secondary); }
+
+        .installment-info { padding: 16px; margin-bottom: 16px; background: var(--bg-surface-2); border: 1px solid var(--border-color); border-radius: var(--radius-md); }
+        .installment-title, .installment-list-title { font-weight: 700; font-size: 13px; margin-bottom: 12px; }
+        .installment-item { text-align: center; padding: 12px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); }
+        .installment-item label { display: block; font-size: 11px; color: var(--text-secondary); }
+        .installment-item .value { font-weight: 700; color: var(--text-primary); }
+        .installment-list { border: 1px solid var(--border-color); border-radius: var(--radius-sm); overflow: hidden; }
+        .installment-row { display: grid; grid-template-columns: auto minmax(0,1fr) auto auto; gap: 12px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--border-subtle); }
+        .installment-row:last-child { border-bottom: 0; }
+        .installment-number { width: 28px; height: 28px; border-radius: var(--radius-sm); background: var(--accent-soft); color: var(--accent-primary); display: grid; place-items: center; font-weight: 700; font-size: 12px; }
+        .installment-date { font-size: 12px; color: var(--text-secondary); }
+        .installment-amount { font-weight: 600; }
+
+        .unpaid-title { font-weight: 700; color: var(--text-primary); margin: 20px 0 12px; }
+        .unpaid-fees { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+        .fee-item { padding: 14px; background: var(--bg-surface-2); border: 1px solid var(--border-color); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 12px; }
+        .fee-header { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px; }
+        .fee-name { margin: 0; font-size: 13px; font-weight: 700; }
+        .fee-badges { display: flex; flex-wrap: wrap; gap: 4px; }
+        .fee-amount { font-size: 18px; font-weight: 700; }
+        .fee-desc { font-size: 12px; color: var(--text-secondary); }
+        .fee-action { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+
+        .empty-state { text-align: center; padding: 28px 16px; }
+        .empty-icon { font-size: 28px; color: var(--text-secondary); margin-bottom: 8px; }
+        .empty-title { font-weight: 700; }
+        .empty-text { color: var(--text-secondary); margin: 0; }
+
+        @media (max-width: 767.98px) {
+            .payment-item, .installment-row { grid-template-columns: 1fr; text-align: left; gap: 6px; }
+            .payment-amount { text-align: left; justify-items: start; }
         }
     </style>
 @endpush
 
 @section('content')
-    <!-- Modern Header Section -->
-    <div class="header-section">
-        <div class="container-fluid px-4">
-            <div class="header-content">
-                <div class="header-info">
-                    <nav aria-label="breadcrumb" class="mb-3">
-                        <ol class="breadcrumb breadcrumb-modern">
-                            <li class="breadcrumb-item">
-                                <a href="{{ route('admin.calon-siswas.index') }}" class="breadcrumb-link">
-                                    <i class="bi bi-house-door me-1"></i>Dashboard
-                                </a>
-                            </li>
-                            <li class="breadcrumb-item">
-                                <a href="{{ route('admin.calon-siswas.index') }}" class="breadcrumb-link">
-                                    Data Pendaftaran
-                                </a>
-                            </li>
-                            <li class="breadcrumb-item active">Detail Pendaftaran</li>
-                        </ol>
-                    </nav>
-                    <h1 class="page-title">
-                        <i class="bi bi-person-badge me-3"></i>Detail Pendaftaran
-                    </h1>
-                    <p class="page-subtitle">{{ $calon->nama_lengkap }} ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ {{ $calon->no_pendaftaran }}</p>
-                </div>
-                <div class="header-actions d-flex align-items-center gap-2 flex-wrap">
-                    <span class="status-badge status-{{ $calon->status_pendaftaran }}">
-                        <i class="bi {{ $calon->status_pendaftaran === 'diterima' ? 'bi-check-circle' : ($calon->status_pendaftaran === 'ditolak' ? 'bi-x-circle' : 'bi-clock') }}"></i>
-                        {{ ucfirst(str_replace('_', ' ', $calon->status_pendaftaran)) }}
-                    </span>
-                    <a href="{{ route('admin.calon-siswas.index') }}" class="btn btn-outline-light btn-sm">
-                        <i class="bi bi-arrow-left me-1"></i>Kembali
-                    </a>
-                    @can('calon-siswas.edit')
-                        <a href="{{ route('admin.calon-siswas.edit', $calon) }}" class="btn btn-outline-light btn-sm">
-                            <i class="bi bi-pencil me-1"></i>Ubah
-                        </a>
-                    @endcan
-                    <button type="button" class="btn btn-outline-light btn-sm" onclick="window.print()">
-                        <i class="bi bi-printer me-1"></i>Print
-                    </button>
-                </div>
-            </div>
+    @php
+        $statusBadge = [
+            'diterima' => 'success',
+            'berhasil' => 'success',
+            'dibayar' => 'success',
+            'ditolak' => 'danger',
+            'gagal' => 'danger',
+            'menunggu' => 'warning',
+            'daftar_ulang' => 'warning',
+            'pending' => 'warning',
+        ];
+    @endphp
+
+    <div class="page-header d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <h1 class="page-title">Detail Pendaftaran</h1>
+            <p class="page-subtitle mb-0">{{ $calon->nama_lengkap }} · {{ $calon->no_pendaftaran }}</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap align-items-center">
+            <span class="badge-nexus badge-{{ $statusBadge[$calon->status_pendaftaran] ?? 'neutral' }}">
+                {{ ucfirst(str_replace('_', ' ', $calon->status_pendaftaran)) }}
+            </span>
+            <a href="{{ route('admin.calon-siswas.index') }}" class="btn btn-nexus-outline btn-sm">
+                <i class="bi bi-arrow-left"></i> Kembali
+            </a>
+            @can('calon-siswas.edit')
+                <a href="{{ route('admin.calon-siswas.edit', $calon) }}" class="btn btn-nexus-outline btn-sm">
+                    <i class="bi bi-pencil"></i> Ubah
+                </a>
+            @endcan
+            <button type="button" class="btn btn-nexus-outline btn-sm" onclick="window.print()">
+                <i class="bi bi-printer"></i> Print
+            </button>
         </div>
     </div>
 
-    <!-- Alert Messages -->
-    @if (session('success'))
-        <div class="alert alert-success alert-modern alert-dismissible" role="alert">
-            <div class="alert-content">
-                <i class="bi bi-check-circle-fill alert-icon"></i>
-                <div class="alert-text">{{ session('success') }}</div>
-            </div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
-    @if (session('error'))
-        <div class="alert alert-danger alert-modern alert-dismissible" role="alert">
-            <div class="alert-content">
-                <i class="bi bi-exclamation-triangle-fill alert-icon"></i>
-                <div class="alert-text">{{ session('error') }}</div>
-            </div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
-    @if ($errors->any())
-        <div class="alert alert-danger alert-modern alert-dismissible" role="alert">
-            <div class="alert-content">
-                <i class="bi bi-exclamation-triangle-fill alert-icon"></i>
-                <div class="alert-text">
-                    <strong>Terjadi kesalahan:</strong>
-                    <ul class="mb-0 mt-2">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            </div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
+    @include('layouts.partials.alert', ['errorDitampilkan' => \App\Models\BerkasCalonSiswa::UPLOADABLE])
 
     <div class="row g-4">
         <div class="col-12 col-xl-8">
             <!-- Student Data Card -->
-            <div class="card modern-card">
-                <div class="card-header card-header-primary">
+            <div class="card-nexus">
+                <div class="card-header-nexus">
                     <div class="card-header-content">
                         <h5 class="card-title">
                             <i class="bi bi-person-fill me-2"></i>Data Pendaftar
                         </h5>
                     </div>
                 </div>
-                <div class="card-body">
+                <div class="card-body-nexus">
                     <div class="row g-4">
                         <!-- Personal Info -->
                         <div class="col-md-6">
@@ -1182,7 +234,7 @@
                                         <div class="info-value">
                                             @if ($calon->jalurPendaftaran)
                                                 {{ $calon->jalurPendaftaran->nama_jalur }}
-                                                <span class="badge badge-{{ $calon->jalurPendaftaran->aktif ? 'success' : 'danger' }}">
+                                                <span class="badge-nexus badge-{{ $calon->jalurPendaftaran->aktif ? 'success' : 'danger' }}">
                                                     {{ $calon->jalurPendaftaran->aktif ? 'Aktif' : 'Tidak Aktif' }}
                                                 </span>
                                             @else
@@ -1198,13 +250,13 @@
             </div>
 
             <!-- Parent Data Card -->
-            <div class="card modern-card">
-                <div class="card-header card-header-success">
+            <div class="card-nexus">
+                <div class="card-header-nexus">
                     <h5 class="card-title">
                         <i class="bi bi-people-fill me-2"></i>Data Orang Tua
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body-nexus">
                     <div class="row g-4">
                         <div class="col-md-6">
                             <div class="parent-card parent-father">
@@ -1258,13 +310,13 @@
             </div>
 
             <!-- Status & Log Card -->
-            <div class="card modern-card">
-                <div class="card-header card-header-primary">
+            <div class="card-nexus">
+                <div class="card-header-nexus">
                     <h5 class="card-title">
                         <i class="bi bi-clipboard-data me-2"></i>Status Pendaftaran
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body-nexus">
                     @can('calon-siswas.edit')
                         <form method="POST" action="{{ route('admin.calon-siswas.status', $calon) }}" id="form-status">
                             @csrf @method('PATCH')
@@ -1274,11 +326,11 @@
                                         <i class="bi bi-clipboard-data text-primary me-1"></i>Status Pendaftaran
                                     </label>
                                     <select class="form-select" id="status_pendaftaran" name="status" required>
-                                        <option value="">Pilih keputusan...</option>
-                                        <option value="menunggu" @selected($calon->status_pendaftaran === 'menunggu')>ÃƒÂ¢Ã‚ÂÃ‚Â³ Menunggu</option>
-                                        <option value="diterima" @selected($calon->status_pendaftaran === 'diterima')>ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Diterima</option>
-                                        <option value="ditolak" @selected($calon->status_pendaftaran === 'ditolak')>ÃƒÂ¢Ã‚ÂÃ…â€™ Ditolak</option>
-                                        <option value="daftar_ulang" @selected($calon->status_pendaftaran === 'daftar_ulang')>ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‚Â Daftar Ulang</option>
+                                        <option value="">Pilih keputusan…</option>
+                                        <option value="menunggu" @selected($calon->status_pendaftaran === 'menunggu')>Menunggu</option>
+                                        <option value="diterima" @selected($calon->status_pendaftaran === 'diterima')>Diterima</option>
+                                        <option value="ditolak" @selected($calon->status_pendaftaran === 'ditolak')>Ditolak</option>
+                                        <option value="daftar_ulang" @selected($calon->status_pendaftaran === 'daftar_ulang')>Daftar Ulang</option>
                                     </select>
                                 {{-- Server menolak `diterima` bila berkas belum diverifikasi
                                      atau masih ada yang perlu perbaikan (lihat
@@ -1307,7 +359,7 @@
                                     <label for="catatan_status" class="form-label">
                                         <i class="bi bi-chat-text text-info me-1"></i>Catatan (opsional)
                                     </label>
-                                    <textarea class="form-control" id="catatan_status" name="catatan" rows="3" placeholder="Berikan catatan untuk keputusan ini..."></textarea>
+                                    <textarea class="form-control" id="catatan_status" name="catatan" rows="3" placeholder="Berikan catatan untuk keputusan ini…"></textarea>
                                 </div>
                                 <div class="col-12">
                                     <button type="submit" class="btn btn-primary btn-lg w-100">
@@ -1317,18 +369,18 @@
                             </div>
                         </form>
                     @else
-                        <p style="font-size: 14px;">{{ ucfirst(str_replace('_', ' ', $calon->status_pendaftaran)) }}</p>
+                        <p class="small text-secondary">{{ ucfirst(str_replace('_', ' ', $calon->status_pendaftaran)) }}</p>
                     @endcan
 
-                    <h6 class="mt-4 mb-3" style="font-weight:600;color:#495057;">Riwayat Status</h6>
+                    <h6 class="mt-4 mb-3 fw-semibold">Riwayat Status</h6>
                     <div class="d-flex flex-column gap-2">
                         @forelse ($calon->logStatusPendaftaran->sortByDesc('created_at') as $log)
-                            <div style="font-size: 12px; border-left: 3px solid #667eea; padding-left: 10px;">
-                                <div><strong>{{ $log->status_sebelumnya ?? 'ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â' }} ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ {{ $log->status_baru }}</strong> ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ {{ $log->created_at->format('d M Y H:i') }}</div>
-                                <div style="color: #6c757d;">oleh {{ $log->user->name ?? 'sistem' }} @if ($log->catatan) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â {{ $log->catatan }} @endif</div>
+                            <div class="small ps-3">
+                                <div><strong>{{ $log->status_sebelumnya ?? '-' }} ke {{ $log->status_baru }}</strong> · {{ $log->created_at->format('d M Y H:i') }}</div>
+                                <div class="small text-secondary">oleh {{ $log->user->name ?? 'sistem' }} @if ($log->catatan) · {{ $log->catatan }} @endif</div>
                             </div>
                         @empty
-                            <span style="font-size: 12px; color: #6c757d;">Belum ada log.</span>
+                            <span class="small text-secondary">Belum ada log.</span>
                         @endforelse
                     </div>
                 </div>
@@ -1337,20 +389,20 @@
 
         <div class="col-12 col-xl-4">
             <!-- Documents Card -->
-            <div class="card modern-card">
-                <div class="card-header card-header-info">
+            <div class="card-nexus">
+                <div class="card-header-nexus">
                     <h5 class="card-title">
                         <i class="bi bi-folder2-open me-2"></i>Berkas Pendaftaran
                     </h5>
                 </div>
-                <div class="card-body p-0">
+                <div class="card-body-nexus p-0">
                     @if ($calon->berkasCalonSiswa)
                         @php $b = $calon->berkasCalonSiswa; @endphp
                         <div class="document-list">
-                            @foreach (['foto_path' => ['Foto 3x4', 'bg-primary', 'bi-camera-fill'], 'ijazah_path' => ['Ijazah/STTB', 'bg-success', 'bi-award-fill'], 'kk_path' => ['KK Asli', 'bg-warning', 'bi-people-fill'], 'akta_path' => ['Akta Asli', 'bg-info', 'bi-file-earmark-text-fill'], 'skl_path' => ['SKL Asli', 'bg-secondary', 'bi-mortarboard-fill'], 'krm_path' => ['Opsional', 'bg-danger', 'bi-card-text-fill'], 'kip_path' => ['Opsional', 'bg-info', 'bi-wallet-fill']] as $field => [$desc, $bg, $icon])
+                            @foreach (['foto_path' => ['Foto 3x4', 'bi-camera-fill'], 'ijazah_path' => ['Ijazah/STTB', 'bi-award-fill'], 'kk_path' => ['KK Asli', 'bi-people-fill'], 'akta_path' => ['Akta Asli', 'bi-file-earmark-text-fill'], 'skl_path' => ['SKL Asli', 'bi-mortarboard-fill'], 'krm_path' => ['Opsional', 'bi-card-text-fill'], 'kip_path' => ['Opsional', 'bi-wallet-fill']] as $field => [$desc, $icon])
                                 @if ($b->$field)
                                     <a href="{{ route('dokumen.berkas', [$b, $field]) }}" target="_blank" class="document-item">
-                                        <div class="document-icon {{ $bg }}">
+                                        <div class="document-icon">
                                             <i class="bi {{ $icon }}"></i>
                                         </div>
                                         <div class="document-info">
@@ -1378,9 +430,9 @@
                                 </a>
                             @endforeach
                         </div>
-                        <div class="px-4 py-3" style="font-size: 12px; color: #6c757d; border-top: 1px solid #e9ecef;">
+                        <div class="px-4 py-3 small text-secondary border-top">
                             Verifikasi: {{ $b->status_verifikasi ? 'Terverifikasi' : 'Belum' }}
-                            @if ($b->alasan_penolakan) ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ Alasan: {{ $b->alasan_penolakan }} @endif
+                            @if ($b->alasan_penolakan) · Alasan: {{ $b->alasan_penolakan }} @endif
                         </div>
                     @else
                         <div class="empty-state">
@@ -1390,7 +442,7 @@
                     @endif
 
                     @can('berkas-calon-siswas.edit')
-                        <div class="p-4" style="border-top: 1px solid #e9ecef;">
+                        <div class="p-4 border-top">
                             <form method="POST" action="{{ route('admin.calon-siswas.berkas', $calon) }}" class="d-flex flex-column gap-3" enctype="multipart/form-data">
                                 @csrf @method('PATCH')
                                 <div class="form-check">
@@ -1400,12 +452,12 @@
                                 </div>
                                 <div>
                                     <div style="font-weight:600;font-size:13px;">Ganti Berkas (kosongkan bila tidak diubah)</div>
-                                    <div style="font-size:11px;color:#6c757d;">PDF 5MB, Foto JPG/PNG 2MB. File lama dihapus bila diganti.</div>
+                                    <div class="small text-secondary">PDF 5MB, Foto JPG/PNG 2MB. File lama dihapus bila diganti.</div>
                                 </div>
                                 <div class="row g-2">
                                     @foreach (\App\Models\BerkasCalonSiswa::UPLOADABLE as $fld)
                                         <div class="col-12 col-sm-6">
-                                            <label class="form-label" style="font-size:12px;" for="berkas-{{ $fld }}">{{ \App\Models\BerkasCalonSiswa::LABELS[$fld] ?? $fld }}</label>
+                                            <label class="form-label small" for="berkas-{{ $fld }}">{{ \App\Models\BerkasCalonSiswa::LABELS[$fld] ?? $fld }}</label>
                                             <input type="file" name="{{ $fld }}" id="berkas-{{ $fld }}" class="form-control form-control-sm @error($fld) is-invalid @enderror" />
                                             @error($fld)<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                         </div>
@@ -1438,13 +490,13 @@
             </div>
 
             <!-- Payment History Card -->
-            <div class="card modern-card">
-                <div class="card-header card-header-warning">
+            <div class="card-nexus">
+                <div class="card-header-nexus">
                     <h5 class="card-title">
                         <i class="bi bi-clock-history me-2"></i>Riwayat Pembayaran
                     </h5>
                 </div>
-                <div class="card-body p-0">
+                <div class="card-body-nexus p-0">
                     <div class="table-responsive">
                         @if ($calon->pembayaran->count() > 0)
                             <div class="payment-history">
@@ -1465,14 +517,14 @@
                                         </div>
                                         <div class="payment-amount">
                                             <div class="amount">Rp {{ number_format($pembayaran->jumlah, 0, ',', '.') }}</div>
-                                            <div class="status-badge status-{{ $pembayaran->status === 'menunggu' ? 'pending' : $pembayaran->status }}">
+                                            <div class="badge-nexus badge-{{ $statusBadge[$pembayaran->status] ?? 'neutral' }}">
                                                 <i class="bi {{ $pembayaran->status === 'berhasil' ? 'bi-check-circle' : ($pembayaran->status === 'menunggu' ? 'bi-clock' : 'bi-x-circle') }}"></i>
                                                 {{ ucfirst($pembayaran->status) }}
                                             </div>
                                         </div>
                                         <div class="payment-proof">
                                             @if ($pembayaran->bukti_pembayaran_path)
-                                                <a href="{{ route('dokumen.pembayaran', $pembayaran) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                <a href="{{ route('dokumen.pembayaran', $pembayaran) }}" target="_blank" class="btn btn-sm btn-nexus-outline" aria-label="Lihat bukti pembayaran {{ $pembayaran->kode_pembayaran }}">
                                                     <i class="bi bi-eye"></i>
                                                 </a>
                                             @else
@@ -1508,20 +560,20 @@
             @endunless
 
             <!-- Fee Details Card -->
-            <div class="card modern-card">
-                <div class="card-header card-header-dark">
+            <div class="card-nexus">
+                <div class="card-header-nexus">
                     <div class="card-header-content">
                         <h5 class="card-title">
                             <i class="bi bi-currency-dollar me-2"></i>Rincian Biaya
                         </h5>
                         @if (auth()->user()?->can('pembayarans.create') && $bolehDitagih)
-                            <button type="button" class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#modalPembayaran">
+                            <button type="button" class="btn btn-nexus-outline btn-sm" data-bs-toggle="modal" data-bs-target="#modalPembayaran">
                                 <i class="bi bi-plus-circle me-1"></i>Tambah
                             </button>
                         @endif
                     </div>
                 </div>
-                <div class="card-body">
+                <div class="card-body-nexus">
                     @php
                         // Satu sumber kebenaran: App\Support\TagihanCalon.
                         // Definisi "lunas" tidak lagi dihitung terpisah di sini,
@@ -1548,7 +600,7 @@
                                 </div>
                                 <div class="summary-amount">Rp {{ number_format($totalBelumBayar, 0, ',', '.') }}</div>
                                 <div class="summary-detail">
-                                    Total biaya wajib: Rp {{ number_format($totalWajib, 0, ',', '.') }} Ã¢â‚¬Â¢
+                                    Total biaya wajib: Rp {{ number_format($totalWajib, 0, ',', '.') }} ·
                                     Terbayar: Rp {{ number_format($terbayarWajib, 0, ',', '.') }}
                                 </div>
                             </div>
@@ -1610,7 +662,7 @@
                                                 <div class="installment-amount">Rp {{ number_format($angsuran->nominal_cicilan, 0, ',', '.') }}</div>
                                             </div>
                                             <div class="installment-status">
-                                                <span class="status-badge status-{{ $angsuran->status === 'dibayar' ? 'berhasil' : 'pending' }}">
+                                                <span class="badge-nexus badge-{{ $statusBadge[$angsuran->status] ?? 'neutral' }}">
                                                     {{ ucfirst(str_replace('_', ' ', $angsuran->status)) }}
                                                 </span>
                                             </div>
@@ -1618,7 +670,7 @@
                                                 @if (auth()->user()?->can('pembayarans.create') && $bolehDitagih)
                                                     @if ($angsuran->status !== 'dibayar' && $rencana->status === 'aktif')
                                                         <button type="button" class="btn btn-sm btn-primary"
-                                                            onclick="setCicilan('{{ $angsuran->id }}', '{{ $rencana->biaya_pendaftaran_id }}', '{{ $angsuran->nominal_cicilan + $angsuran->denda }}', 'Cicilan ke-{{ $angsuran->cicilan_ke }} ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Rp {{ number_format($angsuran->nominal_cicilan + $angsuran->denda, 0, ',', '.') }}')"
+                                                            onclick="setCicilan('{{ $angsuran->id }}', '{{ $rencana->biaya_pendaftaran_id }}', '{{ $angsuran->nominal_cicilan + $angsuran->denda }}', 'Cicilan ke-{{ $angsuran->cicilan_ke }} Rp {{ number_format($angsuran->nominal_cicilan + $angsuran->denda, 0, ',', '.') }}')"
                                                             data-bs-toggle="modal" data-bs-target="#modalBayarCicilan">
                                                             Bayar
                                                         </button>
@@ -1644,10 +696,10 @@
                                             <h6 class="fee-name">{{ $biaya['jenis'] }}</h6>
                                             <div class="fee-badges">
                                                 @if ($biaya['wajib'])
-                                                    <span class="badge badge-danger">Wajib</span>
+                                                    <span class="badge-nexus badge-danger">Wajib</span>
                                                 @endif
                                                 @if ($biaya['dapat_diangsur'])
-                                                    <span class="badge badge-info">Dapat Diangsur</span>
+                                                    <span class="badge-nexus badge-info">Dapat Diangsur</span>
                                                 @endif
                                             </div>
                                         </div>
@@ -1671,7 +723,7 @@
                                                 <span class="text-muted" style="font-size:11px;">Dibayar via cicilan di bawah</span>
                                             @endif
                                             @if ($biaya['dapat_diangsur'] && $biaya['tagihan_id'])
-                                                <a href="{{ route('admin.pembayarans.show', $biaya['tagihan_id']) }}" class="btn btn-outline-primary">
+                                                <a href="{{ route('admin.pembayarans.show', $biaya['tagihan_id']) }}" class="btn btn-nexus-outline">
                                                     <i class="bi bi-calendar-range me-1"></i>Angsuran
                                                 </a>
                                             @endif
@@ -1691,23 +743,23 @@
             </div>
 
             <!-- Pembayaran Lainnya -->
-            <div class="card modern-card mt-4">
-                <div class="card-header">
+            <div class="card-nexus mt-4">
+                <div class="card-header-nexus">
                     <h5 class="card-title">
                         <i class="bi bi-receipt me-2"></i>Pembayaran Lainnya
                     </h5>
                     <div class="d-flex gap-2">
-                        <a href="{{ route('admin.pembayaran-lainnyas.index', ['search' => $calon->no_pendaftaran]) }}" class="btn btn-outline-light btn-sm">
+                        <a href="{{ route('admin.pembayaran-lainnyas.index', ['search' => $calon->no_pendaftaran]) }}" class="btn btn-nexus-outline btn-sm">
                             <i class="bi bi-list-ul me-1"></i>Lihat Semua
                         </a>
                         @if (auth()->user()?->can('pembayaran-lainnyas.create') && $bolehDitagih)
-                            <button type="button" class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#modalPembayaranLainnya">
+                            <button type="button" class="btn btn-nexus-outline btn-sm" data-bs-toggle="modal" data-bs-target="#modalPembayaranLainnya">
                                 <i class="bi bi-plus-circle me-1"></i>Tambah
                             </button>
                         @endif
                     </div>
                 </div>
-                <div class="card-body">
+                <div class="card-body-nexus">
                     @if ($calon->pembayaranLainnya->isNotEmpty())
                         <div class="table-responsive">
                             <table class="table-nexus w-100" style="font-size: 13px;">
@@ -1725,16 +777,16 @@
                                             <td>
                                                 @if($lain->bukti_pembayaran_path)
                                                     <a href="{{ route('dokumen.pembayaran-lainnya', $lain) }}" target="_blank" class="text-primary">Lihat</a>
-                                                @else ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â @endif
+                                                @else - @endif
                                             </td>
                                             <td>
                                                 <div class="d-flex gap-1">
-                                                    <a href="{{ route('admin.pembayaran-lainnyas.show', $lain) }}" class="btn-icon btn btn-nexus-outline btn-sm"><i class="fa-solid fa-eye"></i></a>
+                                                    <a href="{{ route('admin.pembayaran-lainnyas.show', $lain) }}" class="btn-icon btn btn-nexus-outline btn-sm" aria-label="Lihat pembayaran {{ $lain->kode_pembayaran }}"><i class="fa-solid fa-eye"></i></a>
                                                     @if($lain->status !== 'berhasil')
                                                         <form action="{{ route('admin.pembayaran-lainnyas.status', $lain) }}" method="POST" class="d-inline">
                                                             @csrf @method('PATCH')
                                                             <input type="hidden" name="status" value="berhasil" />
-                                                            <button type="submit" class="btn-icon btn btn-nexus-outline btn-sm text-success" title="Verifikasi berhasil"><i class="fa-solid fa-check"></i></button>
+                                                            <button type="submit" class="btn-icon btn btn-nexus-outline btn-sm text-success" title="Verifikasi berhasil" aria-label="Verifikasi pembayaran {{ $lain->kode_pembayaran }}"><i class="fa-solid fa-check"></i></button>
                                                         </form>
                                                     @endif
                                                 </div>
@@ -1772,13 +824,13 @@
                                             <i class="bi bi-tag text-primary me-1"></i>Biaya <span class="text-danger">*</span>
                                         </label>
                                         <select class="form-select" id="selected_biaya_id" name="biaya_pendaftaran_id" required>
-                                            <option value="">ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Pilih Biaya (wajib & non-wajib) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â</option>
+                                            <option value="">Pilih Biaya (wajib &amp; non-wajib)</option>
                                             @foreach ($tagihan->rincian() as $biayaOpt)
                                                 <option value="{{ $biayaOpt['id'] }}"
                                                     data-dapat-diangsur="{{ $biayaOpt['dapat_diangsur'] ? 1 : 0 }}"
                                                     data-sisa="{{ $biayaOpt['sisa'] }}"
                                                     data-mata-uang="{{ $biayaOpt['mata_uang'] }}">
-                                                    {{ $biayaOpt['jenis'] }} ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â {{ $biayaOpt['wajib'] ? 'Wajib' : 'Opsional' }} ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Sisa Rp {{ number_format($biayaOpt['sisa'], 0, ',', '.') }}
+                                                    {{ $biayaOpt['jenis'] }} · {{ $biayaOpt['wajib'] ? 'Wajib' : 'Opsional' }} · Sisa Rp {{ number_format($biayaOpt['sisa'], 0, ',', '.') }}
                                                 </option>
                                             @endforeach
                                         </select>
@@ -1843,7 +895,7 @@
                                             <label for="catatan" class="form-label">
                                                 <i class="bi bi-chat-text text-secondary me-1"></i>Catatan
                                             </label>
-                                            <textarea class="form-control" id="catatan" name="catatan" rows="3" placeholder="Tambahkan catatan jika diperlukan..."></textarea>
+                                            <textarea class="form-control" id="catatan" name="catatan" rows="3" placeholder="Tambahkan catatan jika diperlukan…"></textarea>
                                         </div>
                                     </div>
                                 </div>
@@ -1922,7 +974,7 @@
                                             <label for="lain_catatan" class="form-label">
                                                 <i class="bi bi-chat-text text-secondary me-1"></i>Catatan
                                             </label>
-                                            <textarea class="form-control" id="lain_catatan" name="catatan" rows="3" placeholder="Opsional..."></textarea>
+                                            <textarea class="form-control" id="lain_catatan" name="catatan" rows="3" placeholder="Opsional…"></textarea>
                                         </div>
                                     </div>
                                 </div>
@@ -2058,26 +1110,6 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Animate cards on load with stagger effect
-            const cards = document.querySelectorAll('.modern-card');
-            cards.forEach((card, index) => {
-                card.classList.add('fade-in');
-                card.style.animationDelay = `${index * 0.1}s`;
-            });
-
-            // Animate info items
-            const infoItems = document.querySelectorAll('.info-item');
-            infoItems.forEach((item, index) => {
-                item.classList.add('slide-in-left');
-                item.style.animationDelay = `${index * 0.05}s`;
-            });
-
-            // Animate document items
-            const docItems = document.querySelectorAll('.document-item');
-            docItems.forEach((item, index) => {
-                item.classList.add('slide-in-right');
-                item.style.animationDelay = `${index * 0.1}s`;
-            });
 
             // Confirm before changing status
             const statusForm = document.getElementById('form-status');
@@ -2085,13 +1117,13 @@
                 statusForm.addEventListener('submit', function(e) {
                     e.preventDefault();
                     const status = document.getElementById('status_pendaftaran').value;
-                    const studentName = document.querySelector('.page-subtitle').textContent.split(' ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ ')[0];
+                    const studentName = @js($calon->nama_lengkap);
                     const confirmMessage = status === 'diterima'
                         ? `Apakah Anda yakin ingin MENERIMA ${studentName}?`
                         : `Apakah Anda yakin ingin mengubah status ${studentName} menjadi ${status}?`;
                     if (confirm(confirmMessage)) {
                         const submitBtn = this.querySelector('button[type="submit"]');
-                        submitBtn.innerHTML = 'Memproses...';
+                        submitBtn.textContent = 'Memproses…';
                         submitBtn.disabled = true;
                         this.submit();
                     }

@@ -74,7 +74,7 @@ test('halaman show tampil gaya modern lengkap', function () {
     $response = $this->actingAs(superAdmin())->get(route('admin.calon-siswas.show', $calon));
 
     $response->assertOk();
-    foreach (['header-section', 'document-list', 'payment-history', 'modalPembayaran', 'form-status', 'Rincian Biaya'] as $marker) {
+    foreach (['page-header', 'Berkas Pendaftaran', 'Riwayat Pembayaran', 'modalPembayaran', 'form-status', 'Rincian Biaya'] as $marker) {
         $response->assertSee($marker, false);
     }
 });
