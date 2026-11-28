@@ -135,7 +135,7 @@ test('daftar label berkas hidup di satu konstanta model', function () {
     expect(BerkasCalonSiswa::UPLOADABLE)->toHaveCount(7)
         ->and(BerkasCalonSiswa::PERLU_PERBAIKAN)->toContain('sertifikat')
         ->and(BerkasCalonSiswa::LABELS)->toHaveKeys(BerkasCalonSiswa::PERLU_PERBAIKAN)
-        ->and(BerkasCalonSiswa::LABELS['krm_path'])->toBe('Kartu Rencana Murid');
+        ->and(BerkasCalonSiswa::LABELS['krm_path'])->toBe('Kartu Rentan Miskin');
 
     // Setiap kolom yang boleh diunggah punya label; tidak ada nama kolom mentah.
     foreach (BerkasCalonSiswa::PERLU_PERBAIKAN as $field) {

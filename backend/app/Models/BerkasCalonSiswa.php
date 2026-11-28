@@ -53,7 +53,7 @@ class BerkasCalonSiswa extends Model
         'akta_path' => 'Akta Kelahiran',
         'foto_path' => 'Pas Foto',
         'skl_path' => 'Surat Keterangan Lulus',
-        'krm_path' => 'Kartu Rencana Murid',
+        'krm_path' => 'Kartu Rentan Miskin',
         'kip_path' => 'Kartu Indonesia Pintar',
         'sertifikat' => 'Sertifikat Prestasi',
     ];
